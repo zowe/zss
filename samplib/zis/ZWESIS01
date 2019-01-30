@@ -1,0 +1,51 @@
+//ZWESIS01  PROC NAME='ZWESIS_STD',MEM=00,RGN=0M
+//********************************************************************/
+//* This program and the accompanying materials are                  */
+//* made available under the terms of the                            */
+//* Eclipse Public License v2.0                                      */
+//* which accompanies this distribution, and is available at         */
+//* https://www.eclipse.org/legal/epl-v20.html                       */
+//*                                                                  */
+//* SPDX-License-Identifier: EPL-2.0                                 */
+//*                                                                  */
+//* Copyright Contributors to the Zowe Project.                      */
+//********************************************************************/
+//* A SAMPLE STC JCL FOR THE ZSS CROSS-MEMORY SERVER                 */
+//*                                                                  */
+//* 1. RUN-TIME PARAMETERS                                           */
+//*                                                                  */
+//*   COLD  - COLD START                                             */
+//*           RESET SERVER STATE. DO NOT USE WITHOUT CONSULTING WITH */
+//*           SUPPORT.                                               */
+//*           EXAMPLE: PARM='COLD'                                   */
+//*   DEBUG - DEBUG MODE                                             */
+//*           EXAMPLE: PARM='DEBUG'                                  */
+//*   NAME  - NAME OF THIS SERVER                                    */
+//*           ZWESIS_STD IS THE DEFAULT NAME, THE MAX LENGTH IS 16.  */
+//*           EXAMPLE: NAME='ZWESIS_02'                              */
+//*   MEM   - THE SUFFIX OF THE ZWESIPXX MEMEBER                     */
+//*           00 IS THE DEFAULT VALUE.                               */
+//*           EXAMPLE: MEM=02                                        */
+//*                                                                  */
+//* 2. PARMLIB                                                       */
+//*                                                                  */
+//* BY DEFAULT THE SERVER WILL READ ITS PARAMETERS FROM THE PARMLIB  */
+//* DD DATASET. IF YOU WANT TO USE YOUR SYSTEM DEFINED PARMLIB,      */
+//* REMOVE OR COMMENT OUT THE PARMLIB DD.                            */
+//*                                                                  */
+//* 3. STEPLIB DATASET NAME                                          */
+//*                                                                  */
+//* VERIFY AND/OR CHANGE THE NAME OF THE STEPLIB DATASET             */
+//*                                                                  */
+//* THE STARTED TASK MUST USE A STEPLIB DD STATEMENT TO DECLARE      */
+//* THE ZSS CROSS MEMORY SERVER LOAD LIBRARY NAME. THIS IS REQUIRED  */
+//* SO THAT THE APPROPRIATE VERSION OF THE SOFTWARE IS LOADED        */
+//* CORRECTLY. DO NOT ADD THE LOAD LIBRARY DATA SET TO THE SYSTEM    */
+//* LNKLST OR LPALST CONCATENATIONS.                                 */
+//*                                                                  */
+//********************************************************************/
+//ZWESIS01 EXEC PGM=ZWESIS01,REGION=&RGN,
+//         PARM='NAME=&NAME,MEM=&MEM'
+//STEPLIB  DD   DSNAME=ZWES.SISLOAD,DISP=SHR
+//PARMLIB  DD   DSNAME=ZWES.SISSAMP,DISP=SHR
+//SYSPRINT DD   SYSOUT=*

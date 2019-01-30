@@ -1,0 +1,124 @@
+<?xml version="1.0"?>
+
+
+<!-- 
+  This program and the accompanying materials are
+  made available under the terms of the Eclipse Public License v2.0 which accompanies
+  this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
+  
+  SPDX-License-Identifier: EPL-2.0
+  
+  Copyright Contributors to the Zowe Project.
+-->
+
+<project default="compile">
+  <record name="build.log" loglevel="info"/>
+
+  <property file="version.properties"/>
+  <tstamp>
+    <format property="version.date" pattern="yyyyMMdd"/>
+  </tstamp>
+
+  <condition property="isWindows">
+    <os family="windows"/>
+  </condition>
+
+  <condition property="isUnix">
+    <os family="unix"/>
+  </condition>
+
+  <condition property="isZos">
+    <os family="z/os"/>
+  </condition>
+
+  <condition property="compilerAPFArg" value="-DAPF_AUTHORIZED=0" else="-DAPF_AUTHORIZED=1">
+    <isset property="isUnauthorized"/>
+  </condition>
+  <condition property="extattrAPFFlag" value="" else="a">
+    <isset property="isUnauthorized"/>
+  </condition>
+
+  <target name="compile" if="isZos">
+    <mkdir dir="../bin"/>
+    <mkdir dir="tmp-zss"/>
+    <property name="EXTRA_DASH_D" value="-DPRODUCT_MINOR_VERSION=${PRODUCT_MINOR_VERSION} -DPRODUCT_MAJOR_VERSION=${PRODUCT_MAJOR_VERSION} -DPRODUCT_REVISION=${PRODUCT_REVISION} -DPRODUCT_VERSION_DATE_STAMP=${version.date}"/>
+    <exec executable="c89" dir="tmp-zss/" failonerror="true">
+      <env key="_C89_LSYSLIB" value="CEE.SCEELKED:SYS1.CSSLIB:CSF.SCSFMOD0"/>
+      <arg line="${EXTRA_DASH_D}"/>
+      <arg value="-D_XOPEN_SOURCE=600"/>
+      <arg value="-DNOIBMHTTP=1"/>
+      <arg value="-D_OPEN_THREADS=1"/>
+      <arg value="-DHTTPSERVER_BPX_IMPERSONATION=1"/>
+      <arg value="${compilerAPFArg}"/>
+      <arg value="-Wc,dll,expo,langlvl(extc99),gonum,goff,hgpr,roconst,ASM,asmlib('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN')"/>
+      <arg value="-Wl,ac=1"/>
+      <arg line="-I ${COMMON}/h"/>
+      <arg line="-I ${ZSS}/h"/>
+      <arg line="-o ${ZSS}/bin/zssServer"/>
+      <arg value="${COMMON}/c/alloc.c"/>
+      <arg value="${COMMON}/c/bpxskt.c"/>
+      <arg value="${COMMON}/c/charsets.c"/>
+      <arg value="${COMMON}/c/collections.c"/>
+      <arg value="${COMMON}/c/crossmemory.c"/>
+      <arg value="${COMMON}/c/crypto.c"/>
+      <arg value="${COMMON}/c/dataservice.c"/>
+      <arg value="${COMMON}/c/datasetjson.c"/>
+      <arg value="${COMMON}/c/discovery.c"/>
+      <arg value="${COMMON}/c/dynalloc.c"/>
+      <arg value="${COMMON}/c/http.c"/>
+      <arg value="${COMMON}/c/httpserver.c"/>
+      <arg value="${COMMON}/c/httpfileservice.c"/>
+      <arg value="${COMMON}/c/icsf.c"/>
+      <arg value="${COMMON}/c/idcams.c"/>
+      <arg value="${COMMON}/c/impersonation.c"/>
+      <arg value="${COMMON}/c/jcsi.c"/>
+      <arg value="${COMMON}/c/json.c"/>
+      <arg value="${COMMON}/c/le.c"/>
+      <arg value="${COMMON}/c/logging.c"/>
+      <arg value="${COMMON}/c/nametoken.c"/>
+      <arg value="${COMMON}/c/zos.c"/>
+      <arg value="${COMMON}/c/impersonation.c"/>
+      <arg value="${COMMON}/c/pdsutil.c"/>
+      <arg value="${COMMON}/c/qsam.c"/>
+      <arg value="${COMMON}/c/radmin.c"/>
+      <arg value="${COMMON}/c/rawfd.c"/>
+      <arg value="${COMMON}/c/recovery.c"/>
+      <arg value="${COMMON}/c/scheduling.c"/>
+      <arg value="${COMMON}/c/signalcontrol.c"/>
+      <arg value="${COMMON}/c/socketmgmt.c"/>
+      <arg value="${COMMON}/c/stcbase.c"/>
+      <arg value="${COMMON}/c/timeutls.c"/>
+      <arg value="${COMMON}/c/utils.c"/>
+      <arg value="${COMMON}/c/vsam.c"/>
+      <arg value="${COMMON}/c/xlate.c"/>
+      <arg value="${COMMON}/c/xml.c"/>
+      <arg value="${COMMON}/c/zosfile.c"/>
+      <arg value="${COMMON}/c/zvt.c"/>
+      <arg value="${ZSS}/c/zssLogging.c"/>
+      <arg value="${ZSS}/c/zss.c"/>
+      <arg value="${ZSS}/c/serviceUtils.c"/>
+      <arg value="${ZSS}/c/authService.c"/>
+      <arg value="${ZSS}/c/omvsService.c"/>
+      <arg value="${ZSS}/c/unixFileService.c"/>
+      <arg value="${ZSS}/c/datasetService.c"/>
+      <arg value="${ZSS}/c/zosDiscovery.c"/>
+      <arg value="${ZSS}/c/zis/client.c"/>
+    </exec> 
+
+    <exec executable="extattr">
+      <arg line="+p${extattrAPFFlag} ${ZSS}/bin/zssServer"/>
+    </exec>    
+  </target>
+</project>
+
+
+<!-- 
+  This program and the accompanying materials are
+  made available under the terms of the Eclipse Public License v2.0 which accompanies
+  this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
+  
+  SPDX-License-Identifier: EPL-2.0
+  
+  Copyright Contributors to the Zowe Project.
+-->
+

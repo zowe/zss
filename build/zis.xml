@@ -1,0 +1,122 @@
+<?xml version="1.0"?>
+
+
+<!-- 
+  This program and the accompanying materials are
+  made available under the terms of the Eclipse Public License v2.0 which accompanies
+  this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
+  
+  SPDX-License-Identifier: EPL-2.0
+  
+  Copyright Contributors to the Zowe Project.
+-->
+
+<project default="build">
+  <record name="build.log" loglevel="info"/>
+
+  <target name="build">
+
+    <property name="TMPDIR" value="tmp-zis"/>
+
+    <mkdir dir="${TMPDIR}"/>
+
+    <exec executable="xlc" dir="${TMPDIR}" failonerror="true">
+      <arg line="-S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1"/>
+      <arg value="-DMSGPREFIX=&quot;ZWE&quot;"/>
+      <arg value="-qreserved_reg=r12"/>
+      <arg value="-Wc,arch(8),agg,exp,list(),so(),off,xref,roconst,longname,lp64"/>
+      <arg line="-I ${COMMON}/h"/>
+      <arg line="-I ${ZSS}/h"/>
+      <arg value="${COMMON}/c/alloc.c"/>
+      <arg value="${COMMON}/c/collections.c"/>
+      <arg value="${COMMON}/c/crossmemory.c"/>
+      <arg value="${COMMON}/c/le.c"/>
+      <arg value="${COMMON}/c/logging.c"/>
+      <arg value="${COMMON}/c/metalio.c"/>
+      <arg value="${COMMON}/c/mtlskt.c"/>
+      <arg value="${COMMON}/c/nametoken.c"/>
+      <arg value="${COMMON}/c/qsam.c"/>
+      <arg value="${COMMON}/c/recovery.c"/>
+      <arg value="${COMMON}/c/resmgr.c"/>
+      <arg value="${COMMON}/c/scheduling.c"/>
+      <arg value="${COMMON}/c/stcbase.c"/>
+      <arg value="${COMMON}/c/timeutls.c"/>
+      <arg value="${COMMON}/c/utils.c"/>
+      <arg value="${COMMON}/c/xlate.c"/>
+      <arg value="${COMMON}/c/zos.c"/>
+      <arg value="${COMMON}/c/zvt.c"/>
+      <arg value="${ZSS}/c/zis/parm.c"/>
+      <arg value="${ZSS}/c/zis/server.c"/>
+    </exec> 
+
+    <antcall target="assemble"><param name="file" value="alloc"/></antcall>
+    <antcall target="assemble"><param name="file" value="collections"/></antcall>
+    <antcall target="assemble"><param name="file" value="crossmemory"/></antcall>
+    <antcall target="assemble"><param name="file" value="le"/></antcall>
+    <antcall target="assemble"><param name="file" value="logging"/></antcall>
+    <antcall target="assemble"><param name="file" value="metalio"/></antcall>
+    <antcall target="assemble"><param name="file" value="mtlskt"/></antcall>
+    <antcall target="assemble"><param name="file" value="nametoken"/></antcall>
+    <antcall target="assemble"><param name="file" value="qsam"/></antcall>
+    <antcall target="assemble"><param name="file" value="recovery"/></antcall>
+    <antcall target="assemble"><param name="file" value="resmgr"/></antcall>
+    <antcall target="assemble"><param name="file" value="scheduling"/></antcall>
+    <antcall target="assemble"><param name="file" value="stcbase"/></antcall>
+    <antcall target="assemble"><param name="file" value="timeutls"/></antcall>
+    <antcall target="assemble"><param name="file" value="utils"/></antcall>
+    <antcall target="assemble"><param name="file" value="xlate"/></antcall>
+    <antcall target="assemble"><param name="file" value="zos"/></antcall>
+    <antcall target="assemble"><param name="file" value="zvt"/></antcall>
+
+    <antcall target="assemble"><param name="file" value="parm"/></antcall>
+    <antcall target="assemble"><param name="file" value="server"/></antcall>
+
+
+    <exec executable="ld" dir="${TMPDIR}" failonerror="true" output="${TMPDIR}/ZWESIS01.link">
+      <env key="_LD_SYSLIB" value="//&apos;SYS1.CSSLIB&apos;://&apos;CEE.SCEELKEX&apos;://&apos;CEE.SCEELKED&apos;://&apos;CEE.SCEERUN&apos;://&apos;CEE.SCEERUN2&apos;://&apos;CSF.SCSFMOD0&apos;"/>
+      <arg line="-V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus"/>
+      <arg line="-e main -o &quot;//&apos;${env.USER}.DEV.LOADLIB(ZWESIS01)&apos;&quot;"/>
+      <arg value="alloc.o"/>
+      <arg value="collections.o"/>
+      <arg value="crossmemory.o"/>
+      <arg value="le.o"/>
+      <arg value="logging.o"/>
+      <arg value="metalio.o"/>
+      <arg value="mtlskt.o"/>
+      <arg value="nametoken.o"/>
+      <arg value="qsam.o"/>
+      <arg value="recovery.o"/>
+      <arg value="resmgr.o"/>
+      <arg value="scheduling.o"/>
+      <arg value="stcbase.o"/>
+      <arg value="timeutls.o"/>
+      <arg value="utils.o"/>
+      <arg value="xlate.o"/>
+      <arg value="zos.o"/>
+      <arg value="zvt.o"/>
+      <arg value="parm.o"/>
+      <arg value="server.o"/>
+    </exec>
+
+ </target>
+
+ <target name="assemble">
+   <exec executable="as" dir="${TMPDIR}" failonerror="true">
+     <arg line="-mgoff -mobject -mflag=nocont --TERM --RENT"/>
+     <arg line="-aegimrsx=${file}.asm ${file}.s"/>
+   </exec> 
+ </target>
+
+</project>
+
+
+<!-- 
+  This program and the accompanying materials are
+  made available under the terms of the Eclipse Public License v2.0 which accompanies
+  this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
+  
+  SPDX-License-Identifier: EPL-2.0
+  
+  Copyright Contributors to the Zowe Project.
+-->
+
