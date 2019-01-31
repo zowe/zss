@@ -793,8 +793,22 @@ int main(int argc, char **argv){
       serverConfigFile = argv[1];
     }
   }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "serverConfigFile %s\n", serverConfigFile);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Server config file=%s\n", serverConfigFile);
+  BPXYSTAT *stat = (BPXYSTAT*) safeMalloc31(sizeof(BPXYSTAT), "bpxystat");
+  memset(stat, 0x00, sizeof(BPXYSTAT));
 
+  int returnValue = fileInfo(serverConfigFile, stat, &returnCode, &reasonCode);
+  if (stat->flags3 & 0x18 || stat->flags3 & 0x07) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+      "Config file=%s has group & other permissions that are too open! Refusing to start.\n",serverConfigFile);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+      "Ensure group has no write or execute permission. Ensure other has no permissions. Then, restart zssServer to continue.\n");
+    return 8;
+  } else if (returnValue != 0) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+      "Couldnt stat config file=%s. return=%d, reason=%d\n",serverConfigFile,returnCode, reasonCode);
+    return 8;
+  }
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
   if (mvdSettings) {
