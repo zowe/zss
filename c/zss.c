@@ -639,7 +639,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
   return webPluginListHead;
 }
 
-static const char defaultConfigPath[] = "../deploy/instance/config/mvdserver.json";
+static const char defaultConfigPath[] = "../deploy/instance/ZLUX/serverConfig/zluxserver.json";
 
 static
 void checkAndSetVariable(JsonObject *mvdSettings,
@@ -756,7 +756,7 @@ static int validateAddress(char *address, InetAddr **inetAddress) {
 
 int main(int argc, char **argv){
   if (argc == 1) { 
-    printf("Usage: zssServer <path to zssServer.json file>\n");
+    printf("Usage: zssServer <path to zssServer.json or zluxServer.json file>\n");
     return 8;
   }
 
@@ -809,6 +809,9 @@ int main(int argc, char **argv){
       "Couldnt stat config file=%s. return=%d, reason=%d\n",serverConfigFile,returnCode, reasonCode);
     return 8;
   }
+  safeFree31((char *)stat, sizeof(BPXYSTAT));
+  stat = NULL;
+
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
   if (mvdSettings) {
