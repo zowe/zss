@@ -596,17 +596,21 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
                 JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, pluginLocation);
                 if (pluginDefinition) {
                   WebPlugin *plugin = makeWebPlugin(pluginLocation, pluginDefinition, internalAPIMap);
-                  initalizeWebPlugin(plugin, server);
-                  //zlux does this, so don't bother doing it twice.
-                  //installWebPluginFilesServices(plugin, server);
-                  WebPluginListElt *pluginListElt = (WebPluginListElt*) safeMalloc(sizeof (WebPluginListElt), "WebPluginListElt");
-                  pluginListElt->plugin = plugin;
-                  if (webPluginListTail) {
-                    webPluginListTail->next = pluginListElt;
-                    webPluginListTail = pluginListElt;
+                  if (plugin != NULL) {
+                    initalizeWebPlugin(plugin, server);
+                    //zlux does this, so don't bother doing it twice.
+                    //installWebPluginFilesServices(plugin, server);
+                    WebPluginListElt *pluginListElt = (WebPluginListElt*) safeMalloc(sizeof (WebPluginListElt), "WebPluginListElt");
+                    pluginListElt->plugin = plugin;
+                    if (webPluginListTail) {
+                      webPluginListTail->next = pluginListElt;
+                      webPluginListTail = pluginListElt;
+                    } else {
+                      webPluginListHead = pluginListElt;
+                      webPluginListTail = pluginListElt;
+                    }
                   } else {
-                    webPluginListHead = pluginListElt;
-                    webPluginListTail = pluginListElt;
+                    rktlog(NULL, LOG_COMP_ID_MVD_SERVER, RS_LOG_INFO, "plugin cannot be loaded. Check definition for this plugin.\n", errorBuffer);
                   }
                 }
               } else {
