@@ -27,7 +27,17 @@
 #include "unixFileService.h"
 #include "zssLogging.h"
 
+/* Time it takes in seconds for a session to be
+ * removed from the hashtable due to
+ * inactivity.
+ */
 #define TIMEOUT_TIME 600
+
+/* An enumeration of the possible
+ * file transfer types supported
+ * in the service.
+ */
+enum TransferType {NONE, BINARY, TEXT};
 
 /* Stores data for an
  * UploadSession.
@@ -35,16 +45,21 @@
 typedef struct UploadSession_tag {
   UnixFile *file;
   unsigned int timeOfLastRequest;
-  int sessionID;
+  unsigned int sessionID;
+  int targetCCSID;
+  int sourceCCSID;
+  enum TransferType tType;
+  char userName[9];
 } UploadSession;
 
 /* Stores all active UploadSessions
  * on the server.
  */
 typedef struct UploadSessionTracker_tag {
-  hashtable *sessions;
-  hashtable *ids;
+  hashtable *sessionsByFileID;
+  hashtable *fileIDsBySessionID;
   pthread_mutex_t fileHashLock;
+  unsigned int sessionCounter;
 } UploadSessionTracker;
 
 /* A unique file identifier created
@@ -59,15 +74,39 @@ static int fileIDHasher(void *key);
 static int compareFileID(void *key1, void *key2);
 static int timeOutMatcher(void *userData, void *key, void *value);
 static void timeOutDestroyer(void *userData, void *value);
-static void respondWithSessionID(HttpResponse *response, int sessionID);
-static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse *response, char *routeFileName, unsigned int currUnixTime);
 static void removeSessionTimeOuts(UploadSessionTracker *tracker, void *currUnixTimePtr);
-static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, char *routeFileName, char *id);
+static int cleanupSession(UploadSessionTracker *tracker, FileID *fileID, int sessionID);
 
-/* Hashing function for the SessionsByFileID,
- *
- * - Shift 3 bits to the left and ^.
- */
+static void addToTable(hashtable *table, void *key, void *value, pthread_mutex_t *lock);
+static void addToTableUInt(hashtable *table, unsigned int key, void *value, pthread_mutex_t *lock);
+static void *getFromTable(hashtable *table, void *key, pthread_mutex_t *lock);
+static void *getFromTableUInt(hashtable *table, unsigned int key, pthread_mutex_t *lock);
+static void removeFromTable(hashtable *table, void *key, pthread_mutex_t *lock);
+static void removeFromTableUInt(hashtable *table, unsigned int key, pthread_mutex_t *lock);
+static int checkForDuplicatesInTable(HttpResponse *response, hashtable *table, void *key, pthread_mutex_t *lock);
+
+static int parseForceOverwriteParameter(HttpRequest *request);
+static int parseEncodingParameter(HttpResponse *response, int *outSourceCCSID, int *outTargetCCSID,
+                                 enum TransferType *outTransferType);
+static void getEncodingInfoFromQueryParameters(char *inSourceEncoding, char *inTargetEncoding, int *outSourceCCSID,
+                                               int *outTargetCCSID, enum TransferType *outTransferType);
+static int parseLastChunkQueryParameter(HttpResponse *response, int *lastChunkValue);
+
+static void respondWithSessionID(HttpResponse *response, int sessionID);
+static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse *response, char *routeFileName,
+                                    unsigned int currUnixTime);
+static void addSessionIDToTableAndIncrementCounter(UploadSessionTracker *tracker, FileID *fileID,
+                                                   UploadSession *session);
+static int validateSessionWithUserName(char *requestUserName, char *tableUserName);
+
+static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, char *routeFileName, char *id,
+                       unsigned int currUnixTime);
+
+static int checkForOverwritePermission(HttpResponse *response, int fileExists, int forceValue);
+static int handleNewFileCase(HttpResponse *response, char *fileName, int *iNode, int *deviceID);
+static int checkIfFileIsBusy(HttpResponse *response, char *fileName, UnixFile **file);
+static int tagFileForUploading(HttpResponse *response, char *fileName, int targetCCSID);
+
 static int fileIDHasher(void *key) {
   FileID *fid = key;
 
@@ -81,10 +120,6 @@ static int fileIDHasher(void *key) {
   return res;
 }
 
-/* Comparator function for SessionsByFileID,
- *
- * - Compares members of the FileID struct.
- */
 static int compareFileID(void *key1, void *key2) {
   FileID *fid1 = key1;
   FileID *fid2 = key2;
@@ -96,53 +131,34 @@ static int compareFileID(void *key1, void *key2) {
   return FALSE;
 }
 
-/* Key Reclaimer for SessionsByFileID
- *
- * - Free's the FileID struct
- *
- * NOTE: This means that fileIDsBySessionID does
- * NOT need a value reclaimer.
- */
 static void freeKeySessionsByFileID(void *key) {
   FileID *fid = key;
   safeFree((char*)fid, sizeof(FileID));
 }
 
-/* Value Reclaimer for SessionsByFileID
- *
- * - Free's the UploadSession struct
- * - Closes the active file
- */
 static void freeValueSessionsByFileID(void *value) {
+  int status = 0;
   int returnCode = 0;
   int reasonCode = 0;
 
   UploadSession *s = value;
-  fileClose(s->file, &returnCode, &reasonCode);
+  status = fileClose(s->file, &returnCode, &reasonCode);
+  if (status == -1) {
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not close file. Ret: %d, Res: %d\n",
+          returnCode, reasonCode);
+  }
   safeFree((char*)s, sizeof(UploadSession));
 }
 
-/* Comparator function for htPrune
- *
- * - Compares the timeOfLastRequest for
- * an UploadSession to the current time
- * in order to detect any sessions that
- * need to be timed out.
- */
 static int timeOutMatcher(void *userData, void *key, void *value) {
   UploadSession *s = value;
-  unsigned int *currTime = userData;
-  if ((*currTime - s->timeOfLastRequest) >= TIMEOUT_TIME) {
+  unsigned int currTime = *(unsigned int *)userData;
+  if ((currTime - s->timeOfLastRequest) >= TIMEOUT_TIME) {
     return TRUE;
   }
   return FALSE;
 }
 
-/* Destroyer function for htPrune
- *
- * - Free's UploadSession struct
- * - Closes the active file
- */
 static void timeOutDestroyer(void *userData, void *value) {
   int status = 0;
   int returnCode = 0;
@@ -151,14 +167,12 @@ static void timeOutDestroyer(void *userData, void *value) {
   UploadSession *s = value;
   status = fileClose(s->file, &returnCode, &reasonCode);
   if (status == -1) {
-    printf("ERROR: Failed to close file %s, ReturnCode: %d, ReasonCode: %d", s->file->pathname, returnCode, reasonCode);
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not close file. Ret: %d, Res: %d\n",
+          returnCode, reasonCode);
   }
   safeFree((char*)s, sizeof(UploadSession));
 }
 
-/* Reponds to the client with their
- * generated sessionID.
- */
 static void respondWithSessionID(HttpResponse *response, int sessionID) {
   jsonPrinter *out = respondWithJsonPrinter(response);
 
@@ -170,25 +184,240 @@ static void respondWithSessionID(HttpResponse *response, int sessionID) {
 
   jsonStart(out);
   jsonAddString(out, "msg", "Please attach the sessionID to subsequent requests");
-  jsonAddInt(out, "sessionID", sessionID);
+  jsonAddUInt(out, "sessionID", sessionID);
   jsonEnd(out);
 
   finishResponse(response);
 }
 
-/* The sessionID is NOT present, so we try to
- * assign a sessionID to the caller.
- */
-static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse *response, char *routeFileName, unsigned int currUnixTime) {
+static int parseForceOverwriteParameter(HttpRequest *request) {
+  char *forceVal = getQueryParam(request, "forceOverwrite");
+  if (!strcmp(strupcase(forceVal), "TRUE")) {
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+static int checkForOverwritePermission(HttpResponse *response, int fileExists, int forceValue) {
+  if (forceValue == FALSE && fileExists == TRUE) {
+    respondWithJsonError(response, "File already exists. Please choose a different file name or attach "
+        "the forceOverwrite query parameter to your next request.", 200, "OK");
+    return -1;
+  }
+
+  return 0;
+}
+
+static void getEncodingInfoFromQueryParameters(char *inSourceEncoding, char *inTargetEncoding, int *outSourceCCSID,
+                                       int *outTargetCCSID, enum TransferType *outTransferType) {
+
+  if (!strcmp(strupcase(inSourceEncoding), "BINARY") && !strcmp(strupcase(inTargetEncoding), "BINARY")) {
+    *outSourceCCSID = CCSID_BINARY;
+    *outTargetCCSID = CCSID_BINARY;
+    *outTransferType = BINARY;
+  }
+  else {
+    *outSourceCCSID = getCharsetCode(inSourceEncoding);
+    *outTargetCCSID = getCharsetCode(inTargetEncoding);
+    *outTransferType = TEXT;
+  }
+}
+
+static int parseEncodingParameter(HttpResponse *response, int *outSourceCCSID, int *outTargetCCSID,
+                                  enum TransferType *outTransferType) {
+  char *sourceEncoding = getQueryParam(response->request, "sourceEncoding");
+  char *targetEncoding = getQueryParam(response->request, "targetEncoding");
+  if (sourceEncoding == NULL || targetEncoding == NULL) {
+    respondWithJsonError(response, "Source encoding and/or target encoding are missing.", 400, "Bad Request");
+    return -1;
+  }
+
+  getEncodingInfoFromQueryParameters(sourceEncoding, targetEncoding, outSourceCCSID, outTargetCCSID, outTransferType);
+  if ((*outSourceCCSID == -1 || *outTargetCCSID == -1) && (*outTransferType == TEXT)) {
+    *outTransferType = NONE;
+    respondWithJsonError(response, "Unsupported encodings requested.", 400, "Bad Request");
+    return -1;
+  }
+
+  return 0;
+}
+
+static int handleNewFileCase(HttpResponse *response, char *fileName, int *iNode, int *deviceID) {
+  int returnCode = 0;
+  int reasonCode = 0;
+
+  UnixFile *newFile = fileOpen(fileName,
+                               FILE_OPTION_CREATE | FILE_OPTION_READ_ONLY,
+                               0700,
+                               0,
+                               &returnCode,
+                               &reasonCode);
+
+  if (newFile == NULL) {
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not create file. Ret: %d, Res: %d\n",
+           returnCode, reasonCode);
+    respondWithJsonError(response, "Could not create new file.", 500, "Internal Server Error");
+    return -1;
+  }
+
+  int status = fileClose(newFile, &returnCode, &reasonCode);
+  if (status != 0) {
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not close file. Ret: %d, Res: %d\n",
+           returnCode, reasonCode);
+    respondWithJsonError(response, "Could not close file.", 500, "Internal Server Error");
+    return -1;
+  }
+
+  FileInfo info;
+  status = fileInfo(fileName, &info, &returnCode, &reasonCode);
+  if (status != 0) {
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not get metadata for file. Ret: %d, Res: %d\n",
+           returnCode, reasonCode);
+    respondWithJsonError(response, "Could not get metadata for file.", 500, "Internal Server Error");
+    return -1;
+  }
+
+  *iNode = info.inode;
+  *deviceID = info.deviceID;
+
+  return 0;
+}
+
+static int checkForDuplicatesInTable(HttpResponse *response, hashtable *table, void *key, pthread_mutex_t *lock) {
+  pthread_mutex_lock(lock);
+  {
+    if (htGet(table, key) != NULL) {
+    pthread_mutex_unlock(lock);
+    respondWithJsonError(response, "Duplicate in table. Requested resource is busy. Please try again later.",
+                        403, "Forbidden");
+    return -1;
+    }
+  }
+  pthread_mutex_unlock(lock);
+
+  return 0;
+}
+
+static void addToTable(hashtable *table, void *key, void *value, pthread_mutex_t *lock) {
+  pthread_mutex_lock(lock);
+  {
+    htPut(table, key, value);
+  }
+  pthread_mutex_unlock(lock);
+}
+
+static void addToTableUInt(hashtable *table, unsigned int key, void *value, pthread_mutex_t *lock) {
+  pthread_mutex_lock(lock);
+  {
+    htUIntPut(table, key, value);
+  }
+  pthread_mutex_unlock(lock);
+}
+
+static void *getFromTable(hashtable *table, void *key, pthread_mutex_t *lock) {
+  void *returnValue;
+
+  pthread_mutex_lock(lock);
+  {
+    returnValue = htGet(table, key);
+  }
+  pthread_mutex_unlock(lock);
+
+  return returnValue;
+}
+
+static void *getFromTableUInt(hashtable *table, unsigned int key, pthread_mutex_t *lock) {
+  void *returnValue;
+
+  pthread_mutex_lock(lock);
+  {
+    returnValue = htUIntGet(table, key);
+  }
+  pthread_mutex_unlock(lock);
+
+  return returnValue;
+}
+
+static void removeFromTable(hashtable *table, void *key, pthread_mutex_t *lock) {
+  pthread_mutex_lock(lock);
+  {
+    htRemove(table, key);
+  }
+  pthread_mutex_unlock(lock);
+}
+
+static void removeFromTableUInt(hashtable *table, unsigned int key, pthread_mutex_t *lock) {
+  pthread_mutex_lock(lock);
+  {
+    htRemove(table, (void *)key);
+  }
+  pthread_mutex_unlock(lock);
+}
+
+static int checkIfFileIsBusy(HttpResponse *response, char *fileName, UnixFile **file) {
+  int returnCode = 0;
+  int reasonCode = 0;
+  *file = fileOpen(fileName,
+                  FILE_OPTION_TRUNCATE | FILE_OPTION_WRITE_ONLY,
+                  0,
+                  0,
+                  &returnCode,
+                  &reasonCode);
+
+  if (*file == NULL) {
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not open file. Ret: %d, Res: %d\n",
+          returnCode, reasonCode);
+    respondWithJsonError(response, "Could not open file. Requested resource is busy. Please try again later.",
+          403, "Forbidden");
+    return -1;
+  }
+
+  return 0;
+}
+
+static int tagFileForUploading(HttpResponse *response, char *fileName, int targetCCSID) {
+  int returnCode = 0;
+  int reasonCode = 0;
+
+  int status = fileChangeTag(fileName, &returnCode, &reasonCode, targetCCSID);
+  if (status == -1) {
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not tag file. Ret: %d, Res: %d\n", returnCode, reasonCode);
+    respondWithJsonError(response, "Could not tag file.", 500, "Internal Server Error");
+    return -1;
+  }
+
+  return 0;
+}
+
+static void addSessionIDToTableAndIncrementCounter(UploadSessionTracker *tracker, FileID *fileID,
+                                                   UploadSession *session) {
+  pthread_mutex_lock(&tracker->fileHashLock);
+  {
+    htUIntPut(tracker->fileIDsBySessionID, tracker->sessionCounter, fileID);
+    session->sessionID = tracker->sessionCounter;
+    tracker->sessionCounter++;
+  }
+  pthread_mutex_unlock(&tracker->fileHashLock);
+}
+
+static void removeSessionTimeOuts(UploadSessionTracker *tracker, void *currUnixTimePtr) {
+  hashtable *sessionsByFileID = tracker->sessionsByFileID;
+
+  pthread_mutex_lock(&tracker->fileHashLock);
+  {
+    htPrune(sessionsByFileID, timeOutMatcher, timeOutDestroyer, currUnixTimePtr);
+  }
+  pthread_mutex_unlock(&tracker->fileHashLock);
+}
+
+static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse *response, char *routeFileName,
+                                    unsigned int currUnixTime) {
   int reasonCode = 0;
   int returnCode = 0;
   int status = 0;
-  FileInfo info;
-  int fileExists = FALSE;
-  UploadSession *currSession;
-  FileID *fid;
-  hashtable *sessionsByFileID = tracker->sessions;
-  hashtable *fileIDsBySessionID = tracker->ids;
+  hashtable *sessionsByFileID = tracker->sessionsByFileID;
+  hashtable *fileIDsBySessionID = tracker->fileIDsBySessionID;
 
   /* If the file already exists in USS, then we should
    * only overwrite the file if the caller wants
@@ -196,28 +425,30 @@ static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse 
    * is not present, then a sessionID will NOT be returned
    * and the user will be prompted to pick a different file name
    * or attach the forceOverwrite query parameter.
-   *
-   * NOTE: This value defaults to FALSE; thus it is not required
-   * to be present on every request.
    */
-  char *forceVal = getQueryParam(response->request, "forceOverwrite");
-  int force = FALSE;
-  if (!strcmp(strupcase(forceVal), "TRUE")) {
-    force = TRUE;
+  int forceValue = parseForceOverwriteParameter(response->request);
+
+  /* The transferType and the encodings should be decided
+   * before a sessionID has been assigned.
+   */
+  int sourceCCSID = 0;
+  int targetCCSID = 0;
+  enum TransferType transferType = NONE;
+  status = parseEncodingParameter(response, &sourceCCSID, &targetCCSID, &transferType);
+  if (status == -1) {
+    return;
   }
 
-  /* First we check to see if the file already exists,
-   * by calling fileInfo. fileInfo retrieves the metadata
-   * for a file and stores it in the FileInfo struct. If it exists,
-   * then it will return 0.
-   */
+  FileInfo info;
+  int fileExists = FALSE;
   status = fileInfo(routeFileName, &info, &returnCode, &reasonCode);
   if (status == 0) {
-    if (force == FALSE) {
-      respondWithJsonError(response, "File already exists. Please choose a different file name or attach the forceOverwrite query parameter to your next request.", 200, "OK");
-      return;
-    }
     fileExists = TRUE;
+  }
+
+  status = checkForOverwritePermission(response, fileExists, forceValue);
+  if (status == -1) {
+    return;
   }
 
   /* Because our key is going to be a hash of a file's iNode
@@ -225,61 +456,23 @@ static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse 
    * values. If is doesn't exist, then we must create it in
    * order to capture those values.
    */
-  if (fileExists == FALSE) {
-    UnixFile *newFile = fileOpen(routeFileName,
-                                 FILE_OPTION_CREATE | FILE_OPTION_READ_ONLY,
-                                 0700,
-                                 0,
-                                 &returnCode,
-                                 &reasonCode);
-
-    if (newFile == NULL) {
-      zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not create file. Ret: %d, Res: %d\n", returnCode, reasonCode);
-      respondWithJsonError(response, "Could not create new file.", 500, "Internal Server Error");
-      return;
-    }
-
-    int status = fileClose(newFile, &returnCode, &reasonCode);
-    if (status != 0) {
-      zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not close file. Ret: %d, Res: %d\n", returnCode, reasonCode);
-      respondWithJsonError(response, "Could not close file.", 500, "Internal Server Error");
-      return;
-    }
-
-    /* Call fileInfo for the newly created file in
-     * order to get the metadeta.
-     */
-    status = fileInfo(routeFileName, &info, &returnCode, &reasonCode);
-    if (status != 0) {
-      zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not get metadata for file. Ret: %d, Res: %d\n", returnCode, reasonCode);
-      respondWithJsonError(response, "Could not get metadata for file.", 500, "Internal Server Error");
-      return;
-    }
-  }
-
-  /* Get the iNode from the FileInfo struct,
-   * which is used as part of the key in the
-   * HashTable.
-   */
-  int iNode = fileGetINode(&info);
-  if (iNode == 0) {
-    respondWithJsonError(response, "Could not get iNode of file.", 500, "Internal Server Error");
-    return;
-  }
-
-  /* Get the iNode from the FileInfo struct,
-   * which is used as part of the key in the
-   * HashTable.
-   */
-  int deviceID = fileGetDeviceID(&info);
-  if (deviceID == 0) {
-    respondWithJsonError(response, "Could not get deviceID of file.", 500, "Internal Server Error");
-    return;
-  }
-
   FileID fileID = {0};
-  fileID.iNode = iNode;
-  fileID.deviceID = deviceID;
+
+  if (fileExists == FALSE) {
+    int iNode, deviceID;
+    status = handleNewFileCase(response, routeFileName, &iNode, &deviceID);
+    if (status == -1) {
+      return;
+    }
+    else {
+      fileID.iNode = iNode;
+      fileID.deviceID = deviceID;
+    }
+  }
+  else {
+    fileID.iNode = info.inode;
+    fileID.deviceID = info.deviceID;
+  }
 
   /* Because the server does work on behalf of the caller,
    * the processID accessing files will be the same. As a result,
@@ -289,184 +482,183 @@ static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse 
    * to see if the requested file is currently active in an UploadSession.
    * If it's not active, then we can go ahead and add it to the HashTable.
    */
-  pthread_mutex_lock(&tracker->fileHashLock);
-  {
-    if (htGet(sessionsByFileID, &fileID) != NULL) {
-      pthread_mutex_unlock(&tracker->fileHashLock);
-
-      respondWithJsonError(response, "Duplicate in table. Requested resource is busy. Please try again later.", 403, "Forbidden");
-      return;
-    }
-    else {
-      currSession = (UploadSession*)safeMalloc(sizeof(UploadSession), "UploadSession");
-      fid = (FileID*)safeMalloc(sizeof(FileID), "FileID");
-      fid->iNode = iNode;
-      fid->deviceID = deviceID;
-      htPut(sessionsByFileID, fid, currSession);
-    }
+  status = checkForDuplicatesInTable(response, sessionsByFileID, &fileID, &tracker->fileHashLock);
+  if (status == -1) {
+    return;
   }
-  pthread_mutex_unlock(&tracker->fileHashLock);
+
+  UploadSession *currentSession = (UploadSession*)safeMalloc(sizeof(UploadSession), "UploadSession");
+  currentSession->sourceCCSID = sourceCCSID;
+  currentSession->targetCCSID = targetCCSID;
+  currentSession->tType = transferType;
+  currentSession->timeOfLastRequest = currUnixTime;
+
+  FileID *currentFileID = (FileID*)safeMalloc(sizeof(FileID), "FileID");
+  currentFileID->iNode = fileID.iNode;
+  currentFileID->deviceID = fileID.deviceID;
+
+  addToTable(sessionsByFileID, currentFileID, currentSession, &tracker->fileHashLock);
 
   /* Now we must open the file that we will be uploading. We do this now
    * as an indicator of whether or not the file is currently busy. If it
    * is busy on behalf of another instance of ZSS, then this WILL fail. In
    * the case of failure, then we must remove the entry from the HashTable.
    */
-  UnixFile *uploadDestination = fileOpen(routeFileName,
-                                         FILE_OPTION_TRUNCATE | FILE_OPTION_WRITE_ONLY,
-                                         0,
-                                         0,
-                                         &returnCode,
-                                         &reasonCode);
-
-  if (uploadDestination == NULL) {
-    pthread_mutex_lock(&tracker->fileHashLock);
-    {
-      htRemove(sessionsByFileID, fid);
-    }
-    pthread_mutex_unlock(&tracker->fileHashLock);
-    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not open file. Ret: %d, Res: %d\n", returnCode, reasonCode);
-    respondWithJsonError(response, "Could not open file. Requested resource is busy. Please try again later.", 403, "Forbidden");
+  UnixFile *file = NULL;
+  status = checkIfFileIsBusy(response, routeFileName, &file);
+  if (status == -1) {
+    removeFromTable(sessionsByFileID, currentFileID, &tracker->fileHashLock);
     return;
   }
 
-  /* We will generate a sessionID using srand(). We will check
-   * to see if the sessionID is already active by calling htGet.
-   * If after 10 tries, we can't generate a unique ID, then we
-   * stop trying.
-   */
-  int sessionID = -1;
-  pthread_mutex_lock(&tracker->fileHashLock);
-  {
-    int tryCount = 0;
-    do {
-      if (tryCount > 10) {
-        htRemove(sessionsByFileID, fid);
-        pthread_mutex_unlock(&tracker->fileHashLock);
-        respondWithJsonError(response, "Could not assign a session id. Please try again later.", 500, "Internal Server Error");
-        return;
-      }
-      sessionID = rand();
-      tryCount++;
-    } while (htIntGet(fileIDsBySessionID, sessionID) != NULL);
-
-    UploadSession *s = htGet(sessionsByFileID, fid);
-    s->file = uploadDestination;
-    s->timeOfLastRequest = currUnixTime;
-    s->sessionID = sessionID;
-
-    htIntPut(fileIDsBySessionID, sessionID, fid);
+  status = tagFileForUploading(response, routeFileName, targetCCSID);
+  if (status == -1) {
+    removeFromTable(sessionsByFileID, currentFileID, &tracker->fileHashLock);
+    return;
   }
-  pthread_mutex_unlock(&tracker->fileHashLock);
 
-  respondWithSessionID(response, sessionID);
+  currentSession->file = file;
+
+  /* The following scheme is used to derive session identifier:
+   *
+   * 1. A counter is incremented each time a new session is added;
+   * the value of this counter is used in the hashtable as the
+   * session id.
+   *
+   * 2. A username is associated with each session and is validated
+   * before every file operation. This username is sent as a cookie
+   * and is handled in httpserver.c itself.
+   *
+   * With this scheme, there is no need for random number generation
+   * and security is guarenteed since only those who have went through
+   * the login process can access this API, as it is required.
+   *
+   * See: NATIVE_AUTH_WITH_SESSION_TOKEN
+   *
+   * AddSessionIDToTableAndIncrementCounter handles all of the above
+   * using mutex in order for synchronous code.
+   */
+  addSessionIDToTableAndIncrementCounter(tracker, currentFileID, currentSession);
+
+  memset(currentSession->userName, 0, sizeof(currentSession->userName));
+  strncpy(&currentSession->userName[0], response->request->username, sizeof (currentSession->userName));
+
+  respondWithSessionID(response, currentSession->sessionID);
 }
 
-/* Search for any timeouts before processing the
- * next request. This is in case the file that this
- * current request has specified is stuck in the
- * HashTable.
- */
-static void removeSessionTimeOuts(UploadSessionTracker *tracker, void *currUnixTimePtr) {
-  hashtable *sessionsByFileID = tracker->sessions;
-
-  pthread_mutex_lock(&tracker->fileHashLock);
-  {
-    htPrune(sessionsByFileID, timeOutMatcher, timeOutDestroyer, currUnixTimePtr);
+static int parseLastChunkQueryParameter(HttpResponse *response, int *lastChunkValue) {
+  char *lastChunk = getQueryParam(response->request, "lastChunk");
+  if (lastChunk == NULL) {
+    respondWithJsonError(response, "Last chunk is missing.", 400, "Bad Request");
+    return -1;
   }
-  pthread_mutex_unlock(&tracker->fileHashLock);
+
+  if (!strcmp(strupcase(lastChunk), "TRUE")) {
+    *lastChunkValue = TRUE;
+  }
+  else {
+    *lastChunkValue = FALSE;
+  }
+
+  return 0;
 }
 
-/* The sessionID is present, so we check it's validity
- * and begin the chunking logic for file writing.
- */
-static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, char *routeFileName, char *id) {
-  FileID *fid;
-  UploadSession *currSession;
-  hashtable *sessionsByFileID = tracker->sessions;
-  hashtable *fileIDsBySessionID = tracker->ids;
+static int cleanupSession(UploadSessionTracker *tracker, FileID *fileID, int sessionID) {
+  removeFromTable(tracker->sessionsByFileID, fileID, &tracker->fileHashLock);
+  removeFromTableUInt(tracker->fileIDsBySessionID, sessionID, &tracker->fileHashLock);
+}
 
-  int sessionID = atoi(id);
-
-  /* We retrieve the FileID and the UploadSession
-   * from their respective HashTables.
-   */
-  pthread_mutex_lock(&tracker->fileHashLock);
-  {
-    fid = htIntGet(fileIDsBySessionID, sessionID);
-    currSession = htGet(sessionsByFileID, fid);
+static int validateSessionWithUserName(char *requestUserName, char *tableUserName) {
+  if (!strcmp(requestUserName, tableUserName)) {
+    return TRUE;
   }
-  pthread_mutex_unlock(&tracker->fileHashLock);
 
-  /* If the sessionID is valid, then the caller can begin
-   * to upload their file. First, we check that the correct
-   * encoding information is present in the form of query parameters.
-   * After, we will check if this is the last chunk, which is also
-   * in the form of a query parameter. Finally, we will write the chunk
-   * to the file.
+  return FALSE;
+}
+
+static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, char *routeFileName, char *id,
+                       unsigned int currUnixTime) {
+  hashtable *sessionsByFileID = tracker->sessionsByFileID;
+  hashtable *fileIDsBySessionID = tracker->fileIDsBySessionID;
+
+  unsigned int currentSessionID = strtoul(id, NULL, 10);
+
+  FileID *currentFileID = getFromTableUInt(fileIDsBySessionID, currentSessionID, &tracker->fileHashLock);
+  UploadSession *currentSession = getFromTable(sessionsByFileID, currentFileID, &tracker->fileHashLock);
+
+  /* If the sessionID is valid, then we then check
+   * to make sure their userName is correctly
+   * associated with the session id.
    */
-  if (currSession != NULL) {
-    char *sourceEncoding = getQueryParam(response->request, "sourceEncoding");
-    char *targetEncoding = getQueryParam(response->request, "targetEncoding");
-    if (sourceEncoding == NULL || targetEncoding == NULL) {
-      respondWithJsonError(response, "Source encoding and target encoding are missing.", 400, "Bad Request");
-      return;
-    }
+  if (currentSession == NULL) {
+    respondWithJsonError(response, "Session identifier is invalid.", 403, "Forbidden");
+    return;
+  }
 
-    char *lastChunkStr = getQueryParam(response->request, "lastChunk");
+  /* Update time of last request */
+  currentSession->timeOfLastRequest = currUnixTime;
+
+  /* If the userName is validated, then the caller can begin
+   * to upload their file.
+   */
+  int validated = validateSessionWithUserName(response->request->username, currentSession->userName);
+  if (!validated) {
+    respondWithJsonError(response, "User is not associated with the provided session identifier.", 400, "Bad Request");
+    return;
+  }
+
+  /* The lastChunk query parameter has to be present
+   * as it indicates whether the file has been uploaded
+   * in full.
+   */
+  else {
     int lastChunk = FALSE;
-    if (!strcmp(strupcase(lastChunkStr), "TRUE")) {
-      lastChunk = TRUE;
-    }
-
-    int returnCode = 0;
-    int reasonCode = 0;
-    int status = 0;
-    if (!strcmp(strupcase(sourceEncoding), "BINARY") && !strcmp(strupcase(targetEncoding), "BINARY")) {
-      status = writeBinaryDataFromBase64(currSession->file, response->request->contentBody, response->request->contentLength);
-    }
-    else if (strcmp(strupcase(sourceEncoding), "BINARY") && strcmp(strupcase(targetEncoding), "BINARY")) {
-      status = writeAsciiDataFromBase64(currSession->file, response->request->contentBody, response->request->contentLength, sourceEncoding, targetEncoding);
-    }
-    else {
-      respondWithJsonError(response, "Invalid encoding arguments. Cannot convert between ASCII and BINARY.", 400, "Bad Request");
+    int status = parseLastChunkQueryParameter(response, &lastChunk);
+    if (status == -1) {
       return;
     }
+
+    /* Write to the file in TEXT mode. The
+     * text is converted to the correct
+     * CCSID before being written to the
+     * file in USS.
+     */
+    if (currentSession->tType == TEXT) {
+      status = writeAsciiDataFromBase64(currentSession->file, response->request->contentBody,
+                                        response->request->contentLength, currentSession->sourceCCSID,
+                                        currentSession->targetCCSID);
+    }
+
+    /* Write to the file in BINARY mode. The bytes
+     * are written to the file in USS as is.
+     */
+    else if (currentSession->tType == BINARY) {
+      status = writeBinaryDataFromBase64(currentSession->file, response->request->contentBody,
+                                         response->request->contentLength);
+    }
+
+    /* This shouldn't happen, unless tType was somehow
+     * set to NONE, or never changed to begin with. It's
+     * in the realm of possibilies but not very likely,
+     * unless this code is modified in the future and a
+     * mistake was made.
+     */
+    else {
+      zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Transfer type hasn't been set.");
+      status = -1;
+    }
+
     if (status == 0 && lastChunk == FALSE) {
       response200WithMessage(response, "Successfully wrote chunk to file.");
     }
     else if (status == 0 && lastChunk == TRUE) {
-     status = tagFile(routeFileName, NULL, TRUE);
-     if (status == 0) {
-       response200WithMessage(response, "Successfully wrote file.");
-     }
-     else {
-       response200WithMessage(response, "Successfully wrote file, but could not tag.");
-     }
-     pthread_mutex_lock(&tracker->fileHashLock);
-     {
-       /* Must be removed from the tables in
-        * this order.
-        */
-       htRemove(sessionsByFileID, fid);
-       htRemove(fileIDsBySessionID, (void *)sessionID);
-     }
-     pthread_mutex_unlock(&tracker->fileHashLock);
+     response200WithMessage(response, "Successfully wrote file.");
+     cleanupSession(tracker, currentFileID, currentSessionID);
     }
     else {
-      respondWithJsonError(response, "Failed to write chunk to file. Aborting upload.");
-      pthread_mutex_lock(&tracker->fileHashLock);
-      {
-        htRemove(sessionsByFileID, fid);
-        htRemove(fileIDsBySessionID, (void *)sessionID);
-      }
-      pthread_mutex_unlock(&tracker->fileHashLock);
-      return;
+      respondWithJsonError(response, "Failed to write chunk to file.", 500, "Internal Server Error");
+      cleanupSession(tracker, currentFileID, currentSessionID);
     }
-  }
-  else {
-    respondWithJsonError(response, "Session identifier is invalid.", 400, "Bad Request");
-    return;
   }
 }
 
@@ -475,18 +667,12 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *routeFileName = stringConcatenate(response->slh, "/", routeFileFrag);
 
-  /* Seed based on time to help with
-   * randomness when generating a
-   * sessionID.
-   */
-  srand(time(NULL));
   unsigned int currUnixTime = (unsigned)time(NULL);
-  void *currUnixTimePtr = &currUnixTime;
 
   if (!strcmp(request->method, methodPUT)) {
     UploadSessionTracker *tracker = service->userPointer;
 
-    removeSessionTimeOuts(tracker, currUnixTimePtr);
+    removeSessionTimeOuts(tracker, &currUnixTime);
 
     /* Attempt to find the sessionID query parameter
      * attached to the current request. If it is present,
@@ -501,7 +687,7 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
       assignSessionIDToCaller(tracker, response, routeFileName, currUnixTime);
     }
     else {
-      doChunking(tracker, response, routeFileName, id);
+      doChunking(tracker, response, routeFileName, id, currUnixTime);
     }
   }
   else if (!strcmp(request->method, methodGET)) {
@@ -802,10 +988,13 @@ void installUnixFileContentsService(HttpServer *server) {
   httpService->doImpersonation = TRUE;
   registerHttpService(server, httpService);
 
-  UploadSessionTracker *tracker = (UploadSessionTracker*)safeMalloc(sizeof(UploadSessionTracker), "UploadSessionTracker");
-  tracker->sessions = htCreate(17, fileIDHasher, compareFileID, freeKeySessionsByFileID, freeValueSessionsByFileID);
-  tracker->ids = htCreate(17, NULL, NULL, NULL, NULL);
+  UploadSessionTracker *tracker = (UploadSessionTracker*)safeMalloc(sizeof(UploadSessionTracker),
+                                  "UploadSessionTracker");
+  tracker->sessionsByFileID = htCreate(17, fileIDHasher, compareFileID, freeKeySessionsByFileID,
+                                       freeValueSessionsByFileID);
+  tracker->fileIDsBySessionID = htCreate(17, NULL, NULL, NULL, NULL);
   pthread_mutex_init(&tracker->fileHashLock, NULL);
+  tracker->sessionCounter = 1;
   httpService->userPointer = tracker;
 }
 
@@ -874,9 +1063,8 @@ void installUnixFileTableOfContentsService(HttpServer *server) {
   This program and the accompanying materials are
   made available under the terms of the Eclipse Public License v2.0 which accompanies
   this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
-  
+
   SPDX-License-Identifier: EPL-2.0
-  
+
   Copyright Contributors to the Zowe Project.
 */
-
