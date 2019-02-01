@@ -228,7 +228,7 @@ int installRASService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("RAS service", "/ras/**");
   httpService->serviceFunction = serveRASData;
   httpService->runInSubtask = FALSE;
-  httpService->authType = SERVICE_AUTH_NONE;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->paramSpecList =
           makeStringParamSpec("component", SERVICE_ARG_OPTIONAL,
                               makeIntParamSpec("level", SERVICE_ARG_OPTIONAL, 0, 0, 0, 0,
