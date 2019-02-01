@@ -513,19 +513,20 @@ static int serveDiscoveryData(HttpService *service, HttpResponse *response){
 int zosDiscoveryServiceInstaller(DataService *dataService, HttpServer *server){
   printf("%s begin\n", __FUNCTION__);
   HttpService *httpService = makeHttpDataService(dataService, server);
-  httpService->serviceFunction = serveDiscoveryData;
-  httpService->userPointer = dataService;
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
-  dataService->externalAPI = NULL;
-  hashtable *emitterTable = htCreate(257,stringHash,stringCompare,NULL,NULL);
-  DiscoveryServiceState *state = (DiscoveryServiceState*)safeMalloc(sizeof(DiscoveryServiceState),"DiscoveryServiceState");
-  memset(state,0,sizeof(DiscoveryServiceState));
-  state->emitterTable = emitterTable;
-  CrossMemoryServerName *priviligedServerName = getConfiguredProperty(server, HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
-  state->model = makeZOSModel(priviligedServerName);
-  dataService->extension = state;
-
-  printf("%s end\n", __FUNCTION__);
+  if (httpService != NULL) {
+    httpService->serviceFunction = serveDiscoveryData;
+    httpService->userPointer = dataService;
+    httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+    dataService->externalAPI = NULL;
+    hashtable *emitterTable = htCreate(257,stringHash,stringCompare,NULL,NULL);
+    DiscoveryServiceState *state = (DiscoveryServiceState*)safeMalloc(sizeof(DiscoveryServiceState),"DiscoveryServiceState");
+    memset(state,0,sizeof(DiscoveryServiceState));
+    state->emitterTable = emitterTable;
+    CrossMemoryServerName *priviligedServerName = getConfiguredProperty(server, HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
+    state->model = makeZOSModel(priviligedServerName);
+    dataService->extension = state;
+    printf("%s end\n", __FUNCTION__);
+  }
   return 0;
 }
 
