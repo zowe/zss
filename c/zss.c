@@ -610,7 +610,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
                       webPluginListTail = pluginListElt;
                     }
                   } else {
-                    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, RS_LOG_INFO, "plugin cannot be loaded. Check definition for this plugin.\n", errorBuffer);
+                    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "plugin cannot be loaded. Check definition for this plugin.\n", errorBuffer);
                   }
                 }
               } else {
