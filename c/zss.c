@@ -767,26 +767,23 @@ static int validateConfigPermissionsInner(const char *path) {
     return 8;
   }
 
-  BPXYSTAT *stat = (BPXYSTAT*) safeMalloc31(sizeof(BPXYSTAT), "bpxystat");
-  memset(stat, 0x00, sizeof(BPXYSTAT));
+  BPXYSTAT stat = {0};
   int returnCode = 0;
   int reasonCode = 0;
-  int returnValue = fileInfo(path, stat, &returnCode, &reasonCode);
-  
-  if ((stat->fileType == 1 && stat->flags3 & FORBIDDEN_GROUP_DIR_PERMISSION) 
-      || (stat->fileType != 1 && stat->flags3 & FORBIDDEN_GROUP_FILE_PERMISSION)
-      || (stat->flags3 & FORBIDDEN_OTHER_PERMISSION)) {
+  int returnValue = fileInfo(path, &stat, &returnCode, &reasonCode);
+  if (returnValue != 0) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+      "Couldnt stat config path=%s. return=%d, reason=%d\n",path,returnCode, reasonCode);
+    return 8;
+  } else if (((stat.fileType == BPXSTA_FILETYPE_DIRECTORY) && (stat.flags3 & FORBIDDEN_GROUP_DIR_PERMISSION)) 
+      || ((stat.fileType != BPXSTA_FILETYPE_DIRECTORY) && (stat.flags3 & FORBIDDEN_GROUP_FILE_PERMISSION))
+      || (stat.flags3 & FORBIDDEN_OTHER_PERMISSION)) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
       "Config path=%s has group & other permissions that are too open! Refusing to start.\n",path);
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
       "Ensure group has no write (or execute, if file) permission. Ensure other has no permissions. Then, restart zssServer to retry.\n");
     return 8;
-  } else if (returnValue != 0) {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
-      "Couldnt stat config path=%s. return=%d, reason=%d\n",path,returnCode, reasonCode);
-    return 8;
   }
-  safeFree31((char *)stat, sizeof(BPXYSTAT));
   return 0;
 }
 
@@ -797,12 +794,14 @@ static int validateFilePermissions(const char *filePath) {
       "Cannot validate file permission, path is not defined.\n");
     return 8;
   }
-  char fileDirPath[strlen(filePath)];
+  char fileDirPath[COMMON_PATH_MAX];
   memset(fileDirPath, 0, sizeof(fileDirPath));
   int lastSlashPos = lastIndexOf(filePath, strlen(filePath), '/');
 
   if (lastSlashPos == -1) {
     fileDirPath[0] = '.';
+  } else if (lastSlashPos == 0) {
+    fileDirPath[0] = '/';
   } else {
     snprintf(fileDirPath, lastSlashPos+1, "%s",filePath);
   }
