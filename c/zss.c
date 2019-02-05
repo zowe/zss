@@ -794,9 +794,15 @@ static int validateFilePermissions(const char *filePath) {
       "Cannot validate file permission, path is not defined.\n");
     return 8;
   }
-  char fileDirPath[COMMON_PATH_MAX];
-  memset(fileDirPath, 0, sizeof(fileDirPath));
-  int lastSlashPos = lastIndexOf(filePath, strlen(filePath), '/');
+  int filePathLen = strlen(filePath);
+  int lastSlashPos = lastIndexOf(filePath, filePathLen, '/');
+  if (lastSlashPos == filePathLen-1) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+      "Cannot validate file permission, path was for a directory not a file.\n");
+    return 8;
+  }
+  char *fileDirPath = safeMalloc31(filePathLen, "fileDirPath");
+  memset(fileDirPath, 0, filePathLen);
 
   if (lastSlashPos == -1) {
     fileDirPath[0] = '.';
@@ -806,6 +812,7 @@ static int validateFilePermissions(const char *filePath) {
     snprintf(fileDirPath, lastSlashPos+1, "%s",filePath);
   }
   int result = validateConfigPermissionsInner(fileDirPath);
+  safeFree31(fileDirPath, filePathLen);
   if (result) {
     return result;
   } else {
