@@ -742,13 +742,13 @@ static void readAgentAddressAndPort(JsonObject *serverConfig, char **address, in
   }
 }
 
-static int validateAddress(char *address, InetAddr **inetAddress, int *wantTLS) {
+static int validateAddress(char *address, InetAddr **inetAddress, int *requiredTLSFlag) {
   *inetAddress = getAddressByName(address);
   if (strcmp(address,"127.0.0.1") && strcmp(address,"localhost")) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, 
       "*** WARNING: Server doesn't implement HTTPS! ***\n*** In production only use localhost or 127.0.0.1! Server using: %s ***\n",
       address);
-    *wantTLS = RS_TLS_WANT_TLS;
+    *requiredTLSFlag = RS_TLS_WANT_TLS;
   }
   if (!strcmp(address,"0.0.0.0")) {
     return TRUE;      
@@ -889,14 +889,14 @@ int main(int argc, char **argv){
     char *address = NULL;
     readAgentAddressAndPort(mvdSettings, &address, &port);
     InetAddr *inetAddress = NULL;
-    int wantTLS = 0;
-    if (!validateAddress(address, &inetAddress, &wantTLS)) {
+    int requiredTLSFlag = 0;
+    if (!validateAddress(address, &inetAddress, &requiredTLSFlag)) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "server startup problem, address %s not valid\n", address);
       return 8;
     }
 
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS server settings: address=%s, port=%d\n", address, port);
-    server = makeHttpServer2(base,inetAddress,port,wantTLS,&returnCode,&reasonCode);
+    server = makeHttpServer2(base,inetAddress,port,requiredTLSFlag,&returnCode,&reasonCode);
     if (server){
       server->defaultProductURLPrefix = PRODUCT;
       loadWebServerConfig(server, mvdSettings);
