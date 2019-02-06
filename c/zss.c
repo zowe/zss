@@ -286,12 +286,13 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings)
 
 static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings){
   MVD_SETTINGS = mvdSettings;
-  // Service below is temporary and needed for a redirect to /PRODUCT/plugins/com.rs.mvd/web/index.html
-  HttpService *mainService = makeGeneratedService("main", "/");
-  mainService->serviceFunction = serveMainPage;
-  mainService->authType = SERVICE_AUTH_NONE;
+  /* Disabled because this server is not being used by end users, but called by other servers
+   * HttpService *mainService = makeGeneratedService("main", "/");
+   * mainService->serviceFunction = serveMainPage;
+   * mainService->authType = SERVICE_AUTH_NONE;
+   */
   server->sharedServiceMem = mvdSettings;
-  registerHttpService(server, mainService);
+  //registerHttpService(server, mainService);
   registerHttpServiceOfLastResort(server,NULL);
 #ifdef __ZOWE_OS_ZOS
   setPrivilegedServerName(server, mvdSettings);
@@ -639,7 +640,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
   return webPluginListHead;
 }
 
-static const char defaultConfigPath[] = "../deploy/instance/config/mvdserver.json";
+static const char defaultConfigPath[] = "../deploy/instance/ZLUX/serverConfig/zluxserver.json";
 
 static
 void checkAndSetVariable(JsonObject *mvdSettings,
@@ -754,9 +755,74 @@ static int validateAddress(char *address, InetAddr **inetAddress) {
   return TRUE;
 }
 
+static const int FORBIDDEN_GROUP_FILE_PERMISSION = 0x18;
+static const int FORBIDDEN_GROUP_DIR_PERMISSION = 0x10;
+static const int FORBIDDEN_OTHER_PERMISSION = 0x07;
+
+/* validates permissions for a given path */
+static int validateConfigPermissionsInner(const char *path) {
+  if (!path) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+      "Cannot validate file permission, path is not defined.\n");
+    return 8;
+  }
+
+  BPXYSTAT stat = {0};
+  int returnCode = 0;
+  int reasonCode = 0;
+  int returnValue = fileInfo(path, &stat, &returnCode, &reasonCode);
+  if (returnValue != 0) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+      "Couldnt stat config path=%s. return=%d, reason=%d\n",path,returnCode, reasonCode);
+    return 8;
+  } else if (((stat.fileType == BPXSTA_FILETYPE_DIRECTORY) && (stat.flags3 & FORBIDDEN_GROUP_DIR_PERMISSION)) 
+      || ((stat.fileType != BPXSTA_FILETYPE_DIRECTORY) && (stat.flags3 & FORBIDDEN_GROUP_FILE_PERMISSION))
+      || (stat.flags3 & FORBIDDEN_OTHER_PERMISSION)) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+      "Config path=%s has group & other permissions that are too open! Refusing to start.\n",path);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+      "Ensure group has no write (or execute, if file) permission. Ensure other has no permissions. Then, restart zssServer to retry.\n");
+    return 8;
+  }
+  return 0;
+}
+
+/* Validates that both file AND parent folder meet requirements */
+static int validateFilePermissions(const char *filePath) {
+  if (!filePath) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+      "Cannot validate file permission, path is not defined.\n");
+    return 8;
+  }
+  int filePathLen = strlen(filePath);
+  int lastSlashPos = lastIndexOf(filePath, filePathLen, '/');
+  if (lastSlashPos == filePathLen-1) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+      "Cannot validate file permission, path was for a directory not a file.\n");
+    return 8;
+  }
+  char *fileDirPath = safeMalloc31(filePathLen, "fileDirPath");
+  memset(fileDirPath, 0, filePathLen);
+
+  if (lastSlashPos == -1) {
+    fileDirPath[0] = '.';
+  } else if (lastSlashPos == 0) {
+    fileDirPath[0] = '/';
+  } else {
+    snprintf(fileDirPath, lastSlashPos+1, "%s",filePath);
+  }
+  int result = validateConfigPermissionsInner(fileDirPath);
+  safeFree31(fileDirPath, filePathLen);
+  if (result) {
+    return result;
+  } else {
+    return validateConfigPermissionsInner(filePath);
+  }
+}
+
 int main(int argc, char **argv){
   if (argc == 1) { 
-    printf("Usage: zssServer <path to zssServer.json file>\n");
+    printf("Usage: zssServer <path to zssServer.json or zluxServer.json file>\n");
     return 8;
   }
 
@@ -793,8 +859,11 @@ int main(int argc, char **argv){
       serverConfigFile = argv[1];
     }
   }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "serverConfigFile %s\n", serverConfigFile);
-
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Server config file=%s\n", serverConfigFile);
+  int invalid = validateFilePermissions(serverConfigFile);
+  if (invalid) {
+    return invalid;
+  } 
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
   if (mvdSettings) {
