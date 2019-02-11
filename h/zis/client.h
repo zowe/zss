@@ -16,7 +16,13 @@
 #include "zowetypes.h"
 #include "crossmemory.h"
 #include "zos.h"
+
 #include "zis/server.h"
+#include "zis/service.h"
+
+#include "zis/services/auth.h"
+#include "zis/services/nwm.h"
+#include "zis/services/snarfer.h"
 
 #ifndef __LONGNAME__
 
@@ -25,15 +31,9 @@
 #define zisCheckUsernameAndPassword ZISUNPWD
 #define zisCheckEntity              ZISSAUTH
 #define zisGetSAFAccessLevel        ZISGETAC
+#define zisCallNWMService           ZISCNWMS
 
 #endif
-
-#define RC_ZIS_SRVC_OK                0
-#define RC_ZIS_SRVC_STATUS_NULL       2
-#define RC_ZIS_SRVC_SERVICE_FAILED    4
-#define RC_ZIS_SRVC_CMS_FAILED        8
-
-#define ZIS_MAX_GEN_RC                32
 
 #define NOOP(...)
 
@@ -96,7 +96,7 @@ extern const char *ZIS_AUTH_RC_DESCRIPTION[RC_ZIS_AUTHSRV_MAX_RC + 1];
 typedef struct ZISAuthServiceStatus_tag {
   ZISServiceStatus baseStatus;
   union {
-    SAFStatus safStatus;
+    SAFAuthStatus safStatus;
     AbendInfo abendInfo;
   };
 } ZISAuthServiceStatus;
@@ -158,7 +158,7 @@ int zisCallNWMService(const CrossMemoryServerName *serverName,
                       ZISNWMServiceStatus *status,
                       int traceLevel);
 
-#define RC_ZIS_SRVC_NWM_BUFFER_NULL               (ZIS_MAX_GEN_RC + 1)
+#define RC_ZIS_SRVC_NWM_BUFFER_NULL               (ZIS_MAX_GEN_SRVC_RC + 1)
 
 #endif /* ZIS_CLIENT_H_ */
 

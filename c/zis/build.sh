@@ -6,9 +6,10 @@
 # 
 # Copyright Contributors to the Zowe Project.
 
-COMMON=../../../COMMON
+COMMON=../../../zowe-common-c
 
 CFLAGS=(-S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX='"IDX"'
+-DCMS_LPA_DEV_MODE
 -qreserved_reg=r12
 -Wc,"arch(8),agg,exp,list(),so(),off,xref,roconst,longname,lp64" -I ../../h
 -I $COMMON/h)
@@ -37,7 +38,10 @@ $COMMON/c/utils.c \
 $COMMON/c/xlate.c \
 $COMMON/c/zvt.c \
 parm.c \
-server.c
+server.c \
+services/auth.c \
+services/nwm.c \
+services/snarfer.c
 
 as "${ASFLAGS[@]}" -aegimrsx=alloc.asm alloc.s
 as "${ASFLAGS[@]}" -aegimrsx=collections.asm collections.s
@@ -61,10 +65,14 @@ as "${ASFLAGS[@]}" -aegimrsx=zvt.asm zvt.s
 as "${ASFLAGS[@]}" -aegimrsx=parm.asm parm.s
 as "${ASFLAGS[@]}" -aegimrsx=server.asm server.s
 
+as "${ASFLAGS[@]}" -aegimrsx=auth.asm auth.s
+as "${ASFLAGS[@]}" -aegimrsx=nwm.asm nwm.s
+as "${ASFLAGS[@]}" -aegimrsx=snarfer.asm snarfer.s
+
 export _LD_SYSLIB="//'SYS1.CSSLIB'://'CEE.SCEELKEX'://'CEE.SCEELKED'://'CEE.SCEERUN'://'CEE.SCEERUN2'://'CSF.SCSFMOD0'"
 
 ld "${LDFLAGS[@]}" -e main \
--o "//'$USER.DEV.LOADLIB(ZISSRV01)'" \
+-o "//'$USER.DEV.LOADLIB(ZWESIS01)'" \
 alloc.o \
 collections.o \
 crossmemory.o \
@@ -85,6 +93,9 @@ xlate.o \
 zvt.o \
 parm.o \
 server.o \
+auth.o \
+nwm.o \
+snarfer.o \
 > ZISSRV01.link
 
 

@@ -24,6 +24,7 @@
 #include "zowetypes.h"
 #include "crossmemory.h"
 #include "zis/client.h"
+#include "zis/service.h"
 #include "zis/server.h"
 
 CrossMemoryServerName zisGetDefaultServerName() {
