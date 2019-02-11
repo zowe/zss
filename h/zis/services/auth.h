@@ -84,7 +84,8 @@ int zisAuthServiceFunction(CrossMemoryServerGlobalArea *globalArea,
 #define RC_ZIS_AUTHSRV_SAF_NO_DECISION            17
 #define RC_ZIS_AUTHSRV_USER_CLASS_NOT_READ        18
 #define RC_ZIS_AUTHSRV_USER_CLASS_TOO_LONG        19
-#define RC_ZIS_AUTHSRV_MAX_RC                     19
+#define RC_ZIS_AUTHSRV_CUSTOM_CLASS_NOT_ALLOWED   20
+#define RC_ZIS_AUTHSRV_MAX_RC                     20
 
 #endif /* ZIS_SERVICES_AUTH_H_ */
 

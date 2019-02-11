@@ -104,6 +104,7 @@
       <arg value="${ZSS}/c/unixFileService.c"/>
       <arg value="${ZSS}/c/datasetService.c"/>
       <arg value="${ZSS}/c/zosDiscovery.c"/>
+      <arg value="${ZSS}/c/securityService.c"/>
       <arg value="${ZSS}/c/zis/client.c"/>
     </exec> 
 
