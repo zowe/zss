@@ -611,7 +611,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
                       webPluginListTail = pluginListElt;
                     }
                   } else {
-                    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "plugin is NULL and cannot be loaded.\n", errorBuffer);
+                    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "plugin id=%s is NULL and cannot be loaded.\n", identifier);
                   }
                 }
               } else {
