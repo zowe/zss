@@ -22,6 +22,7 @@
 #endif
 
 #include "zowetypes.h"
+#include "cmutils.h"
 #include "crossmemory.h"
 #include "zis/client.h"
 #include "zis/service.h"
@@ -264,6 +265,69 @@ int zisCallNWMService(const CrossMemoryServerName *serverName,
 
   if (serviceRC != RC_ZIS_NWMSRV_OK) {
     status->baseStatus.serviceRC = serviceRC;
+    return RC_ZIS_SRVC_SERVICE_FAILED;
+  }
+
+  return RC_ZIS_SRVC_OK;
+}
+
+int zisCallService(const CrossMemoryServerName *serverName,
+                   const ZISServicePath *path, void *parm,
+                   ZISServiceStatus *status) {
+
+  if (status == NULL) {
+    return RC_ZIS_SRVC_STATUS_NULL;
+  }
+
+  CrossMemoryServerGlobalArea *cmsGA = NULL;
+  int getGlobalAreaRC = cmsGetGlobalArea(serverName, &cmsGA);
+  if (getGlobalAreaRC != RC_CMS_OK) {
+    return RC_ZIS_SRVC_GLOBAL_AREA_NULL;
+  }
+
+  if (!(cmsGA->serverFlags & CROSS_MEMORY_SERVER_FLAG_READY)) {
+    status->cmsRC = RC_CMS_SERVER_NOT_READY;
+    return RC_ZIS_SRVC_CMS_FAILED;
+  }
+
+ ZISServerAnchor *serverAnchor = cmsGA->userServerAnchor;
+ if (serverAnchor == NULL) {
+   return RC_ZIS_SRVC_SEVER_ANCHOR_NULL;
+ }
+
+ if (serverAnchor->serviceTable == NULL) {
+   return RC_ZIS_SRVC_SERVICE_TABLE_NULL;
+ }
+
+ ZISServiceAnchor *serviceAnchor =
+     crossMemoryMapGet(serverAnchor->serviceTable, path);
+  if (serviceAnchor == NULL) {
+    return RC_ZIS_SRVC_SERVICE_NOT_FOUND;
+  }
+
+  int routerServiceID = -1;
+  if (serviceAnchor->flags & ZIS_SERVICE_ANCHOR_FLAG_SPACE_SWITCH) {
+    routerServiceID = ZIS_SERVICE_ID_SRVC_ROUTER_SS;
+  } else {
+    routerServiceID = ZIS_SERVICE_ID_SRVC_ROUTER_CP;
+  }
+
+  ZISServiceRouterParm routerParmList = {0};
+  memcpy(routerParmList.eyecatcher, ZIS_SERVICE_ROUTER_EYECATCHER,
+         sizeof(routerParmList.eyecatcher));
+  routerParmList.targetServicePath = *path;
+  routerParmList.targetServiceParm = parm;
+
+  int routerRC = 0;
+  int cmsRC = cmsCallService2(cmsGA, routerServiceID, &routerParmList, &routerRC);
+
+  if (cmsRC != RC_CMS_OK) {
+    status->cmsRC = cmsRC;
+    return RC_ZIS_SRVC_CMS_FAILED;
+  }
+
+  if (routerRC != RC_ZIS_SRVC_OK) {
+    status->serviceRC = routerRC;
     return RC_ZIS_SRVC_SERVICE_FAILED;
   }
 

@@ -15,7 +15,10 @@
 //*                                                                  */
 //*   ZWES - CORE PARAMETERS NAMESPACE.                              */
 //*     NAME - SERVER NAME. IF OMITTED, ZWESIS_STD IS USED.          */
+//*     PLUGIN - NAME OF A PLUG-IN LOAD MODULE.                      */
 //*                                                                  */
 //********************************************************************/
 
+* ZWES.PLUGIN.ECHO=ECHOPL01
+* ZWES.PLUGIN.MAGICNUMBER=MNUMBER
 

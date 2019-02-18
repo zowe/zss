@@ -13,7 +13,7 @@
 #ifndef ZIS_VERSION_H_
 #define ZIS_VERSION_H_
 
-#define ZIS_VERSION "1.0.4"
+#define ZIS_VERSION "1.0.5"
 
 #endif /* ZIS_VERSION_H_ */
 

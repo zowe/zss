@@ -26,6 +26,8 @@
 
 #ifndef __LONGNAME__
 
+#define zisCallService              ZISCSRVC
+
 #define zisGetDefaultServerName     ZISGDSNM
 #define zisCopyDataFromAddressSpace ZISCOPYD
 #define zisCheckUsernameAndPassword ZISUNPWD
@@ -51,6 +53,10 @@ typedef struct ZISServiceStatus_tag {
   int cmsRC;
   int cmsRSN;
 } ZISServiceStatus;
+
+int zisCallService(const CrossMemoryServerName *serverName,
+                   const ZISServicePath *path, void *parm,
+                   ZISServiceStatus *status);
 
 #define _ZIS_FORMAT_CALL_STATUS_TMPL($rc, $s, $printf, $serviceCases,\
                                      $descriptions) do {\
