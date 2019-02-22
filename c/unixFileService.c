@@ -176,10 +176,8 @@ static void timeOutDestroyer(void *userData, void *value) {
 static void respondWithSessionID(HttpResponse *response, int sessionID) {
   jsonPrinter *out = respondWithJsonPrinter(response);
 
-  setContentType(response, "text/json");
   setResponseStatus(response, 200, "OK");
-  addStringHeader(response, "Server", "jdmfws");
-  addStringHeader(response, "Transfer-Encoding", "chunked");
+  setDefaultJSONRESTHeaders(response);
   writeHeader(response);
 
   jsonStart(out);
@@ -707,10 +705,8 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
 
-    setContentType(response, "text/json");
     setResponseStatus(response, 405, "Method Not Allowed");
-    addStringHeader(response, "Server", "jdmfws");
-    addStringHeader(response, "Transfer-Encoding", "chunked");
+    setDefaultJSONRESTHeaders(response);
     addStringHeader(response, "Allow", "GET, PUT, DELETE");
     writeHeader(response);
 
@@ -757,10 +753,8 @@ static int serveUnixFileCopy(HttpService *service, HttpResponse *response) {
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
 
-    setContentType(response, "text/json");
     setResponseStatus(response, 405, "Method Not Allowed");
-    addStringHeader(response, "Server", "jdmfws");
-    addStringHeader(response, "Transfer-Encoding", "chunked");
+    setDefaultJSONRESTHeaders(response);
     addStringHeader(response, "Allow", "POST");
     writeHeader(response);
 
@@ -805,10 +799,8 @@ static int serveUnixFileRename(HttpService *service, HttpResponse *response) {
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
 
-    setContentType(response, "text/json");
     setResponseStatus(response, 405, "Method Not Allowed");
-    addStringHeader(response, "Server", "jdmfws");
-    addStringHeader(response, "Transfer-Encoding", "chunked");
+    setDefaultJSONRESTHeaders(response);
     addStringHeader(response, "Allow", "POST");
     writeHeader(response);
 
@@ -839,10 +831,8 @@ static int serveUnixFileMakeDirectory(HttpService *service, HttpResponse *respon
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
 
-    setContentType(response, "text/json");
     setResponseStatus(response, 405, "Method Not Allowed");
-    addStringHeader(response, "Server", "jdmfws");
-    addStringHeader(response, "Transfer-Encoding", "chunked");
+    setDefaultJSONRESTHeaders(response);
     addStringHeader(response, "Allow", "POST");
     writeHeader(response);
 
@@ -873,10 +863,8 @@ static int serveUnixFileTouch(HttpService *service, HttpResponse *response) {
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
 
-    setContentType(response, "text/json");
     setResponseStatus(response, 405, "Method Not Allowed");
-    addStringHeader(response, "Server", "jdmfws");
-    addStringHeader(response, "Transfer-Encoding", "chunked");
+    setDefaultJSONRESTHeaders(response);
     addStringHeader(response, "Allow", "POST");
     writeHeader(response);
 
@@ -900,10 +888,8 @@ static int serveUnixFileMetadata(HttpService *service, HttpResponse *response) {
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
 
-    setContentType(response, "text/json");
     setResponseStatus(response, 405, "Method Not Allowed");
-    addStringHeader(response, "Server", "jdmfws");
-    addStringHeader(response, "Transfer-Encoding", "chunked");
+    setDefaultJSONRESTHeaders(response);
     addStringHeader(response, "Allow", "GET");
     writeHeader(response);
 
@@ -922,10 +908,8 @@ static int serveTableOfContents(HttpService *service, HttpResponse *response) {
   if (!strcmp(request->method, methodGET)) {
     jsonPrinter *out = respondWithJsonPrinter(response);
 
-    setContentType(response, "text/json");
     setResponseStatus(response, 404, "Not Found");
-    addStringHeader(response, "Server", "jdmfws");
-    addStringHeader(response, "Transfer-Encoding", "chunked");
+    setDefaultJSONRESTHeaders(response);
     writeHeader(response);
 
     jsonStart(out);
@@ -963,10 +947,8 @@ static int serveTableOfContents(HttpService *service, HttpResponse *response) {
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
 
-    setContentType(response, "text/json");
     setResponseStatus(response, 405, "Method Not Allowed");
-    addStringHeader(response, "Server", "jdmfws");
-    addStringHeader(response, "Transfer-Encoding", "chunked");
+    setDefaultJSONRESTHeaders(response);
     addStringHeader(response, "Allow", "GET");
     writeHeader(response);
 

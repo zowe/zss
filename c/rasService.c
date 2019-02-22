@@ -202,9 +202,7 @@ static int serveRASData(HttpService *service, HttpResponse *response) {
 
     jsonPrinter *p = respondWithJsonPrinter(response);
     setResponseStatus(response, HTTP_STATUS_OK, "OK");
-    setContentType(response, "text/json");
-    addStringHeader(response, "Server", "jdmfws");
-    addStringHeader(response, "Transfer-Encoding", "chunked");
+    setDefaultJSONRESTHeaders(response);
     writeHeader(response);
 
     jsonStart(p);
