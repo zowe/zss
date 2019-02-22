@@ -114,7 +114,7 @@ static void respond(HttpResponse *res, int rc, const ZISAuthServiceStatus
   jsonPrinter* p = respondWithJsonPrinter(res);
 
   setResponseStatus(res, HTTP_STATUS_OK, "OK");
-  setDefaultJSONRESTHeaders(response);
+  setDefaultJSONRESTHeaders(res);
   writeHeader(res);
   if (rc == RC_ZIS_SRVC_OK) {
     jsonStart(p); {
