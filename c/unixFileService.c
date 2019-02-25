@@ -26,6 +26,7 @@
 #include "collections.h"
 #include "unixFileService.h"
 #include "zssLogging.h"
+#include "httpserver.h"
 
 /* Time it takes in seconds for a session to be
  * removed from the hashtable due to

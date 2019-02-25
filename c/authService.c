@@ -31,6 +31,7 @@
 #include "bpxnet.h"
 #include "socketmgmt.h"
 #include "zis/client.h"
+#include "httpserver.h"
 
 /*
  * A handler performing the SAF_AUTH check: checks if the user has the

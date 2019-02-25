@@ -26,6 +26,7 @@
 
 #include "zowetypes.h"
 #include "utils.h"
+#include "httpserver.h"
 #include "zssLogging.h"
 #include "logging.h"
 #include "rasService.h"
