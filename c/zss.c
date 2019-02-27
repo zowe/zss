@@ -114,9 +114,7 @@ static int servePluginDefinitions(HttpService *service, HttpResponse *response){
     }
   }
   setResponseStatus(response, 200, "OK");
-  setContentType(response, "text/json");
-  addStringHeader(response, "Server", "jdmfws");
-  addStringHeader(response, "Transfer-Encoding", "chunked");
+  setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(printer);
   {
@@ -215,6 +213,8 @@ int serveLoginWithSessionToken(HttpService *service, HttpResponse *response) {
   setContentType(response,"text/html");
   addStringHeader(response,"Server","jdmfws");
   addStringHeader(response,"Transfer-Encoding","chunked");
+  addStringHeader(response, "Cache-control", "no-store");
+  addStringHeader(response, "Pragma", "no-cache");
   /* HACK: the cookie header should be set inside serviceAuthNativeWithSessionToken, */
   /* but that is currently broken: the header doesn't get sent if it is set there */
   if (response->sessionCookie){
@@ -241,6 +241,8 @@ int serveLogoutByRemovingSessionToken(HttpService *service, HttpResponse *respon
   setContentType(response,"text/html");
   addStringHeader(response,"Server","jdmfws");
   addStringHeader(response,"Transfer-Encoding","chunked");
+  addStringHeader(response, "Cache-control", "no-store");
+  addStringHeader(response, "Pragma", "no-cache");
   
   /* Remove the session token when the user wants to log out */
   addStringHeader(response,"Set-Cookie","jedHTTPSession=non-token");

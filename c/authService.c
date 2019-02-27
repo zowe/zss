@@ -31,6 +31,7 @@
 #include "bpxnet.h"
 #include "socketmgmt.h"
 #include "zis/client.h"
+#include "httpserver.h"
 
 /*
  * A handler performing the SAF_AUTH check: checks if the user has the
@@ -114,8 +115,7 @@ static void respond(HttpResponse *res, int rc, const ZISAuthServiceStatus
   jsonPrinter* p = respondWithJsonPrinter(res);
 
   setResponseStatus(res, HTTP_STATUS_OK, "OK");
-  setContentType(res, "application/json");
-  addStringHeader(res, "Transfer-Encoding", "chunked");
+  setDefaultJSONRESTHeaders(res);
   writeHeader(res);
   if (rc == RC_ZIS_SRVC_OK) {
     jsonStart(p); {

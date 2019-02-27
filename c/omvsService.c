@@ -73,9 +73,7 @@ static int serveOMVSSegment(HttpService *service, HttpResponse *response)
   if (strlen(request->username) > 8)
   {
     setResponseStatus(response, 500, "Internal Server Error");
-    setContentType(response,"text/json");
-    addStringHeader(response,"Server","jdmfws");
-    addStringHeader(response,"Transfer-Encoding","chunked");
+    setDefaultJSONRESTHeaders(response);
     writeHeader(response);
 
     jsonStart(p);
@@ -102,9 +100,7 @@ static int serveOMVSSegment(HttpService *service, HttpResponse *response)
     if (status != 0)
     {
       setResponseStatus(response, 500, "Internal Server Error");
-      setContentType(response,"text/json");
-      addStringHeader(response,"Server","jdmfws");
-      addStringHeader(response,"Transfer-Encoding","chunked");
+      setDefaultJSONRESTHeaders(response);
       writeHeader(response);
 
       jsonStart(p);
@@ -115,9 +111,7 @@ static int serveOMVSSegment(HttpService *service, HttpResponse *response)
     else
     {
       setResponseStatus(response, 200, "OK");
-      setContentType(response,"text/json");
-      addStringHeader(response,"Server","jdmfws");
-      addStringHeader(response,"Transfer-Encoding","chunked");
+      setDefaultJSONRESTHeaders(response);
       writeHeader(response);
 
       jsonStart(p);
@@ -136,9 +130,7 @@ static int serveOMVSSegment(HttpService *service, HttpResponse *response)
   else
   {
     setResponseStatus(response, 405, "Method Not Allowed");
-    setContentType(response, "text/json");
-    addStringHeader(response, "Server", "jdmfws");
-    addStringHeader(response, "Transfer-Encoding", "chunked");
+    setDefaultJSONRESTHeaders(response);
     addStringHeader(response, "Allow", "GET");
     writeHeader(response);
 
