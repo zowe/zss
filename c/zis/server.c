@@ -77,6 +77,15 @@ static int zisRouteService(struct CrossMemoryServerGlobalArea_tag *globalArea,
   ZISServiceRouterParm localParm = {0};
   cmCopyFromSecondaryWithCallerKey(&localParm, routerParm, sizeof(localParm));
 
+  if (memcmp(localParm.eyecatcher, ZIS_SERVICE_ROUTER_EYECATCHER,
+              sizeof(localParm.eyecatcher))) {
+    return RC_ZIS_SRVC_BAD_EYECATCHER;
+  }
+
+  if (localParm.version > ZIS_SERVICE_ROUTER_VERSION) {
+    return RC_ZIS_SRVC_BAD_ROUTER_VERSION;
+  }
+
   ZISServerAnchor *serverAnchor = globalArea->userServerAnchor;
   ZISServicePath *servicePath = &localParm.targetServicePath;
   void *serviceParm = localParm.targetServiceParm;
@@ -85,6 +94,11 @@ static int zisRouteService(struct CrossMemoryServerGlobalArea_tag *globalArea,
       crossMemoryMapGet(serverAnchor->serviceTable, servicePath);
   if (serviceAnchor == NULL) {
     return RC_ZIS_SRVC_SERVICE_NOT_FOUND;
+  }
+
+  if (localParm.serviceVersion > serviceAnchor->serviceVersion &&
+      localParm.serviceVersion != ZIS_SERVICE_ANY_VERSION) {
+    return RC_ZIS_SRVC_BAD_SERVICE_VERSION;
   }
 
   if (!(serviceAnchor->state & ZIS_SERVICE_ANCHOR_STATE_ACTIVE)) {
@@ -490,7 +504,7 @@ static int installServices(ZISContext *context, ZISPlugin *plugin,
 
     zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING, ZIS_LOG_SERVICE_ADDED_MSG,
             anchor->path.pluginName, anchor->path.serviceName.text,
-            plugin->pluginVersion);
+            plugin->pluginVersion, service->serviceVersion);
   }
 
   return RC_ZIS_OK;

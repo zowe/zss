@@ -271,9 +271,10 @@ int zisCallNWMService(const CrossMemoryServerName *serverName,
   return RC_ZIS_SRVC_OK;
 }
 
-int zisCallService(const CrossMemoryServerName *serverName,
-                   const ZISServicePath *path, void *parm,
-                   ZISServiceStatus *status) {
+static int zisCallServiceInternal(const CrossMemoryServerName *serverName,
+                                  const ZISServicePath *path, void *parm,
+                                  unsigned int version,
+                                  ZISServiceStatus *status) {
 
   if (status == NULL) {
     return RC_ZIS_SRVC_STATUS_NULL;
@@ -315,8 +316,11 @@ int zisCallService(const CrossMemoryServerName *serverName,
   ZISServiceRouterParm routerParmList = {0};
   memcpy(routerParmList.eyecatcher, ZIS_SERVICE_ROUTER_EYECATCHER,
          sizeof(routerParmList.eyecatcher));
+  routerParmList.version = ZIS_SERVICE_ROUTER_VERSION;
+  routerParmList.size = sizeof(ZISServiceRouterParm);
   routerParmList.targetServicePath = *path;
   routerParmList.targetServiceParm = parm;
+  routerParmList.serviceVersion = version;
 
   int routerRC = 0;
   int cmsRC = cmsCallService2(cmsGA, routerServiceID, &routerParmList, &routerRC);
@@ -334,6 +338,24 @@ int zisCallService(const CrossMemoryServerName *serverName,
   return RC_ZIS_SRVC_OK;
 }
 
+int zisCallService(const CrossMemoryServerName *serverName,
+                   const ZISServicePath *path, void *parm,
+                   ZISServiceStatus *status) {
+
+  return zisCallServiceInternal(serverName, path, parm,
+                                ZIS_SERVICE_ANY_VERSION,
+                                status);
+
+}
+
+int zisCallVersionedService(const CrossMemoryServerName *serverName,
+                            const ZISServicePath *path, void *parm,
+                            unsigned int version,
+                            ZISServiceStatus *status) {
+
+  return zisCallServiceInternal(serverName, path, parm, version, status);
+
+}
 
 /*
   This program and the accompanying materials are

@@ -60,7 +60,7 @@ ZISPlugin *getPluginDescriptor() {
   ZISService service1 = zisCreateSpaceSwitchService(serviceName1,
                                                     initMagicNumberService,
                                                     termMagicNumberService,
-                                                    serveMagicNumber);
+                                                    serveMagicNumber, 1);
 
   zisPluginAddService(plugin, service1);
 

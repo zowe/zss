@@ -24,7 +24,8 @@
 ZISService zisCreateService(ZISServiceName name, int flags,
                             ZISServiceInitFunction *initFunction,
                             ZISServiceTermFunction *termFunction,
-                            ZISServiceServeFunction *serveFunction) {
+                            ZISServiceServeFunction *serveFunction,
+                            unsigned int version) {
 
   ZISService service = {
       .eyecatcher = ZIS_SERVICE_EYECATCHER,
@@ -34,6 +35,7 @@ ZISService zisCreateService(ZISServiceName name, int flags,
       .init = initFunction,
       .term = termFunction,
       .serve = serveFunction,
+      .serviceVersion = version,
   };
 
   return service;
@@ -43,11 +45,13 @@ ZISService zisCreateSpaceSwitchService(
     ZISServiceName name,
     ZISServiceInitFunction *initFunction,
     ZISServiceTermFunction *termFunction,
-    ZISServiceServeFunction *serveFunction
+    ZISServiceServeFunction *serveFunction,
+    unsigned int version
 ) {
 
   return zisCreateService(name, ZIS_SERVICE_FLAG_SPACE_SWITCH,
-                          initFunction, termFunction, serveFunction);
+                          initFunction, termFunction, serveFunction,
+                          version);
 
 }
 
@@ -55,11 +59,13 @@ ZISService zisCreateCurrentPrimaryService(
     ZISServiceName name,
     ZISServiceInitFunction *initFunction,
     ZISServiceTermFunction *termFunction,
-    ZISServiceServeFunction *serveFunction
+    ZISServiceServeFunction *serveFunction,
+    unsigned int version
 ) {
 
   return zisCreateService(name, ZIS_SERVICE_FLAG_NONE,
-                          initFunction, termFunction, serveFunction);
+                          initFunction, termFunction, serveFunction,
+                          version);
 
 
 }
@@ -93,6 +99,7 @@ ZISServiceAnchor *zisCreateServiceAnchor(const struct ZISPlugin_tag *plugin,
 
   anchor->pluginAnchor = plugin->anchor;
   anchor->serve = service->serve;
+  anchor->serviceVersion = service->serviceVersion;
 
   return anchor;
 }
@@ -113,6 +120,7 @@ void zisUpdateServiceAnchor(ZISServiceAnchor *anchor,
 
   anchor->flags = service->flags;
   anchor->serve = service->serve;
+  anchor->serviceVersion = service->serviceVersion;
 
 }
 

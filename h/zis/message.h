@@ -93,7 +93,7 @@
 #define ZIS_LOG_LPA_FAILURE_MSG                 ZIS_LOG_LPA_FAILURE_MSG_ID" "ZIS_LOG_LPA_FAILURE_MSG_TEXT
 
 #define ZIS_LOG_SERVICE_ADDED_MSG_ID            ZIS_MSG_PRFX"0016I"
-#define ZIS_LOG_SERVICE_ADDED_MSG_TEXT          "Service '%-16.16s':'%-16.16s' v%d has been added"
+#define ZIS_LOG_SERVICE_ADDED_MSG_TEXT          "Service '%-16.16s':'%-16.16s' v%d.%d has been added"
 #define ZIS_LOG_SERVICE_ADDED_MSG               ZIS_LOG_SERVICE_ADDED_MSG_ID" "ZIS_LOG_SERVICE_ADDED_MSG_TEXT
 
 #define ZIS_LOG_PLUGIN_FAILURE_MSG_ID           ZIS_MSG_PRFX"0017W"

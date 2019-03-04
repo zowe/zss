@@ -64,6 +64,8 @@ struct ZISPluginAnchor_tag {
   int state;
 
   ZISPluginName name;
+  unsigned int pluginVersion;
+  char reserved0[4];
   PAD_LONG(0, struct ZISPluginAnchor_tag *next);
 
   PAD_LONG(1, struct ZISServiceAnchor_tag *firstService);
@@ -72,9 +74,7 @@ struct ZISPluginAnchor_tag {
 
   ZISPluginData pluginData;
 
-  unsigned int pluginVersion;
-
-  char reserved1[92];
+  char reserved1[88];
 
 };
 

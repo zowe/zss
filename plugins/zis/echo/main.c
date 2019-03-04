@@ -98,11 +98,12 @@ ZISPlugin *getPluginDescriptor() {
 
   ZISServiceName serviceName1 = {.text = "ECHO-MESSAGE    "};
   ZISService service1 = zisCreateSpaceSwitchService(serviceName1, NULL, NULL,
-                                                    serveEchoedMessage);
+                                                    serveEchoedMessage, 1);
 
   ZISServiceName serviceName2 = {.text = "ECHO-REV-MESSAGE"};
   ZISService service2 = zisCreateCurrentPrimaryService(serviceName2, NULL, NULL,
-                                                       serveReversedEchoedMessage);
+                                                       serveReversedEchoedMessage,
+                                                       1);
 
   zisPluginAddService(plugin, service1);
   zisPluginAddService(plugin, service2);

@@ -67,6 +67,8 @@ struct ZISServiceAnchor_tag {
 #define ZIS_SERVICE_ANCHOR_STATE_ACTIVE 0x00000001
 
   ZISServicePath path;
+  unsigned int serviceVersion;
+  char reserved0[4];
   PAD_LONG(0, struct ZISServiceAnchor_tag *next);
 
   PAD_LONG(1, struct ZISPluginAnchor_tag *pluginAnchor);
@@ -95,7 +97,10 @@ struct ZISService_tag {
   PAD_LONG(2, ZISServiceTermFunction *term);
   PAD_LONG(4, ZISServiceServeFunction *serve);
 
-  char reserved[440];
+  unsigned int serviceVersion;
+#define ZIS_SERVICE_ANY_VERSION  0xFFFFFFFF
+
+  char reserved[436];
 
 };
 
@@ -111,20 +116,23 @@ ZOWE_PRAGMA_PACK_RESET
 ZISService zisCreateService(ZISServiceName name, int flags,
                             ZISServiceInitFunction *initFunction,
                             ZISServiceTermFunction *termFunction,
-                            ZISServiceServeFunction *serveFunction);
+                            ZISServiceServeFunction *serveFunction,
+                            unsigned int version);
 
 ZISService zisCreateSpaceSwitchService(
     ZISServiceName name,
     ZISServiceInitFunction *initFunction,
     ZISServiceTermFunction *termFunction,
-    ZISServiceServeFunction *serveFunction
+    ZISServiceServeFunction *serveFunction,
+    unsigned int version
 );
 
 ZISService zisCreateCurrentPrimaryService(
     ZISServiceName name,
     ZISServiceInitFunction *initFunction,
     ZISServiceTermFunction *termFunction,
-    ZISServiceServeFunction *serveFunction
+    ZISServiceServeFunction *serveFunction,
+    unsigned int version
 );
 
 struct ZISPlugin_tag;
@@ -143,8 +151,11 @@ void zisUpdateServiceAnchor(ZISServiceAnchor *anchor,
 #define RC_ZIS_SRVC_GLOBAL_AREA_NULL    9
 #define RC_ZIS_SRVC_SEVER_ANCHOR_NULL   10
 #define RC_ZIS_SRVC_SERVICE_TABLE_NULL  11
-#define RC_ZIS_SRVC_SERVICE_NOT_FOUND   12
-#define RC_ZIS_SRVC_SERVICE_INACTIVE    13
+#define RC_ZIS_SRVC_BAD_EYECATCHER      12
+#define RC_ZIS_SRVC_BAD_ROUTER_VERSION  13
+#define RC_ZIS_SRVC_SERVICE_NOT_FOUND   14
+#define RC_ZIS_SRVC_BAD_SERVICE_VERSION 15
+#define RC_ZIS_SRVC_SERVICE_INACTIVE    16
 
 #define ZIS_MAX_GEN_SRVC_RC             32
 

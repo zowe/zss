@@ -45,8 +45,14 @@ typedef struct ZISServerAnchor_tag {
 typedef __packed struct ZISServiceRouterData_tag {
   char eyecatcher[8];
 #define ZIS_SERVICE_ROUTER_EYECATCHER "ZISSREYE"
+  unsigned int version;
+#define ZIS_SERVICE_ROUTER_VERSION 1
+  unsigned int size;
+  char reserved0[16];
   ZISServicePath targetServicePath;
   PAD_LONG(0x00, void *targetServiceParm);
+  unsigned int serviceVersion;
+  char reserved1[52];
 } ZISServiceRouterParm;
 
 #define ZIS_SERVICE_ID_SRVC_ROUTER_SS 64
