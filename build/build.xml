@@ -16,7 +16,7 @@
   
   <property environment="env"/>
   <property name="capstone" location="../../"/>
-  <property name="COMMON" value="${capstone}/zowe-common-c"/>
+  <property name="COMMON" value="${capstone}/zss/deps/zowe-common-c"/>
   <property name="ZSS" value="${capstone}/zss"/>
 
   <target name="zis" description="Compile for ZSS Cross-Memory Server">
