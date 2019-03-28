@@ -771,6 +771,17 @@ static int validateConfigPermissionsInner(const char *path) {
   return 0;
 }
 
+#ifdef ZSS_IGNORE_PERMISSION_PROBLEMS
+
+static int validateFilePermissions(const char *filePath) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+    "Skipping validation of file permissions: disabled during compilation, "
+    "file %s.\n", filePath);
+  return 0;
+}
+
+#else /* ZSS_IGNORE_PERMISSION_PROBLEMS */
+
 /* Validates that both file AND parent folder meet requirements */
 static int validateFilePermissions(const char *filePath) {
   if (!filePath) {
@@ -803,6 +814,8 @@ static int validateFilePermissions(const char *filePath) {
     return validateConfigPermissionsInner(filePath);
   }
 }
+
+#endif /* ZSS_IGNORE_PERMISSION_PROBLEMS */
 
 int main(int argc, char **argv){
   if (argc == 1) { 
