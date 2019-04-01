@@ -114,9 +114,7 @@ static int servePluginDefinitions(HttpService *service, HttpResponse *response){
     }
   }
   setResponseStatus(response, 200, "OK");
-  setContentType(response, "text/json");
-  addStringHeader(response, "Server", "jdmfws");
-  addStringHeader(response, "Transfer-Encoding", "chunked");
+  setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(printer);
   {
@@ -215,6 +213,8 @@ int serveLoginWithSessionToken(HttpService *service, HttpResponse *response) {
   setContentType(response,"text/html");
   addStringHeader(response,"Server","jdmfws");
   addStringHeader(response,"Transfer-Encoding","chunked");
+  addStringHeader(response, "Cache-control", "no-store");
+  addStringHeader(response, "Pragma", "no-cache");
   /* HACK: the cookie header should be set inside serviceAuthNativeWithSessionToken, */
   /* but that is currently broken: the header doesn't get sent if it is set there */
   if (response->sessionCookie){
@@ -241,6 +241,8 @@ int serveLogoutByRemovingSessionToken(HttpService *service, HttpResponse *respon
   setContentType(response,"text/html");
   addStringHeader(response,"Server","jdmfws");
   addStringHeader(response,"Transfer-Encoding","chunked");
+  addStringHeader(response, "Cache-control", "no-store");
+  addStringHeader(response, "Pragma", "no-cache");
   
   /* Remove the session token when the user wants to log out */
   addStringHeader(response,"Set-Cookie","jedHTTPSession=non-token");
@@ -672,48 +674,24 @@ static void printZISStatus(HttpServer *server) {
   CrossMemoryServerName *zisName =
       getConfiguredProperty(server, HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
 
-  /* Use the username/password service because it's the easiest one to use
-   * TODO make a special service for ZIS service info retrieval. */
-  ZISAuthServiceStatus zisStatus = {0};
-  int zisRC = zisCheckUsernameAndPassword(zisName,
-                                          "D U MM Y", "DUMMY",
-                                          &zisStatus);
+  CrossMemoryServerStatus status = cmsGetStatus(zisName);
 
-  const char *statusDescription = "Ok";
+  const char *shortDescription = NULL;
 
-  if (zisRC != RC_ZIS_SRVC_OK) {
-
-    if (zisRC == RC_ZIS_SRVC_CMS_FAILED) {
-
-      int cmsRC = zisStatus.baseStatus.cmsRC;
-      statusDescription = NULL;
-      if (0 <= cmsRC && cmsRC < RC_CMS_MAX_RC) {
-        statusDescription = CMS_RC_DESCRIPTION[cmsRC];
-      }
-
-      if (statusDescription == NULL) {
-        statusDescription = "Failure";
-      }
-
-    } else if (!(zisRC == RC_ZIS_SRVC_SERVICE_FAILED &&
-                zisStatus.baseStatus.serviceRC == RC_ZIS_AUTHSRV_SAF_ERROR)) {
-      /* if this is not the expected failure */
-      statusDescription = "Warning";
-    }
-
+  if (status.cmsRC == RC_CMS_OK) {
+    shortDescription = "Ok";
+  } else {
+    shortDescription = "Failure";
   }
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_ALWAYS,
-         "ZIS status - %s (name=\'%.16s\', zisRC=%d, cmsRC=%d, srvcRC=%d, "
-         "clientVersion=%d)\n",
-         statusDescription,
-         zisName ? zisName->nameSpacePadded : "name_not_set",
-         zisRC,
-         zisStatus.baseStatus.cmsRC,
-         zisStatus.baseStatus.serviceRC,
-         CROSS_MEMORY_SERVER_VERSION);
-  zowedump(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_ALWAYS,
-          &zisStatus, sizeof(zisStatus));
+          "ZIS status - %s (name='%.16s', cmsRC=%d, description='%s', "
+          "clientVersion=%d)\n",
+          shortDescription,
+          zisName ? zisName->nameSpacePadded : "name not set",
+          status.cmsRC,
+          status.descriptionNullTerm,
+          CROSS_MEMORY_SERVER_VERSION);
 
 }
 
@@ -793,6 +771,17 @@ static int validateConfigPermissionsInner(const char *path) {
   return 0;
 }
 
+#ifdef ZSS_IGNORE_PERMISSION_PROBLEMS
+
+static int validateFilePermissions(const char *filePath) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+    "Skipping validation of file permissions: disabled during compilation, "
+    "file %s.\n", filePath);
+  return 0;
+}
+
+#else /* ZSS_IGNORE_PERMISSION_PROBLEMS */
+
 /* Validates that both file AND parent folder meet requirements */
 static int validateFilePermissions(const char *filePath) {
   if (!filePath) {
@@ -825,6 +814,8 @@ static int validateFilePermissions(const char *filePath) {
     return validateConfigPermissionsInner(filePath);
   }
 }
+
+#endif /* ZSS_IGNORE_PERMISSION_PROBLEMS */
 
 int main(int argc, char **argv){
   if (argc == 1) { 

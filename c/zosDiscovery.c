@@ -71,9 +71,7 @@ static jsonPrinter *startResponse(HttpResponse *response){
   } else{
     jsonPrinter *p = respondWithJsonPrinter(response);
     setResponseStatus(response,200,"OK");
-    setContentType(response,"text/json");
-    addStringHeader(response,"Server","jdmfws");
-    addStringHeader(response,"Transfer-Encoding","chunked");
+    setDefaultJSONRESTHeaders(response);
     writeHeader(response);
     return p;
   }

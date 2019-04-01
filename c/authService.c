@@ -31,6 +31,9 @@
 #include "bpxnet.h"
 #include "socketmgmt.h"
 #include "zis/client.h"
+#include "httpserver.h"
+
+#define SAF_CLASS "ZOWE"
 
 /*
  * A handler performing the SAF_AUTH check: checks if the user has the
@@ -65,8 +68,7 @@ int installAuthCheckService(HttpServer *server) {
   return 0;
 }
 
-static int extractQuery(StringList *path, char **userName, char **class,
-    char **entity, char **access) {
+static int extractQuery(StringList *path, char **entity, char **access) {
   const StringListElt *pathElt;
 
 #define TEST_NEXT_AND_SET($ptr) do { \
@@ -84,8 +86,6 @@ static int extractQuery(StringList *path, char **userName, char **class,
   if (pathElt == NULL) {
     return -1;
   }
-  TEST_NEXT_AND_SET(userName);
-  TEST_NEXT_AND_SET(class);
   TEST_NEXT_AND_SET(entity);
   TEST_NEXT_AND_SET(access);
   return 0;
@@ -114,8 +114,7 @@ static void respond(HttpResponse *res, int rc, const ZISAuthServiceStatus
   jsonPrinter* p = respondWithJsonPrinter(res);
 
   setResponseStatus(res, HTTP_STATUS_OK, "OK");
-  setContentType(res, "application/json");
-  addStringHeader(res, "Transfer-Encoding", "chunked");
+  setDefaultJSONRESTHeaders(res);
   writeHeader(res);
   if (rc == RC_ZIS_SRVC_OK) {
     jsonStart(p); {
@@ -146,13 +145,14 @@ static void respond(HttpResponse *res, int rc, const ZISAuthServiceStatus
 
 static int serveAuthCheck(HttpService *service, HttpResponse *res) {
   HttpRequest *req = res->request;
-  char *userName, *class, *entity, *accessStr;
+  char *entity, *accessStr;
   int access = 0;
   int rc = 0, rsn = 0, safStatus = 0;
   ZISAuthServiceStatus reqStatus = {0};
   CrossMemoryServerName *privilegedServerName;
+  const char *userName = req->username, *class = SAF_CLASS;
 
-  rc = extractQuery(req->parsedFile, &userName, &class, &entity, &accessStr);
+  rc = extractQuery(req->parsedFile, &entity, &accessStr);
   if (rc != 0) {
     respondWithError(res, HTTP_STATUS_BAD_REQUEST, "Broken auth query");
     return 0;
