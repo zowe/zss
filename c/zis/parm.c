@@ -420,6 +420,52 @@ int zisReadParmlib(ZISParmSet *parms, const char *ddname, const char *member,
   return status;
 }
 
+int zisReadMainParms(ZISParmSet *parms, const ZISMainFunctionParms *mainParms) {
+
+  int workBufferSize = mainParms->textLength + 1;
+  char *workBuffer = safeMalloc(workBufferSize, "main parm work buffer");
+  if (workBuffer == NULL) {
+    return RC_ZISPARM_ALLOC_FAILED;
+  }
+
+  int status = RC_ZISPARM_OK;
+  for (int startIdx = 0; startIdx < mainParms->textLength; startIdx++) {
+
+    int endIdx;
+    for (endIdx = startIdx; endIdx < mainParms->textLength; endIdx++) {
+      if (mainParms->text[endIdx] == ',') {
+        break;
+      }
+    }
+
+    char *key = workBuffer;
+    char *value = NULL;
+
+    int parmLength = endIdx - startIdx;
+    memcpy(key, &mainParms->text[startIdx], parmLength);
+    key[parmLength] = '\0';
+
+    char *equalSign = strchr(key, '=');
+    if (equalSign != NULL) {
+      *equalSign = '\0';
+      value = equalSign + 1;
+    }
+
+    int addRC = zisPutParmValue(parms, key, value);
+    if (addRC != RC_ZISPARM_OK) {
+      status = addRC;
+      break;
+    }
+
+    startIdx = endIdx;
+  }
+
+  safeFree(workBuffer, workBufferSize);
+  workBuffer = NULL;
+
+  return status;
+}
+
 void zisRemoveParmSet(ZISParmSet *parms) {
   SLHFree(parms->slh);
   parms = NULL;
@@ -440,26 +486,43 @@ static ZISParmSetEntry *findEntry(ZISParmSet *parms, const char *name) {
 
 int zisPutParmValue(ZISParmSet *parms, const char *name, const char *value) {
 
-  ZISParmSetEntry *existingEntry = findEntry(parms, name);
-  if (existingEntry != NULL) {
-    existingEntry->value = value;
-    return RC_ZISPARM_OK;
+  ZISParmSetEntry *entry = findEntry(parms, name);
+  if (entry == NULL) {
+
+    entry = (ZISParmSetEntry *)SLHAlloc(parms->slh, sizeof(ZISParmSetEntry));
+    if (entry == NULL) {
+      return RC_ZISPARM_SLH_ALLOC_FAILED;
+    }
+
+    memset(entry, 0, sizeof(ZISParmSetEntry));
+    memcpy(entry->eyecatcher, ZIS_PARMSET_ENTRY_EYECATCHER,
+           sizeof(entry->eyecatcher));
+
+    if (parms->firstEntry == NULL) {
+      parms->firstEntry = entry;
+      parms->lastEntry = entry;
+    } else {
+      parms->lastEntry->next = entry;
+      parms->lastEntry = entry;
+    }
+
   }
 
-  ZISParmSetEntry *newParmEntry =
-      (ZISParmSetEntry *)SLHAlloc(parms->slh, sizeof(ZISParmSetEntry));
-  if (newParmEntry == NULL) {
+  if (entry->key == NULL) {
+    size_t parmLength = strlen(name);
+    entry->key = SLHAlloc(parms->slh, parmLength + 1);
+    if (entry->key == NULL) {
+      return RC_ZISPARM_SLH_ALLOC_FAILED;
+    }
+    strcat(entry->key, name);
+  }
+
+  size_t valueLength = strlen(value);
+  entry->value = SLHAlloc(parms->slh, valueLength + 1);
+  if (entry->value == NULL) {
     return RC_ZISPARM_SLH_ALLOC_FAILED;
   }
-
-  memset(newParmEntry, 0, sizeof(ZISParmSetEntry));
-  memcpy(newParmEntry->eyecatcher, ZIS_PARMSET_ENTRY_EYECATCHER,
-         sizeof(newParmEntry->eyecatcher));
-  newParmEntry->key = name;
-  newParmEntry->value = value;
-
-  newParmEntry->next = parms->firstEntry;
-  parms->firstEntry = newParmEntry;
+  strcat(entry->value, value);
 
   return RC_ZISPARM_OK;
 }
@@ -474,8 +537,8 @@ const char *zisGetParmValue(const ZISParmSet *parms, const char *name) {
   return NULL;
 }
 
-int zisLoadParmsToServer(CrossMemoryServer *server, const ZISParmSet *parms,
-                         int *reasonCode) {
+int zisLoadParmsToCMServer(CrossMemoryServer *server, const ZISParmSet *parms,
+                           int *reasonCode) {
 
   ZISParmSetEntry *parm = parms->firstEntry;
   while (parm != NULL) {
@@ -492,6 +555,17 @@ int zisLoadParmsToServer(CrossMemoryServer *server, const ZISParmSet *parms,
   }
 
   return RC_ZISPARM_OK;
+}
+
+void zisIterateParms(const ZISParmSet *parms, ZISParmVisitor *visitor,
+                     void *visitorData) {
+
+  ZISParmSetEntry *currParm = parms->firstEntry;
+  while (currParm != NULL) {
+    visitor(currParm->key, currParm->value, visitorData);
+    currParm = currParm->next;
+  }
+
 }
 
 
