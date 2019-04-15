@@ -58,13 +58,6 @@ properties([
                     required: true
             ),
             string(
-                    name: "ZOWE_COMMON_C_REPO",
-                    description: "Zowe common C repository",
-                    defaultValue: "https://github.com/zowe/zowe-common-c.git",
-                    trim: true,
-                    required: true
-            ),
-            string(
                     name: "ARTIFACTORY_SERVER",
                     description: "Artifactory server",
                     defaultValue: "gizaArtifactory",
@@ -118,10 +111,10 @@ withCredentials([usernamePassword(
             def zoweVersion = getZoweVersion()
 
             stage("Checkout") {
-                sh "git clone ${params.ZOWE_COMMON_C_REPO}"
                 dir("zss") {
                     checkout scm
                 }
+                sh "cd zss && git submodule update --init --recursive"
             }
 
             stage("Prepare") {
@@ -133,7 +126,7 @@ withCredentials([usernamePassword(
                     sed -i "s/MINOR_VERSION=0/MINOR_VERSION=${minorVersion}/" version.properties
                     sed -i "s/REVISION=0/REVISION=${microVersion}/" version.properties
                     """
-                sh "tar cf source.tar zowe-common-c zss"
+                sh "tar cf source.tar zss"
                 sshCommand remote: buildServer, command: "rm -rf ${buildDir} && mkdir -p ${buildDir}"
                 sshPut remote: buildServer, from: "source.tar", into: buildDir
                 sshCommand remote: buildServer, command: \
