@@ -66,6 +66,7 @@
       <arg value="${COMMON}/c/datasetjson.c"/>
       <arg value="${COMMON}/c/discovery.c"/>
       <arg value="${COMMON}/c/dynalloc.c"/>
+      <arg value="${COMMON}/c/fdpoll.c"/>
       <arg value="${COMMON}/c/http.c"/>
       <arg value="${COMMON}/c/httpserver.c"/>
       <arg value="${COMMON}/c/httpfileservice.c"/>
