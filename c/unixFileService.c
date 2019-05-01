@@ -690,7 +690,22 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
     }
   }
   else if (!strcmp(request->method, methodGET)) {
-    respondWithUnixFileContentsWithAutocvtMode(NULL, response, routeFileName, TRUE, 0);
+    bool asB64 = TRUE;
+    char *base64Param = getQueryParam(response->request, "responseType");
+
+    if (NULL != base64Param) {
+      if (!strcmp(strupcase(base64Param), "RAW")) {
+        asB64 = FALSE;
+      }
+    }
+    
+    if (asB64 == FALSE) {
+      streamFileToCaller(response, routeFileName);
+    }
+    else {
+      respondWithUnixFileContentsWithAutocvtMode(service, response, routeFileName, TRUE, TRUE);
+    }
+
   }
   else if (!strcmp(request->method, methodDELETE)) {
     if (isDir(routeFileName) == 1) {
