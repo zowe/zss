@@ -1,5 +1,5 @@
 #!/bin/bash
-FILES="httpserver.o utils.o dataservice.o json.o alloc.o logging.o"
+FILES="recovery.o http.o httpserver.o utils.o dataservice.o json.o alloc.o logging.o"
 
 cd tmp-zss
 dd if=zssServer.x  conv=unblock cbs=80  of=side-deck
