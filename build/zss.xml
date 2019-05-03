@@ -58,6 +58,7 @@
       <arg value="${COMMON}/c/alloc.c"/>
       <arg value="${COMMON}/c/bpxskt.c"/>
       <arg value="${COMMON}/c/charsets.c"/>
+      <arg value="${COMMON}/c/cmutils.c"/>
       <arg value="${COMMON}/c/collections.c"/>
       <arg value="${COMMON}/c/crossmemory.c"/>
       <arg value="${COMMON}/c/crypto.c"/>
@@ -65,6 +66,7 @@
       <arg value="${COMMON}/c/datasetjson.c"/>
       <arg value="${COMMON}/c/discovery.c"/>
       <arg value="${COMMON}/c/dynalloc.c"/>
+      <arg value="${COMMON}/c/fdpoll.c"/>
       <arg value="${COMMON}/c/http.c"/>
       <arg value="${COMMON}/c/httpserver.c"/>
       <arg value="${COMMON}/c/httpfileservice.c"/>

@@ -28,10 +28,13 @@
       <arg line="-I ${COMMON}/h"/>
       <arg line="-I ${ZSS}/h"/>
       <arg value="${COMMON}/c/alloc.c"/>
+      <arg value="${COMMON}/c/cmutils.c"/>
       <arg value="${COMMON}/c/collections.c"/>
       <arg value="${COMMON}/c/crossmemory.c"/>
+      <arg value="${COMMON}/c/isgenq.c"/>
       <arg value="${COMMON}/c/le.c"/>
       <arg value="${COMMON}/c/logging.c"/>
+      <arg value="${COMMON}/c/lpa.c"/>
       <arg value="${COMMON}/c/metalio.c"/>
       <arg value="${COMMON}/c/mtlskt.c"/>
       <arg value="${COMMON}/c/nametoken.c"/>
@@ -46,14 +49,22 @@
       <arg value="${COMMON}/c/zos.c"/>
       <arg value="${COMMON}/c/zvt.c"/>
       <arg value="${ZSS}/c/zis/parm.c"/>
+      <arg value="${ZSS}/c/zis/plugin.c"/>
       <arg value="${ZSS}/c/zis/server.c"/>
+      <arg value="${ZSS}/c/zis/service.c"/>
+      <arg value="${ZSS}/c/zis/services/auth.c"/>
+      <arg value="${ZSS}/c/zis/services/nwm.c"/>
+      <arg value="${ZSS}/c/zis/services/snarfer.c"/>
     </exec> 
 
     <antcall target="assemble"><param name="file" value="alloc"/></antcall>
+    <antcall target="assemble"><param name="file" value="cmutils"/></antcall>
     <antcall target="assemble"><param name="file" value="collections"/></antcall>
     <antcall target="assemble"><param name="file" value="crossmemory"/></antcall>
+    <antcall target="assemble"><param name="file" value="isgenq"/></antcall>
     <antcall target="assemble"><param name="file" value="le"/></antcall>
     <antcall target="assemble"><param name="file" value="logging"/></antcall>
+    <antcall target="assemble"><param name="file" value="lpa"/></antcall>
     <antcall target="assemble"><param name="file" value="metalio"/></antcall>
     <antcall target="assemble"><param name="file" value="mtlskt"/></antcall>
     <antcall target="assemble"><param name="file" value="nametoken"/></antcall>
@@ -69,7 +80,13 @@
     <antcall target="assemble"><param name="file" value="zvt"/></antcall>
 
     <antcall target="assemble"><param name="file" value="parm"/></antcall>
+    <antcall target="assemble"><param name="file" value="plugin"/></antcall>
     <antcall target="assemble"><param name="file" value="server"/></antcall>
+    <antcall target="assemble"><param name="file" value="service"/></antcall>
+
+    <antcall target="assemble"><param name="file" value="auth"/></antcall>
+    <antcall target="assemble"><param name="file" value="nwm"/></antcall>
+    <antcall target="assemble"><param name="file" value="snarfer"/></antcall>
 
 
     <exec executable="ld" dir="${TMPDIR}" failonerror="true" output="${TMPDIR}/ZWESIS01.link">
@@ -77,10 +94,13 @@
       <arg line="-V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus"/>
       <arg line="-e main -o &quot;//&apos;${env.USER}.DEV.LOADLIB(ZWESIS01)&apos;&quot;"/>
       <arg value="alloc.o"/>
+      <arg value="cmutils.o"/>
       <arg value="collections.o"/>
       <arg value="crossmemory.o"/>
+      <arg value="isgenq.o"/>
       <arg value="le.o"/>
       <arg value="logging.o"/>
+      <arg value="lpa.o"/>
       <arg value="metalio.o"/>
       <arg value="mtlskt.o"/>
       <arg value="nametoken.o"/>
@@ -95,7 +115,12 @@
       <arg value="zos.o"/>
       <arg value="zvt.o"/>
       <arg value="parm.o"/>
+      <arg value="plugin.o"/>
       <arg value="server.o"/>
+      <arg value="service.o"/>
+      <arg value="auth.o"/>
+      <arg value="nwm.o"/>
+      <arg value="snarfer.o"/>
     </exec>
 
  </target>

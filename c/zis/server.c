@@ -23,6 +23,7 @@
 
 #include "zowetypes.h"
 #include "alloc.h"
+#include "cmutils.h"
 #include "crossmemory.h"
 #include "logging.h"
 #include "metalio.h"
@@ -34,7 +35,13 @@
 
 #include "zis/message.h"
 #include "zis/parm.h"
+#include "zis/plugin.h"
 #include "zis/server.h"
+#include "zis/service.h"
+
+#include "zis/services/auth.h"
+#include "zis/services/nwm.h"
+#include "zis/services/snarfer.h"
 
 /*
 
@@ -47,6 +54,7 @@ DEPLOYMENT:
 See details in the ZSS Cross Memory Server installation guide
 
 */
+
 
 #define ZIS_PARM_DDNAME "PARMLIB"
 #define ZIS_PARM_MEMBER_PREFIX                CMS_PROD_ID"IP"
@@ -61,1273 +69,1241 @@ See details in the ZSS Cross Memory Server installation guide
 
 #define ZIS_PARMLIB_PARM_SERVER_NAME          CMS_PROD_ID".NAME"
 
-#define CMS_DEBUG($globalArea, $fmt, ...) do {\
-  if ($globalArea->pcLogLevel >= ZOWE_LOG_DEBUG) {\
-    cmsPrintf(&$globalArea->serverName, CMS_LOG_DEBUG_MSG_ID" " $fmt, \
-        ##__VA_ARGS__);\
-  }\
-} while (0)
+static int zisRouteService(struct CrossMemoryServerGlobalArea_tag *globalArea,
+                           struct CrossMemoryService_tag *service,
+                           void *cmsServiceParm) {
 
+  ZISServiceRouterParm *routerParm = cmsServiceParm;
+  ZISServiceRouterParm localParm = {0};
+  cmCopyFromSecondaryWithCallerKey(&localParm, routerParm, sizeof(localParm));
 
-#define CMS_DEBUG2($globalArea, $level, $fmt, ...) do {\
-  if ($level >= ZOWE_LOG_DEBUG) {\
-    cmsPrintf(&$globalArea->serverName, CMS_LOG_DEBUG_MSG_ID" " $fmt, \
-        ##__VA_ARGS__);\
-  }\
-} while (0)
-
-static int handleVerifyPassword(AuthServiceParmList *parmList,
-                                const CrossMemoryServerGlobalArea *globalArea) {
-  ACEE *acee = NULL;
-  int safRC = 0, racfRC = 0, racfRsn = 0;
-  int deleteSAFRC = 0, deleteRACFRC = 0, deleteRACFRsn = 0;
-  int rc = RC_ZIS_AUTHSRV_OK;
-
-  CMS_DEBUG(globalArea, "handleVerifyPassword(): username = %s, password = %s\n",
-      parmList->userIDNullTerm, "******");
-  safRC = safVerify(VERIFY_CREATE, parmList->userIDNullTerm,
-      parmList->passwordNullTerm, &acee, &racfRC, &racfRsn);
-  CMS_DEBUG(globalArea, "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
-      "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
-  if (safRC != 0) {
-    rc = RC_ZIS_AUTHSRV_SAF_ERROR;
-    goto acee_deleted;
+  if (memcmp(localParm.eyecatcher, ZIS_SERVICE_ROUTER_EYECATCHER,
+              sizeof(localParm.eyecatcher))) {
+    return RC_ZIS_SRVC_BAD_EYECATCHER;
   }
 
-  deleteSAFRC = safVerify(VERIFY_DELETE, NULL, NULL, &acee, &deleteRACFRC,
-      &deleteRACFRsn);
-  CMS_DEBUG(globalArea, "safVerify(VERIFY_DELETE) safStatus = %d, RACF RC = %d, "
-      "RSN = %d, ACEE=0x%p\n", deleteSAFRC, deleteRACFRC, deleteRACFRsn,
-      acee);
-  if (deleteSAFRC != 0) {
-    rc = RC_ZIS_AUTHSRV_DELETE_FAILED;
-  }
-acee_deleted:
-
-  FILL_SAF_STATUS(&parmList->safStatus, safRC, racfRC, racfRsn);
-  CMS_DEBUG(globalArea, "handleVerifyPassword() done\n");
-  return rc;
-}
-
-static void fillAbendInfo(struct RecoveryContext_tag * __ptr32 context,
-                          SDWA * __ptr32 sdwa, void * __ptr32 userData) {
-  AbendInfo *abendInfo = userData;
-
-  recoveryGetABENDCode(sdwa, &abendInfo->completionCode,
-      &abendInfo->reasonCode);
-}
-
-static int handleEntityCheck(AuthServiceParmList *parmList,
-                             const CrossMemoryServerGlobalArea *globalArea) {
-  ACEE *acee = NULL;
-  int safRC = 0, racfRC = 0, racfRsn = 0;
-  int rcvRC = 0;
-  int rc = RC_ZIS_AUTHSRV_OK;
-
-  CMS_DEBUG(globalArea, "handleEntityCheck(): user = %s, entity = %s, class = %s,"
-      " access = %x\n", parmList->userIDNullTerm, parmList->entityNullTerm,
-      parmList->classNullTerm, parmList->access);
-  safRC = safVerify(VERIFY_CREATE | VERIFY_WITHOUT_PASSWORD,
-      parmList->userIDNullTerm, NULL, &acee, &racfRC, &racfRsn);
-  CMS_DEBUG(globalArea, "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
-      "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
-  if (safRC != 0) {
-    rc = RC_ZIS_AUTHSRV_CREATE_FAILED;
-    FILL_SAF_STATUS(&parmList->safStatus, safRC, racfRC, racfRsn);
-    goto acee_deleted;
+  if (localParm.version > ZIS_SERVICE_ROUTER_VERSION) {
+    return RC_ZIS_SRVC_BAD_ROUTER_VERSION;
   }
 
-  rcvRC = recoveryPush("safAuth()",
-      RCVR_FLAG_RETRY | RCVR_FLAG_DELETE_ON_RETRY, NULL,
-      &fillAbendInfo,
-      &parmList->abendInfo,  NULL, NULL);
-  if (rcvRC != RC_RCV_OK) {
-    rc = (rcvRC == RC_RCV_ABENDED)? RC_ZIS_AUTHSRV_SAF_ABENDED :
-        RC_ZIS_AUTHSRV_INSTALL_RECOVERY_FAILED;
-    CMS_DEBUG(globalArea, "recovery: rc %d, abend code: %d\n", rcvRC,
-        parmList->abendInfo.completionCode);
-    goto recovery_removed;
-  }
-  safRC = safAuth(0, parmList->classNullTerm, parmList->entityNullTerm,
-      parmList->access, acee, &racfRC, &racfRsn);
-  CMS_DEBUG(globalArea, "safAuth safStatus = %d, RACF RC = %d, RSN = %d, "
-      "ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
-  if (safRC != 0) {
-    rc = RC_ZIS_AUTHSRV_SAF_ERROR;
-  }
-  FILL_SAF_STATUS(&parmList->safStatus, safRC, racfRC, racfRsn);
-  recoveryPop();
-recovery_removed:
+  ZISServerAnchor *serverAnchor = globalArea->userServerAnchor;
+  ZISServicePath *servicePath = &localParm.targetServicePath;
+  void *serviceParm = localParm.targetServiceParm;
 
-  safRC  = safVerify(VERIFY_DELETE, NULL, NULL, &acee, &racfRC, &racfRsn);
-  CMS_DEBUG(globalArea, "safVerify(VERIFY_DELETE) safStatus = %d, RACF RC = %d, "
-      "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
-  if (safRC != 0) {
-    rc = RC_ZIS_AUTHSRV_DELETE_FAILED;
-  }
-acee_deleted:
-
-  CMS_DEBUG(globalArea, "handleEntityCheck() done\n");
-  return rc;
-}
-
-static int getAccessType(const CrossMemoryServerGlobalArea *globalArea,
-                         const char *classNullTerm,
-                         const char *idNullTerm,
-                         const char *entityNullTerm,
-                         int *accessType,
-                         SAFStatus *safStatus,
-                         AbendInfo *abendInfo,
-                         int traceLevel) {
-
-  ACEE *acee = NULL;
-  int rcvRC = 0;
-  int safRC = 0;
-  int racfRC = 0;
-  int racfRsn = 0;
-  int rc = RC_ZIS_AUTHSRV_OK;
-  int accessTypeInternal = 0;
-
-  safRC = safVerify(VERIFY_CREATE |
-                    VERIFY_WITHOUT_PASSWORD |
-                    VERIFY_WITHOUT_LOG,
-                    (char *)idNullTerm, NULL, &acee, &racfRC, &racfRsn);
-
-  CMS_DEBUG2(globalArea, traceLevel,
-             "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
-             "RSN = %d, ACEE = 0x%p\n",
-             safRC, racfRC, racfRsn, acee);
-
-  FILL_SAF_STATUS(safStatus, safRC, racfRC, racfRsn);
-
-  if (safRC != 0) {
-    return RC_ZIS_AUTHSRV_CREATE_FAILED;
+  ZISServiceAnchor *serviceAnchor =
+      crossMemoryMapGet(serverAnchor->serviceTable, servicePath);
+  if (serviceAnchor == NULL) {
+    return RC_ZIS_SRVC_SERVICE_NOT_FOUND;
   }
 
-  rcvRC = recoveryPush("safAuth()",
-                       RCVR_FLAG_RETRY | RCVR_FLAG_DELETE_ON_RETRY, NULL,
-                       &fillAbendInfo,
-                       abendInfo,  NULL, NULL);
-
-  if (rcvRC == RC_RCV_OK) {
-
-    safRC = safAuthStatus(0, (char *)classNullTerm, (char *)entityNullTerm,
-                          &accessTypeInternal, acee, &racfRC, &racfRsn);
-    CMS_DEBUG2(globalArea, traceLevel,
-               "safAuth accessType = %d, safStatus = %d, "
-               "RACF RC = %d, RSN = %d, ACEE = 0x%p\n",
-               accessTypeInternal, safRC, racfRC, racfRsn, acee);
-
-    FILL_SAF_STATUS(safStatus, safRC, racfRC, racfRsn);
-
-    if (safRC != 0) {
-      rc = RC_ZIS_AUTHSRV_SAF_ERROR;
-    }
-
-    recoveryPop();
-
-  } else {
-
-    rc = (rcvRC == RC_RCV_ABENDED) ?
-         RC_ZIS_AUTHSRV_SAF_ABENDED : RC_ZIS_AUTHSRV_INSTALL_RECOVERY_FAILED;
-    CMS_DEBUG2(globalArea, traceLevel, "recovery: rc %d, abend code: %d\n",
-               rcvRC, abendInfo->completionCode);
-
+  if (localParm.serviceVersion > serviceAnchor->serviceVersion &&
+      localParm.serviceVersion != ZIS_SERVICE_ANY_VERSION) {
+    return RC_ZIS_SRVC_BAD_SERVICE_VERSION;
   }
 
-  safRC  = safVerify(VERIFY_DELETE | VERIFY_WITHOUT_LOG, NULL, NULL, &acee,
-                     &racfRC, &racfRsn);
-
-  CMS_DEBUG2(globalArea, traceLevel,
-             "safVerify(VERIFY_DELETE) safStatus = %d, RACF RC = %d, "
-             "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
-
-  if (safRC != 0) {
-    if (rc == RC_ZIS_AUTHSRV_OK) {
-      FILL_SAF_STATUS(safStatus, safRC, racfRC, racfRsn);
-      rc = RC_ZIS_AUTHSRV_DELETE_FAILED;
-    }
+  if (!(serviceAnchor->state & ZIS_SERVICE_ANCHOR_STATE_ACTIVE)) {
+    return RC_ZIS_SRVC_SERVICE_INACTIVE;
   }
 
-  *accessType = accessTypeInternal;
-  return rc;
-}
-
-static int handleAccessRetrieval(AuthServiceParmList *parmList,
-                                 const CrossMemoryServerGlobalArea *globalArea)
-{
-  ACEE *acee = NULL;
-  int safRC = 0, racfRC = 0, racfRsn = 0;
-  int rcvRC = 0;
-  int rc = RC_ZIS_AUTHSRV_OK;
-  int traceLevel = parmList->traceLevel;
-
-  CMS_DEBUG2(globalArea, traceLevel,
-             "handleAccessRetrieval(): user=\'%s\', entity=\'%s\', "
-             "class=\'%s\', access = 0x%p\n",
-             parmList->userIDNullTerm, parmList->entityNullTerm,
-             parmList->classNullTerm, parmList->access);
-
-  rc = getAccessType(globalArea,
-                     parmList->classNullTerm,
-                     parmList->userIDNullTerm,
-                     parmList->entityNullTerm,
-                     &parmList->access,
-                     &parmList->safStatus,
-                     &parmList->abendInfo,
-                     traceLevel);
-
-  CMS_DEBUG2(globalArea, traceLevel, "handleAccessRetrieval() done\n");
-
-  return rc;
-}
-
-static int authServiceFunction(CrossMemoryServerGlobalArea *globalArea, CrossMemoryService *service, void *parm) {
-
-  int logLevel = globalArea->pcLogLevel;
-
-  if (logLevel >= ZOWE_LOG_DEBUG) {
-    cmsPrintf(&globalArea->serverName, CMS_LOG_DEBUG_MSG_ID" in authServiceFunction, parm = 0x%p\n", parm);
-  }
-
-  void *clientParmAddr = parm;
-  if (clientParmAddr == NULL) {
-    return RC_ZIS_AUTHSRV_PARMLIST_NULL;
-  }
-
-  AuthServiceParmList localParmList;
-  cmCopyFromPrimaryWithCallerKey(&localParmList, clientParmAddr, sizeof(AuthServiceParmList));
-
-  if (memcmp(localParmList.eyecatcher, ZIS_AUTH_SERVICE_PARMLIST_EYECATCHER, sizeof(localParmList.eyecatcher))) {
-    return RC_ZIS_AUTHSRV_BAD_EYECATCHER;
-  }
-  int handlerRC = RC_ZIS_AUTHSRV_OK;
-  switch (localParmList.fc) {
-  case ZIS_AUTH_SERVICE_PARMLIST_FC_VERIFY_PASSWORD:
-    handlerRC = handleVerifyPassword(&localParmList, globalArea);
-    break;
-  case ZIS_AUTH_SERVICE_PARMLIST_FC_ENTITY_CHECK:
-    handlerRC = handleEntityCheck(&localParmList, globalArea);
-    break;
-  case ZIS_AUTH_SERVICE_PARMLIST_FC_GET_ACCESS:
-    handlerRC = handleAccessRetrieval(&localParmList, globalArea);
-    break;
-  default:
-    handlerRC = RC_ZIS_AUTHSRV_UNKNOWN_FUNCTION_CODE;
-  }
-  cmCopyToPrimaryWithCallerKey(clientParmAddr, &localParmList, sizeof(AuthServiceParmList));
-  return handlerRC;
-}
-
-typedef struct SToken_tag {
-  char token[8];
-} SToken;
-
-__asm("SCHGLBPL IEAMSCHD MF=(L,SCHGLBPL)" : "DS"(SCHGLBPL));
-
-static int scheduleSynchSRB(Addr31 entryPoint, Addr31 parm, SToken token, Addr31 frrAddress,
-                            int * __ptr32 compCode, int * __ptr32 srbRC,  int * __ptr32 srbRSN) {
-
-  __asm("SCHGLBPL IEAMSCHD MF=(L,SCHGLBPL)" : "DS"(parmList));
-  parmList = SCHGLBPL;
-
-  int returnCode = 0;
-
-  unsigned int localEP = ((int)entryPoint) | 0x80000000;
-  unsigned int localParm = (int)parm;
-  unsigned int localFRRAddress = (frrAddress != NULL) ? (((int)frrAddress) | 0x80000000) : 0;
-  SToken localSToken = token;
-
-  __asm(
-      ASM_PREFIX
-
-#ifdef _LP64
-      "         SAM31                                                          \n"
-      "         SYSSTATE AMODE64=NO                                            \n"
-#endif
-
-      "         IEAMSCHD EPADDR=(%4)"
-      ",ENV=STOKEN"
-      ",PRIORITY=LOCAL"
-      ",SYNCH=YES"
-      ",PARM=(%5)"
-      ",TARGETSTOKEN=(%6)"
-      ",FRRADDR=(%7)"
-      ",SYNCHCOMPADDR=%1"
-      ",SYNCHCODEADDR=%2"
-      ",SYNCHRSNADDR=%3"
-      ",RETCODE=%0"
-      ",MF=(E,(%8),COMPLETE)                                                   \n"
-
-#ifdef _LP64
-      "         SAM64                                                          \n"
-      "         SYSSTATE AMODE64=YES                                           \n"
-#endif
-
-      : "=m"(returnCode), "=m"(compCode), "=m"(srbRC), "=m"(srbRSN)
-      : "r"(&localEP), "r"(&localParm), "r"(&localSToken), "r"(&localFRRAddress), "r"(&parmList)
-      : "r0", "r1", "r14", "r15"
-  );
-
-  return returnCode;
-}
-
-static Addr31 getSRBSnarfer() {
-
-  Addr31 routineAddress = NULL;
-
-  __asm(
-      ASM_PREFIX
-      "         LARL  1,L$SNRRTN                                               \n"
-      "         ST    1,%0                                                     \n"
-      "         J     L$SNREX                                                  \n"
-      "L$SNRRTN DS    0H                                                       \n"
-
-      /* establish addressability */
-      "         SAM64                     go AMODE64                           \n"
-      "         PUSH  USING                                                    \n"
-      "         DROP                                                           \n"
-      "         BAKR  14,0                                                     \n"
-      "         LARL  10,L$SNRRTN                                              \n"
-      "         USING L$SNRRTN,10                                              \n"
-
-      "         LLGFR 8,1                 copy our transfer buffer address     \n"
-      "         USING SNFTBUF,8                                                \n"
-
-      "         CLC   SNFTBEYE,=C'RSTRNBUF' eyecatcher okay?                   \n"
-      "         BE    L$SNCP10            yes, proceed                         \n"
-      "         LA    15,X'08'            set RC                               \n"
-      "         LA    0,X'01'             set RSN                              \n"
-      "         B     L$SNRRET            leave                                \n"
-
-      "L$SNCP10 DS    0H                                                       \n"
-#ifdef ZIS_SNARFER_USE_SHARED_MEM_OBJ
-      "         IARV64 REQUEST=SHAREMEMOBJ"
-      ",USERTKN=SNFTBTKN"
-      ",RANGLIST=SNFTBRLA"
-      ",NUMRANGE=1"
-      ",COND=YES"
-      ",RETCODE=SNFTBRC4"
-      ",RSNCODE=SNFTBRS4"
-      ",MF=(E,SNFTBPL4)                                                        \n"
-      "         LTR   15,15                                                    \n"
-      "         BZ    L$SNCP20                                                 \n"
-      "         LA    15,X'08'            set RC                               \n"
-      "         LA    0,X'02'             set RSN                              \n"
-      "         B     L$SNRRET            leave                                \n"
-#endif /* ZIS_SNARFER_USE_SHARED_MEM_OBJ */
-
-      "L$SNCP20 DS    0H                                                       \n"
-      "         L     1,SNFTBSRK          source key                           \n"
-      "         LG    2,SNFTBDNA          destination address                  \n"
-      "         LG    4,SNFTBSRA          source address                       \n"
-      "         LLGT  5,SNFTBSZ           size                                 \n"
-
-      "L$SNCP30 DS    0H                                                       \n"
-      "         LTGR  5,5                 size > 0?                            \n"
-      "         BP    L$SNCP40            yes, copy                            \n"
-      "         LA    15,X'777'           set RC                               \n"
-      "         LA    0,X'00'             set RSN                              \n"
-      "         B     L$SNRRET            <=0, leave                           \n"
-
-      "L$SNCP40 DS    0H                                                       \n"
-      "         LA    0,256                                                    \n"
-      "         CGR   5,0                 size left > 256?                     \n"
-      "         BH    L$SNCP50            yes, go subtract 256                 \n"
-      "         LGR   0,5                 no, load bytes left to r0            \n"
-      "L$SNCP50 DS    0H                                                       \n"
-      "         SGR   5,0                 subtract 256                         \n"
-      "         BCTR  0,0                 bytes to copy - 1                    \n"
-      "         MVCSK 0(2),0(4)           copy                                 \n"
-      "         LA    2,256(,2)           bump destination address             \n"
-      "         LA    4,256(,4)           bump source address                  \n"
-      "         B     L$SNCP30            repeat                               \n"
-
-      "L$SNCP60 DS    0H                                                       \n"
-#ifdef ZIS_SNARFER_USE_SHARED_MEM_OBJ
-      "         IARV64 REQUEST=DETACH"
-      ",USERTKN=SNFTBTKN"
-      ",MEMOBJSTART=SNFTBDNA"
-      ",OWNER=YES"
-      ",COND=YES"
-      ",RETCODE=SNFTBRC4"
-      ",RSNCODE=SNFTBRS4"
-      ",MF=(E,SNFTBPL4)                                                        \n"
-      "         LTR   15,15                                                    \n"
-      "         BZ    L$SNRRET                                                 \n"
-      "         LA    15,X'08'            set RC                               \n"
-      "         LA    0,X'03'             set RSN                              \n"
-      "         B     L$SNRRET            leave                                \n"
-#endif /* ZIS_SNARFER_USE_SHARED_MEM_OBJ */
-
-      /* return to caller */
-      "L$SNRRET DS    0H                                                       \n"
-      "         PR    ,                   return                               \n"
-      /* non executable code */
-      "         LTORG                                                          \n"
-      "         POP   USING                                                    \n"
-
-      "L$SNREX  DS    0H                                                       \n"
-      : "=m"(routineAddress)
-      :
-      : "r1"
-  );
-
-  return routineAddress;
-}
-
-__asm("IARV64GL IARV64 MF=(L,IARV64GL)" : "DS"(IARV64GL));
-
-static uint64 getSharedMemObject(uint64 segmentCount, uint64 token, int *iarv64RC, int *iarv64RSN) {
-
-  uint64 data = 0;
-
-  int localRC = 0;
-  int localRSN = 0;
-
-  __asm(" IARV64 MF=L" : "DS"(getSharedMemObjPlist));
-  getSharedMemObjPlist = IARV64GL;
-
-  __asm(
-      "         IARV64 REQUEST=GETSHARED"
-      ",USERTKN=(%2)"
-      ",COND=YES"
-      ",SEGMENTS=(%3)"
-      ",ORIGIN=(%4)"
-      ",RETCODE=%0"
-      ",RSNCODE=%1"
-      ",MF=(E,(%5))                                                            \n"
-      : "=m"(localRC), "=m"(localRSN)
-      : "r"(&token), "r"(&segmentCount), "r"(&data), "r"(&getSharedMemObjPlist)
-      : "r0", "r1", "r14", "r15"
-  );
-
-  if (iarv64RC) {
-    *iarv64RC = localRC;
-  }
-  if (iarv64RSN) {
-    *iarv64RSN = localRSN;
-  }
-
-  return data;
-}
-
-static void shareMemObject(uint64 object, uint64 token, int *iarv64RC, int *iarv64RSN) {
-
-  int localRC = 0;
-  int localRSN = 0;
-
-  struct {
-    uint64 vsa;
-    uint64 reserved;
-  } rangeList = {object, 0};
-  uint64 rangeListAddress = (uint64)&rangeList;
-
-  __asm(" IARV64 MF=L" : "DS"(shareMemObjPlist));
-  shareMemObjPlist = IARV64GL;
-
-  __asm(
-      "         IARV64 REQUEST=SHAREMEMOBJ"
-      ",USERTKN=(%2)"
-      ",RANGLIST=(%3)"
-      ",NUMRANGE=1"
-      ",COND=YES"
-      ",RETCODE=%0"
-      ",RSNCODE=%1"
-      ",MF=(E,(%4))                                                            \n"
-      : "=m"(localRC), "=m"(localRSN)
-      : "r"(&token), "r"(&rangeListAddress), "r"(&shareMemObjPlist)
-      : "r0", "r1", "r14", "r15"
-  );
+  return serviceAnchor->serve(globalArea,
+                              serviceAnchor,
+                              &serviceAnchor->serviceData,
+                              serviceParm);
 
 }
 
-static void detachSharedMemObject(uint64 object, uint64 token, int *iarv64RC, int *iarv64RSN) {
 
-  int localRC = 0;
-  int localRSN = 0;
+static int registerZISServiceRouter(CrossMemoryServer *cms) {
 
-  __asm(" IARV64 MF=L" : "DS"(detachPlist));
-  detachPlist = IARV64GL;
+  int regRC = RC_CMS_OK;
 
-  __asm(
-      "         IARV64 REQUEST=DETACH"
-      ",USERTKN=(%2)"
-      ",MEMOBJSTART=(%3)"
-      ",OWNER=YES"
-      ",COND=YES"
-      ",RETCODE=%0"
-      ",RSNCODE=%1"
-      ",MF=(E,(%4))                                                            \n"
-      : "=m"(localRC), "=m"(localRSN)
-      : "r"(&token), "r"(&object), "r"(&detachPlist)
-      : "r0", "r1", "r14", "r15"
-  );
-
-  if (iarv64RC){
-    *iarv64RC = localRC;
-  }
-  if (iarv64RSN){
-    *iarv64RSN = localRSN;
+  int pccpRouterFlags = CMS_SERVICE_FLAG_RELOCATE_TO_COMMON;
+  regRC = cmsRegisterService(cms, ZIS_SERVICE_ID_SRVC_ROUTER_CP,
+                             zisRouteService, NULL, pccpRouterFlags);
+  if (regRC != RC_CMS_OK) {
+    return RC_ZIS_ERROR;
   }
 
+  int pcssRouterFlags = CMS_SERVICE_FLAG_RELOCATE_TO_COMMON |
+                        CMS_SERVICE_FLAG_SPACE_SWITCH;
+  regRC = cmsRegisterService(cms, ZIS_SERVICE_ID_SRVC_ROUTER_SS,
+                             zisRouteService, NULL, pcssRouterFlags);
+  if (regRC != RC_CMS_OK) {
+    return RC_ZIS_ERROR;
+  }
+
+  return RC_ZIS_OK;
 }
 
-static void detachSharedMemObjectFromSystem(uint64 object, uint64 token, int *iarv64RC, int *iarv64RSN) {
+static int registerCoreServices(ZISContext *context) {
 
-  int localRC = 0;
-  int localRSN = 0;
+  CrossMemoryServer *server = context->cmServer;
 
-  __asm(" IARV64 MF=L" : "DS"(detachPlist));
-  detachPlist = IARV64GL;
+  int regRC = RC_CMS_OK;
 
-  __asm(
-      "         IARV64 REQUEST=DETACH"
-      ",MATCH=MOTOKEN"
-      ",USERTKN=(%2)"
-      ",AFFINITY=SYSTEM"
-      ",COND=YES"
-      ",RETCODE=%0"
-      ",RSNCODE=%1"
-      ",MF=(E,(%4))                                                            \n"
-      : "=m"(localRC), "=m"(localRSN)
-      : "r"(&token), "r"(&object), "r"(&detachPlist)
-      : "r0", "r1", "r14", "r15"
-  );
-
-  if (iarv64RC){
-    *iarv64RC = localRC;
-  }
-  if (iarv64RSN){
-    *iarv64RSN = localRSN;
+  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_AUTH_SRV,
+                             zisAuthServiceFunction, NULL,
+                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  if (regRC != RC_CMS_OK) {
+    return RC_ZIS_ERROR;
   }
 
+  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_SNARFER_SRV,
+                             zisSnarferServiceFunction, NULL,
+                             CMS_SERVICE_FLAG_SPACE_SWITCH |
+                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  if (regRC != RC_CMS_OK) {
+    return RC_ZIS_ERROR;
+  }
+
+  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_NWM_SRV,
+                             zisNWMServiceFunction, NULL,
+                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  if (regRC != RC_CMS_OK) {
+    return RC_ZIS_ERROR;
+  }
+
+
+  regRC = registerZISServiceRouter(server);
+  if (regRC != RC_CMS_OK) {
+    return RC_ZIS_ERROR;
+  }
+
+  return RC_ZIS_OK;
 }
-
-ZOWE_PRAGMA_PACK
-typedef struct TransferBuffer_tag {
-  char eyecatcher[8];
-#define TRANSFER_BUFFER_EYECATCHER  "RSTRNBUF"
-
-  unsigned int copySize;
-  unsigned int sourceKey;
-  uint64 sourceAddress;
-  uint64 destinationAddress;
-#ifdef ZIS_SNARFER_USE_SHARED_MEM_OBJ
-  uint64 sharedMemObjSegmentCount;
-  uint64 sharedMemObjToken;
-
-  struct {
-    uint64 vsa;
-    uint64 reserved;
-  } rangeList;
-  uint64 rangeListAddress;
-  int iarv64RC;
-  int iarv64RSN;
-  char iarv64Plist[128];
-#else
-  char data[0];
-#endif /* ZIS_SNARFER_USE_SHARED_MEM_OBJ */
-} TransferBuffer;
-ZOWE_PRAGMA_PACK_RESET
-
-static int allocateTransferBuffer(CrossMemoryServerGlobalArea *globalArea, unsigned int copySize, TransferBuffer **buffer, int traceLevel) {
-
-#ifdef ZIS_SNARFER_USE_SHARED_MEM_OBJ
-  unsigned int commonStorageSize = sizeof(TransferBuffer);
-#else
-  unsigned int commonStorageSize = sizeof(TransferBuffer) + copySize;
-#endif /* ZIS_SNARFER_USE_SHARED_MEM_OBJ */
-
-  cmsAllocateECSAStorage2(globalArea, commonStorageSize, (void **)buffer);
-  TransferBuffer *transferBuffer = *buffer;
-  if (transferBuffer == NULL) {
-    return RC_ZIS_SNRFSRV_ECSA_ALLOC_FAILED;
-  }
-  memset(transferBuffer, 0, sizeof(TransferBuffer));
-  memcpy(transferBuffer->eyecatcher, TRANSFER_BUFFER_EYECATCHER, sizeof(transferBuffer->eyecatcher));
-  transferBuffer->copySize = copySize;
-
-  if (traceLevel >= ZOWE_LOG_DEBUG) {
-    cmsPrintf(&globalArea->serverName, CMS_LOG_DEBUG_MSG_ID" allocateTransferBuffer: transferBuffer=0x%p\n", transferBuffer);
-  }
-
-  int status = RC_ZIS_SNRFSRV_OK;
-
-#ifdef ZIS_SNARFER_USE_SHARED_MEM_OBJ
-  int iarv64RC = 0, iarv64RSN = 0;
-  unsigned int sharedMemObjSegmentCount = (copySize >> 20) + (copySize & 0xFFFFF ? 1 : 0);
-  uint64 sharedMemObjToken = (uint64)getASCB() << 32 | (uint64)transferBuffer;
-  uint64 sharedMemObj = 0;
-
-  if (status == RC_ZIS_SNRFSRV_OK) {
-    sharedMemObj = getSharedMemObject(sharedMemObjSegmentCount, sharedMemObjToken, &iarv64RC, &iarv64RSN);
-    if (iarv64RC >= 8) {
-      status = RC_ZIS_SNRFSRV_SHARED_OBJ_ALLOC_FAILED;
-    }
-
-    if (traceLevel >= ZOWE_LOG_DEBUG) {
-      cmsPrintf(&globalArea->serverName, CMS_LOG_DEBUG_MSG_ID" allocateTransferBuffer: getSharedObject rc=%d, rsn=%d (%llu, 0x%016llX, 0x%016llX)\n",
-          iarv64RC, iarv64RSN, sharedMemObjSegmentCount, sharedMemObjToken, sharedMemObj);
-    }
-  }
-
-  if (status == RC_ZIS_SNRFSRV_OK) {
-    shareMemObject(sharedMemObj, sharedMemObjToken, &iarv64RC, &iarv64RSN);
-    if (iarv64RC >= 8) {
-      status = RC_ZIS_SNRFSRV_SHARED_OBJ_SHARE_FAILED;
-    }
-
-    if (traceLevel >= ZOWE_LOG_DEBUG) {
-      cmsPrintf(&globalArea->serverName, CMS_LOG_DEBUG_MSG_ID" shareObject: getSharedObject rc=%d, rsn=%d (0x%016llX, 0x%016llX)\n",
-          iarv64RC, iarv64RSN, sharedMemObjToken, sharedMemObj);
-    }
-  }
-
-  if (status == RC_ZIS_SNRFSRV_OK) {
-    transferBuffer->destinationAddress = sharedMemObj;
-    transferBuffer->sharedMemObjSegmentCount = sharedMemObjSegmentCount;
-    transferBuffer->sharedMemObjToken = sharedMemObjToken;
-    transferBuffer->rangeList.vsa = sharedMemObj;
-    transferBuffer->rangeList.reserved = 0;
-    transferBuffer->rangeListAddress = (uint64)&transferBuffer->rangeList;
-    transferBuffer->iarv64RC = 0;
-    transferBuffer->iarv64RSN = 0;
-  } else {
-    if (sharedMemObj != 0) {
-      detachSharedMemObject(sharedMemObj, sharedMemObjToken, NULL, NULL);
-      sharedMemObj = 0;
-    }
-    if (transferBuffer != NULL) {
-      cmsFreeECSAStorage(globalArea, transferBuffer, commonStorageSize);
-      transferBuffer = NULL;
-    }
-  }
-#else
-  transferBuffer->destinationAddress = (uint64)&transferBuffer->data;
-#endif /* ZIS_SNARFER_USE_SHARED_MEM_OBJ */
-
-  return status;
-}
-
-static int freeTransferBuffer(CrossMemoryServerGlobalArea *globalArea, TransferBuffer **buffer, int traceLevel) {
-
-  int status = RC_ZIS_SNRFSRV_OK;
-
-#ifdef ZIS_SNARFER_USE_SHARED_MEM_OBJ
-  unsigned int commonStorageSize = sizeof(TransferBuffer);
-#else
-  unsigned int commonStorageSize = sizeof(TransferBuffer) + (*buffer)->copySize;
-#endif /* ZIS_SNARFER_USE_SHARED_MEM_OBJ */
-
-
-#ifdef ZIS_SNARFER_USE_SHARED_MEM_OBJ
-
-  int iarv64RC = 0, iarv64RSN = 0;
-  detachSharedMemObjectFromSystem(buffer->destinationAddress, buffer->sharedMemObjToken, &iarv64RC, &iarv64RSN);
-  if (iarv64RC >= 8) {
-    status = (status != RC_ZIS_SNRFSRV_OK) ? status : RC_ZIS_SNRFSRV_SHARED_OBJ_DETACH_FAILED;
-  }
-
-  if (traceLevel >= ZOWE_LOG_DEBUG) {
-    cmsPrintf(&globalArea->serverName, CMS_LOG_DEBUG_MSG_ID" freeTransferBuffer: detachSharedObject(system) rc=%d, rsn=%d (0x%016llX, 0x%016llX)\n",
-        iarv64RC, iarv64RSN, buffer->destinationAddress, buffer->sharedMemObjToken);
-  }
-
-  iarv64RC = 0, iarv64RSN = 0;
-  detachSharedMemObject(buffer->destinationAddress, buffer->sharedMemObjToken, &iarv64RC, &iarv64RSN);
-  if (iarv64RC >= 8) {
-    status = RC_ZIS_SNRFSRV_SHARED_OBJ_DETACH_FAILED;
-  }
-
-  if (traceLevel >= ZOWE_LOG_DEBUG) {
-    cmsPrintf(&globalArea->serverName, CMS_LOG_DEBUG_MSG_ID" freeTransferBuffer: detachSharedObject rc=%d, rsn=%d (0x%016llX, 0x%016llX)\n",
-        iarv64RC, iarv64RSN, buffer->destinationAddress, buffer->sharedMemObjToken);
-  }
-
-#endif /* ZIS_SNARFER_USE_SHARED_MEM_OBJ */
-
-  cmsFreeECSAStorage2(globalArea, (void **)buffer, commonStorageSize);
-
-  return status;
-}
-
-#pragma pack(packed)
-typedef struct SnarferContext_tag {
-  char eyecatcher[8];
-#define SNARFER_CONTEXT_EYECATCHER  "RSSNRFCX"
-  CrossMemoryServerGlobalArea *globalArea;
-  TransferBuffer *transferBuffer;
-  int traceLevel;
-} SnarferContext;
-#pragma pack(reset)
-
-static void cleanupSnarfer(struct RecoveryContext_tag * __ptr32 context,
-                           SDWA * __ptr32 sdwa,
-                           void * __ptr32 userData) {
-
-  int cc = 0, rsn = 0;
-  recoveryGetABENDCode(sdwa, &cc, &rsn);
-
-  /* Percolate if we haven't been cancelled, the global PC recovery will
-   * report the ABEND. */
-  if (cc != 0x222 && cc != 0x522) {
-    return;
-  }
-
-  SnarferContext *snarferContext = userData;
-  if (memcmp(snarferContext->eyecatcher, SNARFER_CONTEXT_EYECATCHER,
-             sizeof(snarferContext->eyecatcher))) {
-    return;
-  }
-
-  CrossMemoryServerGlobalArea *globalArea = snarferContext->globalArea;
-
-  if (snarferContext->traceLevel >= ZOWE_LOG_DEBUG) {
-    cmsPrintf(&globalArea->serverName, CMS_LOG_DEBUG_MSG_ID" we got canceled - "
-              "ga=%p, tb=%p\n", globalArea, snarferContext->transferBuffer);
-  }
-
-  if (snarferContext->transferBuffer != NULL) {
-    freeTransferBuffer(globalArea, &snarferContext->transferBuffer,
-                       snarferContext->traceLevel);
-  }
-
-}
-
-static int snarferServiceFunction(CrossMemoryServerGlobalArea *globalArea, CrossMemoryService *service, void *parm) {
-
-  int logLevel = globalArea->pcLogLevel;
-
-  void *clientParmAddr = parm;
-  if (clientParmAddr == NULL) {
-    return RC_ZIS_SNRFSRV_PARMLIST_NULL;
-  }
-
-  SnarferServiceParmList localParmList;
-  cmCopyFromSecondaryWithCallerKey(&localParmList, clientParmAddr, sizeof(localParmList));
-
-  if (memcmp(localParmList.eyecatcher, ZIS_SNARFER_SERVICE_PARMLIST_EYECATCHER, sizeof(localParmList.eyecatcher))) {
-    return RC_ZIS_SNRFSRV_BAD_EYECATCHER;
-  }
-
-  void *dest = (void *)localParmList.destinationAddress;
-  void *src = (void *)localParmList.sourceAddress;
-  ASCB *srcASCB = localParmList.sourceASCB;
-  int srcKey = localParmList.sourceKey;
-  unsigned int copySize = localParmList.size;
-
-  if (logLevel >= ZOWE_LOG_DEBUG) {
-    cmsPrintf(&globalArea->serverName, CMS_LOG_DEBUG_MSG_ID" snarferServiceFunction: dest=0x%p, src=0x%p, srcASCB=0x%p, srcKey=0x%X, copySize=%u\n",
-        dest, src, srcASCB, srcKey, copySize);
-  }
-
-  if ((uint64)dest < 0x6000) {
-    return RC_ZIS_SNRFSRV_BAD_DEST;
-  }
-
-  if (srcASCB == NULL) {
-    return RC_ZIS_SNRFSRV_BAD_ASCB;
-  }
-
-  if (copySize > CMS_MAX_ECSA_BLOCK_SIZE) {
-    return RC_ZIS_SNRFSRV_BAD_SIZE;
-  }
-
-  int status = RC_ZIS_SNRFSRV_OK;
-
-  SnarferContext cntx = {
-      .eyecatcher = SNARFER_CONTEXT_EYECATCHER,
-      .globalArea = globalArea,
-      .transferBuffer = NULL,
-      .traceLevel = logLevel,
-  };
-
-  /* global snarfer recovery - it'll always percolate */
-  int pushRC = recoveryPush("snarferServiceFunction", RCVR_FLAG_NONE, NULL,
-                            cleanupSnarfer, &cntx, NULL, NULL);
-  if (pushRC != RC_RCV_OK) {
-    return RC_ZIS_SNRFSRV_RECOVERY_ERROR;
-  }
-
-  ASSB *sourceASSB = NULL;
-  if (status == RC_ZIS_SNRFSRV_OK) {
-    int pushRC = recoveryPush("snarferServiceFunction->getASSB", RCVR_FLAG_RETRY,
-                              NULL, cleanupSnarfer, &cntx, NULL, NULL);
-    if (pushRC == RC_RCV_OK) {
-      sourceASSB = getASSB(srcASCB);
-    } else if (pushRC == RC_RCV_ABENDED) {
-      status = RC_ZIS_SNRFSRV_SRC_ASSB_ABEND;
-    } else {
-      status = RC_ZIS_SNRFSRV_RECOVERY_ERROR;
-    }
-    recoveryPop();
-  }
-
-  if (status == RC_ZIS_SNRFSRV_OK) {
-    int allocTransferBufRC = allocateTransferBuffer(globalArea, copySize,
-                                                    &cntx.transferBuffer,
-                                                    logLevel);
-    if (allocTransferBufRC == RC_ZIS_SNRFSRV_OK) {
-      cntx.transferBuffer->sourceAddress = localParmList.sourceAddress;
-      cntx.transferBuffer->sourceKey = localParmList.sourceKey;
-      if (logLevel >= ZOWE_LOG_DEBUG) {
-        cmsPrintf(&globalArea->serverName,
-                  CMS_LOG_DEBUG_MSG_ID" transfer buffer allocated @ "
-                  "0x%p, %u, %u, 0%llX\n",
-                  cntx.transferBuffer, cntx.transferBuffer->copySize,
-                  cntx.transferBuffer->sourceKey,
-                  cntx.transferBuffer->sourceAddress);
-      }
-    } else {
-      status = allocTransferBufRC;
-    }
-  }
-
-  if (status == RC_ZIS_SNRFSRV_OK) {
-    int pushRC = recoveryPush("snarferServiceFunction->SRB", RCVR_FLAG_RETRY,
-                              NULL, cleanupSnarfer, &cntx, NULL, NULL);
-    if (pushRC == RC_RCV_OK) {
-
-      Addr31 srbRoutine = getSRBSnarfer();
-      SToken stoken;
-      memcpy(stoken.token, sourceASSB->assbstkn, sizeof(stoken.token));
-
-      if (logLevel >= ZOWE_LOG_DEBUG) {
-        cmsPrintf(&globalArea->serverName, CMS_LOG_DEBUG_MSG_ID" srbRoutine=0x%p, stoken=%llX\n", srbRoutine, *(uint64 *)&stoken);
-      }
-
-      int compCode = 0, srbRC = 0, srbRSN = 0;
-      int ieamschdRC = scheduleSynchSRB(srbRoutine, cntx.transferBuffer, stoken, NULL, &compCode, &srbRC, &srbRSN);
-      if (logLevel >= ZOWE_LOG_DEBUG) {
-        cmsPrintf(&globalArea->serverName, CMS_LOG_DEBUG_MSG_ID" ieamschdRC=0x%08X, compCode=0x%08X, srbRC=0x%08X, srbRSN=0x%08X\n", ieamschdRC, compCode, srbRC, srbRSN);
-      }
-      if (ieamschdRC != 0) {
-        status = RC_ZIS_SNRFSRV_SRC_IEAMSCHD_FAILED;
-      }
-
-    } else if (pushRC == RC_RCV_ABENDED) {
-      status = RC_ZIS_SNRFSRV_SRC_IEAMSCHD_ABEND;
-    } else {
-      status = RC_ZIS_SNRFSRV_RECOVERY_ERROR;
-    }
-    recoveryPop();
-  }
-
-  if (status == RC_ZIS_SNRFSRV_OK) {
-    cmCopyToSecondaryWithCallerKey((void *)localParmList.destinationAddress,
-                                   (void *)cntx.transferBuffer->destinationAddress,
-                                   localParmList.size);
-  }
-
-  if (cntx.transferBuffer != NULL) {
-    int freeTransferBufRC = freeTransferBuffer(globalArea, &cntx.transferBuffer, logLevel);
-    if (freeTransferBufRC != RC_ZIS_SNRFSRV_OK) {
-      status = (status != RC_ZIS_SNRFSRV_OK) ? status : freeTransferBufRC;
-    }
-  }
-
-  recoveryPop(); /* global snarfer recovery */
-
-  return status;
-}
-
-static int callNWMService(char jobName[],
-                          char *nmiBuffer,
-                          unsigned int nmiBufferSize,
-                          int *rc,
-                          int *rsn) {
-
-  int alet = 0;
-  int returnValue = 0;
-  char callParmListBuffer[64];
-
-  __asm(
-      ASM_PREFIX
-      "         CALL EZBNMIFR"
-      ",("
-      "(%[jobName]),"
-      "(%[buffer]),"
-      "(%[bufferALET]),"
-      "(%[bufferSize]),"
-      "(%[rv]),(%[rc]),(%[rsn])"
-      "),MF=(E,(%[parmList]))"
-      "                                                                        \n"
-      :
-      : [jobName]"r"(jobName),
-        [buffer]"r"(nmiBuffer),
-        [bufferALET]"r"(&alet),
-        [bufferSize]"r"(&nmiBufferSize),
-        [rv]"r"(&returnValue),
-        [rc]"r"(rc),
-        [rsn]"r"(rsn),
-        [parmList]"r"(&callParmListBuffer)
-      : "r0", "r1", "r14", "r15"
-  );
-
-  return returnValue;
-}
-
-static int nwmServiceFunction(CrossMemoryServerGlobalArea *globalArea,
-                              CrossMemoryService *service,
-                              void *parm) {
-
-  int traceLevel = globalArea->pcLogLevel;
-
-  void *clientParmAddr = parm;
-  if (clientParmAddr == NULL) {
-    return RC_ZIS_NWMSRV_PARMLIST_NULL;
-  }
-
-  ZISNWMServiceParmList localParmList = {0};
-  cmCopyFromSecondaryWithCallerKey(&localParmList, clientParmAddr,
-                                   sizeof(localParmList));
-
-  if (memcmp(localParmList.eyecatcher, ZIS_NWM_SERVICE_PARMLIST_EYECATCHER,
-             sizeof(localParmList.eyecatcher))) {
-    return RC_ZIS_NWMSRV_BAD_EYECATCHER;
-  }
-
-  if (localParmList.nmiBuffer == NULL) {
-    return RC_ZIS_NWMSRV_BUFFER_NULL;
-  }
-
-  if (traceLevel < localParmList.traceLevel) {
-    traceLevel = localParmList.traceLevel;
-  }
-
-  unsigned int localNMIBUfferSize = localParmList.nmiBufferSize;
-  char *localNMIBuffer = safeMalloc64(localNMIBUfferSize, "localNMIBuffer");
-  if (localNMIBuffer == NULL) {
-    return RC_ZIS_NWMSRV_BUFFER_NOT_ALLOCATED;
-  }
-
-  CMS_DEBUG2(globalArea, traceLevel,
-             "NWMSRV: job = \'%8.8s\', buffer = %p, local buffer = %p, "
-             "size = %u\n",
-             localParmList.nmiJobName,
-             localParmList.nmiBuffer,
-             localNMIBuffer,
-             localParmList.nmiBufferSize);
-
-  int status = RC_ZIS_NWMSRV_OK;
-  int pushRC = recoveryPush("NWM recovery",
-                            RCVR_FLAG_NONE | RCVR_FLAG_DELETE_ON_RETRY,
-                            NULL, NULL, NULL, NULL, NULL);
-  if (pushRC == RC_RCV_OK) {
-
-    cmCopyFromSecondaryWithCallerKey(localNMIBuffer, localParmList.nmiBuffer,
-                                     localParmList.nmiBufferSize);
-
-    localParmList.nmiReturnValue = callNWMService(localParmList.nmiJobName,
-                                                  localNMIBuffer,
-                                                  localNMIBUfferSize,
-                                                  &localParmList.nmiReturnCode,
-                                                  &localParmList.nmiReasonCode);
-
-  } else {
-
-    if (pushRC == RC_RCV_ABENDED) {
-      status = RC_ZIS_NWMSRV_NWM_ABENDED;
-    } else {
-      status = RC_ZIS_NWMSRV_RECOVERY_ERROR;
-    }
-
-  }
-
-  if (pushRC == RC_RCV_OK) {
-    recoveryPop();
-  }
-
-  if (status == RC_ZIS_NWMSRV_OK) {
-
-    cmCopyToSecondaryWithCallerKey(localParmList.nmiBuffer, localNMIBuffer,
-                                   localParmList.nmiBufferSize);
-
-    cmCopyToSecondaryWithCallerKey(clientParmAddr, &localParmList,
-                                   sizeof(localParmList));
-
-    if (localParmList.nmiReturnValue < 0) {
-      status = RC_ZIS_NWMSRV_NWM_FAILED;
-    }
-
-  }
-
-  safeFree64(localNMIBuffer, localNMIBUfferSize);
-  localNMIBuffer = NULL;
-
-  CMS_DEBUG2(globalArea, traceLevel,
-             "NWMSRV: status = %d, NMI RV = %d, RC = %d, RSN = 0x%08X\n",
-             status,
-             localParmList.nmiReturnValue,
-             localParmList.nmiReturnCode,
-             localParmList.nmiReasonCode);
-
-  return status;
-}
-
-ZOWE_PRAGMA_PACK
-typedef struct MainFunctionParms_tag {
-  unsigned short textLength;
-  char text[0];
-} MainFunctionParms;
-ZOWE_PRAGMA_PACK_RESET
 
 #define GET_MAIN_FUNCION_PARMS() \
 ({ \
   unsigned int r1; \
   __asm(" ST    1,%0 "  : "=m"(r1) : : "r1"); \
-  MainFunctionParms * __ptr32 parms = NULL; \
+  ZISMainFunctionParms * __ptr32 parms = NULL; \
   if (r1 != 0) { \
-    parms = (MainFunctionParms *)((*(unsigned int *)r1) & 0x7FFFFFFF); \
+    parms = (ZISMainFunctionParms *)((*(unsigned int *)r1) & 0x7FFFFFFF); \
   } \
   parms; \
 })
 
-static bool isKeywordInPassedParms(const char *keyword, const MainFunctionParms *parms) {
+static int initServiceTable(ZISContext *context) {
 
-  if (parms == NULL) {
-    return false;
+  ZISServerAnchor *anchor = context->zisAnchor;
+
+  if (anchor->serviceTable != NULL) {
+#ifdef ZIS_DEV_MODE
+    removeCrossMemoryMap(&anchor->serviceTable);
+#endif
   }
 
-  unsigned int keywordLength = strlen(keyword);
-  for (int startIdx = 0; startIdx < parms->textLength; startIdx++) {
-    int endIdx;
-    for (endIdx = startIdx; endIdx < parms->textLength; endIdx++) {
-      if (parms->text[endIdx] == ',' || parms->text[endIdx] == ' ') {
-        break;
+  if (anchor->serviceTable == NULL) {
+
+    anchor->serviceTable = makeCrossMemoryMap(sizeof(ZISServicePath));
+    if (anchor->serviceTable == NULL) {
+      if (anchor == NULL) {
+        zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+                ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG, "service table");
+        return RC_ZIS_ERROR;
       }
     }
-    unsigned int tokenLength = endIdx - startIdx;
-    if (tokenLength == keywordLength) {
-      if (memcmp(keyword, &parms->text[startIdx], tokenLength) == 0) {
-        return true;
-      }
-    }
-    startIdx = endIdx;
+
   }
 
-  return false;
+  return RC_ZIS_OK;
 }
 
-static char *getPassedParmValue(const char *parmName, const MainFunctionParms *parms, char *buffer, unsigned int bufferSize) {
+static void destroyServiceTable(ZISContext *context) {
 
-  if (buffer == NULL || bufferSize == 0 || parms == NULL) {
-    return NULL;
+  ZISServerAnchor *anchor = context->zisAnchor;
+
+  if (anchor != NULL && anchor->serviceTable != NULL) {
+    removeCrossMemoryMap(&anchor->serviceTable);
   }
 
-  buffer[0] = '\0';
+}
 
-  unsigned int parmNameLength = strlen(parmName);
-  for (int startIdx = 0; startIdx < parms->textLength; startIdx++) {
-    int endIdx;
-    for (endIdx = startIdx; endIdx < parms->textLength; endIdx++) {
-      if (parms->text[endIdx] == ',' || parms->text[endIdx] == ' ') {
-        break;
-      }
+static ZISPluginAnchor *findPluginAnchor(const ZISServerAnchor *serverAnchor,
+                                         const ZISPluginName *name) {
+
+  ZISPluginAnchor *currAnchor = serverAnchor->firstPlugin;
+
+  while (currAnchor) {
+    if (memcmp(name, &currAnchor->name, sizeof(ZISPluginName)) == 0 &&
+        currAnchor->version <= ZIS_PLUGIN_ANCHOR_VERSION) {
+      return currAnchor;
     }
-    unsigned int tokenLength = endIdx - startIdx;
-    if (tokenLength > parmNameLength + 1) {
-      if (memcmp(parmName, &parms->text[startIdx], parmNameLength) == 0 &&
-          parms->text[startIdx + parmNameLength] == '=') {
-        snprintf(buffer, bufferSize, "%.*s", tokenLength - parmNameLength - 1, &parms->text[startIdx + parmNameLength + 1]);
-        return buffer;
-      }
-    }
-    startIdx = endIdx;
+    currAnchor = currAnchor->next;
   }
 
   return NULL;
 }
 
-int main() {
+static ZISServiceAnchor *findServiceAnchor(const ZISPluginAnchor *pluginAnchor,
+                                           const ZISServiceName *name) {
 
-  const MainFunctionParms * __ptr32 passedParms = GET_MAIN_FUNCION_PARMS();
+  ZISServiceAnchor *currAnchor = pluginAnchor->firstService;
+
+  while (currAnchor) {
+    if (!memcmp(name, &currAnchor->path.serviceName, sizeof(ZISServiceName)) &&
+        currAnchor->version <= ZIS_SERVER_ANCHOR_VERSION) {
+      return currAnchor;
+    }
+    currAnchor = currAnchor->next;
+  }
+
+  return NULL;
+}
+
+
+static int cleanPluginAnchor(ZISPluginAnchor *anchor) {
+
+  ZISServiceAnchor *currService = anchor->firstService;
+  while (currService != NULL) {
+    currService->state &= ~ZIS_SERVICE_ANCHOR_STATE_ACTIVE;
+    currService->serve = NULL;
+    currService = currService->next;
+  }
+
+  return RC_ZIS_OK;
+}
+
+static void cleanPlugins(ZISContext *context) {
+
+  ZISServerAnchor *serverAnchor = context->zisAnchor;
+  ZISPluginAnchor *currPlugin = serverAnchor->firstPlugin;
+  while (currPlugin != NULL) {
+    cleanPluginAnchor(currPlugin);
+    currPlugin = currPlugin->next;
+  }
+
+}
+
+
+typedef struct ABENDInfo_tag {
+  char eyecatcher[8];
+#define ABEND_INFO_EYECATCHER "ZISABEDI"
+  int completionCode;
+  int reasonCode;
+} ABENDInfo;
+
+
+static void extractABENDInfo(RecoveryContext * __ptr32 context,
+                             SDWA * __ptr32 sdwa,
+                             void * __ptr32 userData) {
+  ABENDInfo *info = (ABENDInfo *)userData;
+  recoveryGetABENDCode(sdwa, &info->completionCode, &info->reasonCode);
+}
+
+static int callPluginInit(ZISContext *context, ZISPlugin *plugin,
+                          ZISPluginAnchor *anchor) {
 
   int status = RC_ZIS_OK;
+  int recoveryRC = RC_RCV_OK;
+  ABENDInfo abendInfo = {ABEND_INFO_EYECATCHER};
+
+  recoveryRC = recoveryPush("callPluginInit",
+                            RCVR_FLAG_RETRY | RCVR_FLAG_DELETE_ON_RETRY,
+                            "callPluginInit", extractABENDInfo, &abendInfo,
+                            NULL, NULL);
+  {
+    if (recoveryRC == RC_RCV_OK) {
+
+      if (plugin->init != NULL) {
+        int initRC = plugin->init(context, plugin, anchor);
+        if (initRC != RC_ZIS_OK) {
+          zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
+                  ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in init RC = %d",
+                  plugin->name.text, initRC);
+          status = RC_ZIS_ERROR;
+        }
+      }
+
+    } else {
+      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+              ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in init failed, "
+              "ABEND S%03X-%02X (recovery RC = %d)",
+              plugin->name.text, abendInfo.completionCode,
+              abendInfo.reasonCode, recoveryRC);
+      status = RC_ZIS_ERROR;
+    }
+  }
+
+  if (recoveryRC == RC_RCV_OK) {
+    recoveryPop();
+  }
+
+  return status;
+}
+
+static int callPluginTerm(ZISContext *context, ZISPlugin *plugin,
+                          ZISPluginAnchor *anchor) {
+
+  int status = RC_ZIS_OK;
+  int recoveryRC = RC_RCV_OK;
+  ABENDInfo abendInfo = {ABEND_INFO_EYECATCHER};
+
+  recoveryRC = recoveryPush("callPluginTerm",
+                            RCVR_FLAG_RETRY | RCVR_FLAG_DELETE_ON_RETRY,
+                            "callPluginTerm", extractABENDInfo, &abendInfo,
+                            NULL, NULL);
+  {
+    if (recoveryRC == RC_RCV_OK) {
+
+      if (plugin->term != NULL) {
+        int termRC = plugin->term(context, plugin, anchor);
+        if (termRC != RC_ZIS_OK) {
+          zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
+                  ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in '%16.16s' term "
+                  "RC = %d",
+                  plugin->name.text, termRC);
+          status = RC_ZIS_ERROR;
+        }
+      }
+
+
+    } else {
+      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+              ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in term failed, "
+              "ABEND S%03X-%02X (recovery RC = %d)",
+              plugin->name.text, abendInfo.completionCode,
+              abendInfo.reasonCode, recoveryRC);
+      status = RC_ZIS_ERROR;
+    }
+  }
+
+  if (recoveryRC == RC_RCV_OK) {
+    recoveryPop();
+  }
+
+  return status;
+}
+
+
+static int callServiceInit(ZISContext *context, ZISPlugin *plugin,
+                           ZISService *service, ZISServiceAnchor *anchor) {
+
+  int status = RC_ZIS_OK;
+  int recoveryRC = RC_RCV_OK;
+  ABENDInfo abendInfo = {ABEND_INFO_EYECATCHER};
+
+  recoveryRC = recoveryPush("callServiceInit",
+                            RCVR_FLAG_RETRY | RCVR_FLAG_DELETE_ON_RETRY,
+                            "callServiceInit", extractABENDInfo, &abendInfo,
+                            NULL, NULL);
+  {
+    if (recoveryRC == RC_RCV_OK) {
+
+      if (service->init != NULL) {
+        int initRC = service->init(context, service, anchor);
+        if (initRC != RC_ZIS_OK) {
+          zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
+                  ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" service '%16.16s' "
+                  "init RC = %d",
+                  plugin->name.text, service->name.text, initRC);
+          status = RC_ZIS_ERROR;
+        }
+      }
+
+    } else {
+      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+              ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" service %16.16s' init failed, "
+              "ABEND S%03X-%02X (recovery RC = %d)",
+              plugin->name.text, service->name.text, abendInfo.completionCode,
+              abendInfo.reasonCode, recoveryRC);
+      status = RC_ZIS_ERROR;
+    }
+  }
+
+  if (recoveryRC == RC_RCV_OK) {
+    recoveryPop();
+  }
+
+  return status;
+}
+
+static int callServiceTerm(ZISContext *context, ZISPlugin *plugin,
+                           ZISService *service, ZISServiceAnchor *anchor) {
+
+  int status = RC_ZIS_OK;
+  int recoveryRC = RC_RCV_OK;
+  ABENDInfo abendInfo = {ABEND_INFO_EYECATCHER};
+
+  recoveryRC = recoveryPush("callServiceTerm",
+                            RCVR_FLAG_RETRY | RCVR_FLAG_DELETE_ON_RETRY,
+                            "callServiceTerm", extractABENDInfo, &abendInfo,
+                            NULL, NULL);
+  {
+    if (recoveryRC == RC_RCV_OK) {
+
+      if (service->term != NULL) {
+        int termRC = service->term(context, service, anchor);
+        if (termRC != RC_ZIS_OK) {
+          zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
+                  ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" service '%16.16s' term "
+                  "RC = %d",
+                  plugin->name.text, service->name.text, termRC);
+          status = RC_ZIS_ERROR;
+        }
+      }
+
+    } else {
+      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+              ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" service '%16.16s' term failed, "
+              "ABEND S%03X-%02X (recovery RC = %d)",
+              plugin->name.text, service->name.text, abendInfo.completionCode,
+              abendInfo.reasonCode, recoveryRC);
+      status = RC_ZIS_ERROR;
+    }
+  }
+
+  if (recoveryRC == RC_RCV_OK) {
+    recoveryPop();
+  }
+
+  return status;
+}
+
+static int installServices(ZISContext *context, ZISPlugin *plugin,
+                           ZISPluginAnchor *pluginAnchor) {
+
+  CrossMemoryMap *serviceTable = context->zisAnchor->serviceTable;
+
+  for (unsigned int i = 0; i < plugin->serviceCount; i++) {
+
+    ZISService *service = &plugin->services[i];
+
+    ZISServiceAnchor *anchor = findServiceAnchor(pluginAnchor, &service->name);
+    if (anchor == NULL) {
+      anchor = zisCreateServiceAnchor(plugin, service);
+      if (anchor == NULL) {
+        zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE,
+                ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG, "service anchor");
+        return RC_ZIS_ERROR;
+      }
+      anchor->next = pluginAnchor->firstService;
+      pluginAnchor->firstService = anchor;
+    } else {
+      zisUpdateServiceAnchor(anchor, plugin, service);
+    }
+
+    service->anchor = anchor;
+
+    /* Service init call. */
+    int initRC = callServiceInit(context, plugin, service, anchor);
+    if (initRC != RC_ZIS_OK) {
+      continue;
+    }
+
+    int putRC = crossMemoryMapPut(serviceTable, &anchor->path, anchor);
+    if (putRC == 1) {
+      *crossMemoryMapGetHandle(serviceTable, &anchor->path) = anchor;
+    } else if (putRC == -1) {
+      zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE,
+              ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG, "service map entry");
+      return RC_ZIS_ERROR;
+    }
+
+    anchor->state |= ZIS_SERVICE_ANCHOR_STATE_ACTIVE;
+
+    zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING, ZIS_LOG_SERVICE_ADDED_MSG,
+            anchor->path.pluginName, anchor->path.serviceName.text,
+            plugin->pluginVersion, service->serviceVersion);
+  }
+
+  return RC_ZIS_OK;
+}
+
+static int relocatePluginToLPAIfNeeded(ZISPlugin **pluginAddr,
+                                       ZISPluginAnchor *anchor,
+                                       EightCharString moduleName) {
+
+  ZISPlugin *plugin = *pluginAddr;
+  bool lpaNeeded = plugin->flags & ZIS_PLUGIN_FLAG_LPA ? true : false;
+  bool lpaPresent = anchor->flags & ZIS_PLUGIN_ANCHOR_FLAG_LPA ? true : false;
+
+  if (lpaPresent) {
+
+    if (anchor->pluginVersion != plugin->pluginVersion) {
+
+      zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
+              ZIS_LOG_PLUGIN_VER_MISMATCH_MSG, plugin->name.text,
+              plugin->pluginVersion, anchor->pluginVersion);
+      zowedump(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
+               (char *)&anchor->moduleInfo, sizeof(LPMEA));
+
+#ifdef ZIS_LPA_DEV_MODE
+
+      zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
+              " Plugin LPA dev mode enabled, issuing CSVDYLPA DELETE\n");
+
+      int lpaRSN = 0;
+      int lpaRC = lpaDelete(&anchor->moduleInfo, &lpaRSN);
+      if (lpaRC != 0) {
+        zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE, ZIS_LOG_LPA_FAILURE_MSG,
+                "DELETE", anchor->moduleInfo.inputInfo.name, lpaRC, lpaRSN);
+        return RC_ZIS_ERROR;
+      }
+#endif
+      memset(&anchor->moduleInfo, 0, sizeof(anchor->moduleInfo));
+      anchor->flags &= ~ZIS_PLUGIN_ANCHOR_FLAG_LPA;
+      lpaPresent = false;
+    }  else {
+      lpaPresent = true;
+    }
+
+  }
+
+  /* Check if LPA, and load if needed */
+  if (lpaNeeded) {
+
+    if (!lpaPresent) {
+
+      EightCharString ddname = {"STEPLIB "};
+      int lpaRSN = 0;
+      int lpaRC = lpaAdd(&anchor->moduleInfo, &ddname, &moduleName, &lpaRSN);
+      if (lpaRC != 0) {
+        zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE, ZIS_LOG_LPA_FAILURE_MSG,
+                "ADD", anchor->moduleInfo.inputInfo.name, lpaRC, lpaRSN);
+        return RC_ZIS_ERROR;
+      }
+
+      anchor->flags |= ZIS_PLUGIN_ANCHOR_FLAG_LPA;
+    }
+
+    /* Invoke EP to get relocated services */
+    LPMEA *lpaInfo = &anchor->moduleInfo;
+    void *ep =
+        *(void * __ptr32 *)&lpaInfo->outputInfo.stuff.successInfo.entryPointAddr;
+    ZISPluginDescriptorFunction *getPluginDescriptor =
+        (ZISPluginDescriptorFunction *)((int)ep & 0xFFFFFFFE);
+
+    *pluginAddr = getPluginDescriptor();
+
+  }
+
+  return RC_ZIS_OK;
+}
+
+static ZISPlugin *getPluginByName(ZISContext *context,
+                                  const ZISPluginName *name) {
+
+  /* TODO use a hashtable when the number of plugins grows, no point in that
+   * right now. */
+
+  ZISPlugin *currPlugin = context->firstPlugin;
+  while (currPlugin != NULL) {
+
+    if (!memcmp(&currPlugin->name, name, sizeof(ZISPluginName))) {
+      return currPlugin;
+    }
+
+    currPlugin = currPlugin->next;
+  }
+
+  return NULL;
+}
+
+static ZISPlugin *getPluginByNickname(ZISContext *context,
+                                      const ZISPluginNickname *nickname) {
+
+  /* TODO use a hashtable when the number of plugins grows, no point in that
+   * right now. */
+
+  ZISPlugin *currPlugin = context->firstPlugin;
+  while (currPlugin != NULL) {
+
+    if (!memcmp(&currPlugin->nickname, nickname, sizeof(ZISPluginNickname))) {
+      return currPlugin;
+    }
+
+    currPlugin = currPlugin->next;
+  }
+
+  return NULL;
+}
+
+static void addPlugin(ZISContext *context, ZISPlugin *plugin) {
+  plugin->next = context->firstPlugin;
+  context->firstPlugin = plugin;
+}
+
+static int installPlugin(ZISContext *context, ZISPlugin *plugin,
+                         EightCharString moduleName) {
+
+  ZISPluginAnchor *anchor = findPluginAnchor(context->zisAnchor, &plugin->name);
+  if (anchor == NULL) {
+    anchor = zisCreatePluginAnchor(plugin);
+    if (anchor == NULL) {
+      zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
+              ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG, "plug-in anchor");
+      return RC_ZIS_ERROR;
+    }
+    anchor->next = context->zisAnchor->firstPlugin;
+    context->zisAnchor->firstPlugin = anchor;
+  }
+
+  int relocateRC = relocatePluginToLPAIfNeeded(&plugin, anchor, moduleName);
+  if (relocateRC != RC_ZIS_OK) {
+    return relocateRC;
+  }
+
+  /* Save plugin definition for later use by server. */
+  addPlugin(context, plugin);
+  plugin->anchor = anchor;
+
+  /* Update anchor */
+  anchor->pluginVersion = plugin->pluginVersion;
+
+  /* Plugin init call. */
+  int initRC = callPluginInit(context, plugin, anchor);
+  if (initRC != RC_ZIS_OK) {
+    return initRC;
+  }
+
+  /* Install services. */
+  installServices(context, plugin, anchor);
+
+  return RC_ZIS_OK;
+}
+
+static ZISPlugin *tryLoadingPlugin(const char *pluginName,
+                                   EightCharString moduleName) {
+
+  void *ep = NULL;
+
+  int recoveryRC = RC_RCV_OK;
+  ABENDInfo abendInfo = {ABEND_INFO_EYECATCHER};
+
+  /* Try to load the plugin module. */
+  recoveryRC = recoveryPush("tryLoadingPlugin():load",
+                            RCVR_FLAG_RETRY | RCVR_FLAG_DELETE_ON_RETRY,
+                            "ZIS load plugin", extractABENDInfo, &abendInfo,
+                            NULL, NULL);
+
+  {
+    if (recoveryRC == RC_RCV_OK) {
+
+      int loadStatus = 0;
+      ep = loadByNameLocally(moduleName.text, &loadStatus);
+      if (ep == NULL || loadStatus != 0) {
+        zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+                ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" module '%8.8s' not loaded, "
+                "EP = %p, status = %d",
+                pluginName, moduleName.text, ep, loadStatus);
+      }
+
+    } else {
+      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+              ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" module '%8.8s' not loaded, "
+              "ABEND S%03X-%02X (recovery RC = %d)",
+              pluginName, moduleName.text, abendInfo.completionCode,
+              abendInfo.reasonCode, recoveryRC);
+    }
+  }
+
+  if (recoveryRC == RC_RCV_OK) {
+    recoveryPop();
+  }
+
+  if (ep == NULL) {
+    return NULL;
+  }
+
+  ZISPluginDescriptorFunction *getPluginDescriptor =
+      (ZISPluginDescriptorFunction *)((int)ep & 0xFFFFFFFE);
+  ZISPlugin *plugin = NULL;
+
+  /* Try executing plugin EP. */
+  recoveryRC = recoveryPush("tryLoadingPlugin():exec",
+                            RCVR_FLAG_RETRY | RCVR_FLAG_DELETE_ON_RETRY,
+                            "ZIS get plugin", extractABENDInfo, &abendInfo,
+                            NULL, NULL);
+  {
+    if (recoveryRC == RC_RCV_OK) {
+
+      plugin = getPluginDescriptor();
+      if (plugin == NULL) {
+        zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+                ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in descriptor not "
+                "received from module '%8.8s'",
+                pluginName, moduleName);
+      }
+
+    } else {
+      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+              ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in EP not executed, "
+              "module '%8.8s', recovery RC = %d, ABEND %03X-%02X",
+              pluginName, moduleName, recoveryRC, abendInfo.completionCode,
+              abendInfo.reasonCode);
+    }
+  }
+
+  if (recoveryRC == RC_RCV_OK) {
+    recoveryPop();
+  }
+
+  return plugin;
+}
+
+static bool isServiceValid(const ZISService *service) {
+
+  if (memcmp(service->eyecatcher, ZIS_SERVICE_EYECATCHER,
+             sizeof(service->eyecatcher))) {
+    return false;
+  }
+
+  if (service->version > ZIS_SERVICE_VERSION) {
+    return false;
+  }
+
+  return true;
+}
+
+static bool isPluginValid(const char *name, const ZISPlugin *plugin) {
+
+  bool isValid = false;
+  ABENDInfo abendInfo = {ABEND_INFO_EYECATCHER};
+
+  int recoveryRC = recoveryPush("isPluginValid()",
+                                RCVR_FLAG_RETRY | RCVR_FLAG_DELETE_ON_RETRY,
+                                "ZIS validate plugin", extractABENDInfo,
+                                &abendInfo, NULL, NULL);
+  do {
+
+    if (recoveryRC == RC_RCV_OK) {
+
+      if (memcmp(plugin->eyecatcher, ZIS_PLUGIN_EYECATCHER,
+                 sizeof(plugin->eyecatcher))) {
+        zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+                ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" bad eyecatcher",
+                name);
+        break;
+      }
+
+      if (plugin->version > ZIS_PLUGIN_VERSION) {
+        zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+                ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" unsupported version %d "
+                "(vs %d)",
+                name, plugin->version, ZIS_PLUGIN_VERSION);
+        break;
+      }
+
+      if (plugin->serviceCount > plugin->maxServiceCount) {
+        zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+                ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" bad service count, "
+                "current = %d, max = %d",
+                name, plugin->serviceCount, plugin->maxServiceCount);
+        break;
+      }
+
+      for (unsigned i = 0; i < plugin->serviceCount; i++) {
+        if (isServiceValid(&plugin->services[i]) == false) {
+          zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+                  ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" service #%d invalid",
+                  name, i);
+          zowedump(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
+                   (void *)&plugin->services[i], sizeof(ZISService));
+          break;
+        }
+      }
+
+      isValid = true;
+
+    } else {
+      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+              ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" installation failed, "
+              "recovery RC = %d, ABEND %03X-%02X",
+              name, recoveryRC, abendInfo.completionCode, abendInfo.reasonCode);
+      break;
+    }
+
+  } while (0);
+
+  if (recoveryRC == RC_RCV_OK) {
+    recoveryPop();
+  }
+
+  return isValid;
+}
+
+static bool isDuplicatePlugin(ZISContext *context,
+                              ZISPlugin *plugin) {
+
+  if (getPluginByName(context, &plugin->name) != NULL) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+            ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in with this name already "
+            "exists ", plugin->name.text);
+    return true;
+  }
+
+  if (getPluginByNickname(context, &plugin->nickname) != NULL) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+            ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in with nickname '%s' "
+            "already exists ", plugin->name.text, plugin->nickname.text);
+    return true;
+  }
+
+  return false;
+}
+
+static void visitPluginParm(const char *name, const char *value,
+                            void *userData) {
+
+  if (strstr(name, "ZWES.PLUGIN.") != name) {
+    return;
+  }
+  const char *pluginName = name + strlen("ZWES.PLUGIN.");
+
+  if (value == NULL) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+            ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" module name not provided",
+            pluginName);
+    return;
+  }
+
+
+  EightCharString moduleName = {"        "};
+  size_t moduleNameLength = strlen(value);
+  if (moduleNameLength > sizeof(moduleName)) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+            ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" module name too long '%s'",
+            pluginName, value);
+    return;
+  }
+  memcpy(moduleName.text, value, moduleNameLength);
+
+  ZISPlugin *plugin = tryLoadingPlugin(pluginName, moduleName);
+  if (plugin == NULL) {
+    return;
+  }
+
+  if (isPluginValid(pluginName, plugin) == false) {
+    return;
+  }
+
+  ZISContext *context = userData;
+
+  if (isDuplicatePlugin(context, plugin)) {
+    return;
+  }
+
+  installPlugin(context, plugin, moduleName);
+
+}
+
+ZISServerAnchor *createZISServerAnchor() {
+
+  unsigned int size = sizeof(ZISServerAnchor);
+  int subpool = CROSS_MEMORY_SERVER_SUBPOOL;
+  int key = CROSS_MEMORY_SERVER_KEY;
+
+  ZISServerAnchor *anchor = cmAlloc(size, subpool, key);
+  if (anchor == NULL) {
+    return NULL;
+  }
+
+  memset(anchor, 0, size);
+  memcpy(anchor->eyecatcher, ZIS_SERVER_ANCHOR_EYECATCHER,
+         sizeof(anchor->eyecatcher));
+  anchor->version = ZIS_SERVER_ANCHOR_VERSION;
+  anchor->key = key;
+  anchor->subpool = subpool;
+  anchor->size = size;
+
+  return anchor;
+}
+
+static void removeZISServerAnchor(ZISServerAnchor **anchor) {
+
+  unsigned int size = sizeof(ZISServerAnchor);
+  int subpool = CROSS_MEMORY_SERVER_SUBPOOL;
+  int key = CROSS_MEMORY_SERVER_KEY;
+
+  cmFree2((void **)anchor, size, subpool, key);
+
+}
+
+static int initGlobalResources(ZISContext *context) {
+
+  CrossMemoryServerGlobalArea *cmsGA = context->cmsGA;
+  ZISServerAnchor *anchor = cmsGA->userServerAnchor;
+  if (anchor == NULL) {
+    anchor = createZISServerAnchor();
+    if (anchor == NULL) {
+      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+              ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG, "server anchor");
+      return RC_ZIS_ERROR;
+    }
+    cmsGA->userServerAnchor = anchor;
+  }
+  context->zisAnchor = anchor;
+
+  int initServiceTableRC = initServiceTable(context);
+  if (initServiceTableRC != RC_ZIS_OK) {
+    return initServiceTableRC;
+  }
+
+  return RC_ZIS_OK;
+}
+
+static ZISContext makeContext(STCBase *base) {
+
+  ZISContext cntx = {
+      .eyecatcher = ZIS_CONTEXT_EYECATCHER,
+      .stcBase = base,
+      .parms = NULL,
+      .cmServer = NULL,
+      .cmsGA = NULL,
+      .zisAnchor = NULL,
+  };
+
+  return cntx;
+}
+
+static void cleanContext(ZISContext *context) {
+
+  context->zisAnchor = NULL;
+  context->cmsGA = NULL;
+
+  if (context->cmServer != NULL) {
+    removeCrossMemoryServer(context->cmServer);
+    context->cmServer = NULL;
+  }
+
+  if (context->parms != NULL) {
+    zisRemoveParmSet(context->parms);
+    context->parms = NULL;
+  }
+
+  context->stcBase = NULL;
+
+}
+
+static void initLoggin() {
+  cmsInitializeLogging();
+}
+
+static void printStartMessage() {
+  wtoPrintf(ZIS_LOG_STARTUP_MSG);
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZIS_LOG_STARTUP_MSG);
+}
+
+static void printStopMessage(int status) {
+  if (status == RC_ZIS_OK) {
+    wtoPrintf(ZIS_LOG_CXMS_TERM_OK_MSG);
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZIS_LOG_CXMS_TERM_OK_MSG);
+  } else {
+    wtoPrintf(ZIS_LOG_CXMS_TERM_FAILURE_MSG, status);
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+           ZIS_LOG_CXMS_TERM_FAILURE_MSG, status);
+  }
+}
+
+static void deployPlugins(ZISContext *context) {
+  zisIterateParms(context->parms, visitPluginParm, context);
+}
+
+static void terminatePlugins(ZISContext *context) {
+
+  ZISPlugin *currPlugin = context->firstPlugin;
+  while (currPlugin != NULL) {
+
+    for (unsigned int i = 0; i < currPlugin->serviceCount; i++) {
+
+      ZISService *currService = &currPlugin->services[i];
+
+      callServiceTerm(context, currPlugin, currService, currService->anchor);
+
+    }
+
+    callPluginTerm(context, currPlugin, currPlugin->anchor);
+
+    currPlugin = currPlugin->next;
+  }
+
+}
+
+static int initServer(CrossMemoryServerGlobalArea *ga, void *userData) {
+
+  ZISContext *context = userData;
+  context->cmsGA = ga;
+  context->cmServer = ga->localServerAddress;
+
+  int initRC = initGlobalResources(context);
+  if (initRC != RC_ZIS_OK) {
+    return initRC;
+  }
+
+  cleanPlugins(context);
+  deployPlugins(context);
+
+  return RC_CMS_OK;
+}
+
+static int cleanupServer(CrossMemoryServerGlobalArea *ga, void *userData) {
+
+  ZISContext *context = userData;
+
+  terminatePlugins(context);
+
+#ifdef ZIS_DEV_MODE
+  destroyServiceTable(context);
+#endif
+
+  return RC_CMS_OK;
+}
+
+static int handleModifyCommands(CrossMemoryServerGlobalArea *globalArea,
+                                const CMSModifyCommand *command,
+                                CMSModifyCommandStatus *status,
+                                void *userData) {
+
+  ZISContext *context = userData;
+
+  ZISPluginNickname nickname;
+  memset(&nickname.text, ' ', sizeof(nickname.text));
+
+  size_t targetLength = command->target ? strlen(command->target) : 0;
+  if (targetLength <= 0 && sizeof(nickname.text) < targetLength) {
+    return RC_CMS_OK;
+  }
+  memcpy(nickname.text, command->target, targetLength);
+
+  ZISPlugin *plugin = getPluginByNickname(context, &nickname);
+  if (plugin != NULL && plugin->handleCommand != NULL) {
+    plugin->handleCommand(context, plugin, plugin->anchor,
+                          command, status);
+    if (*status == CMS_MODIFY_COMMAND_STATUS_PROCESSED) {
+      return RC_CMS_OK;
+    }
+  }
+
+  return RC_CMS_OK;
+}
+
+typedef struct PARMBLIBMember_tag {
+  char nameNullTerm[16];
+} PARMLIBMember;
+
+static int extractPARMLIBMemberName(ZISParmSet *parms,
+                                    PARMLIBMember *member) {
+
+  /* find out if MEM has been specified in the JCL and use it to create
+   * the parmlib member name */
+
+  const char *memberSuffix = zisGetParmValue(parms, ZIS_PARM_MEMBER_SUFFIX);
+  if (memberSuffix == NULL) {
+    memberSuffix = ZIS_PARM_MEMBER_DEFAULT_SUFFIX;
+  }
+
+  member->nameNullTerm[0] = '\0';
+  if (strlen(memberSuffix) == ZIS_PARM_MEMBER_SUFFIX_SIZE) {
+    strcat(member->nameNullTerm, ZIS_PARM_MEMBER_PREFIX);
+    strcat(member->nameNullTerm, memberSuffix);
+  } else {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+            ZIS_LOG_CXMS_BAD_PMEM_SUFFIX_MSG, memberSuffix);
+    return RC_ZIS_ERROR;
+  }
+
+  return RC_ZIS_OK;
+}
+
+static int loadConfig(ZISContext *context,
+                      const ZISMainFunctionParms *mainParms) {
+
+  if (mainParms != NULL && mainParms->textLength > 0) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
+            ZIS_LOG_INPUT_PARM_MSG, mainParms);
+    zowedump(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
+             (void *)mainParms,
+             sizeof(mainParms) + mainParms->textLength);
+  }
+
+  context->parms = zisMakeParmSet();
+  if (context->parms == NULL) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+            ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG, "parameter set");
+    return RC_ZIS_ERROR;
+  }
+
+  int readMainParmsRC = zisReadMainParms(context->parms, mainParms);
+  if (readMainParmsRC != RC_ZISPARM_OK) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE, ZIS_LOG_CONFIG_FAILURE_MSG,
+            "main parms not read", readMainParmsRC);
+    return RC_ZIS_ERROR;
+  }
+
+  PARMLIBMember parmlibMember;
+  int parmlibRC = extractPARMLIBMemberName(context->parms, &parmlibMember);
+  if (parmlibRC != RC_ZIS_OK) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE, ZIS_LOG_CONFIG_FAILURE_MSG,
+            "PARMLIB member not extracted", parmlibRC);
+    return RC_ZIS_ERROR;
+  }
+
+  ZISParmStatus readStatus = {0};
+  int readParmRC = zisReadParmlib(context->parms, ZIS_PARM_DDNAME,
+                                  parmlibMember.nameNullTerm, &readStatus);
+  if (readParmRC != RC_ZISPARM_OK) {
+    if (readParmRC == RC_ZISPARM_MEMBER_NOT_FOUND) {
+      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+              ZIS_LOG_CXMS_CFG_MISSING_MSG,
+              parmlibMember.nameNullTerm, readParmRC);
+      return RC_ZIS_ERROR;
+    } else {
+      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+              ZIS_LOG_CXMS_CFG_NOT_READ_MSG,
+              parmlibMember.nameNullTerm, readParmRC,
+              readStatus.internalRC, readStatus.internalRSN);
+      return RC_ZIS_ERROR;
+    }
+  }
+
+ return RC_ZIS_OK;
+}
+
+static int getCMSConfigFlags(const ZISParmSet *zisParms) {
+
+  int flags = CMS_SERVER_FLAG_NONE;
+
+  const char *coldStartValue = zisGetParmValue(zisParms, ZIS_PARM_COLD_START);
+  if (coldStartValue && strlen(coldStartValue) == 0) {
+    flags |= CMS_SERVER_FLAG_COLD_START;
+  }
+
+  const char *debugValue = zisGetParmValue(zisParms, ZIS_PARM_DEBUG_MODE);
+  if (coldStartValue && strlen(coldStartValue) == 0) {
+    flags |= CMS_SERVER_FLAG_DEBUG;
+  }
+
+  return flags;
+}
+
+static CrossMemoryServerName getCMServerName(const ZISParmSet *zisParms) {
+
+  CrossMemoryServerName serverName;
+  const char *serverNameNullTerm = NULL;
+
+  /* Check JCL parm */
+  serverNameNullTerm = zisGetParmValue(zisParms, ZIS_PARM_SERVER_NAME);
+
+  if (serverNameNullTerm == NULL) {
+    /* Check PARMLIB member if JCL one has not been found */
+    serverNameNullTerm = zisGetParmValue(zisParms, ZIS_PARMLIB_PARM_SERVER_NAME);
+  }
+
+  if (serverNameNullTerm != NULL) {
+    serverName = cmsMakeServerName(serverNameNullTerm);
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
+            ZIS_LOG_CXMS_NAME_MSG, serverName.nameSpacePadded);
+  } else {
+    serverName = CMS_DEFAULT_SERVER_NAME;
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZIS_LOG_CXMS_NO_NAME_MSG,
+            serverName.nameSpacePadded);
+  }
+
+  return serverName;
+}
+
+static int initCoreServer(ZISContext *context) {
+
+  CrossMemoryServerName serverName = getCMServerName(context->parms);
+  unsigned int cmsFlags = getCMSConfigFlags(context->parms);
+  int makeServerRSN = 0;
+  CrossMemoryServer *cmServer = makeCrossMemoryServer2(context->stcBase,
+                                                       &serverName,
+                                                       cmsFlags,
+                                                       initServer,
+                                                       cleanupServer,
+                                                       handleModifyCommands,
+                                                       context,
+                                                       &makeServerRSN);
+  if (cmServer == NULL) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+            ZIS_LOG_CXMS_NOT_CREATED_MSG, makeServerRSN);
+    return RC_ZIS_ERROR;
+  }
+
+  context->cmServer = cmServer;
+
+  int loadParmRSN = 0;
+  int loadParmRC = zisLoadParmsToCMServer(cmServer, context->parms,
+                                          &loadParmRSN);
+  if (loadParmRC != RC_ZISPARM_OK) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+            ZIS_LOG_CXMS_CFG_NOT_LOADED_MSG, loadParmRC, loadParmRSN);
+    return RC_ZIS_ERROR;
+  }
+
+  return RC_ZIS_OK;
+}
+
+static int runCoreServer(ZISContext *context) {
+
+  int startRC = cmsStartMainLoop(context->cmServer);
+  if (startRC != RC_CMS_OK) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+            ZIS_LOG_CXMS_NOT_STARTED_MSG, startRC);
+    return RC_ZIS_ERROR;
+  }
+
+  return RC_ZIS_OK;
+}
+
+static int run(STCBase *base, const ZISMainFunctionParms *mainParms) {
+
+  initLoggin();
+
+  printStartMessage();
+
+  ZISContext context = makeContext(base);
+
+  int status = RC_ZIS_OK;
+  do {
+
+    status = loadConfig(&context, mainParms);
+    if (status != RC_ZIS_OK) {
+      break;
+    }
+
+    status = initCoreServer(&context);
+    if (status != RC_ZIS_OK) {
+      break;
+    }
+
+    status = registerCoreServices(&context);
+    if (status != RC_ZIS_OK) {
+      break;
+    }
+
+    status = runCoreServer(&context);
+    if (status != RC_ZIS_OK) {
+      break;
+    }
+
+  } while (0);
+
+  cleanContext(&context);
+
+  printStopMessage(status);
+
+  return status;
+}
+
+int main() {
+
+  const ZISMainFunctionParms *mainParms = GET_MAIN_FUNCION_PARMS();
+
+  int rc = RC_ZIS_OK;
 
   STCBase *base = (STCBase *)safeMalloc31(sizeof(STCBase), "stcbase");
   stcBaseInit(base);
   {
-
-    cmsInitializeLogging();
-
-    wtoPrintf(ZIS_LOG_STARTUP_MSG);
-    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZIS_LOG_STARTUP_MSG);
-    /* TODO refactor consolidation of passed and parmlib parms */
-    bool isColdStart = isKeywordInPassedParms(ZIS_PARM_COLD_START, passedParms);
-    bool isDebug = isKeywordInPassedParms(ZIS_PARM_DEBUG_MODE, passedParms);
-    if (passedParms != NULL && passedParms->textLength > 0) {
-      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
-              ZIS_LOG_INPUT_PARM_MSG, passedParms);
-      zowedump(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
-               (void *)passedParms,
-               sizeof(MainFunctionParms) + passedParms->textLength);
-    }
-
-    unsigned int serverFlags = CMS_SERVER_FLAG_NONE;
-    if (isColdStart) {
-      serverFlags |= CMS_SERVER_FLAG_COLD_START;
-    }
-    if (isDebug) {
-      serverFlags |= CMS_SERVER_FLAG_DEBUG;
-    }
-
-    ZISParmSet *parmSet = zisMakeParmSet();
-    if (parmSet == NULL) {
-      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
-              ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG, "parameter set");
-      status = RC_ZIS_ERROR;
-    }
-
-    /* find out if MEM has been specified in the JCL and use it to create
-     * the parmlib member name */
-    char parmlibMember[ZIS_PARM_MEMBER_NAME_MAX_SIZE + 1] = {0};
-    if (status == RC_ZIS_OK) {
-
-      /* max suffix length + null-terminator + additional byte to determine
-       * whether the passed value is too big */
-      char parmlibMemberSuffixBuffer[ZIS_PARM_MEMBER_SUFFIX_SIZE + 1 + 1];
-      const char *parmlibMemberSuffix = getPassedParmValue(
-          ZIS_PARM_MEMBER_SUFFIX, passedParms,
-          parmlibMemberSuffixBuffer,
-          sizeof(parmlibMemberSuffixBuffer)
-      );
-      if (parmlibMemberSuffix == NULL) {
-        parmlibMemberSuffix = ZIS_PARM_MEMBER_DEFAULT_SUFFIX;
-      }
-
-      if (strlen(parmlibMemberSuffix) == ZIS_PARM_MEMBER_SUFFIX_SIZE) {
-        strcat(parmlibMember, ZIS_PARM_MEMBER_PREFIX);
-        strcat(parmlibMember, parmlibMemberSuffix);
-      } else {
-        zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
-                ZIS_LOG_CXMS_BAD_PMEM_SUFFIX_MSG, parmlibMemberSuffix);
-        status = RC_ZIS_ERROR;
-      }
-    }
-
-    if (status == RC_ZIS_OK) {
-      ZISParmStatus readStatus = {0};
-      int readParmRC = zisReadParmlib(parmSet, ZIS_PARM_DDNAME,
-                                      parmlibMember, &readStatus);
-      if (readParmRC != RC_ZISPARM_OK) {
-        if (readParmRC == RC_ZISPARM_MEMBER_NOT_FOUND) {
-          zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
-                  ZIS_LOG_CXMS_CFG_MISSING_MSG, parmlibMember, readParmRC);
-          status = RC_ZIS_ERROR;
-        } else {
-          zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
-                  ZIS_LOG_CXMS_CFG_NOT_READ_MSG, parmlibMember, readParmRC,
-                  readStatus.internalRC, readStatus.internalRSN);
-          status = RC_ZIS_ERROR;
-        }
-      }
-    }
-
-    CrossMemoryServerName serverName;
-    char serverNameBuffer[sizeof(serverName.nameSpacePadded) + 1];
-    const char *serverNameNullTerm = NULL;
-    serverNameNullTerm = getPassedParmValue(ZIS_PARM_SERVER_NAME, passedParms,
-                                            serverNameBuffer,
-                                            sizeof(serverNameBuffer));
-    if (serverNameNullTerm == NULL) {
-      serverNameNullTerm =
-          zisGetParmValue(parmSet, ZIS_PARMLIB_PARM_SERVER_NAME);
-    }
-
-    if (serverNameNullTerm != NULL) {
-      serverName = cmsMakeServerName(serverNameNullTerm);
-      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
-              ZIS_LOG_CXMS_NAME_MSG, serverName.nameSpacePadded);
-    } else {
-      serverName = CMS_DEFAULT_SERVER_NAME;
-      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZIS_LOG_CXMS_NO_NAME_MSG, serverName.nameSpacePadded);
-    }
-
-    int makeServerRSN = 0;
-    CrossMemoryServer *server = makeCrossMemoryServer(base, &serverName, serverFlags, &makeServerRSN);
-    if (server == NULL) {
-      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE, ZIS_LOG_CXMS_NOT_CREATED_MSG, makeServerRSN);
-      status = RC_ZIS_ERROR;
-    }
-
-    if (status == RC_ZIS_OK) {
-      int loadParmRSN = 0;
-      int loadParmRC = zisLoadParmsToServer(server, parmSet, &loadParmRSN);
-      if (loadParmRC != RC_ZISPARM_OK) {
-        zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
-                ZIS_LOG_CXMS_CFG_NOT_LOADED_MSG, loadParmRC, loadParmRSN);
-        status = RC_ZIS_ERROR;
-      }
-    }
-
-    if (status == RC_ZIS_OK) {
-      cmsRegisterService(server, ZIS_SERVICE_ID_AUTH_SRV, authServiceFunction, NULL, CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
-      cmsRegisterService(server, ZIS_SERVICE_ID_SNARFER_SRV, snarferServiceFunction, NULL, CMS_SERVICE_FLAG_SPACE_SWITCH | CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
-      cmsRegisterService(server, ZIS_SERVICE_ID_NWM_SRV, nwmServiceFunction, NULL, CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
-      int startRC = cmsStartMainLoop(server);
-      if (startRC != RC_CMS_OK) {
-        zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE, ZIS_LOG_CXMS_NOT_STARTED_MSG, startRC);
-        status = RC_ZIS_ERROR;
-      }
-    }
-
-    if (server != NULL) {
-      removeCrossMemoryServer(server);
-      server = NULL;
-    }
-
-    if (parmSet != NULL) {
-      zisRemoveParmSet(parmSet);
-      parmSet = NULL;
-    }
-
-    if (status == RC_ZIS_OK) {
-      wtoPrintf(ZIS_LOG_CXMS_TERM_OK_MSG);
-      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZIS_LOG_CXMS_TERM_OK_MSG);
-    } else {
-      wtoPrintf(ZIS_LOG_CXMS_TERM_FAILURE_MSG, status);
-      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE, ZIS_LOG_CXMS_TERM_FAILURE_MSG, status);
-    }
-
+    rc = run(base, mainParms);
   }
   stcBaseTerm(base);
   safeFree31((char *)base, sizeof(STCBase));
   base = NULL;
 
-  return status;
-}
-#define cmsDSECTs SRVDSECT
-void cmsDSECTs() {
-
-  __asm(
-
-      "         DS    0D                                                       \n"
-      "SNFTBUF  DSECT ,                                                        \n"
-      "SNFTBEYE DS    CL8                                                      \n"
-      "SNFTBSZ  DS    F                                                        \n"
-      "SNFTBSRK DS    F                                                        \n"
-      "SNFTBSRA DS    AD                                                       \n"
-#ifdef ZIS_SNARFER_USE_SHARED_MEM_OBJ
-      "SNFTBDNA DS    AD                                                       \n"
-      "SNFTBSCT DS    D                                                        \n"
-      "SNFTBTKN DS    D                                                        \n"
-      "SNFTBRLS DS    2D                                                       \n"
-      "SNFTBRLA DS    AD                                                       \n"
-      "SNFTBRC4 DS    F                                                        \n"
-      "SNFTBRS4 DS    F                                                        \n"
-      "SNFTBPL4 DS    CL128                                                    \n"
-#else
-      "SNFTBDNA DS    0D                                                       \n"
-#endif /* ZIS_SNARFER_USE_SHARED_MEM_OBJ */
-      "SNFTBUFL EQU   *-SNFTBUF                                                \n"
-      "         EJECT ,                                                        \n"
-
-      "         CSECT ,                                                        \n"
-      "         RMODE ANY                                                      \n"
-  );
-
+  return rc;
 }
 
 
@@ -1340,4 +1316,3 @@ void cmsDSECTs() {
   
   Copyright Contributors to the Zowe Project.
 */
-
