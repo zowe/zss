@@ -88,7 +88,7 @@ int zisCallVersionedService(const CrossMemoryServerName *serverName,
   }\
 } while (0)
 
-CrossMemoryServerName zisGetDefaultServerName();
+CrossMemoryServerName zisGetDefaultServerName(void);
 
 typedef struct ZISCopyServiceStatus_tag {
   ZISServiceStatus baseStatus;
