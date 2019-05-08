@@ -8,3 +8,10 @@ makeHttpServer2
 makeHttpServer
 makeSecureHttpServer
 makeHttpConversation
+processHttpFragment
+setHttpParseTrace
+setHttpDispatchTrace
+setHttpHeadersTrace
+setHttpSocketTrace
+setHttpCloseConversationTrace
+setHttpAuthTrace
