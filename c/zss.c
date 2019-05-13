@@ -66,6 +66,9 @@
 
 #include "zssLogging.h"
 #include "serviceUtils.h"
+#include "unixFileService.h"
+#include "omvsService.h"
+#include "datasetService.h"
 
 #define PRODUCT "ZLUX"
 #ifndef PRODUCT_MAJOR_VERSION
@@ -92,7 +95,7 @@ static void dumpJson(Json *json);
 static JsonObject *readPluginDefinition(ShortLivedHeap *slh, char *pluginIdentifier, char *pluginLocation);
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
-static InternalAPIMap *makeInternalAPIMap();
+static InternalAPIMap *makeInternalAPIMap(void);
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -408,7 +411,7 @@ static MapItem mapItems[] ={
   {0,0}
 };
 
-static InternalAPIMap *makeInternalAPIMap() {
+static InternalAPIMap *makeInternalAPIMap(void) {
   /* allocate a single chunk for the struct and all the pointers. */
   const int entryCount = ((sizeof mapItems)/(sizeof(mapItems[0])))-1;
   const int pointerArraySize = entryCount*(sizeof (void*));
@@ -659,13 +662,13 @@ void checkAndSetVariable(JsonObject *mvdSettings,
   }
 }
 
-static void initLoggingComponents() {
+static void initLoggingComponents(void) {
   logConfigureComponent(NULL, LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "zssServer startup, version %s\n", productVersion);
 }
 
-static void initVersionComponents(){
+static void initVersionComponents(void){
   sprintf(productVersion,"%d.%d.%d+%d",PRODUCT_MAJOR_VERSION,PRODUCT_MINOR_VERSION,PRODUCT_REVISION,PRODUCT_VERSION_DATE_STAMP);
 }
 
