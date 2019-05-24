@@ -59,7 +59,7 @@ typedef struct ZISMainFunctionParms_tag {
 
 ZOWE_PRAGMA_PACK_RESET
 
-ZISParmSet *zisMakeParmSet();
+ZISParmSet *zisMakeParmSet(void);
 
 void zisRemoveParmSet(ZISParmSet *parms);
 
