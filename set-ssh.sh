@@ -1,3 +1,5 @@
+#! /bin/sh
+
 #  This program and the accompanying materials are
 #  made available under the terms of the Eclipse Public License v2.0 which accompanies
 #  this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
@@ -6,7 +8,6 @@
 #  
 #  Copyright Contributors to the Zowe Project.
 
-#! /bin/sh
 sed 's/https:\/\/github.com\/zowe\//git@github.com:zowe\//' .gitmodules > .gitmodules2 && mv .gitmodules2 .gitmodules
 git add .gitmodules
 
