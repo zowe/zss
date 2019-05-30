@@ -90,7 +90,8 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
 
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
-    char *filenamep1 = stringConcatenate(response->slh, "//'", l1);
+    char *percentDecoded = cleanURLParamValue(response->slh, l1);
+    char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Serving: %s\n", filename);
     fflush(stdout);
@@ -98,7 +99,8 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
   }
   else if (!strcmp(request->method, methodPOST)){
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
-    char *filenamep1 = stringConcatenate(response->slh, "//'", l1);
+    char *percentDecoded = cleanURLParamValue(response->slh, l1);
+    char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Updating if exists: %s\n", filename);
     fflush(stdout);
