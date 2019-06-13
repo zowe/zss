@@ -13,6 +13,8 @@
 #ifndef GETSERVICE_H_
 #define GETSERVICE_H_
 
+#include "zis/service.h"
+
 typedef struct GetMNumServiceParmList_tag {
   char eyecatcher[8];
 #define GET_SERVICE_PARMLIST_EYECATCHER "GETSRVC"
