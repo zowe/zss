@@ -626,6 +626,7 @@ static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, ch
      */
     if (currentSession->tType == TEXT) {
       status = 0;
+      //Only write to file if string isn't empty. If string is empty, case is handled by creation of new file.
       if (response->request->contentLength > 0) {
         status = writeAsciiDataFromBase64(currentSession->file, response->request->contentBody,
                                         response->request->contentLength, currentSession->sourceCCSID,
@@ -638,6 +639,7 @@ static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, ch
      */
     else if (currentSession->tType == BINARY) {
       status = 0;
+      //Only write to file if string isn't empty. If string is empty, case is handled by creation of new file.
       if (response->request->contentLength > 0) {
         status = writeBinaryDataFromBase64(currentSession->file, response->request->contentBody,
                                          response->request->contentLength);
