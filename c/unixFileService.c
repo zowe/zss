@@ -625,17 +625,23 @@ static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, ch
      * file in USS.
      */
     if (currentSession->tType == TEXT) {
-      status = writeAsciiDataFromBase64(currentSession->file, response->request->contentBody,
+      status = 0;
+      if (response->request->contentLength > 0) {
+        status = writeAsciiDataFromBase64(currentSession->file, response->request->contentBody,
                                         response->request->contentLength, currentSession->sourceCCSID,
                                         currentSession->targetCCSID);
+      }
     }
 
     /* Write to the file in BINARY mode. The bytes
      * are written to the file in USS as is.
      */
     else if (currentSession->tType == BINARY) {
-      status = writeBinaryDataFromBase64(currentSession->file, response->request->contentBody,
+      status = 0;
+      if (response->request->contentLength > 0) {
+        status = writeBinaryDataFromBase64(currentSession->file, response->request->contentBody,
                                          response->request->contentLength);
+      }
     }
 
     /* This shouldn't happen, unless tType was somehow
