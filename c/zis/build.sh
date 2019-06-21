@@ -9,6 +9,7 @@
 COMMON=../../../zowe-common-c
 
 CFLAGS=(-S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX='"IDX"'
+-DRADMIN_XMEM_MODE
 -DCMS_LPA_DEV_MODE
 -qreserved_reg=r12
 -Wc,"arch(8),agg,exp,list(),so(),off,xref,roconst,longname,lp64" -I ../../h
@@ -32,6 +33,7 @@ $COMMON/c/mtlskt.c \
 $COMMON/c/nametoken.c \
 $COMMON/c/zos.c \
 $COMMON/c/qsam.c \
+$COMMON/c/radmin.c \
 $COMMON/c/recovery.c \
 $COMMON/c/resmgr.c \
 $COMMON/c/scheduling.c \
@@ -46,6 +48,7 @@ server.c \
 service.c \
 services/auth.c \
 services/nwm.c \
+services/secmgmt.c \
 services/snarfer.c
 
 as "${ASFLAGS[@]}" -aegimrsx=alloc.asm alloc.s
@@ -61,6 +64,7 @@ as "${ASFLAGS[@]}" -aegimrsx=mtlskt.asm mtlskt.s
 as "${ASFLAGS[@]}" -aegimrsx=nametoken.asm nametoken.s
 as "${ASFLAGS[@]}" -aegimrsx=zos.asm zos.s
 as "${ASFLAGS[@]}" -aegimrsx=qsam.asm qsam.s
+as "${ASFLAGS[@]}" -aegimrsx=radmin.asm radmin.s
 as "${ASFLAGS[@]}" -aegimrsx=recovery.asm recovery.s
 as "${ASFLAGS[@]}" -aegimrsx=resmgr.asm resmgr.s
 as "${ASFLAGS[@]}" -aegimrsx=scheduling.asm scheduling.s
@@ -77,6 +81,11 @@ as "${ASFLAGS[@]}" -aegimrsx=service.asm service.s
 
 as "${ASFLAGS[@]}" -aegimrsx=auth.asm auth.s
 as "${ASFLAGS[@]}" -aegimrsx=nwm.asm nwm.s
+as "${ASFLAGS[@]}" -aegimrsx=snarfer.asm snarfer.s
+
+as "${ASFLAGS[@]}" -aegimrsx=auth.asm auth.s
+as "${ASFLAGS[@]}" -aegimrsx=nwm.asm nwm.s
+as "${ASFLAGS[@]}" -aegimrsx=secmgmt.asm secmgmt.s
 as "${ASFLAGS[@]}" -aegimrsx=snarfer.asm snarfer.s
 
 export _LD_SYSLIB="//'SYS1.CSSLIB'://'CEE.SCEELKEX'://'CEE.SCEELKED'://'CEE.SCEERUN'://'CEE.SCEERUN2'://'CSF.SCSFMOD0'"
@@ -96,6 +105,7 @@ mtlskt.o \
 nametoken.o \
 zos.o \
 qsam.o \
+radmin.o \
 recovery.o \
 resmgr.o \
 scheduling.o \
@@ -110,6 +120,7 @@ server.o \
 service.o \
 auth.o \
 nwm.o \
+secmgmt.o \
 snarfer.o \
 > ZISSRV01.link
 
