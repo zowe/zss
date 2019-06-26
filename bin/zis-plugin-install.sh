@@ -24,10 +24,10 @@ add-plugin-to-parmfile()
   then
     if egrep -q "^$LINE\$" $PARMFILE
     then
-      >&2  echo "Skipping updating the parmlib: plugin already registered" 
+      >&2  echo "Skipping updating $ZIS_PARMLIB: plugin already registered" 
       return 1
     else 
-      >&2  echo "Can't update the parmlib: the plugin is already"\
+      >&2  echo "Can't update $ZIS_PARMLIB: the plugin is already"\
                 "registered and points to a different load module"
       exit 255
     fi
@@ -36,11 +36,19 @@ add-plugin-to-parmfile()
   return 0
 }
 
+handle-failure()
+{
+  >&2  echo "Installing plugin $PLUGINID failed. Make sure no running ZIS instance"\
+            "or any other process (e.g. ISPF Editor) has locked $ZIS_PARMLIB"\
+            "or $ZIS_LOADLIB"
+  exit 255
+}  
+
 add-plugin-to-libs()
 {(
   TMPFILE=`mktemp1`
 
-  trap "exit 255" ERR
+  trap "handle-failure" ERR
 
   cp "//'$ZIS_PARMLIB(ZWESIP00)'" $TMPFILE
   trap "rm $TMPFILE" EXIT
