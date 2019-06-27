@@ -903,6 +903,7 @@ int main(int argc, char **argv){
       installVSAMDatasetContentsService(server);
       installDatasetMetadataService(server);
       installDatasetContentsService(server);
+      installManageDatasetMemberService(server);
       installAuthCheckService(server);
       installOMVSService(server);
 #endif

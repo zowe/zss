@@ -133,6 +133,42 @@ static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response
   return 0;
 }
 
+static int serveManageDatasetMember(HttpService *service, HttpResponse *response){
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  HttpRequest *request = response->request;
+  if (!strcmp(request->method, methodPOST)){
+    char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
+    char *percentDecoded = cleanURLParamValue(response->slh, l1);
+    char *datasetp1 = stringConcatenate(response->slh, "//'", percentDecoded);
+    char *datasetName = stringConcatenate(response->slh, datasetp1, "'");
+    char *memberName = getQueryParam(response->request, "memberName");
+    char *deleteParam = getQueryParam(response->request,"delete");
+    int delete = !strcmp(deleteParam, "true") ? TRUE : FALSE;
+    if (!memberName) {
+      respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Member Name Required");
+      return 1;
+    }
+    if (delete == TRUE){  
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Updating if exists: %s\n", datasetName);
+      fflush(stdout);
+      removeDatasetMember(response, datasetName, memberName);
+    }
+    else {  
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Updating if exists: %s\n", datasetName);
+      fflush(stdout);
+      newDatasetMember(response, datasetName, memberName);
+    }
+  }
+  else {
+     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "BAD METHOD");
+     return 1;
+  }
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Returning from serveManageDatasetMember\n");
+  return 0;
+}
+
+
 void installDatasetContentsService(HttpServer *server) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Installing dataset contents service\n");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -142,6 +178,18 @@ void installDatasetContentsService(HttpServer *server) {
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveDatasetContents;
+  registerHttpService(server, httpService);
+}
+
+void installManageDatasetMemberService(HttpServer *server) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Installing new dataset member service\n");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+
+  HttpService *httpService = makeGeneratedService("manageDatasetMember", "/manageDatasetMember/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
+  httpService->serviceFunction = serveManageDatasetMember;
   registerHttpService(server, httpService);
 }
 
