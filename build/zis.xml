@@ -23,6 +23,7 @@
     <exec executable="xlc" dir="${TMPDIR}" failonerror="true">
       <arg line="-S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1"/>
       <arg value="-DMSGPREFIX=&quot;ZWE&quot;"/>
+      <arg value="-DRADMIN_XMEM_MODE"/>
       <arg value="-qreserved_reg=r12"/>
       <arg value="-Wc,arch(8),agg,exp,list(),so(),off,xref,roconst,longname,lp64"/>
       <arg line="-I ${COMMON}/h"/>
@@ -39,6 +40,7 @@
       <arg value="${COMMON}/c/mtlskt.c"/>
       <arg value="${COMMON}/c/nametoken.c"/>
       <arg value="${COMMON}/c/qsam.c"/>
+      <arg value="${COMMON}/c/radmin.c"/>
       <arg value="${COMMON}/c/recovery.c"/>
       <arg value="${COMMON}/c/resmgr.c"/>
       <arg value="${COMMON}/c/scheduling.c"/>
@@ -54,6 +56,7 @@
       <arg value="${ZSS}/c/zis/service.c"/>
       <arg value="${ZSS}/c/zis/services/auth.c"/>
       <arg value="${ZSS}/c/zis/services/nwm.c"/>
+      <arg value="${ZSS}/c/zis/services/secmgmt.c"/>
       <arg value="${ZSS}/c/zis/services/snarfer.c"/>
     </exec> 
 
@@ -69,6 +72,7 @@
     <antcall target="assemble"><param name="file" value="mtlskt"/></antcall>
     <antcall target="assemble"><param name="file" value="nametoken"/></antcall>
     <antcall target="assemble"><param name="file" value="qsam"/></antcall>
+    <antcall target="assemble"><param name="file" value="radmin"/></antcall>
     <antcall target="assemble"><param name="file" value="recovery"/></antcall>
     <antcall target="assemble"><param name="file" value="resmgr"/></antcall>
     <antcall target="assemble"><param name="file" value="scheduling"/></antcall>
@@ -88,6 +92,11 @@
     <antcall target="assemble"><param name="file" value="nwm"/></antcall>
     <antcall target="assemble"><param name="file" value="snarfer"/></antcall>
 
+    <antcall target="assemble"><param name="file" value="auth"/></antcall>
+    <antcall target="assemble"><param name="file" value="nwm"/></antcall>
+    <antcall target="assemble"><param name="file" value="secmgmt"/></antcall>
+    <antcall target="assemble"><param name="file" value="snarfer"/></antcall>
+
 
     <exec executable="ld" dir="${TMPDIR}" failonerror="true" output="${TMPDIR}/ZWESIS01.link">
       <env key="_LD_SYSLIB" value="//&apos;SYS1.CSSLIB&apos;://&apos;CEE.SCEELKEX&apos;://&apos;CEE.SCEELKED&apos;://&apos;CEE.SCEERUN&apos;://&apos;CEE.SCEERUN2&apos;://&apos;CSF.SCSFMOD0&apos;"/>
@@ -105,6 +114,7 @@
       <arg value="mtlskt.o"/>
       <arg value="nametoken.o"/>
       <arg value="qsam.o"/>
+      <arg value="radmin.o"/>
       <arg value="recovery.o"/>
       <arg value="resmgr.o"/>
       <arg value="scheduling.o"/>
@@ -120,6 +130,7 @@
       <arg value="service.o"/>
       <arg value="auth.o"/>
       <arg value="nwm.o"/>
+      <arg value="secmgmt.o"/>
       <arg value="snarfer.o"/>
     </exec>
 
