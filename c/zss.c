@@ -901,9 +901,8 @@ int main(int argc, char **argv){
       installUnixFileMetadataService(server);
       installUnixFileTableOfContentsService(server);
 #ifdef __ZOWE_OS_ZOS
-      installVSAMDatasetContentsService(server);
       installDatasetMetadataService(server);
-      installDatasetContentsService(server);
+      installServeDatasetService(server);
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);

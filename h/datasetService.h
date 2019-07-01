@@ -13,8 +13,9 @@
 #ifndef __DATASET_SERVICE_H__
 #define __DATASET_SERVICE_H__
 
-void installDatasetContentsService(HttpServer *server);
-void installVSAMDatasetContentsService(HttpServer *server);
+#define MEMBER_MAXLEN 8
+
+void installServeDatasetService(HttpServer *server);
 void installDatasetMetadataService(HttpServer *server);
 
 #endif /* __DATASET_SERVICE_H__ */
