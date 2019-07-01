@@ -94,25 +94,12 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLived
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static InternalAPIMap *makeInternalAPIMap();
  
- //redo
   static int keyCompare(void *key1, void *key2) {
   if (strcmp(key1,key2) == 0){
     return TRUE;
   }  
   return FALSE;
 }
-/*
-// copied from collections
-static int identifierHash(void *key){
-  char *digest = (char*)key;
-  int hash = 0;
-  int i;
-  for (i=0; i<LRU_DIGEST_LENGTH; i+=sizeof(int)){
-    hash = hash ^ *((int*)(digest+i));
-  }
-  return (hash & 0x7FFFFFFF);
-}
-*/
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -375,9 +362,7 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "error in file %s: expected top level object\n", filename);
     }
     JsonObject *logLevels = jsonObjectGetObject(mvdSettingsJsonObject, "logLevels");
-    
     if (logLevels) {
-      
       TraceDefinition *traceDef = traceDefs;
       while (traceDef->name != 0) {
 	int traceLevel = jsonObjectGetNumber(logLevels, (char*) traceDef->name);
@@ -582,8 +567,6 @@ static void installWebPluginDefintionsService(WebPluginListElt *webPlugins, Http
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
 }
 
-
-//pass on the configuration file
 static void parseLoggingData(HttpServer *server, ShortLivedHeap *slh, const char *filename) {
 
   char errorBuffer[512] = { 0 };
@@ -603,12 +586,12 @@ static void parseLoggingData(HttpServer *server, ShortLivedHeap *slh, const char
     while(property != NULL) {
       char *key = jsonPropertyGetKey(property); 
       int value = jsonObjectGetNumber(logLevels, key);
-      loggingData *newData = (loggingData*) malloc(sizeof(loggingData));
+      PluginLoggingData *newData = (PluginLoggingData*) safeMalloc(sizeof(PluginLoggingData),"PluginLoggingData");
       newData->level = jsonObjectGetNumber(logLevels, key);
       uint64 newId = LOG_PROD_PLUGINS + (0x10000 * i); // creates unique logging id
       i+=1;
       newData->id = newId;
-      htPut(server->loggingTable, key, newData);
+      htPut(server->PluginLoggingTable, key, newData);
       logConfigureComponent(NULL, newId, key, LOG_DEST_PRINTF_STDOUT, value);
       zowelog(NULL, newId, ZOWE_LOG_INFO, "Added %s to logging table\n", key);
       property = jsonObjectGetNextProperty(property);
@@ -947,9 +930,8 @@ int main(int argc, char **argv){
 
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS server settings: address=%s, port=%d\n", address, port);
     server = makeHttpServer2(base,inetAddress,port,requiredTLSFlag,&returnCode,&reasonCode);
-        
     if (server){
-      server->loggingTable = htCreate(17, stringHash, keyCompare, NULL, NULL); //creates hash table for zowe log
+      server->PluginLoggingTable = htCreate(17, stringHash, keyCompare, NULL, NULL); //creates hash table for zowe log
       parseLoggingData(server, slh, serverConfigFile); //populates table with logging id's
       server->defaultProductURLPrefix = PRODUCT;
       loadWebServerConfig(server, mvdSettings);
