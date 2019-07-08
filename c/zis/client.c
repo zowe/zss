@@ -237,6 +237,7 @@ const char *ZIS_UPRFSRV_SERVICE_RC_DESCRIPTION[] = {
   [RC_ZIS_UPRFSRV_IMPERSONATION_MISSING] = "Impersonation is required",
   [RC_ZIS_UPRFSRV_INTERNAL_SERVICE_FAILED] = "R_admin service failed",
   [RC_ZIS_UPRFSRV_ALLOC_FAILED] = "Alloc function failed",
+  [RC_ZIS_UPRFSRV_UNSUPPORTED_ESM] = "ESM not supported"
 };
 
 const char *ZIS_UPRFSRV_WRAPPER_RC_DESCRIPTION[] = {
@@ -316,7 +317,8 @@ const char *ZIS_GRPRFSRV_SERVICE_RC_DESCRIPTION[] = {
   [RC_ZIS_GRPRFSRV_IMPERSONATION_MISSING] = "Impersonation is required",
   [RC_ZIS_GRPRFSRV_INTERNAL_SERVICE_FAILED] = "R_admin failed",
   [RC_ZIS_GRPRFSRV_ALLOC_FAILED] = "Alloc function failed",
-  [RC_ZIS_GRPRFSRV_USER_CLASS_NOT_READ] = CMS_PROD_ID" class is not read"
+  [RC_ZIS_GRPRFSRV_USER_CLASS_NOT_READ] = CMS_PROD_ID" class is not read",
+  [RC_ZIS_GRPRFSRV_UNSUPPORTED_ESM] = "ESM not supported"
 };
 
 const char *ZIS_GRPRFSRV_WRAPPER_RC_DESCRIPTION[] = {
@@ -407,7 +409,8 @@ const char *ZIS_ACSLSRV_SERVICE_RC_DESCRIPTION[] = {
   [RC_ZIS_ACSLSRV_ALLOC_FAILED] = "Alloc function failed",
   [RC_ZIS_ACSLSRV_INTERNAL_SERVICE_FAILED] = "R_admin failed",
   [RC_ZIS_ACSLSRV_INSUFFICIENT_SPACE] = "Provided buffer is too small",
-  [RC_ZIS_ACSLSRV_USER_CLASS_NOT_READ] = CMS_PROD_ID" class is not read"
+  [RC_ZIS_ACSLSRV_USER_CLASS_NOT_READ] = CMS_PROD_ID" class is not read",
+  [RC_ZIS_ACSLSRV_UNSUPPORTED_ESM] = "ESM not supported"
 };
 
 const char *ZIS_ACSLSRV_WRAPPER_RC_DESCRIPTION[] = {
@@ -508,7 +511,8 @@ const char *ZIS_GSADMNSRV_SERVICE_RC_DESCRIPTION[] = {
   [RC_ZIS_GSADMNSRV_USER_CLASS_TOO_LONG] = CMS_PROD_ID" class is too long",
   [RC_ZIS_GSADMNSRV_USER_CLASS_NOT_READ] = CMS_PROD_ID" class read failed",
   [RC_ZIS_GSADMNSRV_AUTOREFRESH_NOT_READ] = "Auto refresh option read failed",
-  [RC_ZIS_GSADMNSRV_OWNER_TOO_LONG] = "Owner name is too long"
+  [RC_ZIS_GSADMNSRV_OWNER_TOO_LONG] = "Owner name is too long",
+  [RC_ZIS_GSADMNSRV_UNSUPPORTED_ESM] = "ESM not supported"
 };
 
 const char *ZIS_GSADMNSRV_WRAPPER_RC_DESCRIPTION[] = {
@@ -730,7 +734,8 @@ const char *ZIS_GPPRFSRV_SERVICE_RC_DESCRIPTION[] = {
   [RC_ZIS_GPPRFSRV_PROFILE_COUNT_NULL] = "Profile count is null",
   [RC_ZIS_GPPRFSRV_IMPERSONATION_MISSING] = "Impersonation is required",
   [RC_ZIS_GPPRFSRV_INTERNAL_SERVICE_FAILED] = "R_admin failed",
-  [RC_ZIS_GPPRFSRV_ALLOC_FAILED] = "Alloc function failed"
+  [RC_ZIS_GPPRFSRV_ALLOC_FAILED] = "Alloc function failed",
+  [RC_ZIS_GPPRFSRV_UNSUPPORTED_ESM] = "ESM not supported"
 };
 
 const char *ZIS_GPPRFSRV_WRAPPER_RC_DESCRIPTION[] = {
@@ -809,7 +814,8 @@ const char *ZIS_GRPALSRV_SERVICE_RC_DESCRIPTION[] = {
   [RC_ZIS_GRPALSRV_IMPERSONATION_MISSING] = "Impersonation is required",
   [RC_ZIS_GRPALSRV_ALLOC_FAILED] = "Alloc function failed",
   [RC_ZIS_GRPALSRV_INTERNAL_SERVICE_FAILED] = "R_admin failed",
-  [RC_ZIS_GRPALSRV_INSUFFICIENT_SPACE] = "Provided buffer is too small"
+  [RC_ZIS_GRPALSRV_INSUFFICIENT_SPACE] = "Provided buffer is too small",
+  [RC_ZIS_GRPALSRV_UNSUPPORTED_ESM] = "ESM not supported"
 };
 
 const char *ZIS_GRPALSRV_WRAPPER_RC_DESCRIPTION[] = {
@@ -898,7 +904,8 @@ const char *ZIS_GRPASRV_SERVICE_RC_DESCRIPTION[] = {
   [RC_ZIS_GRPASRV_PARM_INTERNAL_ERROR] = "Parm list creation failed",
   [RC_ZIS_GRPASRV_USER_CLASS_TOO_LONG] = CMS_PROD_ID" class is too long",
   [RC_ZIS_GRPASRV_USER_CLASS_NOT_READ] = CMS_PROD_ID" class read failed",
-  [RC_ZIS_GRPASRV_AUTOREFRESH_NOT_READ] = "Auto refresh option read failed"
+  [RC_ZIS_GRPASRV_AUTOREFRESH_NOT_READ] = "Auto refresh option read failed",
+  [RC_ZIS_GRPASRV_UNSUPPORTED_ESM] = "ESM not supported"
 };
 
 const char *ZIS_GRPASRV_WRAPPER_RC_DESCRIPTION[] = {

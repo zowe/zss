@@ -58,6 +58,9 @@
       <arg value="${ZSS}/c/zis/services/nwm.c"/>
       <arg value="${ZSS}/c/zis/services/secmgmt.c"/>
       <arg value="${ZSS}/c/zis/services/snarfer.c"/>
+      <arg value="${ZSS}/c/zis/services/tssparsing.c"/>
+      <arg value="${ZSS}/c/zis/services/secmgmttss.c"/>
+      <arg value="${ZSS}/c/zis/services/secmgmtUtils.c"/>
     </exec> 
 
     <antcall target="assemble"><param name="file" value="alloc"/></antcall>
@@ -96,6 +99,9 @@
     <antcall target="assemble"><param name="file" value="nwm"/></antcall>
     <antcall target="assemble"><param name="file" value="secmgmt"/></antcall>
     <antcall target="assemble"><param name="file" value="snarfer"/></antcall>
+    <antcall target="assemble"><param name="file" value="tssparsing"/></antcall>
+    <antcall target="assemble"><param name="file" value="secmgmttss"/></antcall>
+    <antcall target="assemble"><param name="file" value="secmgmtUtils"/></antcall>
 
 
     <exec executable="ld" dir="${TMPDIR}" failonerror="true" output="${TMPDIR}/ZWESIS01.link">
@@ -132,6 +138,9 @@
       <arg value="nwm.o"/>
       <arg value="secmgmt.o"/>
       <arg value="snarfer.o"/>
+      <arg value="tssparsing.o"/>
+      <arg value="secmgmttss.o"/>
+      <arg value="secmgmtUtils.o"/>
     </exec>
 
  </target>
