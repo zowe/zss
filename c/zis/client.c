@@ -237,6 +237,7 @@ const char *ZIS_UPRFSRV_SERVICE_RC_DESCRIPTION[] = {
   [RC_ZIS_UPRFSRV_IMPERSONATION_MISSING] = "Impersonation is required",
   [RC_ZIS_UPRFSRV_INTERNAL_SERVICE_FAILED] = "R_admin service failed",
   [RC_ZIS_UPRFSRV_ALLOC_FAILED] = "Alloc function failed",
+  [RC_ZIS_UPRFSRV_UNSUPPORTED_ESM] = "Unsupported esm"
 };
 
 const char *ZIS_UPRFSRV_WRAPPER_RC_DESCRIPTION[] = {

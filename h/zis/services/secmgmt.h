@@ -15,6 +15,7 @@
 
 #include "zowetypes.h"
 #include "zos.h"
+#include "radmin.h"
 
 /*** Common security structs and definitions ***/
 
@@ -22,6 +23,8 @@
 #define ZIS_SECURITY_PROFILE_MAX_LENGTH     246
 #define ZIS_SECURITY_GROUP_MAX_LENGTH       8
 #define ZIS_USER_ID_MAX_LENGTH              8
+
+bool getCallerUserID(RadminUserID *caller);
 
 typedef struct SAFStatus_tag {
   int safRC;
@@ -62,7 +65,7 @@ ZOWE_PRAGMA_PACK
 typedef struct ZISUserProfileEntry_tag {
   char userID[8];
   char defaultGroup[8];
-  char name[20];
+  char name[32]; /* 20->32: Top Secret has a max name of 32 and needs to use this struct. */
 } ZISUserProfileEntry;
 
 typedef struct ZISUserProfileServiceParmList_tag {
@@ -91,6 +94,7 @@ ZOWE_PRAGMA_PACK_RESET
 #pragma map(zisUserProfilesServiceFunction, "ZISSXUPR")
 int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                    CrossMemoryService *service, void *parm);
+int validateUserProfileParmList(ZISUserProfileServiceParmList *parm);
 
 #define RC_ZIS_UPRFSRV_OK                         0
 #define RC_ZIS_UPRFSRV_PARMLIST_NULL              8
@@ -101,7 +105,8 @@ int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
 #define RC_ZIS_UPRFSRV_IMPERSONATION_MISSING      13
 #define RC_ZIS_UPRFSRV_INTERNAL_SERVICE_FAILED    14
 #define RC_ZIS_UPRFSRV_ALLOC_FAILED               15
-#define RC_ZIS_UPRFSRV_MAX_RC                     15
+#define RC_ZIS_UPRFSRV_UNSUPPORTED_ESM            16
+#define RC_ZIS_UPRFSRV_MAX_RC                     16
 
 /*** Genres profile service ***/
 

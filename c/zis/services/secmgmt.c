@@ -32,7 +32,7 @@
 #define ZIS_PARMLIB_PARM_SECMGMT_USER_CLASS   CMS_PROD_ID".SECMGMT.CLASS"
 #define ZIS_PARMLIB_PARM_SECMGMT_AUTORESFRESH CMS_PROD_ID".SECMGMT.AUTOREFRESH"
 
-static bool getCallerUserID(RadminUserID *caller) {
+bool getCallerUserID(RadminUserID *caller) {
 
   ACEE aceeData = {0};
   ACEE *aceeAddress = NULL;
@@ -47,7 +47,7 @@ static bool getCallerUserID(RadminUserID *caller) {
   return true;
 }
 
-static int validateUserProfileParmList(ZISUserProfileServiceParmList *parm) {
+int validateUserProfileParmList(ZISUserProfileServiceParmList *parm) {
 
   if (memcmp(parm->eyecatcher, ZIS_USERPROF_SERVICE_PARMLIST_EYECATCHER,
              sizeof(parm->eyecatcher))) {
@@ -68,20 +68,22 @@ static int validateUserProfileParmList(ZISUserProfileServiceParmList *parm) {
 static void copyUserProfiles(ZISUserProfileEntry *dest,
                              const RadminBasicUserPofileInfo *src,
                              unsigned int count) {
-
+  /* RadminBasicUserPofileInfo and ZISUserProfileEntry have different sizes
+   * for the name, so it must be taken into an account when copying to the
+   * other address space.
+   */
   for (unsigned int i = 0; i < count; i++) {
-    cmCopyToSecondaryWithCallerKey(dest[i].userID, src[i].userID,
-                                   sizeof(dest[i].userID));
-    cmCopyToSecondaryWithCallerKey(dest[i].defaultGroup, src[i].defaultGroup,
-                                   sizeof(dest[i].defaultGroup));
-    cmCopyToSecondaryWithCallerKey(dest[i].name, src[i].name,
-                                   sizeof(dest[i].name));
+    ZISUserProfileEntry tmpDest = {0};
+    memcpy(tmpDest.userID, src[i].userID, sizeof(src[i].userID));
+    memcpy(tmpDest.defaultGroup, src[i].defaultGroup, sizeof(src[i].defaultGroup));
+    memcpy(tmpDest.name, src[i].name, sizeof(src[i].name));
+    cmCopyToSecondaryWithCallerKey(&dest[i], &tmpDest, sizeof(tmpDest));
   }
 
 }
 
 
-int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+static int zisUserProfilesServiceFunctionRACF(CrossMemoryServerGlobalArea *globalArea,
                                    CrossMemoryService *service, void *parm) {
 
   int status = RC_ZIS_UPRFSRV_OK;
@@ -206,6 +208,16 @@ int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
              localParmList.safStatus.racfRSN);
 
   return status;
+}
+
+int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+                                   CrossMemoryService *service, void *parm) {
+  ExternalSecurityManager esm = getExternalSecurityManager();
+  switch (esm) {
+    case ZOS_ESM_RACF: return zisUserProfilesServiceFunctionRACF(globalArea, service, parm);
+    case ZOS_ESM_RTSS: return zisUserProfilesServiceFunctionTSS(globalArea, service, parm);
+    default: return RC_ZIS_UPRFSRV_UNSUPPORTED_ESM;
+  }
 }
 
 static int validateGenresProfileParmList(ZISGenresProfileServiceParmList *parm)
