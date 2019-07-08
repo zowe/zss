@@ -28,9 +28,11 @@
 
 #include "zis/utils.h"
 #include "zis/services/secmgmt.h"
-
 #include "zis/services/tssparsing.h"
 
+/* A struct to more easily carry the required arguments
+ * for logging in ZIS into handler and helper functions.
+ */
 typedef struct LogData_t {
   CrossMemoryServerGlobalArea *globalArea;
   int traceLevel;
@@ -44,9 +46,9 @@ typedef struct LogData_t {
  * we still have the right place through the output.
  */
 static const RadminVLText *findLineOfStart(const RadminVLText *currentLine, const char *searchValue, 
-                                     int searchValueMaxLength, const char *searchKey,
-                                     const unsigned int *lastByteOffset, unsigned int *blockBytesExtracted,
-                                     LogData *logData) {
+                                           int searchValueMaxLength, const char *searchKey,
+                                           const unsigned int *lastByteOffset, unsigned int *blockBytesExtracted,
+                                           LogData *logData) {
   if (searchValueMaxLength > MAX_VALUE_LEN) {
     CMS_DEBUG2(logData->globalArea, logData->traceLevel, 
                "The search value maximum length is greater than"
@@ -268,7 +270,7 @@ static int userProfilesHandler(RadminAPIStatus status, const RadminCommandOutput
   return 0;
 }
 
-/* Copies the ZISUserProfileEntry struct to the other address space wherex
+/* Copies the ZISUserProfileEntry struct to the other address space where
  * it can be returned to the caller.
  */
 static void copyUserProfiles(ZISUserProfileEntry *dest, ZISUserProfileEntry *src,
@@ -283,6 +285,7 @@ static void copyUserProfiles(ZISUserProfileEntry *dest, ZISUserProfileEntry *src
   }
 }
 
+/* Entry point into the user profiles endpoint. */
 int zisUserProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
                                       CrossMemoryService *service, void *parm) {
   int status = RC_ZIS_UPRFSRV_OK;
@@ -308,8 +311,7 @@ int zisUserProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
 
   RadminUserID caller;
   if (!getCallerUserID(&caller)) {
-    status = RC_ZIS_UPRFSRV_IMPERSONATION_MISSING;
-    return status;
+    return RC_ZIS_UPRFSRV_IMPERSONATION_MISSING;
   }
 
   CMS_DEBUG2(globalArea, traceLevel, "UPRFSRV: userID = \'%.*s\', "
@@ -348,8 +350,7 @@ int zisUserProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
              allocRC, allocSysRC, allocSysRSN);
 
   if (tmpResultBuffer == NULL) {
-    status = RC_ZIS_UPRFSRV_ALLOC_FAILED;
-    return status;
+    return RC_ZIS_UPRFSRV_ALLOC_FAILED;
   }
 
   RadminStatus radminStatus = {0};

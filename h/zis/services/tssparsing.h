@@ -36,6 +36,9 @@
 #define NAME_KEY                    "NAME"
 #define NAME_VALUE_MAX_LEN          32
 
+/* Stores information about a specific
+ * key.
+ */
 typedef struct KeyData_t {
   unsigned int startPos;
   unsigned int endPos;
