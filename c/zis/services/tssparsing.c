@@ -39,10 +39,12 @@ bool isErrorDetected(const char *str, int len) {
     return FALSE;
   }
   
-  if (memcmp(str, TSS_COMMAND_SUCCESS, strlen(TSS_COMMAND_SUCCESS))) {
-    return TRUE;
+  if (!memcmp(str, FUNCTION_END, strlen(FUNCTION_END))) {
+    if (memcmp(str, TSS_COMMAND_SUCCESS, strlen(TSS_COMMAND_SUCCESS))) {
+      return TRUE;
+    }
   }
-  
+ 
   return FALSE;
 }
 

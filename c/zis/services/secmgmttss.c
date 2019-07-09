@@ -131,7 +131,7 @@ typedef struct TSSUserProfileParms_t {
  * data from the output by going line by line.
  */
 static int userProfilesHandler(RadminAPIStatus status, const RadminCommandOutput *result,
-                               void *userData) {
+                               void *userData) {         
   if (status.racfRC != 0) {
     return status.racfRC;
   }
@@ -159,6 +159,8 @@ static int userProfilesHandler(RadminAPIStatus status, const RadminCommandOutput
    */
   bool errorDetected = isErrorDetected(currentLine->text, currentLine->length);
   if (errorDetected) {
+    CMS_DEBUG2(logData->globalArea, logData->traceLevel,
+               "Error detected!\n");
     return -1;
   }
   
@@ -285,6 +287,151 @@ static void copyUserProfiles(ZISUserProfileEntry *dest, ZISUserProfileEntry *src
   }
 }
 
+/* Goes through several r_admin commands to retrieve information on all the users
+ * in the system, including administrators.
+ */
+static int getAllUsers(RadminStatus *radminStatus, RadminCallerAuthInfo authInfo,
+                      TSSUserProfileParms *parms) {                         
+  CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+            "About to extract USER profiles...\n");
+            
+  int radminExtractRC = radminRunRACFCommand(
+      authInfo,
+      "TSS LIST(ACIDS) TYPE(USER)",
+      userProfilesHandler,
+      parms,
+      radminStatus
+  );
+  
+  if (radminExtractRC != RC_RADMIN_OK) {
+    CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+               "Could not extract USER profiles...\n");
+    return radminExtractRC;
+  }
+  
+  parms->startIndex = parms->profilesExtracted;
+  if (parms->startIndex >= parms->profilesToExtract) {
+    CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+               "Stopping extraction of DCA profiles because the buffer would overflow...\n");
+    return RC_RADMIN_OK;
+  }
+
+  CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+            "About to extract DCA profiles...\n");
+            
+  radminExtractRC = radminRunRACFCommand(
+      authInfo,
+      "TSS LIST(ACIDS) TYPE(DCA)",
+      userProfilesHandler,
+      parms,
+      radminStatus
+  );
+  
+  if (radminExtractRC != RC_RADMIN_OK) {
+    CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+               "Could not extract DCA profiles...\n");
+    return radminExtractRC;
+  }
+  
+  parms->startIndex = parms->profilesExtracted;
+  if (parms->startIndex >= parms->profilesToExtract) {
+    CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+               "Stopping extraction of VCA profiles because the buffer would overflow...\n");
+    return RC_RADMIN_OK;
+  }
+
+  CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+            "About to extract VCA profiles...\n");
+            
+  radminExtractRC = radminRunRACFCommand(
+      authInfo,
+      "TSS LIST(ACIDS) TYPE(VCA)",
+      userProfilesHandler,
+      parms,
+      radminStatus
+  );
+
+  if (radminExtractRC != RC_RADMIN_OK) {
+    CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+               "Could not extract VCA profiles...\n");
+    return radminExtractRC;
+  }
+  
+  parms->startIndex = parms->profilesExtracted;
+  if (parms->startIndex >= parms->profilesToExtract) {
+    CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+               "Stopping extraction of ZCA profiles because the buffer would overflow...\n");
+    return RC_RADMIN_OK;
+  }
+
+  CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+            "About to extract ZCA profiles...\n");
+            
+  radminExtractRC = radminRunRACFCommand(
+      authInfo,
+      "TSS LIST(ACIDS) TYPE(ZCA)",
+      userProfilesHandler,
+      parms,
+      radminStatus
+  );
+
+  if (radminExtractRC != RC_RADMIN_OK) {
+    CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+               "Could not extract ZCA profiles...\n");
+    return radminExtractRC;
+  }
+  
+  parms->startIndex = parms->profilesExtracted;
+  if (parms->startIndex >= parms->profilesToExtract) {
+    CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+               "Stopping extraction of LSCA profiles because the buffer would overflow...\n");
+    return RC_RADMIN_OK;
+  }
+
+  CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+            "About to extract LSCA profiles...\n");
+            
+  radminExtractRC = radminRunRACFCommand(
+      authInfo,
+      "TSS LIST(ACIDS) TYPE(LSCA)",
+      userProfilesHandler,
+      parms,
+      radminStatus
+  );
+
+  if (radminExtractRC != RC_RADMIN_OK) {
+    CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+               "Could not extract LSCA profiles...\n");
+    return radminExtractRC;
+  }
+  
+  parms->startIndex = parms->profilesExtracted;
+  if (parms->startIndex >= parms->profilesToExtract) {
+    CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+               "Stopping extraction of SCA profiles because the buffer would overflow...\n");
+    return RC_RADMIN_OK;
+  }
+
+  CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+            "About to extract SCA profiles...\n");
+            
+  radminExtractRC = radminRunRACFCommand(
+      authInfo,
+      "TSS LIST(ACIDS) TYPE(SCA)",
+      userProfilesHandler,
+      parms,
+      radminStatus
+  );
+
+  if (radminExtractRC != RC_RADMIN_OK) {
+    CMS_DEBUG2(parms->logData->globalArea, parms->logData->traceLevel,
+               "Could not extract SCA profiles...\n");
+    return radminExtractRC;
+  }
+  
+  return RC_RADMIN_OK;
+}
+
 /* Entry point into the user profiles endpoint. */
 int zisUserProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
                                       CrossMemoryService *service, void *parm) {
@@ -368,149 +515,11 @@ int zisUserProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
     .startIndex = 0
   };
 
-  /* We need to extract administrators as well, which requires multiple calls.
-   * Logic is put in a one-time do while for readability if any errors occur.
-   */
-  bool doExtraction = FALSE;
-  do {
-    CMS_DEBUG2(globalArea, traceLevel,
-              "About to extract USER profiles...\n");
-              
-    radminExtractRC = radminRunRACFCommand(
-        authInfo,
-        "TSS LIST(ACIDS) TYPE(USER)",
-        userProfilesHandler,
-        &parms,
-        &radminStatus
-    );
-    
-    if (radminExtractRC != RC_RADMIN_OK) {
-      CMS_DEBUG2(globalArea, traceLevel,
-                 "Could not extract USER profiles...\n");
-      break;
-    }
-    
-    parms.startIndex = parms.profilesExtracted;
-    if (parms.startIndex >= tmpResultBufferSize) {
-      CMS_DEBUG2(globalArea, traceLevel,
-                 "Stopping extraction of DCA profiles because the buffer would overflow...\n");
-      break;
-    }
-
-    CMS_DEBUG2(globalArea, traceLevel,
-              "About to extract DCA profiles...\n");
-              
-    radminExtractRC = radminRunRACFCommand(
-        authInfo,
-        "TSS LIST(ACIDS) TYPE(DCA)",
-        userProfilesHandler,
-        &parms,
-        &radminStatus
-    );
-    
-    if (radminExtractRC != RC_RADMIN_OK) {
-      CMS_DEBUG2(globalArea, traceLevel,
-                 "Could not extract DCA profiles...\n");
-      break;
-    }
-    
-    parms.startIndex = parms.profilesExtracted;
-    if (parms.startIndex >= tmpResultBufferSize) {
-      CMS_DEBUG2(globalArea, traceLevel,
-                 "Stopping extraction of VCA profiles because the buffer would overflow...\n");
-      break;
-    }
-
-    CMS_DEBUG2(globalArea, traceLevel,
-              "About to extract VCA profiles...\n");
-              
-    radminExtractRC = radminRunRACFCommand(
-        authInfo,
-        "TSS LIST(ACIDS) TYPE(VCA)",
-        userProfilesHandler,
-        &parms,
-        &radminStatus
-    );
-
-    if (radminExtractRC != RC_RADMIN_OK) {
-      CMS_DEBUG2(globalArea, traceLevel,
-                 "Could not extract VCA profiles...\n");
-      break;
-    }
-    
-    parms.startIndex = parms.profilesExtracted;
-    if (parms.startIndex >= tmpResultBufferSize) {
-      CMS_DEBUG2(globalArea, traceLevel,
-                 "Stopping extraction of ZCA profiles because the buffer would overflow...\n");
-      break;
-    }
-
-    CMS_DEBUG2(globalArea, traceLevel,
-              "About to extract ZCA profiles...\n");
-              
-    radminExtractRC = radminRunRACFCommand(
-        authInfo,
-        "TSS LIST(ACIDS) TYPE(ZCA)",
-        userProfilesHandler,
-        &parms,
-        &radminStatus
-    );
-
-    if (radminExtractRC != RC_RADMIN_OK) {
-      CMS_DEBUG2(globalArea, traceLevel,
-                 "Could not extract ZCA profiles...\n");
-      break;
-    }
-    
-    parms.startIndex = parms.profilesExtracted;
-    if (parms.startIndex >= tmpResultBufferSize) {
-      CMS_DEBUG2(globalArea, traceLevel,
-                 "Stopping extraction of LSCA profiles because the buffer would overflow...\n");
-      break;
-    }
-
-    CMS_DEBUG2(globalArea, traceLevel,
-              "About to extract LSCA profiles...\n");
-              
-    radminExtractRC = radminRunRACFCommand(
-        authInfo,
-        "TSS LIST(ACIDS) TYPE(LSCA)",
-        userProfilesHandler,
-        &parms,
-        &radminStatus
-    );
-
-    if (radminExtractRC != RC_RADMIN_OK) {
-      CMS_DEBUG2(globalArea, traceLevel,
-                 "Could not extract LSCA profiles...\n");
-      break;
-    }
-    
-    parms.startIndex = parms.profilesExtracted;
-    if (parms.startIndex >= tmpResultBufferSize) {
-      CMS_DEBUG2(globalArea, traceLevel,
-                 "Stopping extraction of SCA profiles because the buffer would overflow...\n");
-      break;
-    }
-
-    CMS_DEBUG2(globalArea, traceLevel,
-              "About to extract SCA profiles...\n");
-              
-    radminExtractRC = radminRunRACFCommand(
-        authInfo,
-        "TSS LIST(ACIDS) TYPE(SCA)",
-        userProfilesHandler,
-        &parms,
-        &radminStatus
-    );
-
-    if (radminExtractRC != RC_RADMIN_OK) {
-      CMS_DEBUG2(globalArea, traceLevel,
-                 "Could not extract SCA profiles...\n");
-      break;
-    }
-  } while (doExtraction == TRUE);
+  radminExtractRC = getAllUsers(&radminStatus, authInfo, &parms);
   
+  CMS_DEBUG2(globalArea, traceLevel,
+             "Extracted %d profiles...\n", parms.profilesExtracted);
+             
   /* If the system has no users, there must have been a serious
    * parsing error somewhere. Return some sort of error to prevent
    * having an empty array.
