@@ -93,13 +93,6 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh, char *pluginIdentif
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static InternalAPIMap *makeInternalAPIMap();
- 
-  static int keyCompare(void *key1, void *key2) {
-  if (strcmp(key1,key2) == 0){
-    return TRUE;
-  }  
-  return FALSE;
-}
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -567,38 +560,52 @@ static void installWebPluginDefintionsService(WebPluginListElt *webPlugins, Http
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
 }
 
-static void parseLoggingData(HttpServer *server, ShortLivedHeap *slh, const char *filename) {
+static void loadLoggingData(HttpServer *server, ShortLivedHeap *slh, const char *filename) {
 
-  char errorBuffer[512] = { 0 };
-  JsonObject *jsonObject = NULL;
+  hashtable *pluginLoggingTable = htCreate(17, stringHash, stringCompare, NULL, NULL); //creates hash table for zowe log
+  if (pluginLoggingTable != NULL) {
+    setConfiguredProperty(server, "pluginLoggingTable", pluginLoggingTable);
+ 
+    char errorBuffer[512] = { 0 };
+    JsonObject *jsonObject = NULL;
   
-  Json *json = jsonParseFile(slh, filename, errorBuffer, sizeof(errorBuffer));
-  if (json) {
-    if (jsonIsObject(json)) {
-      jsonObject = jsonAsObject(json);
+    Json *json = jsonParseFile(slh, filename, errorBuffer, sizeof(errorBuffer));
+    if (json) {
+      if (jsonIsObject(json)) {
+        jsonObject = jsonAsObject(json);
+      
+        JsonObject *logLevels = jsonObjectGetObject(jsonObject, "logLevels");
+        JsonProperty *property = jsonObjectGetFirstProperty(logLevels);
+        int i = 1;
+        while(property != NULL) {
+          char *key = jsonPropertyGetKey(property); 
+          int value = jsonObjectGetNumber(logLevels, key);
+          PluginLoggingData *newData = (PluginLoggingData*) safeMalloc(sizeof(PluginLoggingData),"PluginLoggingData");
+          if (newData != NULL) {
+            newData->level = jsonObjectGetNumber(logLevels, key);
+            uint64 newId = LOG_PROD_PLUGINS + (0x10000 * i); // creates unique logging id
+            i+=1;
+            newData->id = newId;
+            htPut(pluginLoggingTable, key, newData);
+            logConfigureComponent(NULL, newId, key, LOG_DEST_PRINTF_STDOUT, value);
+            zowelog(NULL, newId, ZOWE_LOG_INFO, "Added %s to logging table\n", key);
+            property = jsonObjectGetNextProperty(property);
+          }
+          else {
+            zowelog(NULL,LOG_COMP_ID_MVD_SERVER,ZOWE_LOG_SEVERE,"failed to allocate new logging data\n");
+          }
+        }
+      }
+      else {
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "error while parsing json object %s\n", errorBuffer);
+      }
     }
     else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "error while parsing %s: %s\n", errorBuffer);
-    }
-    JsonObject *logLevels = jsonObjectGetObject(jsonObject, "logLevels");
-    JsonProperty *property = jsonObjectGetFirstProperty(logLevels);
-    int i = 1;
-    while(property != NULL) {
-      char *key = jsonPropertyGetKey(property); 
-      int value = jsonObjectGetNumber(logLevels, key);
-      PluginLoggingData *newData = (PluginLoggingData*) safeMalloc(sizeof(PluginLoggingData),"PluginLoggingData");
-      newData->level = jsonObjectGetNumber(logLevels, key);
-      uint64 newId = LOG_PROD_PLUGINS + (0x10000 * i); // creates unique logging id
-      i+=1;
-      newData->id = newId;
-      htPut(server->PluginLoggingTable, key, newData);
-      logConfigureComponent(NULL, newId, key, LOG_DEST_PRINTF_STDOUT, value);
-      zowelog(NULL, newId, ZOWE_LOG_INFO, "Added %s to logging table\n", key);
-      property = jsonObjectGetNextProperty(property);
+    zowelog(NULL,LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "error while parsing json %s\n",errorBuffer);
     }
   }
   else {
-   zowelog(NULL,LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "error while parsing %s: %s\n",errorBuffer);
+   zowelog(NULL,LOG_COMP_ID_MVD_SERVER,ZOWE_LOG_SEVERE,"failed to create logging hashtable\n"); 
   }
 }
 
@@ -931,8 +938,7 @@ int main(int argc, char **argv){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS server settings: address=%s, port=%d\n", address, port);
     server = makeHttpServer2(base,inetAddress,port,requiredTLSFlag,&returnCode,&reasonCode);
     if (server){
-      server->PluginLoggingTable = htCreate(17, stringHash, keyCompare, NULL, NULL); //creates hash table for zowe log
-      parseLoggingData(server, slh, serverConfigFile); //populates table with logging id's
+      loadLoggingData(server, slh, serverConfigFile); //populates table with logging id's
       server->defaultProductURLPrefix = PRODUCT;
       loadWebServerConfig(server, mvdSettings);
       readWebPluginDefinitions(server, slh, pluginsDir);
