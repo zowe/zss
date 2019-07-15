@@ -29,6 +29,7 @@
 #include "zis/utils.h"
 #include "zis/services/secmgmt.h"
 #include "zis/services/tssparsing.h"
+#include "zis/services/secmgmtUtils.h"
 
 /* A struct to more easily carry the required arguments
  * for logging in ZIS into handler and helper functions.
@@ -42,12 +43,13 @@ typedef struct LogData_t {
  * and returns a pointer to it. This is useful for when the caller wants to start from
  * a particular value because they either reached the maximum they could return in a 
  * request, or if they want to information on a single user. It also returns pointers
- * to the lastByteOffset and the blockBytesExtracted so when continuing to parse,
+ * to the maxOffsetInBlockand the offsetInBlock so when continuing to parse,
  * we still have the right place through the output.
  */
 static const RadminVLText *findLineOfStart(const RadminVLText *currentLine, const char *searchValue, 
                                            int searchValueMaxLength, const char *searchKey,
-                                           const unsigned int *lastByteOffset, unsigned int *blockBytesExtracted,
+                                           const unsigned int maxOffsetInBlock,
+                                           unsigned int *offsetInBlock,
                                            LogData *logData) {
   if (searchValueMaxLength > MAX_VALUE_LEN) {
     CMS_DEBUG2(logData->globalArea, logData->traceLevel, 
@@ -57,34 +59,34 @@ static const RadminVLText *findLineOfStart(const RadminVLText *currentLine, cons
   }
   
   int startValueLen = strlen(searchValue);
-  *blockBytesExtracted = 16;
+  *offsetInBlock = 16;
   
-  while (*blockBytesExtracted < *lastByteOffset) {
+  while (*offsetInBlock < maxOffsetInBlock) {
     KeyData keys[MAX_NUM_OF_KEYS] = {0};
     char tmpBuffer[MAX_VALUE_LEN] = {0}; /* Use the maximum value length of 255 to handle all cases. */
     
-    if (isOutputDone(currentLine->text, currentLine->length)) {
+    if (tssIsOutputDone(currentLine->text, currentLine->length)) {
       return NULL;
     }
     
-    int numberOfKeys = parseLineForKeys(currentLine->text, currentLine->length, keys);
+    int numberOfKeys = tssParseLineForKeys(currentLine->text, currentLine->length, keys);
     if (numberOfKeys == -1) {
       /* In this case, print the line in question. */
       CMS_DEBUG2(logData->globalArea, logData->traceLevel, 
-                 "An invalid number of keys were detected on line.\n"
-                 "Current line is: \n%.*s\n", currentLine->length, currentLine->text);
+                 "An invalid number of keys were detected on line: '"
+                 "%.*s'\n", currentLine->length, currentLine->text);
         
       return NULL;
     }
     else if (numberOfKeys == 0) { 
-      *blockBytesExtracted += currentLine->length + 2;
+      *offsetInBlock += currentLine->length + 2;
       currentLine = (RadminVLText *)(currentLine->text + currentLine->length);
       continue; /* ignore blank lines and carry on */
     }
     else {
-      int keyIndex = findDesiredKey(searchKey, keys);
+      int keyIndex = tssFindDesiredKey(searchKey, keys);
       if (keyIndex != -1) {
-        int status = findValueForKey(currentLine->text, currentLine->length, keys,
+        int status = tssFindValueForKey(currentLine->text, currentLine->length, keys,
                                      keyIndex, numberOfKeys, tmpBuffer, searchValueMaxLength);
         if (status == -1) {
           CMS_DEBUG2(logData->globalArea, logData->traceLevel, 
@@ -92,7 +94,7 @@ static const RadminVLText *findLineOfStart(const RadminVLText *currentLine, cons
           return NULL;
         } 
         
-        int valueLen = getActualValueLength(tmpBuffer, sizeof(tmpBuffer));
+        int valueLen = tssGetActualValueLength(tmpBuffer, sizeof(tmpBuffer));
         if (valueLen == -1) {
           CMS_DEBUG2(logData->globalArea, logData->traceLevel, 
                      "Problem getting the actual length of %.*s\n", sizeof(tmpBuffer), tmpBuffer);
@@ -107,7 +109,7 @@ static const RadminVLText *findLineOfStart(const RadminVLText *currentLine, cons
       }   
     }
     
-    *blockBytesExtracted += currentLine->length + 2;
+    *offsetInBlock += currentLine->length + 2;
     currentLine = (RadminVLText *)(currentLine->text + currentLine->length);
   }
   
@@ -157,7 +159,7 @@ static int userProfilesHandler(RadminAPIStatus status, const RadminCommandOutput
    *  TSS{SOME NUMBERS}  {SOME MESSAGE}                      
    *  TSS0301I  TSS      FUNCTION FAILED, RETURN CODE =  {SOME NUMBER}
    */
-  bool errorDetected = isErrorDetected(currentLine->text, currentLine->length);
+  bool errorDetected = tssIsErrorDetected(currentLine->text, currentLine->length);
   if (errorDetected) {
     CMS_DEBUG2(logData->globalArea, logData->traceLevel,
                "Error detected!\n");
@@ -167,11 +169,11 @@ static int userProfilesHandler(RadminAPIStatus status, const RadminCommandOutput
   /* If specified, iterate through the output until start is found. If it's not ever found
    * then return an error.
    */
-  unsigned int blockBytesExtracted = 0;
+  unsigned int offsetInBlock = 0;
   if (parms->startUserID != NULL) {
     do {
       currentLine = findLineOfStart(currentLine, parms->startUserID, ACCESSOR_ID_VALUE_MAX_LEN,
-                                    ACCESSOR_ID_KEY, &currentBlock->lastByteOffset, &blockBytesExtracted,
+                                    ACCESSOR_ID_KEY, currentBlock->lastByteOffset, &offsetInBlock,
                                     logData);
       if (currentLine != NULL) {
         break;
@@ -195,20 +197,20 @@ static int userProfilesHandler(RadminAPIStatus status, const RadminCommandOutput
    */
   unsigned int numExtracted = parms->startIndex; /* this is for any continuations with multiple calls using the same array */
   do {
-    while (blockBytesExtracted < currentBlock->lastByteOffset) {      
-      if (numExtracted == parms->profilesToExtract || isOutputDone(currentLine->text, currentLine->length)) {
+    while (offsetInBlock < currentBlock->lastByteOffset) {      
+      if (numExtracted == parms->profilesToExtract || tssIsOutputDone(currentLine->text, currentLine->length)) {
         parms->profilesExtracted = numExtracted;
         return 0;
       }
 
       KeyData keys[MAX_NUM_OF_KEYS] = {0};
       
-      int numberOfKeys = parseLineForKeys(currentLine->text, currentLine->length, keys);
+      int numberOfKeys = tssParseLineForKeys(currentLine->text, currentLine->length, keys);
       if (numberOfKeys == -1) {
         /* In this case, print the line in question. */
         CMS_DEBUG2(logData->globalArea, logData->traceLevel, 
-                   "An invalid number of keys were detected on line.\n"
-                   "Current line is: \n%.*s\n", currentLine->length, currentLine->text);
+                   "An invalid number of keys were detected on line: '"
+                   "%.*s'\n", currentLine->length, currentLine->text);
         return -1;
       }      
       /* A blank line means the end of a single user's data.
@@ -224,9 +226,9 @@ static int userProfilesHandler(RadminAPIStatus status, const RadminCommandOutput
         memset(&entry, 0, sizeof(ZISUserProfileEntry));      
       }
       else { 
-        int keyIndex = findDesiredKey(ACCESSOR_ID_KEY, keys);
+        int keyIndex = tssFindDesiredKey(ACCESSOR_ID_KEY, keys);
         if (keyIndex != -1) {
-          int status = findValueForKey(currentLine->text, currentLine->length, keys,
+          int status = tssFindValueForKey(currentLine->text, currentLine->length, keys,
                                        keyIndex, numberOfKeys, entry.userID, ACCESSOR_ID_VALUE_MAX_LEN);
           if (status == -1) {
             CMS_DEBUG2(logData->globalArea, logData->traceLevel, 
@@ -235,9 +237,9 @@ static int userProfilesHandler(RadminAPIStatus status, const RadminCommandOutput
           }
         }
         
-        keyIndex = findDesiredKey(NAME_KEY, keys);
+        keyIndex = tssFindDesiredKey(NAME_KEY, keys);
         if (keyIndex != -1) {
-          int status = findValueForKey(currentLine->text, currentLine->length, keys,
+          int status = tssFindValueForKey(currentLine->text, currentLine->length, keys,
                                        keyIndex, numberOfKeys, entry.name, NAME_VALUE_MAX_LEN);
           if (status == -1) {
             CMS_DEBUG2(logData->globalArea, logData->traceLevel, 
@@ -246,9 +248,9 @@ static int userProfilesHandler(RadminAPIStatus status, const RadminCommandOutput
           }
         }
         
-        keyIndex = findDesiredKey(DEFAULT_GROUP_KEY, keys);
+        keyIndex = tssFindDesiredKey(DEFAULT_GROUP_KEY, keys);
         if (keyIndex != -1) {
-          int status = findValueForKey(currentLine->text, currentLine->length, keys, keyIndex,
+          int status = tssFindValueForKey(currentLine->text, currentLine->length, keys, keyIndex,
                                       numberOfKeys, entry.defaultGroup, DEFAULT_GROUP_VALUE_MAX_LEN);
           if (status == -1) {
             CMS_DEBUG2(logData->globalArea, logData->traceLevel, 
@@ -258,14 +260,14 @@ static int userProfilesHandler(RadminAPIStatus status, const RadminCommandOutput
         }      
       }
     
-      blockBytesExtracted += currentLine->length + 2;
+      offsetInBlock += currentLine->length + 2;
       currentLine = (RadminVLText *)(currentLine->text + currentLine->length);
     }
     
     currentBlock = currentBlock->next;
     if (currentBlock != NULL) {
       currentLine = (RadminVLText *)&(currentBlock->firstMessageEntry);
-      blockBytesExtracted = 16;
+      offsetInBlock = 16;
     }
   } while (currentBlock != NULL);
   

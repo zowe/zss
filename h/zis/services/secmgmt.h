@@ -15,7 +15,6 @@
 
 #include "zowetypes.h"
 #include "zos.h"
-#include "radmin.h"
 
 /*** Common security structs and definitions ***/
 
@@ -24,7 +23,8 @@
 #define ZIS_SECURITY_GROUP_MAX_LENGTH       8
 #define ZIS_USER_ID_MAX_LENGTH              8
 
-bool getCallerUserID(RadminUserID *caller);
+#define ZIS_PARMLIB_PARM_SECMGMT_USER_CLASS   CMS_PROD_ID".SECMGMT.CLASS"
+#define ZIS_PARMLIB_PARM_SECMGMT_AUTORESFRESH CMS_PROD_ID".SECMGMT.AUTOREFRESH"
 
 typedef struct SAFStatus_tag {
   int safRC;

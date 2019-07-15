@@ -10,13 +10,36 @@
   Copyright Contributors to the Zowe Project.
 */
 
-#ifndef ZIS_SERVICES_SECMGMTTSS_H_
-#define ZIS_SERVICES_SECMGMTTSS_H_
+#include <metal/metal.h>
+#include <metal/stddef.h>
+#include <metal/stdio.h>
+#include <metal/string.h>
 
-int zisUserProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
-                                      CrossMemoryService *service, void *parm);
-                                      
+#ifndef METTLE
+#error Non-metal C code is not supported
 #endif
+
+#include "zowetypes.h"
+#include "alloc.h"
+#include "crossmemory.h"
+#include "radmin.h"
+#include "recovery.h"
+#include "zos.h"
+
+bool getCallerUserID(RadminUserID *caller) {
+
+  ACEE aceeData = {0};
+  ACEE *aceeAddress = NULL;
+  cmGetCallerTaskACEE(&aceeData, &aceeAddress);
+  if (aceeAddress == NULL) {
+    return false;
+  }
+
+  caller->length = aceeData.aceeuser[0];
+  memcpy(caller->value, &aceeData.aceeuser[1], sizeof(caller->value));
+
+  return true;
+}
 
 /*
   This program and the accompanying materials are

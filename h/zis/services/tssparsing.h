@@ -47,18 +47,18 @@ typedef struct KeyData_t {
   int keyLength;
 } KeyData;
 
-bool isErrorDetected(const char *str, int len);
+bool tssIsErrorDetected(const char *str, int len);
 
-bool isOutputDone(const char *str, int len);
+bool tssIsOutputDone(const char *str, int len);
 
-int getActualValueLength(const char *str, int len);
+int tssGetActualValueLength(const char *str, int len);
   
-int parseLineForKeys(const char *str, int len, KeyData *keys);
+int tssParseLineForKeys(const char *str, int len, KeyData *keys);
 
-int findValueForKey(const char *str, int len, KeyData *keys, int keyIndex,
+int tssFindValueForKey(const char *str, int len, KeyData *keys, int keyIndex,
                     int numberOfKeys, char *valueBuffer, int valueBufferSize);
                     
-int findDesiredKey(const char *searchStr, KeyData *keys);
+int tssFindDesiredKey(const char *searchStr, KeyData *keys);
 
 #endif
 

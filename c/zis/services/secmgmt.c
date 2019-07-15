@@ -28,24 +28,7 @@
 
 #include "zis/utils.h"
 #include "zis/services/secmgmt.h"
-
-#define ZIS_PARMLIB_PARM_SECMGMT_USER_CLASS   CMS_PROD_ID".SECMGMT.CLASS"
-#define ZIS_PARMLIB_PARM_SECMGMT_AUTORESFRESH CMS_PROD_ID".SECMGMT.AUTOREFRESH"
-
-bool getCallerUserID(RadminUserID *caller) {
-
-  ACEE aceeData = {0};
-  ACEE *aceeAddress = NULL;
-  cmGetCallerTaskACEE(&aceeData, &aceeAddress);
-  if (aceeAddress == NULL) {
-    return false;
-  }
-
-  caller->length = aceeData.aceeuser[0];
-  memcpy(caller->value, &aceeData.aceeuser[1], sizeof(caller->value));
-
-  return true;
-}
+#include "zis/services/secmgmtUtils.h"
 
 int validateUserProfileParmList(ZISUserProfileServiceParmList *parm) {
 

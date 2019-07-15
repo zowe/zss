@@ -20,21 +20,15 @@
 #endif
 
 #include "zowetypes.h"
-#include "alloc.h"
-#include "crossmemory.h"
-#include "radmin.h"
-#include "recovery.h"
-#include "zos.h"
+#include "utils.h"
 
-#include "zis/utils.h"
-#include "zis/services/secmgmt.h"
 #include "zis/services/tssparsing.h"
 
 /* If an error has occured, it will be the first thing printed
  * in the output. We should use this information to prescreen for
  * any errors before any more parsing happens.
  */
-bool isErrorDetected(const char *str, int len) {
+bool tssIsErrorDetected(const char *str, int len) {
   if (len < TSS_MESSAGE_ID_MAX_LEN) {
     return FALSE;
   }
@@ -52,7 +46,7 @@ bool isErrorDetected(const char *str, int len) {
  * then we have reached the end of the output. Followed by
  * "TSS" is the reason and return codes.
  */
-bool isOutputDone(const char *str, int len) {
+bool tssIsOutputDone(const char *str, int len) {
   if (len < strlen(FUNCTION_END)) {
     return FALSE;
   }
@@ -68,7 +62,7 @@ bool isOutputDone(const char *str, int len) {
  * the key you are looking for is present on the current line of
  * output.
  */
-int findDesiredKey(const char *searchStr, KeyData *keys) {
+int tssFindDesiredKey(const char *searchStr, KeyData *keys) {
   int searchLen = strlen(searchStr);
   
   for (int i = 0; i < 2; i++) {
@@ -85,7 +79,7 @@ int findDesiredKey(const char *searchStr, KeyData *keys) {
 /* A helper function that fills in the names of the keys
  * based on the determined offsets on the output.
  */
-static int findNameForKeys(const char *str, KeyData *keys) {
+static int tssFindNameForKeys(const char *str, KeyData *keys) {
   for (int i = 0; i < 2; i++) {
     memcpy(keys[i].keyName, str+keys[i].startPos, keys[i].keyLength);
   }
@@ -95,7 +89,7 @@ static int findNameForKeys(const char *str, KeyData *keys) {
  * with the rest of the API. This function is used to find the
  * length without the padding.
  */
-int getActualValueLength(const char *str, int len) {
+int tssGetActualValueLength(const char *str, int len) {
   for (int i = len - 1; i >= 0; i--) {
     if (str[i] != ' ' && str[i] != '\0') {
       return i + 1;
@@ -109,7 +103,7 @@ int getActualValueLength(const char *str, int len) {
  * if there is no relevant data. You must check for a line
  * full of spaces.
  */
-static int isLineBlank(const char *str, int len) {
+static int tssIsLineBlank(const char *str, int len) {
   for (int i = 0; i < len; i++) {
     if (str[i] != ' ') {
       return FALSE;
@@ -122,22 +116,22 @@ static int isLineBlank(const char *str, int len) {
  * current line of output and fill in the keys in the
  * KeyData struct array.
  */
-int parseLineForKeys(const char *str, int len, KeyData *keys) {  
-  if (isLineBlank(str, len)) {
+int tssParseLineForKeys(const char *str, int len, KeyData *keys) {  
+  if (tssIsLineBlank(str, len)) {
     return 0;
   }
   
-  int numberOfKeys = findNumberOfKeys(str, len, 0);
+  int numberOfKeys = tssFindNumberOfKeys(str, len, 0);
   if (numberOfKeys > 2 || numberOfKeys == 0) {
     return -1;
   }
   
-  int status = findAllPossibleKeys(str, len, keys, numberOfKeys);
+  int status = tssFindAllPossibleKeys(str, len, keys, numberOfKeys);
   if (status == -1) {
     return -1;
   }
   
-  findNameForKeys(str, keys);
+  tssFindNameForKeys(str, keys);
   
   return numberOfKeys;
 }
@@ -145,7 +139,7 @@ int parseLineForKeys(const char *str, int len, KeyData *keys) {
 /* A helper function that parses the current line of output to see if there are
  * any keys based on our criteria.
  */
-static int findNumberOfKeys(const char *str, int len, int startPos) {
+static int tssFindNumberOfKeys(const char *str, int len, int startPos) {
   int searchLen = strlen(KEY_DELIMITER);
   int lastPossibleStart = len-searchLen;
   int pos = startPos;
@@ -169,7 +163,7 @@ static int findNumberOfKeys(const char *str, int len, int startPos) {
  * character by character from the delimiter. If we find two spaces in
  * a row, we denote that as the start of the key.
  */
-static int findStartOfKeyReverse(const char *str, int len, int startPos) {
+static int tssFindStartOfKeyReverse(const char *str, int len, int startPos) {
   int currPos = startPos;
   while (currPos > 1) {
     if (str[currPos-1] == ' ' && str[currPos-2] == ' ') {
@@ -184,7 +178,7 @@ static int findStartOfKeyReverse(const char *str, int len, int startPos) {
 /* A helper function that finds the end of the key by looking
  * for the first non space from the delimiter.
  */
-static int findEndOfKeyReverse(const char *str, int len, int startPos) {
+static int tssFindEndOfKeyReverse(const char *str, int len, int startPos) {
   int currPos = startPos;
   while (currPos >= 0) {
     if (str[currPos] != ' ') {
@@ -199,7 +193,7 @@ static int findEndOfKeyReverse(const char *str, int len, int startPos) {
 /* A helper function that returns the other index of the array
  * where the key is stored.
  */
-static int getOtherKeyIndex(int keyIndex) {
+static int tssGetOtherKeyIndex(int keyIndex) {
   if (keyIndex == 0) {
     return 1;
   }
@@ -212,7 +206,7 @@ static int getOtherKeyIndex(int keyIndex) {
  * on the current line of output. It copies the value into a buffer and pads
  * it with spaces.
  */
-static int findValueSingleKey(const char *str, int len, KeyData *keys, int keyIndex,
+static int tssFindValueSingleKey(const char *str, int len, KeyData *keys, int keyIndex,
                               char *valueBuffer, int valueBufferSize) {
   int valStartPos = keys[keyIndex].delimPos + KEY_DELIMITER_LEN;
   int valEndPos = -1;
@@ -241,10 +235,10 @@ static int findValueSingleKey(const char *str, int len, KeyData *keys, int keyIn
  * it with spaces. This function is needed in order to not go too far and
  * into the other key value pair.
  */
-static int findValueDoubleKey(const char *str, int len, KeyData *keys, int keyIndex,
+static int tssFindValueDoubleKey(const char *str, int len, KeyData *keys, int keyIndex,
                               char *valueBuffer, int valueBufferSize) {
   int otherKeyIndex = -1;
-  otherKeyIndex = getOtherKeyIndex(keyIndex);
+  otherKeyIndex = tssGetOtherKeyIndex(keyIndex);
   
   int valStartPos = keys[keyIndex].delimPos + KEY_DELIMITER_LEN;
   int valEndPos = -1;
@@ -275,14 +269,14 @@ static int findValueDoubleKey(const char *str, int len, KeyData *keys, int keyIn
 /* Calls a series of helper functions that find the value of a key
  * and return it in a buffer to the caller.
  */ 
-int findValueForKey(const char *str, int len, KeyData *keys, int keyIndex,
+int tssFindValueForKey(const char *str, int len, KeyData *keys, int keyIndex,
                     int numberOfKeys, char *valueBuffer, int valueBufferSize) {
   int status = -1;
   switch(numberOfKeys) {
-    case 1: status = findValueSingleKey(str, len, keys, keyIndex, valueBuffer,
+    case 1: status = tssFindValueSingleKey(str, len, keys, keyIndex, valueBuffer,
                                         valueBufferSize);
             return status;
-    case 2: status = findValueDoubleKey(str, len, keys, keyIndex, valueBuffer,
+    case 2: status = tssFindValueDoubleKey(str, len, keys, keyIndex, valueBuffer,
                                         valueBufferSize);
             return status;
     default: return status;
@@ -293,7 +287,7 @@ int findValueForKey(const char *str, int len, KeyData *keys, int keyIndex,
  * it into the KeyData struct. This function deals with one key
  * on the line of output.
  */
-static int findSingleKey(const char *str, int len, KeyData *keys) {
+static int tssFindSingleKey(const char *str, int len, KeyData *keys) {
   if (str[0] != ' ') {
     keys[0].startPos = 0;
   }
@@ -317,7 +311,7 @@ static int findSingleKey(const char *str, int len, KeyData *keys) {
   
   keys[0].delimPos = firstKeyDelimPos;
   
-  int firstKeyEndPos = findEndOfKeyReverse(str, len, firstKeyDelimPos);
+  int firstKeyEndPos = tssFindEndOfKeyReverse(str, len, firstKeyDelimPos);
   if (firstKeyEndPos == -1) {
     return -1;
   }
@@ -338,8 +332,8 @@ static int findSingleKey(const char *str, int len, KeyData *keys) {
  * it into the KeyData struct. This function deals with two keys
  * on the same line of output.
  */
-static int findDoubleKey(const char *str, int len, KeyData *keys) {
-  int status = findSingleKey(str, len, keys);
+static int tssFindDoubleKey(const char *str, int len, KeyData *keys) {
+  int status = tssFindSingleKey(str, len, keys);
   if (status == -1) {
     return -1;
   }
@@ -352,14 +346,14 @@ static int findDoubleKey(const char *str, int len, KeyData *keys) {
   
   keys[1].delimPos = secondKeyDelimPos;
     
-  int secondKeyEndPos = findEndOfKeyReverse(str, len, secondKeyDelimPos);
+  int secondKeyEndPos = tssFindEndOfKeyReverse(str, len, secondKeyDelimPos);
   if (secondKeyEndPos == -1) {
     return -1;
   }
   
   keys[1].endPos = secondKeyEndPos;
     
-  int secondKeyStartPos = findStartOfKeyReverse(str, len, secondKeyEndPos);
+  int secondKeyStartPos = tssFindStartOfKeyReverse(str, len, secondKeyEndPos);
   if (secondKeyStartPos == -1) {
     return -1;
   }
@@ -379,12 +373,12 @@ static int findDoubleKey(const char *str, int len, KeyData *keys) {
 /* A helper function that finds the offsets of the key based on
  * the number of keys found in the current line of output.
  */
-static int findAllPossibleKeys(const char *str, int len, KeyData *keys, int numberOfKeys) {
+static int tssFindAllPossibleKeys(const char *str, int len, KeyData *keys, int numberOfKeys) {
   int status = -1;
   switch(numberOfKeys) {
-    case 1: status = findSingleKey(str, len, keys);
+    case 1: status = tssFindSingleKey(str, len, keys);
             return status;
-    case 2: status = findDoubleKey(str, len, keys);
+    case 2: status = tssFindDoubleKey(str, len, keys);
             return status;
     default: return status;
   }

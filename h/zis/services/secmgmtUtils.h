@@ -10,11 +10,12 @@
   Copyright Contributors to the Zowe Project.
 */
 
-#ifndef ZIS_SERVICES_SECMGMTTSS_H_
-#define ZIS_SERVICES_SECMGMTTSS_H_
+#ifndef ZIS_SERVICES_SECMGMTUTILS_H_
+#define ZIS_SERVICES_SECMGMTUTILS_H_
 
-int zisUserProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
-                                      CrossMemoryService *service, void *parm);
+#include "radmin.h"
+
+bool getCallerUserID(RadminUserID *caller);
                                       
 #endif
 
