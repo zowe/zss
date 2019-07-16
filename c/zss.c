@@ -663,6 +663,7 @@ void checkAndSetVariable(JsonObject *mvdSettings,
 static void initLoggingComponents() {
   logConfigureComponent(NULL, LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+  logConfigureComponent(NULL, LOG_COMP_DATASERVCIE, "Dataservices", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO); 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "zssServer startup, version %s\n", productVersion);
 }
 
