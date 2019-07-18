@@ -15,7 +15,7 @@
 
 #include "radmin.h"
 
-bool getCallerUserID(RadminUserID *caller);
+bool secmgmtGetCallerUserID(RadminUserID *caller);
                                       
 #endif
 

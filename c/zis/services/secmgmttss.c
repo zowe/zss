@@ -459,7 +459,7 @@ int zisUserProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
   }
 
   RadminUserID caller;
-  if (!getCallerUserID(&caller)) {
+  if (!secmgmtGetCallerUserID(&caller)) {
     return RC_ZIS_UPRFSRV_IMPERSONATION_MISSING;
   }
 

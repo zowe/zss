@@ -20,13 +20,11 @@
 #endif
 
 #include "zowetypes.h"
-#include "alloc.h"
 #include "crossmemory.h"
 #include "radmin.h"
-#include "recovery.h"
 #include "zos.h"
 
-bool getCallerUserID(RadminUserID *caller) {
+bool secmgmtGetCallerUserID(RadminUserID *caller) {
 
   ACEE aceeData = {0};
   ACEE *aceeAddress = NULL;

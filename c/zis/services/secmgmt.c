@@ -94,7 +94,7 @@ static int zisUserProfilesServiceFunctionRACF(CrossMemoryServerGlobalArea *globa
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_UPRFSRV_IMPERSONATION_MISSING;
       break;
     }
@@ -268,7 +268,7 @@ int zisGenresProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_GRPRFSRV_IMPERSONATION_MISSING;
       break;
     }
@@ -458,7 +458,7 @@ int zisGenresAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_ACSLSRV_IMPERSONATION_MISSING;
       break;
     }
@@ -936,7 +936,7 @@ int zisGenresProfileAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_GSADMNSRV_IMPERSONATION_MISSING;
       break;
     }
@@ -1133,7 +1133,7 @@ int zisGroupProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_GPPRFSRV_IMPERSONATION_MISSING;
       break;
     }
@@ -1295,7 +1295,7 @@ int zisGroupAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_GRPALSRV_IMPERSONATION_MISSING;
       break;
     }
@@ -1693,7 +1693,7 @@ int zisGroupAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_GRPASRV_IMPERSONATION_MISSING;
       break;
     }
