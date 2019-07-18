@@ -27,6 +27,8 @@
 #include "zis/utils.h"
 #include "zis/services/auth.h"
 
+#define ZIS_PARMLIB_PARM_AUTH_USER_CLASS    CMS_PROD_ID".AUTH.CLASS"
+
 static int handleVerifyPassword(AuthServiceParmList *parmList,
                                 const CrossMemoryServerGlobalArea *globalArea) {
   ACEE *acee = NULL;
@@ -60,6 +62,31 @@ acee_deleted:
   return rc;
 }
 
+typedef struct AuthClass_tag {
+  char valueNullTerm[ZIS_AUTH_SERVICE_CLASS_MAX_LENGTH + 1];
+} AuthClass;
+
+static int getDefaultClassValue(const CrossMemoryServerGlobalArea *globalArea,
+                                AuthClass *class) {
+
+  CrossMemoryServerConfigParm userClassParm = {0};
+  int getParmRC = cmsGetConfigParm(&globalArea->serverName,
+                                   ZIS_PARMLIB_PARM_AUTH_USER_CLASS,
+                                   &userClassParm);
+  if (getParmRC != RC_CMS_OK) {
+    return RC_ZIS_AUTHSRV_USER_CLASS_NOT_READ;
+  }
+  if (userClassParm.valueLength > sizeof(class->valueNullTerm) - 1) {
+    return RC_ZIS_AUTHSRV_USER_CLASS_TOO_LONG;
+  }
+
+  memcpy(class->valueNullTerm, userClassParm.charValueNullTerm,
+         userClassParm.valueLength);
+  class->valueNullTerm[userClassParm.valueLength] = '\0';
+
+  return RC_ZIS_AUTHSRV_OK;
+}
+
 static void fillAbendInfo(struct RecoveryContext_tag * __ptr32 context,
                           SDWA * __ptr32 sdwa, void * __ptr32 userData) {
   AbendInfo *abendInfo = userData;
@@ -75,9 +102,20 @@ static int handleEntityCheck(AuthServiceParmList *parmList,
   int rcvRC = 0;
   int rc = RC_ZIS_AUTHSRV_OK;
 
+  AuthClass class = {0};
+  size_t classLength = strlen(parmList->classNullTerm);
+  if (classLength == 0) {
+    int getClassRC = getDefaultClassValue(globalArea, &class);
+    if (getClassRC != RC_ZIS_AUTHSRV_OK) {
+      return getClassRC;
+    }
+  } else {
+    memcpy(class.valueNullTerm, parmList->classNullTerm, classLength);
+  }
+
   CMS_DEBUG(globalArea, "handleEntityCheck(): user = %s, entity = %s, class = %s,"
       " access = %x\n", parmList->userIDNullTerm, parmList->entityNullTerm,
-      parmList->classNullTerm, parmList->access);
+      class.valueNullTerm, parmList->access);
   safRC = safVerify(VERIFY_CREATE | VERIFY_WITHOUT_PASSWORD,
       parmList->userIDNullTerm, NULL, &acee, &racfRC, &racfRsn);
   CMS_DEBUG(globalArea, "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
@@ -99,7 +137,7 @@ static int handleEntityCheck(AuthServiceParmList *parmList,
         parmList->abendInfo.completionCode);
     goto recovery_removed;
   }
-  safRC = safAuth(0, parmList->classNullTerm, parmList->entityNullTerm,
+  safRC = safAuth(0, class.valueNullTerm, parmList->entityNullTerm,
       parmList->access, acee, &racfRC, &racfRsn);
   CMS_DEBUG(globalArea, "safAuth safStatus = %d, RACF RC = %d, RSN = %d, "
       "ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
@@ -213,16 +251,30 @@ static int handleAccessRetrieval(AuthServiceParmList *parmList,
   int rc = RC_ZIS_AUTHSRV_OK;
   int traceLevel = parmList->traceLevel;
 
+  AuthClass defaultClass = {0};
+  int getClassRC = getDefaultClassValue(globalArea, &defaultClass);
+  if (getClassRC != RC_ZIS_AUTHSRV_OK) {
+    return getClassRC;
+  }
+
+  AuthClass class = {0};
+  size_t classLength = strlen(parmList->classNullTerm);
+  if (classLength != 0) {
+    if (strcmp(class.valueNullTerm, defaultClass.valueNullTerm) != 0) {
+      return RC_ZIS_AUTHSRV_CUSTOM_CLASS_NOT_ALLOWED;
+    }
+  } else {
+    class = defaultClass;
+  }
+
   CMS_DEBUG2(globalArea, traceLevel,
              "handleAccessRetrieval(): user=\'%s\', entity=\'%s\', "
              "class=\'%s\', access = 0x%p\n",
              parmList->userIDNullTerm, parmList->entityNullTerm,
-             parmList->classNullTerm, parmList->access);
-
-  /* TODO read class from parm, e.g. ZIS.SERVICE.AUTH.CLASS=value */
+             class.valueNullTerm, parmList->access);
 
   rc = getAccessType(globalArea,
-                     parmList->classNullTerm,
+                     class.valueNullTerm,
                      parmList->userIDNullTerm,
                      parmList->entityNullTerm,
                      &parmList->access,
