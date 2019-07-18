@@ -17,3 +17,9 @@ destructivelyUnasciify
 nullTerminate
 dumpbuffer
 cnvintst
+makeBufferCharStream
+charStreamPosition
+charStreamGet
+charStreamEOF
+charStreamClose
+charStreamFree
