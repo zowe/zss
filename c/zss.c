@@ -90,7 +90,8 @@ static int traceLevel = 0;
 static int stringEndsWith(char *s, char *suffix);
 static void dumpJson(Json *json);
 static JsonObject *readPluginDefinition(ShortLivedHeap *slh, char *pluginIdentifier, char *pluginLocation);
-static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname);
+static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
+                                                  unsigned int idMultiplier);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static InternalAPIMap *makeInternalAPIMap();
 
@@ -560,12 +561,26 @@ static void installWebPluginDefintionsService(WebPluginListElt *webPlugins, Http
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
 }
 
-static void loadLoggingData(HttpServer *server, ShortLivedHeap *slh, const char *filename) {
+static void createLoggingIdentifier(char *identifier, hashtable *pluginLoggingTable,int level,int i) {
+  PluginLoggingData *newData = (PluginLoggingData*) safeMalloc(sizeof(PluginLoggingData),"PluginLoggingData");
+  if(newData != NULL){
+    newData->level = level;
+    uint64 newId = LOG_PROD_PLUGINS + (0x10000 * i); // creates unique logging id
+    newData->id = newId;
+    htPut(pluginLoggingTable, identifier, newData);
+    logConfigureComponent(NULL, newId, identifier, LOG_DEST_PRINTF_STDOUT, level);
+    zowelog(NULL, newId, ZOWE_LOG_INFO, "Added %s to logging table\n", identifier);
+  }
+  else {
+    zowelog(NULL,LOG_COMP_ID_MVD_SERVER,ZOWE_LOG_SEVERE,"failed to allocate new logging data\n");
+  }
+}
 
+static unsigned int loadLoggingData(HttpServer *server, ShortLivedHeap *slh, const char *filename) {
+  unsigned int idMultiplier = 1;
   hashtable *pluginLoggingTable = htCreate(17, stringHash, stringCompare, NULL, NULL); //creates hash table for zowe log
   if (pluginLoggingTable != NULL) {
     setConfiguredProperty(server, "pluginLoggingTable", pluginLoggingTable);
- 
     char errorBuffer[512] = { 0 };
     JsonObject *jsonObject = NULL;
   
@@ -576,24 +591,12 @@ static void loadLoggingData(HttpServer *server, ShortLivedHeap *slh, const char 
       
         JsonObject *logLevels = jsonObjectGetObject(jsonObject, "logLevels");
         JsonProperty *property = jsonObjectGetFirstProperty(logLevels);
-        int i = 1;
         while(property != NULL) {
           char *key = jsonPropertyGetKey(property); 
           int value = jsonObjectGetNumber(logLevels, key);
-          PluginLoggingData *newData = (PluginLoggingData*) safeMalloc(sizeof(PluginLoggingData),"PluginLoggingData");
-          if (newData != NULL) {
-            newData->level = jsonObjectGetNumber(logLevels, key);
-            uint64 newId = LOG_PROD_PLUGINS + (0x10000 * i); // creates unique logging id
-            i+=1;
-            newData->id = newId;
-            htPut(pluginLoggingTable, key, newData);
-            logConfigureComponent(NULL, newId, key, LOG_DEST_PRINTF_STDOUT, value);
-            zowelog(NULL, newId, ZOWE_LOG_INFO, "Added %s to logging table\n", key);
-            property = jsonObjectGetNextProperty(property);
-          }
-          else {
-            zowelog(NULL,LOG_COMP_ID_MVD_SERVER,ZOWE_LOG_SEVERE,"failed to allocate new logging data\n");
-          }
+          createLoggingIdentifier(key, pluginLoggingTable, value, idMultiplier);
+          idMultiplier+=1;
+          property = jsonObjectGetNextProperty(property);
         }
       }
       else {
@@ -607,9 +610,12 @@ static void loadLoggingData(HttpServer *server, ShortLivedHeap *slh, const char 
   else {
    zowelog(NULL,LOG_COMP_ID_MVD_SERVER,ZOWE_LOG_SEVERE,"failed to create logging hashtable\n"); 
   }
+  
+  return idMultiplier;
 }
 
-static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLivedHeap *slh, char *dirname) {
+static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLivedHeap *slh, char *dirname,
+                                                  unsigned int idMultiplier) {
   int pluginDefinitionCount = 0;
   int returnCode;
   int reasonCode;
@@ -644,6 +650,11 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
             if (jsonObject) {
               char *identifier = jsonObjectGetString(jsonObject, "identifier");
               char *pluginLocation = jsonObjectGetString(jsonObject, "pluginLocation");
+              hashtable *loggingTable = getConfiguredProperty(server, "pluginLoggingTable");
+              if(!htGet(loggingTable,identifier)) {
+                createLoggingIdentifier(identifier,loggingTable,ZOWE_LOG_INFO,idMultiplier); 
+                idMultiplier++;
+              } 
               if (identifier && pluginLocation) {
                 JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, pluginLocation);
                 if (pluginDefinition) {
@@ -938,10 +949,10 @@ int main(int argc, char **argv){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS server settings: address=%s, port=%d\n", address, port);
     server = makeHttpServer2(base,inetAddress,port,requiredTLSFlag,&returnCode,&reasonCode);
     if (server){
-      loadLoggingData(server, slh, serverConfigFile); //populates table with logging id's
+      unsigned int idMultiplier = loadLoggingData(server, slh, serverConfigFile); 
       server->defaultProductURLPrefix = PRODUCT;
       loadWebServerConfig(server, mvdSettings);
-      readWebPluginDefinitions(server, slh, pluginsDir);
+      readWebPluginDefinitions(server, slh, pluginsDir, idMultiplier);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
       installUnixFileCopyService(server);
