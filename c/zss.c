@@ -561,11 +561,11 @@ static void installWebPluginDefintionsService(WebPluginListElt *webPlugins, Http
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
 }
 
-static void createLoggingIdentifier(char *identifier, hashtable *pluginLoggingTable,int level,int i) {
+static void createLoggingIdentifier(char *identifier, hashtable *pluginLoggingTable,int level,int idMultiplier) {
   PluginLoggingData *newData = (PluginLoggingData*) safeMalloc(sizeof(PluginLoggingData),"PluginLoggingData");
   if(newData != NULL){
     newData->level = level;
-    uint64 newId = LOG_PROD_PLUGINS + (0x10000 * i); // creates unique logging id
+    uint64 newId = LOG_PROD_PLUGINS + (0x10000 * idMultiplier); // creates unique logging id
     newData->id = newId;
     htPut(pluginLoggingTable, identifier, newData);
     logConfigureComponent(NULL, newId, identifier, LOG_DEST_PRINTF_STDOUT, level);
