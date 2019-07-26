@@ -6,10 +6,10 @@ ZIS_LOADLIB=${ZIS_LOADLIB:-$ZIS_PREFIX.LOADLIB}
 
 mktemp1()
 {
-  FILE=/tmp/nwt-$$-$RANDOM
+  FILE=/tmp/zss-plugin-install-$$-$RANDOM
   while [ -e $FILE ]
   do
-    FILE=/tmp/nwt-$$-$RANDOM
+    FILE=/tmp/zss-plugin-install-$$-$RANDOM
   done
   echo $FILE
 }
@@ -50,7 +50,7 @@ add-plugin-to-libs()
 
   trap "handle-failure" ERR
 
-  cp "//'$ZIS_PARMLIB(ZWESIP00)'" $TMPFILE
+  cp -T "//'$ZIS_PARMLIB(ZWESIP00)'" $TMPFILE
   trap "rm $TMPFILE" EXIT
 
   chmod go-rwx $TMPFILE
@@ -58,11 +58,11 @@ add-plugin-to-libs()
   if add-plugin-to-parmfile $TMPFILE
   then
     >&2  echo "Updating $ZIS_PARMLIB(ZWESIP00)..."
-    cp -v $TMPFILE "//'$ZIS_PARMLIB(ZWESIP00)'"
+    cp -T -v $TMPFILE "//'$ZIS_PARMLIB(ZWESIP00)'"
   fi
   
   >&2 echo "Installing plugin $LMODFILE to $ZIS_LOADLIB($LMODNAME) and $ZIS_PARMLIB"
-  cp -v $LMODFILE "//'$ZIS_LOADLIB'" 
+  cp -X -v $LMODFILE "//'$ZIS_LOADLIB'" 
 )}
 
 trap "exit 1" ERR
