@@ -18,14 +18,14 @@ properties([
             string(
                     name: "BUILD_SERVER_HOST",
                     description: "z/OS server host name to build",
-                    defaultValue: "river.zowe.org",
+                    defaultValue: "zzow01.zowe.marist.cloud",
                     trim: true,
                     required: true
             ),
             string(
                     name: "BUILD_SERVER_SSH_PORT",
                     description: "SSH port of build server.",
-                    defaultValue: "2022",
+                    defaultValue: "22",
                     trim: true,
                     required: true
             ),
@@ -33,7 +33,7 @@ properties([
                     name: "BUILD_SERVER_SSH_CREDENTIAL",
                     description: "The SSH credential used to connect to build server",
                     credentialType: "com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl",
-                    defaultValue: "ssh-zdt-test-image-guest",
+                    defaultValue: "ssh-marist-server-zzow01",
                     required: true
             ),
             string(
@@ -46,7 +46,7 @@ properties([
             string(
                     name: "ANT_HOME",
                     description: "Ant installation directory",
-                    defaultValue: "/zaas1/ant/apache-ant-1.10.5",
+                    defaultValue: "/ZOWE/apache-ant-1.10.5",
                     trim: true,
                     required: true
             ),
