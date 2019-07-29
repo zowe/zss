@@ -37,6 +37,13 @@ properties([
                     required: true
             ),
             string(
+                    name: "BUILD_SERVER_TMPDIR",
+                    description: "z/OS server tmp folder",
+                    defaultValue: "/ZOWE/tmp",
+                    trim: true,
+                    required: true
+            ),
+            string(
                     name: "JAVA_HOME",
                     description: "Java installation directory",
                     defaultValue: "/usr/lpp/java/J8.0_64",
@@ -99,7 +106,7 @@ withCredentials([usernamePassword(
         try {
             currentBuild.result = "SUCCESS"
 
-            def buildDir = "/tmp/~${env.BUILD_TAG}"
+            def buildDir = "${params.BUILD_SERVER_TMPDIR}/~${env.BUILD_TAG}"
             def buildServer = [
                 name         : params.BUILD_SERVER_HOST,
                 host         : params.BUILD_SERVER_HOST,
