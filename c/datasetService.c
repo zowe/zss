@@ -121,8 +121,7 @@ static int serveDataset(HttpService *service, HttpResponse *response){
   }
   else if (!strcmp(request->method, methodPOST)){
     if (!isMember) {
-      respondWithJsonError(response, "Dataset allocation is not supported", 501, "Not Implemented");
-      return -1;
+      newDataset(response, fullPath, TRUE);
     }
     else {
       respondWithJsonError(response, "Dataset Member allocation is not supported", 501, "Not Implemented");
