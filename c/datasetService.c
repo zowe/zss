@@ -62,6 +62,15 @@ static bool isDatasetMember(char* dsPath, HttpResponse* response) {
   return FALSE;
 }
 
+static void parseMemberName(char* dsPath, char* dsName, char* memberName, HttpResponse* response){
+  int lParenIndex = lastIndexOf(dsPath, strlen(dsPath), '(');
+  int rParenIndex = lastIndexOf(dsPath, strlen(dsPath), ')');
+  memcpy(dsName, dsPath, lParenIndex);
+  memcpy(memberName, dsPath + lParenIndex + 1, rParenIndex - lParenIndex - 1);
+  padWithSpaces(dsName, DATASET_NAME_LEN, 1, 0);
+  padWithSpaces(memberName, MEMBER_MAXLEN, 1, 0);
+}
+
 static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
   zowelog(NULL, LOG_COMP_ID_DATASET, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
@@ -125,8 +134,10 @@ static int serveDataset(HttpService *service, HttpResponse *response){
       return -1;
     }
     else {
-      respondWithJsonError(response, "Dataset Member allocation is not supported", 501, "Not Implemented");
-      return -1;
+      char datasetName[DATASET_NAME_LEN] = {0};
+      char memberName[MEMBER_MAXLEN] = {0};
+      parseMemberName(dsName, datasetName, memberName, response);
+      newDatasetMember(response, datasetName, memberName);
     }
   }
   else if (!strcmp(request->method, methodDELETE)){
@@ -135,8 +146,10 @@ static int serveDataset(HttpService *service, HttpResponse *response){
       return -1;
     }
     else {
-      respondWithJsonError(response, "Dataset member deletion is not supported", 501, "Not Implemented");
-      return -1;
+      char datasetName[DATASET_NAME_LEN] = {0};
+      char memberName[MEMBER_MAXLEN] = {0};
+      parseMemberName(dsName, datasetName, memberName, response);
+      removeDatasetMember(response, datasetName, memberName);
     }
   }
   else {
