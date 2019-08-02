@@ -91,7 +91,7 @@ static int traceLevel = 0;
 static int stringEndsWith(char *s, char *suffix);
 static void dumpJson(Json *json);
 static JsonObject *readPluginDefinition(ShortLivedHeap *slh, char *pluginIdentifier, char *pluginLocation);
-static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname);
+static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,const char *serverConfigFile);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static InternalAPIMap *makeInternalAPIMap();
 
@@ -561,7 +561,42 @@ static void installWebPluginDefintionsService(WebPluginListElt *webPlugins, Http
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
 }
 
-static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLivedHeap *slh, char *dirname) {
+static int checkLoggingVerbosity(const char *serverConfigFile, char *pluginIdentifier, ShortLivedHeap *slh) {
+  
+  char errorBuffer[512] = { 0 };
+  JsonObject *jsonObject = NULL;
+
+  Json *json = jsonParseFile(slh, serverConfigFile, errorBuffer, sizeof(errorBuffer));
+  if (json) {
+    if (jsonIsObject(json)) {
+      jsonObject = jsonAsObject(json);
+      JsonObject *logLevels = jsonObjectGetObject(jsonObject, "logLevels");
+      JsonProperty *property = jsonObjectGetFirstProperty(logLevels);
+      while(property != NULL) {
+        if(strcmp(jsonPropertyGetKey(property),pluginIdentifier) == 0) { 
+          int logLevel = jsonObjectGetNumber(logLevels, pluginIdentifier);
+          if (logLevel > ZOWE_LOG_DEBUG3 || logLevel < ZOWE_LOG_SEVERE) {
+            zowelog(NULL,LOG_COMP_ID_MVD_SERVER,ZOWE_LOG_WARNING, "specified log level invalid, setting default for %s\n", pluginIdentifier);
+            break;
+          }
+          else {              
+            return logLevel;
+          }
+        }
+        property = jsonObjectGetNextProperty(property);
+      }
+    }
+    else {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "error while parsing json object %s\n", errorBuffer);
+    }
+  }
+  else {
+    zowelog(NULL,LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "error while parsing json %s\n",errorBuffer);
+  }
+  return ZOWE_LOG_INFO;
+}
+
+static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLivedHeap *slh, char *dirname, const char *serverConfigFile) {
   int pluginDefinitionCount = 0;
   int returnCode;
   int reasonCode;
@@ -576,6 +611,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
   UnixFile *directory = directoryOpen(dirname, &returnCode, &reasonCode);
   WebPluginListElt *webPluginListHead = NULL;
   WebPluginListElt *webPluginListTail = NULL;
+  unsigned int idMultiplier = 1;
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s begin dirname %s\n", __FUNCTION__, dirname);
   if (directory) {
@@ -596,10 +632,11 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
             if (jsonObject) {
               char *identifier = jsonObjectGetString(jsonObject, "identifier");
               char *pluginLocation = jsonObjectGetString(jsonObject, "pluginLocation");
+              int pluginLogLevel = checkLoggingVerbosity(serverConfigFile,identifier,slh);
               if (identifier && pluginLocation) {
                 JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, pluginLocation);
                 if (pluginDefinition) {
-                  WebPlugin *plugin = makeWebPlugin(pluginLocation, pluginDefinition, internalAPIMap);
+                  WebPlugin *plugin = makeWebPlugin(pluginLocation, pluginDefinition, internalAPIMap, &idMultiplier, pluginLogLevel);
                   if (plugin != NULL) {
                     initalizeWebPlugin(plugin, server);
                     //zlux does this, so don't bother doing it twice.
@@ -642,7 +679,6 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s end result %d\n", __FUNCTION__, pluginDefinitionCount);
   return webPluginListHead;
 }
-
 static const char defaultConfigPath[] = "../deploy/instance/ZLUX/serverConfig/zluxserver.json";
 
 static
@@ -892,7 +928,7 @@ int main(int argc, char **argv){
     if (server){
       server->defaultProductURLPrefix = PRODUCT;
       loadWebServerConfig(server, mvdSettings);
-      readWebPluginDefinitions(server, slh, pluginsDir);
+      readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
       installUnixFileCopyService(server);
