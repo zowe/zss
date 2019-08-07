@@ -14,6 +14,7 @@
 #define __DATASET_SERVICE_H__
 
 #define MEMBER_MAXLEN 8
+#define DATASET_NAME_LEN 44
 
 void installServeDatasetService(HttpServer *server);
 void installDatasetMetadataService(HttpServer *server);
