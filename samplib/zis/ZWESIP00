@@ -16,9 +16,31 @@
 //*   ZWES - CORE PARAMETERS NAMESPACE.                              */
 //*     NAME - SERVER NAME. IF OMITTED, ZWESIS_STD IS USED.          */
 //*     PLUGIN - NAME OF A PLUG-IN LOAD MODULE.                      */
+//*     AUTH - AUTH SERVICES PARAMETERS NAMESPACE.                   */
+//*       CLASS -                                                    */
+//*         SAF CLASS USED BY THE AUTH SERVICES.                     */
+//*         IF NO CLASS IS PROVIDED BY A USER OF THE SERVICES        */
+//*         THE PARMLIB CLASS VALUE IS USED.                         */
+//*     SECMGMT - SECURITY SERVICES PARAMETERS NAMESPACE.            */
+//*       CLASS -                                                    */
+//*         SAF CLASS USED BY THE PROFILE MANAGEMENT SERVICES.       */
+//*         ANY PROFILE OPERATIONS WILL BE PERFORMED WITHIN          */
+//*         THIS CLASS ONLY. IF OMITTED, THE PROFILE SERVICES        */
+//*         WILL RETURN THE CORRESPONDING ERROR CODE.                */
+//*       AUTOREFRESH -                                              */
+//*         IF SET TO YES, THE PROFILE MANAGEMENT SERVICES           */
+//*         WILL REFRESH THE PROFILES AFTER ANY PROFILE              */
+//*         OPERATION IN THE CLASS FROM ZWES.SECMGMT.CLASS.          */
+//*         THE DEFAULT VALUE IS NO.                                 */
 //*                                                                  */
 //********************************************************************/
 
 * ZWES.PLUGIN.ECHO=ECHOPL01
 * ZWES.PLUGIN.MAGICNUMBER=MNUMBER
+
+ZWES.AUTH.CLASS=ZOWE
+
+ZWES.SECMGMT.CLASS=ZOWE
+
+ZWES.SECMGMT.AUTOREFRESH=NO
 

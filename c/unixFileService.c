@@ -94,19 +94,19 @@ static void getEncodingInfoFromQueryParameters(char *inSourceEncoding, char *inT
 static int parseLastChunkQueryParameter(HttpResponse *response, int *lastChunkValue);
 
 static void respondWithSessionID(HttpResponse *response, int sessionID);
-static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse *response, char *routeFileName,
+static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse *response, char *encodedRouteFileName,
                                     unsigned int currUnixTime);
 static void addSessionIDToTableAndIncrementCounter(UploadSessionTracker *tracker, FileID *fileID,
                                                    UploadSession *session);
 static int validateSessionWithUserName(char *requestUserName, char *tableUserName);
 
-static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, char *routeFileName, char *id,
+static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, char *encodedRouteFileName, char *id,
                        unsigned int currUnixTime);
 
 static int checkForOverwritePermission(HttpResponse *response, int fileExists, int forceValue);
-static int handleNewFileCase(HttpResponse *response, char *fileName, int *iNode, int *deviceID);
-static int checkIfFileIsBusy(HttpResponse *response, char *fileName, UnixFile **file);
-static int tagFileForUploading(HttpResponse *response, char *fileName, int targetCCSID);
+static int handleNewFileCase(HttpResponse *response, char *encodedFileName, int *iNode, int *deviceID);
+static int checkIfFileIsBusy(HttpResponse *response, char *encodedFileName, UnixFile **file);
+static int tagFileForUploading(HttpResponse *response, char *encodedFileName, int targetCCSID);
 
 static int fileIDHasher(void *key) {
   FileID *fid = key;
@@ -242,10 +242,10 @@ static int parseEncodingParameter(HttpResponse *response, int *outSourceCCSID, i
   return 0;
 }
 
-static int handleNewFileCase(HttpResponse *response, char *fileName, int *iNode, int *deviceID) {
+static int handleNewFileCase(HttpResponse *response, char *encodedFileName, int *iNode, int *deviceID) {
   int returnCode = 0;
   int reasonCode = 0;
-
+  char *fileName = cleanURLParamValue(response->slh, encodedFileName);
   UnixFile *newFile = fileOpen(fileName,
                                FILE_OPTION_CREATE | FILE_OPTION_READ_ONLY,
                                0700,
@@ -354,9 +354,10 @@ static void removeFromTableUInt(hashtable *table, unsigned int key, pthread_mute
   pthread_mutex_unlock(lock);
 }
 
-static int checkIfFileIsBusy(HttpResponse *response, char *fileName, UnixFile **file) {
+static int checkIfFileIsBusy(HttpResponse *response, char *encodedFileName, UnixFile **file) {
   int returnCode = 0;
   int reasonCode = 0;
+  char *fileName = cleanURLParamValue(response->slh, encodedFileName);
   *file = fileOpen(fileName,
                   FILE_OPTION_TRUNCATE | FILE_OPTION_WRITE_ONLY,
                   0,
@@ -375,10 +376,10 @@ static int checkIfFileIsBusy(HttpResponse *response, char *fileName, UnixFile **
   return 0;
 }
 
-static int tagFileForUploading(HttpResponse *response, char *fileName, int targetCCSID) {
+static int tagFileForUploading(HttpResponse *response, char *encodedFileName, int targetCCSID) {
   int returnCode = 0;
   int reasonCode = 0;
-
+  char *fileName = cleanURLParamValue(response->slh, encodedFileName);
   int status = fileChangeTag(fileName, &returnCode, &reasonCode, targetCCSID);
   if (status == -1) {
     zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not tag file. Ret: %d, Res: %d\n", returnCode, reasonCode);
@@ -410,11 +411,12 @@ static void removeSessionTimeOuts(UploadSessionTracker *tracker, void *currUnixT
   pthread_mutex_unlock(&tracker->fileHashLock);
 }
 
-static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse *response, char *routeFileName,
+static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse *response, char *encodedRouteFileName,
                                     unsigned int currUnixTime) {
   int reasonCode = 0;
   int returnCode = 0;
   int status = 0;
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
   hashtable *sessionsByFileID = tracker->sessionsByFileID;
   hashtable *fileIDsBySessionID = tracker->fileIDsBySessionID;
 
@@ -575,11 +577,11 @@ static int validateSessionWithUserName(char *requestUserName, char *tableUserNam
   return FALSE;
 }
 
-static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, char *routeFileName, char *id,
+static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, char *encodedRouteFileName, char *id,
                        unsigned int currUnixTime) {
   hashtable *sessionsByFileID = tracker->sessionsByFileID;
   hashtable *fileIDsBySessionID = tracker->fileIDsBySessionID;
-
+  char *routefileName = cleanURLParamValue(response->slh, encodedRouteFileName);
   unsigned int currentSessionID = strtoul(id, NULL, 10);
 
   FileID *currentFileID = getFromTableUInt(fileIDsBySessionID, currentSessionID, &tracker->fileHashLock);
@@ -623,17 +625,25 @@ static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, ch
      * file in USS.
      */
     if (currentSession->tType == TEXT) {
-      status = writeAsciiDataFromBase64(currentSession->file, response->request->contentBody,
+      status = 0;
+      //Only write to file if string isn't empty. If string is empty, case is handled by creation of new file.
+      if (response->request->contentLength > 0) {
+        status = writeAsciiDataFromBase64(currentSession->file, response->request->contentBody,
                                         response->request->contentLength, currentSession->sourceCCSID,
                                         currentSession->targetCCSID);
+      }
     }
 
     /* Write to the file in BINARY mode. The bytes
      * are written to the file in USS as is.
      */
     else if (currentSession->tType == BINARY) {
-      status = writeBinaryDataFromBase64(currentSession->file, response->request->contentBody,
+      status = 0;
+      //Only write to file if string isn't empty. If string is empty, case is handled by creation of new file.
+      if (response->request->contentLength > 0) {
+        status = writeBinaryDataFromBase64(currentSession->file, response->request->contentBody,
                                          response->request->contentLength);
+      }
     }
 
     /* This shouldn't happen, unless tType was somehow
@@ -664,8 +674,8 @@ static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, ch
 static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
-  char *routeFileName = stringConcatenate(response->slh, "/", routeFileFrag);
-
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
   unsigned int currUnixTime = (unsigned)time(NULL);
 
   if (!strcmp(request->method, methodPUT)) {
@@ -725,8 +735,8 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
 static int serveUnixFileCopy(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
-  char *routeFileName = stringConcatenate(response->slh, "/", routeFileFrag);
-
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
   char *newName = getQueryParam(response->request, "newName");
   if (!newName) {
     respondWithJsonError(response, "newName query parameter is missing", 400, "Bad Request");
@@ -771,8 +781,8 @@ static int serveUnixFileCopy(HttpService *service, HttpResponse *response) {
 static int serveUnixFileRename(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
-  char *routeFileName = stringConcatenate(response->slh, "/", routeFileFrag);
-
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
   char *newName = getQueryParam(response->request, "newName");
   if (!newName) {
     respondWithJsonError(response, "newName query parameter is missing", 400, "Bad Request");
@@ -817,8 +827,8 @@ static int serveUnixFileRename(HttpService *service, HttpResponse *response) {
 static int serveUnixFileMakeDirectory(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
-  char *routeFileName = stringConcatenate(response->slh, "/", routeFileFrag);
-
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
   char *forceVal = getQueryParam(response->request, "forceOverwrite");
   int force = FALSE;
 
@@ -849,8 +859,8 @@ static int serveUnixFileMakeDirectory(HttpService *service, HttpResponse *respon
 static int serveUnixFileTouch(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
-  char *routeFileName = stringConcatenate(response->slh, "/", routeFileFrag);
-
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
   char *forceVal = getQueryParam(response->request, "forceOverwrite");
   int force = FALSE;
 

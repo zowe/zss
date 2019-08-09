@@ -41,6 +41,7 @@
 
 #include "zis/services/auth.h"
 #include "zis/services/nwm.h"
+#include "zis/services/secmgmt.h"
 #include "zis/services/snarfer.h"
 
 /*
@@ -163,6 +164,55 @@ static int registerCoreServices(ZISContext *context) {
     return RC_ZIS_ERROR;
   }
 
+
+  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_USERPROF_SRV,
+                             zisUserProfilesServiceFunction, NULL,
+                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  if (regRC != RC_CMS_OK) {
+    return RC_ZIS_ERROR;
+  }
+
+  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_GRESPROF_SRV,
+                             zisGenresProfilesServiceFunction, NULL,
+                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  if (regRC != RC_CMS_OK) {
+    return RC_ZIS_ERROR;
+  }
+
+  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_ACSLIST_SRV,
+                             zisGenresAccessListServiceFunction, NULL,
+                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  if (regRC != RC_CMS_OK) {
+    return RC_ZIS_ERROR;
+  }
+
+  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_GENRES_ADMIN_SRV,
+                             zisGenresProfileAdminServiceFunction, NULL,
+                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  if (regRC != RC_CMS_OK) {
+    return RC_ZIS_ERROR;
+  }
+
+  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_GRPPROF_SRV,
+                             zisGroupProfilesServiceFunction, NULL,
+                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  if (regRC != RC_CMS_OK) {
+    return RC_ZIS_ERROR;
+  }
+
+  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_GRPALIST_SRV,
+                             zisGroupAccessListServiceFunction, NULL,
+                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  if (regRC != RC_CMS_OK) {
+    return RC_ZIS_ERROR;
+  }
+
+  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_GROUP_ADMIN_SRV,
+                             zisGroupAdminServiceFunction, NULL,
+                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  if (regRC != RC_CMS_OK) {
+    return RC_ZIS_ERROR;
+  }
 
   regRC = registerZISServiceRouter(server);
   if (regRC != RC_CMS_OK) {
