@@ -28,26 +28,9 @@
 
 #include "zis/utils.h"
 #include "zis/services/secmgmt.h"
+#include "zis/services/secmgmtUtils.h"
 
-#define ZIS_PARMLIB_PARM_SECMGMT_USER_CLASS   CMS_PROD_ID".SECMGMT.CLASS"
-#define ZIS_PARMLIB_PARM_SECMGMT_AUTORESFRESH CMS_PROD_ID".SECMGMT.AUTOREFRESH"
-
-static bool getCallerUserID(RadminUserID *caller) {
-
-  ACEE aceeData = {0};
-  ACEE *aceeAddress = NULL;
-  cmGetCallerTaskACEE(&aceeData, &aceeAddress);
-  if (aceeAddress == NULL) {
-    return false;
-  }
-
-  caller->length = aceeData.aceeuser[0];
-  memcpy(caller->value, &aceeData.aceeuser[1], sizeof(caller->value));
-
-  return true;
-}
-
-static int validateUserProfileParmList(ZISUserProfileServiceParmList *parm) {
+int validateUserProfileParmList(ZISUserProfileServiceParmList *parm) {
 
   if (memcmp(parm->eyecatcher, ZIS_USERPROF_SERVICE_PARMLIST_EYECATCHER,
              sizeof(parm->eyecatcher))) {
@@ -68,20 +51,22 @@ static int validateUserProfileParmList(ZISUserProfileServiceParmList *parm) {
 static void copyUserProfiles(ZISUserProfileEntry *dest,
                              const RadminBasicUserPofileInfo *src,
                              unsigned int count) {
-
+  /* RadminBasicUserPofileInfo and ZISUserProfileEntry have different sizes
+   * for the name, so it must be taken into an account when copying to the
+   * other address space.
+   */
   for (unsigned int i = 0; i < count; i++) {
-    cmCopyToSecondaryWithCallerKey(dest[i].userID, src[i].userID,
-                                   sizeof(dest[i].userID));
-    cmCopyToSecondaryWithCallerKey(dest[i].defaultGroup, src[i].defaultGroup,
-                                   sizeof(dest[i].defaultGroup));
-    cmCopyToSecondaryWithCallerKey(dest[i].name, src[i].name,
-                                   sizeof(dest[i].name));
+    ZISUserProfileEntry tmpDest = {0};
+    memcpy(tmpDest.userID, src[i].userID, sizeof(src[i].userID));
+    memcpy(tmpDest.defaultGroup, src[i].defaultGroup, sizeof(src[i].defaultGroup));
+    memcpy(tmpDest.name, src[i].name, sizeof(src[i].name));
+    cmCopyToSecondaryWithCallerKey(&dest[i], &tmpDest, sizeof(tmpDest));
   }
 
 }
 
 
-int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+static int zisUserProfilesServiceFunctionRACF(CrossMemoryServerGlobalArea *globalArea,
                                    CrossMemoryService *service, void *parm) {
 
   int status = RC_ZIS_UPRFSRV_OK;
@@ -109,7 +94,7 @@ int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_UPRFSRV_IMPERSONATION_MISSING;
       break;
     }
@@ -208,7 +193,17 @@ int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   return status;
 }
 
-static int validateGenresProfileParmList(ZISGenresProfileServiceParmList *parm)
+int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+                                   CrossMemoryService *service, void *parm) {
+  ExternalSecurityManager esm = getExternalSecurityManager();
+  switch (esm) {
+    case ZOS_ESM_RACF: return zisUserProfilesServiceFunctionRACF(globalArea, service, parm);
+    case ZOS_ESM_RTSS: return zisUserProfilesServiceFunctionTSS(globalArea, service, parm);
+    default: return RC_ZIS_UPRFSRV_UNSUPPORTED_ESM;
+  }
+}
+
+int validateGenresProfileParmList(ZISGenresProfileServiceParmList *parm) 
 {
 
   if (memcmp(parm->eyecatcher, ZIS_GRESPROF_SERVICE_PARMLIST_EYECATCHER,
@@ -234,18 +229,20 @@ static int validateGenresProfileParmList(ZISGenresProfileServiceParmList *parm)
 static void copyGenresProfiles(ZISGenresProfileEntry *dest,
                                const RadminBasicGenresPofileInfo *src,
                                unsigned int count) {
-
+  /* RadminBasicGenresPofileInfo and ZISGenresProfileEntry have different sizes
+   * for the profile, so it must be taken into an account when copying to the
+   * other address space.
+   */
   for (unsigned int i = 0; i < count; i++) {
-    cmCopyToSecondaryWithCallerKey(dest[i].profile, src[i].profile,
-                                   sizeof(dest[i].profile));
-    cmCopyToSecondaryWithCallerKey(dest[i].owner, src[i].owner,
-                                   sizeof(dest[i].owner));
+    ZISGenresProfileEntry tmpDest = {0};
+    memcpy(tmpDest.profile, src[i].profile, sizeof(src[i].profile));
+    memcpy(tmpDest.owner, src[i].owner, sizeof(src[i].owner));
+    cmCopyToSecondaryWithCallerKey(&dest[i], &tmpDest, sizeof(tmpDest));
   }
-
 }
 
 
-int zisGenresProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+int zisGenresProfilesServiceFunctionRACF(CrossMemoryServerGlobalArea *globalArea,
                                      CrossMemoryService *service, void *parm) {
 
   int status = RC_ZIS_GRPRFSRV_OK;
@@ -273,7 +270,7 @@ int zisGenresProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_GRPRFSRV_IMPERSONATION_MISSING;
       break;
     }
@@ -399,8 +396,17 @@ int zisGenresProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   return status;
 }
 
-static int
-validateGenresAccessListParmList(ZISGenresAccessListServiceParmList *parm) {
+int zisGenresProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+                                   CrossMemoryService *service, void *parm) {
+  ExternalSecurityManager esm = getExternalSecurityManager();
+  switch (esm) {
+    case ZOS_ESM_RACF: return zisGenresProfilesServiceFunctionRACF(globalArea, service, parm);
+    case ZOS_ESM_RTSS: return zisGenresProfilesServiceFunctionTSS(globalArea, service, parm);
+    default: return RC_ZIS_GRPRFSRV_UNSUPPORTED_ESM;
+  }
+}
+
+int validateGenresAccessListParmList(ZISGenresAccessListServiceParmList *parm) {
 
   if (memcmp(parm->eyecatcher, ZIS_ACSLIST_SERVICE_PARMLIST_EYECATCHER,
              sizeof(parm->eyecatcher))) {
@@ -435,7 +441,7 @@ static void copyGenresAccessList(ZISGenresAccessEntry *dest,
 
 }
 
-int zisGenresAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+int zisGenresAccessListServiceFunctionRACF(CrossMemoryServerGlobalArea *globalArea,
                                        CrossMemoryService *service, void *parm) {
 
   int status = RC_ZIS_ACSLSRV_OK;
@@ -463,7 +469,7 @@ int zisGenresAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_ACSLSRV_IMPERSONATION_MISSING;
       break;
     }
@@ -587,7 +593,17 @@ int zisGenresAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   return status;
 }
 
-static int validateGenresParmList(ZISGenresAdminServiceParmList *parmList) {
+int zisGenresAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+                                       CrossMemoryService *service, void *parm) {
+  ExternalSecurityManager esm = getExternalSecurityManager();
+  switch (esm) {
+    case ZOS_ESM_RACF: return zisGenresAccessListServiceFunctionRACF(globalArea, service, parm);
+    case ZOS_ESM_RTSS: return zisGenresAccessListServiceFunctionTSS(globalArea, service, parm);
+    default: return RC_ZIS_ACSLSRV_UNSUPPORTED_ESM;
+  }
+}
+                                       
+int validateGenresParmList(ZISGenresAdminServiceParmList *parmList) {
 
   if (memcmp(parmList->eyecatcher,
              ZIS_GENRES_ADMIN_SERVICE_PARMLIST_EYECATCHER,
@@ -913,7 +929,7 @@ static int performRefreshIfNeeded(CrossMemoryServerGlobalArea *globalArea,
   return RC_ZIS_GSADMNSRV_OK;
 }
 
-int zisGenresProfileAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+int zisGenresProfileAdminServiceFunctionRACF(CrossMemoryServerGlobalArea *globalArea,
                                    CrossMemoryService *service, void *parm) {
 
   int status = RC_ZIS_GSADMNSRV_OK;
@@ -941,7 +957,7 @@ int zisGenresProfileAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_GSADMNSRV_IMPERSONATION_MISSING;
       break;
     }
@@ -1076,7 +1092,17 @@ int zisGenresProfileAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea
   return status;
 }
 
-static int validateGroupProfileParmList(ZISGroupProfileServiceParmList *parm)
+int zisGenresProfileAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+                                   CrossMemoryService *service, void *parm) {
+  ExternalSecurityManager esm = getExternalSecurityManager();
+  switch (esm) {
+    case ZOS_ESM_RACF: return zisGenresProfileAdminServiceFunctionRACF(globalArea, service, parm);
+    case ZOS_ESM_RTSS: return zisGenresProfileAdminServiceFunctionTSS(globalArea, service, parm);
+    default: return RC_ZIS_GSADMNSRV_UNSUPPORTED_ESM;
+  }
+}
+                                 
+int validateGroupProfileParmList(ZISGroupProfileServiceParmList *parm)
 {
 
   if (memcmp(parm->eyecatcher, ZIS_GRPPROF_SERVICE_PARMLIST_EYECATCHER,
@@ -1110,7 +1136,7 @@ static void copyGroupProfiles(ZISGroupProfileEntry *dest,
 
 }
 
-int zisGroupProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+int zisGroupProfilesServiceFunctionRACF(CrossMemoryServerGlobalArea *globalArea,
                                     CrossMemoryService *service, void *parm) {
 
   int status = RC_ZIS_GPPRFSRV_OK;
@@ -1138,7 +1164,7 @@ int zisGroupProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_GPPRFSRV_IMPERSONATION_MISSING;
       break;
     }
@@ -1240,8 +1266,17 @@ int zisGroupProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   return status;
 }
 
-static int
-validateGroupAccessListParmList(ZISGroupAccessListServiceParmList *parm) {
+int zisGroupProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+                                   CrossMemoryService *service, void *parm) {
+  ExternalSecurityManager esm = getExternalSecurityManager();
+  switch (esm) {
+    case ZOS_ESM_RACF: return zisGroupProfilesServiceFunctionRACF(globalArea, service, parm);
+    case ZOS_ESM_RTSS: return zisGroupProfilesServiceFunctionTSS(globalArea, service, parm);
+    default: return RC_ZIS_GPPRFSRV_UNSUPPORTED_ESM;
+  }
+}
+
+int validateGroupAccessListParmList(ZISGroupAccessListServiceParmList *parm) {
 
   if (memcmp(parm->eyecatcher, ZIS_GRPALST_SERVICE_PARMLIST_EYECATCHER,
              sizeof(parm->eyecatcher))) {
@@ -1272,7 +1307,7 @@ static void copyGroupAccessList(ZISGroupAccessEntry *dest,
 
 }
 
-int zisGroupAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+int zisGroupAccessListServiceFunctionRACF(CrossMemoryServerGlobalArea *globalArea,
                                       CrossMemoryService *service, void *parm) {
 
   int status = RC_ZIS_GRPALSRV_OK;
@@ -1300,7 +1335,7 @@ int zisGroupAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_GRPALSRV_IMPERSONATION_MISSING;
       break;
     }
@@ -1400,7 +1435,17 @@ int zisGroupAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   return status;
 }
 
-static int validateGroupParmList(ZISGroupAdminServiceParmList *parmList) {
+int zisGroupAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+                                      CrossMemoryService *service, void *parm) {
+  ExternalSecurityManager esm = getExternalSecurityManager();
+  switch (esm) {
+    case ZOS_ESM_RACF: return zisGroupAccessListServiceFunctionRACF(globalArea, service, parm);
+    case ZOS_ESM_RTSS: return zisGroupAccessListServiceFunctionTSS(globalArea, service, parm);
+    default: return RC_ZIS_GRPALSRV_UNSUPPORTED_ESM;
+  }
+}
+
+int validateGroupParmList(ZISGroupAdminServiceParmList *parmList) {
 
   if (memcmp(parmList->eyecatcher,
              ZIS_GROUP_ADMIN_SERVICE_PARMLIST_EYECATCHER,
@@ -1670,7 +1715,7 @@ static RadminConnectionParmList *constructConnectionAdminParmList(
   return parmList;
 }
 
-int zisGroupAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+int zisGroupAdminServiceFunctionRACF(CrossMemoryServerGlobalArea *globalArea,
                                  CrossMemoryService *service, void *parm) {
 
   int status = RC_ZIS_GRPASRV_OK;
@@ -1698,7 +1743,7 @@ int zisGroupAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   do {
 
     RadminUserID caller;
-    if (!getCallerUserID(&caller)) {
+    if (!secmgmtGetCallerUserID(&caller)) {
       status = RC_ZIS_GRPASRV_IMPERSONATION_MISSING;
       break;
     }
@@ -1839,6 +1884,15 @@ int zisGroupAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   return status;
 }
 
+int zisGroupAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea,
+                                 CrossMemoryService *service, void *parm) {
+  ExternalSecurityManager esm = getExternalSecurityManager();
+  switch (esm) {
+    case ZOS_ESM_RACF: return zisGroupAdminServiceFunctionRACF(globalArea, service, parm);
+    case ZOS_ESM_RTSS: return zisGroupAdminServiceFunctionTSS(globalArea, service, parm);
+    default: return RC_ZIS_GRPASRV_UNSUPPORTED_ESM;
+  }
+}
 
 /*
   This program and the accompanying materials are
