@@ -2768,9 +2768,29 @@ static int genresProfileHandler(RadminAPIStatus status, const RadminCommandOutpu
           int ownerIndex = lastIndexOfString((char*)currentLine->text, currentLine->length, TSS_OWNER_KEY);
           if (ownerIndex == -1) {
             return -1;
-          }         
+          }
+        
+          int status = tssFindValueForKey(currentLine->text, ownerIndex-1, keys,
+                                          keyIndex, numberOfKeys, entry.profile,
+                                          sizeof(entry.profile));
+          if (status == -1) {
+            CMS_DEBUG2(logData->globalArea, logData->traceLevel,
+                       "Could not find value of %s...\n", parms->className);
+            return -1;
+          }
+          
           memcpy(currOwner, currentLine->text+ownerIndex+6, sizeof(currOwner));
           padWithSpaces(currOwner, sizeof(currOwner), 1, 1);
+
+          if (!isDuplicateProfile(buffer, entry.profile, sizeof(entry.profile), numExtracted)) {
+            ZISGenresProfileEntry *p = &buffer[numExtracted++];
+            memset(p, 0, sizeof(*p));
+            
+            memcpy(p->owner, currOwner, sizeof(currOwner));
+            memcpy(p->profile, entry.profile, sizeof(p->profile));
+            
+            memset(&entry, 0, sizeof(ZISGenresProfileEntry));
+          }
         }
         else {        
           int keyIndex = tssFindDesiredKey(TSS_XAUTH_KEY, keys);
