@@ -13,13 +13,7 @@
 #ifndef __UNIXSERVICE__
 #define __UNIXSERVICE__
 
-void installUnixFileContentsService(HttpServer *server);
-void installUnixFileRenameService(HttpServer *server);
-void installUnixFileCopyService(HttpServer *server);
-void installUnixFileMakeDirectoryService(HttpServer *server);
-void installUnixFileTouchService(HttpServer *server);
-void installUnixFileMetadataService(HttpServer *server);
-void installUnixFileTableOfContentsService(HttpServer *server);
+void installUnixFileServiceEndpoints(HttpServer *server);
 
 #endif
 

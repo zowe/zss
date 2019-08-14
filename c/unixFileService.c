@@ -972,7 +972,7 @@ static int serveTableOfContents(HttpService *service, HttpResponse *response) {
   return 0;
 }
 
-void installUnixFileContentsService(HttpServer *server) {
+static void installUnixFileContentsService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("UnixFileContents",
       "/unixfile/contents/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -991,7 +991,7 @@ void installUnixFileContentsService(HttpServer *server) {
   httpService->userPointer = tracker;
 }
 
-void installUnixFileRenameService(HttpServer *server) {
+static void installUnixFileRenameService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("UnixFileRename",
       "/unixfile/rename/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -1001,7 +1001,7 @@ void installUnixFileRenameService(HttpServer *server) {
   registerHttpService(server, httpService);
 }
 
-void installUnixFileCopyService(HttpServer *server) {
+static void installUnixFileCopyService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("UnixFileCopy",
       "/unixfile/copy/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -1011,7 +1011,7 @@ void installUnixFileCopyService(HttpServer *server) {
   registerHttpService(server, httpService);
 }
 
-void installUnixFileMakeDirectoryService(HttpServer *server) {
+static void installUnixFileMakeDirectoryService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("UnixFileMkdir",
       "/unixfile/mkdir/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -1021,7 +1021,7 @@ void installUnixFileMakeDirectoryService(HttpServer *server) {
   registerHttpService(server, httpService);
 }
 
-void installUnixFileTouchService(HttpServer *server) {
+static void installUnixFileTouchService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("UnixFileTouch",
       "/unixfile/touch/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -1031,7 +1031,7 @@ void installUnixFileTouchService(HttpServer *server) {
   registerHttpService(server, httpService);
 }
 
-void installUnixFileMetadataService(HttpServer *server) {
+static void installUnixFileMetadataService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("unixFileMetadata",
       "/unixfile/metadata/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -1041,7 +1041,7 @@ void installUnixFileMetadataService(HttpServer *server) {
   registerHttpService(server, httpService);
 }
 
-void installUnixFileTableOfContentsService(HttpServer *server) {
+static void installUnixFileTableOfContentsService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("unixFileMetadata",
       "/unixfile/");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -1049,6 +1049,17 @@ void installUnixFileTableOfContentsService(HttpServer *server) {
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveTableOfContents;
   registerHttpService(server, httpService);
+}
+
+void installUnixFileServiceEndpoints(HttpServer *server) {
+  logConfigureComponent(NULL, LOG_COMP_RESTFILE, "Unix File API", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+  installUnixFileTableOfContentsService(server);
+  installUnixFileContentsService(server);
+  installUnixFileRenameService(server);
+  installUnixFileCopyService(server);
+  installUnixFileMakeDirectoryService(server);
+  installUnixFileTouchService(server);
+  installUnixFileMetadataService(server);
 }
 
 
