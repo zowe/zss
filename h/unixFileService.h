@@ -20,6 +20,7 @@ void installUnixFileMakeDirectoryService(HttpServer *server);
 void installUnixFileTouchService(HttpServer *server);
 void installUnixFileMetadataService(HttpServer *server);
 void installUnixFileTableOfContentsService(HttpServer *server);
+void installUnixFileTagService(HttpServer *server);
 
 #endif
 

@@ -861,15 +861,9 @@ static int serveUnixFileTouch(HttpService *service, HttpResponse *response) {
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
   char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
-  char *forceVal = getQueryParam(response->request, "forceOverwrite");
-  int force = FALSE;
-
-  if (!strcmp(strupcase(forceVal), "TRUE")) {
-    force = TRUE;
-  }
 
   if (!strcmp(request->method, methodPOST)) {
-    writeEmptyUnixFileAndRespond(response, routeFileName, force);
+    touchUnixFileOrDirectoryAndRespond(response, routeFileName);
   }
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
@@ -910,6 +904,40 @@ static int serveUnixFileMetadata(HttpService *service, HttpResponse *response) {
     finishResponse(response);
   }
 
+  return 0;
+}
+
+static int serveUnixFileTag(HttpService *service, HttpResponse *response) {
+  HttpRequest *request = response->request;
+  char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
+  
+  char *targetEncoding = getQueryParam(response->request, "targetEncoding");
+  if (targetEncoding == NULL) {
+    respondWithJsonError(response, "Target encoding is missing", 400, "Bad Request");
+    return 0;
+  }
+  
+  int ccsid = getCharsetCode(targetEncoding);
+  
+  if (!strcmp(request->method, methodPOST)) {
+    tagUnixFileAndRespond(response, routeFileName, ccsid);
+  }
+  else {
+    jsonPrinter *out = respondWithJsonPrinter(response);
+
+    setResponseStatus(response, 405, "Method Not Allowed");
+    setDefaultJSONRESTHeaders(response);
+    addStringHeader(response, "Allow", "POST");
+    writeHeader(response);
+
+    jsonStart(out);
+    jsonEnd(out);
+
+    finishResponse(response);
+  }
+  
   return 0;
 }
 
@@ -1038,6 +1066,16 @@ void installUnixFileMetadataService(HttpServer *server) {
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveUnixFileMetadata;
+  registerHttpService(server, httpService);
+}
+
+void installUnixFileTagService(HttpServer *server) {
+  HttpService *httpService = makeGeneratedService("unixFileChangeTag",
+      "/unixfile/chtag/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
+  httpService->serviceFunction = serveUnixFileTag;
   registerHttpService(server, httpService);
 }
 

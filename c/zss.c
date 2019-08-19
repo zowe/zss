@@ -662,8 +662,9 @@ void checkAndSetVariable(JsonObject *mvdSettings,
 
 static void initLoggingComponents() {
   logConfigureComponent(NULL, LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
-  logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "zssServer startup, version %s\n", productVersion);
+  
+  logConfigureComponent(NULL, LOG_COMP_RESTFILE, "Unix File API Logger", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
 }
 
 static void initVersionComponents(){
@@ -899,6 +900,7 @@ int main(int argc, char **argv){
       installUnixFileMakeDirectoryService(server);
       installUnixFileTouchService(server);
       installUnixFileMetadataService(server);
+      installUnixFileTagService(server);
       installUnixFileTableOfContentsService(server);
 #ifdef __ZOWE_OS_ZOS
       installVSAMDatasetContentsService(server);
