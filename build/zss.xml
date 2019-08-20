@@ -53,6 +53,8 @@
       <arg value="-Wc,dll,expo,langlvl(extc99),gonum,goff,hgpr,roconst,ASM,asmlib('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN')"/>
       <arg value="-Wl,ac=1"/>
       <arg line="-I ${COMMON}/h"/>
+      <arg line="-I ${COMMON}/jwt/jwt"/>
+      <arg line="-I ${COMMON}/jwt/rscrypto"/>
       <arg line="-I ${ZSS}/h"/>
       <arg line="-o ${ZSS}/bin/zssServer"/>
       <arg value="${COMMON}/c/alloc.c"/>
@@ -75,6 +77,7 @@
       <arg value="${COMMON}/c/impersonation.c"/>
       <arg value="${COMMON}/c/jcsi.c"/>
       <arg value="${COMMON}/c/json.c"/>
+      <arg value="${COMMON}/jwt/jwt/jwt.c"/>
       <arg value="${COMMON}/c/le.c"/>
       <arg value="${COMMON}/c/logging.c"/>
       <arg value="${COMMON}/c/nametoken.c"/>
@@ -85,6 +88,8 @@
       <arg value="${COMMON}/c/radmin.c"/>
       <arg value="${COMMON}/c/rawfd.c"/>
       <arg value="${COMMON}/c/recovery.c"/>
+      <arg value="${COMMON}/jwt/rscrypto/rs_icsfp11.c"/>
+      <arg value="${COMMON}/jwt/rscrypto/rs_rsclibc.c"/>
       <arg value="${COMMON}/c/scheduling.c"/>
       <arg value="${COMMON}/c/signalcontrol.c"/>
       <arg value="${COMMON}/c/socketmgmt.c"/>
