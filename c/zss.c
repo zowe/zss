@@ -70,6 +70,7 @@
 #include "unixFileService.h"
 #include "omvsService.h"
 #include "datasetService.h"
+#include "restService.h"
 
 #define PRODUCT "ZLUX"
 #ifndef PRODUCT_MAJOR_VERSION
@@ -819,6 +820,11 @@ static int validateFilePermissions(const char *filePath) {
   }
 }
 
+static JsonObject* getServerConfig(){
+  return MVD_SETTINGS;
+}
+  
+
 #endif /* ZSS_IGNORE_PERMISSION_PROBLEMS */
 
 int main(int argc, char **argv){
@@ -910,6 +916,7 @@ int main(int argc, char **argv){
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);
+      installServerStatusService(server, MVD_SETTINGS);
 #endif
       installLoginService(server);
       installLogoutService(server);
