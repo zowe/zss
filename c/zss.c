@@ -916,7 +916,7 @@ int main(int argc, char **argv){
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);
-      installServerStatusService(server, MVD_SETTINGS);
+      installServerStatusService(server, MVD_SETTINGS, productVersion);
 #endif
       installLoginService(server);
       installLogoutService(server);
