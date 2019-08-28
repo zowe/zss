@@ -189,45 +189,51 @@ void respondWithServerEnvironment(HttpResponse *response){
 
 static int serveStatus(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
-  if (!strcmp(request->method, methodGET)) {
-    char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
-    if(!strcmp(l1, "")){
-      respondWithServerRoutes(response);
-    }
-    else if (!strcmp(l1, "config")){
-      respondWithServerConfig(response);
-    }
-    else if (!strcmp(l1, "log")) {
-      if(strcmp(getenv("ZSS_LOG_FILE"), "")){
-        respondWithUnixFile2(NULL, response, getenv("ZSS_LOG_FILE"), 0, 0, false);
-      } else {
-         respondWithError(response, HTTP_STATUS_NO_CONTENT, "Log not found");
+  JsonObject *dataserviceAuth = jsonObjectGetObject(serverConfig, "dataserviceAuthentication");
+  int rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
+  if(!rbacParm){
+     respondWithError(response, HTTP_STATUS_UNAUTHORIZED, "Unauthorized - RBAC is disabled.  Enable in zluxserver.json");
+  } else {
+    if (!strcmp(request->method, methodGET)) {
+      char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
+      if(!strcmp(l1, "")){
+        respondWithServerRoutes(response);
+      }
+      else if (!strcmp(l1, "config")){
+        respondWithServerConfig(response);
+      }
+      else if (!strcmp(l1, "log")) {
+        if(strcmp(getenv("ZSS_LOG_FILE"), "")){
+          respondWithUnixFile2(NULL, response, getenv("ZSS_LOG_FILE"), 0, 0, false);
+        } else {
+           respondWithError(response, HTTP_STATUS_NOT_FOUND, "Log not found");
+        }
+      }
+      else if (!strcmp(l1, "logLevels")) {
+        respondWithLogLevels(response);
+      }
+      else if (!strcmp(l1, "environment")) {
+        respondWithServerEnvironment(response);
+      }
+      else {
+        respondWithJsonError(response, "Invalid path", 400, "Bad Request");
       }
     }
-    else if (!strcmp(l1, "logLevels")) {
-      respondWithLogLevels(response);
-    }
-    else if (!strcmp(l1, "environment")) {
-      respondWithServerEnvironment(response);
-    }
-    else {
-      respondWithJsonError(response, "Invalid path", 400, "Bad Request");
-    }
-  }
-  else{
-    jsonPrinter *out = respondWithJsonPrinter(response);
+    else{
+      jsonPrinter *out = respondWithJsonPrinter(response);
 
-    setContentType(response, "text/json");
-    setResponseStatus(response, 405, "Method Not Allowed");
-    addStringHeader(response, "Server", "jdmfws");
-    addStringHeader(response, "Transfer-Encoding", "chunked");
-    addStringHeader(response, "Allow", "GET");
-    writeHeader(response);
+      setContentType(response, "text/json");
+      setResponseStatus(response, 405, "Method Not Allowed");
+      addStringHeader(response, "Server", "jdmfws");
+      addStringHeader(response, "Transfer-Encoding", "chunked");
+      addStringHeader(response, "Allow", "GET");
+      writeHeader(response);
 
-    jsonStart(out);
-    jsonEnd(out);
+      jsonStart(out);
+      jsonEnd(out);
 
-    finishResponse(response);
+      finishResponse(response);
+    }
   }
 
   return 0;
