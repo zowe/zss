@@ -125,6 +125,9 @@ void respondWithServerEnvironment(HttpResponse *response){
   jsonPrinter *out = respondWithJsonPrinter(response);
   struct utsname unameRet;
   uname(&unameRet);
+  int i = 1;
+  extern char **environ;
+  char *env_var = *environ;
   char pid[64];
   char ppid[64];
   char dp[64];
@@ -176,6 +179,15 @@ void respondWithServerEnvironment(HttpResponse *response){
   jsonAddString(out, "OS release", unameRet.release);
   jsonAddString(out, "hardware identifier", unameRet.machine);
   jsonAddString(out, "hostname", unameRet.nodename);
+  jsonStartObject(out, "user environment");
+  for (; env_var; i++) {
+    int j = 0;
+    char *var_name = strtok(env_var, "=");
+    char *var_value = strtok(NULL, "=");
+    jsonAddString(out, var_name, var_value);
+    env_var = *(environ+i);
+  }
+  jsonEndObject(out);
   jsonAddString(out, "Demand Paging Rate", dp); 
   jsonAddString(out, "Standard CP CPU Utilization", cpu_u);
   jsonAddString(out, "Standard CP MVS/SRM CPU Utilization", mvs_u);
