@@ -172,14 +172,14 @@ void respondWithServerEnvironment(HttpResponse *response){
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(out);
-  jsonAddString(out, "log directory", getenv("ZSS_LOG_FILE"));
-  jsonAddString(out, "agent name", "zss");
-  jsonAddString(out, "agent version", productVersion);
+  jsonAddString(out, "logDirectory", getenv("ZSS_LOG_FILE"));
+  jsonAddString(out, "agentName", "zss");
+  jsonAddString(out, "agentVersion", productVersion);
   jsonAddString(out, "arch", unameRet.sysname);
-  jsonAddString(out, "OS release", unameRet.release);
-  jsonAddString(out, "hardware identifier", unameRet.machine);
+  jsonAddString(out, "osRelease", unameRet.release);
+  jsonAddString(out, "hardwareIdentifier", unameRet.machine);
   jsonAddString(out, "hostname", unameRet.nodename);
-  jsonStartObject(out, "user environment");
+  jsonStartObject(out, "userEnvironment");
   for (; env_var; i++) {
     int j = 0;
     char *var_name = strtok(env_var, "=");
@@ -188,11 +188,11 @@ void respondWithServerEnvironment(HttpResponse *response){
     env_var = *(environ+i);
   }
   jsonEndObject(out);
-  jsonAddString(out, "Demand Paging Rate", dp); 
-  jsonAddString(out, "Standard CP CPU Utilization", cpu_u);
-  jsonAddString(out, "Standard CP MVS/SRM CPU Utilization", mvs_u);
-  jsonAddString(out, "ZAAP CPU Utilization", zaap_u);
-  jsonAddString(out, "ZIIP CPU Utilization", ziip_u);
+  jsonAddString(out, "demandPagingRate", dp); 
+  jsonAddString(out, "stdCP_CPU_Util", cpu_u);
+  jsonAddString(out, "stdCP_MVS_SRM_CPU_Util", mvs_u);
+  jsonAddString(out, "ZAAP_CPU_Util", zaap_u);
+  jsonAddString(out, "ZIIP_CPU_Util", ziip_u);
   jsonAddString(out, "PID", pid);
   jsonAddString(out, "PPID", ppid);
   jsonEnd(out);
