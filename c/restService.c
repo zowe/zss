@@ -38,7 +38,6 @@
 #include "logging.h"
 #include "zssLogging.h"
 #include "restService.h"
-#include "zss.h"
 #pragma linkage (EXSMFI,OS)
 
 #ifdef __ZOWE_OS_ZOS
@@ -49,7 +48,7 @@ char productVersion[40];
 typedef int EXSMFI();
 EXSMFI *smf_func;
 
-int installServerStatusService(HttpServer *server)
+int installServerStatusService(HttpServer *server, JsonObject *serverSettings, char* productVer)
 {
   HttpService *httpService = makeGeneratedService("REST_Service", "/server/agent/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -57,8 +56,8 @@ int installServerStatusService(HttpServer *server)
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   registerHttpService(server, httpService);
-  serverConfig = getServerConfig();
-  memcpy(productVersion, getServerProductVersion(), 40);
+  serverConfig = serverSettings;
+  memcpy(productVersion, productVer, 40);
   return 0;
 }
 
@@ -173,14 +172,14 @@ void respondWithServerEnvironment(HttpResponse *response){
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(out);
-  jsonAddString(out, "logDirectory", getenv("ZSS_LOG_FILE"));
-  jsonAddString(out, "agentName", "zss");
-  jsonAddString(out, "agentVersion", productVersion);
+  jsonAddString(out, "log directory", getenv("ZSS_LOG_FILE"));
+  jsonAddString(out, "agent name", "zss");
+  jsonAddString(out, "agent version", productVersion);
   jsonAddString(out, "arch", unameRet.sysname);
-  jsonAddString(out, "osRelease", unameRet.release);
-  jsonAddString(out, "hardwareIdentifier", unameRet.machine);
+  jsonAddString(out, "OS release", unameRet.release);
+  jsonAddString(out, "hardware identifier", unameRet.machine);
   jsonAddString(out, "hostname", unameRet.nodename);
-  jsonStartObject(out, "userEnvironment");
+  jsonStartObject(out, "user environment");
   for (; env_var; i++) {
     int j = 0;
     char *var_name = strtok(env_var, "=");
@@ -189,11 +188,11 @@ void respondWithServerEnvironment(HttpResponse *response){
     env_var = *(environ+i);
   }
   jsonEndObject(out);
-  jsonAddString(out, "demandPagingRate", dp); 
-  jsonAddString(out, "stdCP_CPU_Util", cpu_u);
-  jsonAddString(out, "stdCP_MVS_SRM_CPU_Util", mvs_u);
-  jsonAddString(out, "ZAAP_CPU_Util", zaap_u);
-  jsonAddString(out, "ZIIP_CPU_Util", ziip_u);
+  jsonAddString(out, "Demand Paging Rate", dp); 
+  jsonAddString(out, "Standard CP CPU Utilization", cpu_u);
+  jsonAddString(out, "Standard CP MVS/SRM CPU Utilization", mvs_u);
+  jsonAddString(out, "ZAAP CPU Utilization", zaap_u);
+  jsonAddString(out, "ZIIP CPU Utilization", ziip_u);
   jsonAddString(out, "PID", pid);
   jsonAddString(out, "PPID", ppid);
   jsonEnd(out);
@@ -207,7 +206,7 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
   if(!rbacParm){
      respondWithError(response, HTTP_STATUS_UNAUTHORIZED, "Unauthorized - RBAC is disabled.  Enable in zluxserver.json");
   } else {
-    if (!strcmp(request->method, methodGET)){
+    if (!strcmp(request->method, methodGET)) {
       char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
       if(!strcmp(l1, "")){
         respondWithServerRoutes(response);
@@ -222,44 +221,17 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
            respondWithError(response, HTTP_STATUS_NOT_FOUND, "Log not found");
         }
       }
-      else if (!strcmp(l1, "logLevels")){
+      else if (!strcmp(l1, "logLevels")) {
         respondWithLogLevels(response);
       }
-      else if (!strcmp(l1, "environment")){
+      else if (!strcmp(l1, "environment")) {
         respondWithServerEnvironment(response);
       }
       else {
         respondWithJsonError(response, "Invalid path", 400, "Bad Request");
       }
-    }else if (!strcmp(request->method, methodPOST)){
-      char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
-      char *l3 = stringListPrint(request->parsedFile, 3, 1, "/", 0);
-      char *nameOrPattern = stringListPrint(request->parsedFile, 4, 1, "/", 0);
-      char *l5 = stringListPrint(request->parsedFile, 5, 1, "/", 0);
-      char *newLevel = stringListPrint(request->parsedFile, 6, 1, "/", 0);
-      if (!strcmp(l1, "logLevels") && !strcmp(l5, "level")){
-        if(!strcmp(l3, "name") || !strcmp(l3, "pattern")){
-          JsonObject *logLevels = jsonObjectGetObject(serverConfig, "logLevels");
-          if(logLevels){
-            TraceDefinition *traceDef = traceDefs;
-            while(traceDef->name != 0){
-              if(!strncmp(traceDef->name, nameOrPattern, strlen(traceDef->name))){
-                if(atoi(newLevel >=0)){
-                  traceDef->function(atoi(newLevel));
-                }
-                break;
-              }
-              ++traceDef;
-            }
-          }
-          respondWithLogLevels(response);
-        } else {
-          respondWithJsonError(response, "Invalid path", 400, "Bad Request");
-        }
-      } else {
-        respondWithJsonError(response, "Invalid path", 400, "Bad Request");
-      }
-    }else{
+    }
+    else{
       jsonPrinter *out = respondWithJsonPrinter(response);
 
       setContentType(response, "text/json");
