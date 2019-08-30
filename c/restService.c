@@ -44,6 +44,7 @@
 static int serveStatus(HttpService *service, HttpResponse *response);
 static JsonObject* serverConfig = NULL;
 char productVersion[40];
+extern char **environ;
 
 typedef int EXSMFI();
 EXSMFI *smf_func;
@@ -125,9 +126,6 @@ void respondWithServerEnvironment(HttpResponse *response){
   jsonPrinter *out = respondWithJsonPrinter(response);
   struct utsname unameRet;
   uname(&unameRet);
-  int i = 1;
-  extern char **environ;
-  char *env_var = *environ;
   char pid[64];
   char ppid[64];
   char dp[64];
@@ -180,12 +178,13 @@ void respondWithServerEnvironment(HttpResponse *response){
   jsonAddString(out, "hardwareIdentifier", unameRet.machine);
   jsonAddString(out, "hostname", unameRet.nodename);
   jsonStartObject(out, "userEnvironment");
+  char *env_var = strdup(*environ);
+  int i = 1;
   for (; env_var; i++) {
-    int j = 0;
     char *var_name = strtok(env_var, "=");
     char *var_value = strtok(NULL, "=");
     jsonAddString(out, var_name, var_value);
-    env_var = *(environ+i);
+    env_var = strdup(*(environ+i));
   }
   jsonEndObject(out);
   jsonAddString(out, "demandPagingRate", dp); 
@@ -196,6 +195,7 @@ void respondWithServerEnvironment(HttpResponse *response){
   jsonAddString(out, "PID", pid);
   jsonAddString(out, "PPID", ppid);
   jsonEnd(out);
+  //safeFree(env_var, sizeof(*environ)+1);
   finishResponse(response);
 }
 
