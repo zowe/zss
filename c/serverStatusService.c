@@ -33,43 +33,41 @@
 #include "utils.h"
 #include "socketmgmt.h"
 
-#include "httpserver.h"
-#include "json.h"
 #include "logging.h"
 #include "zssLogging.h"
-#include "restService.h"
+#include "serverStatusService.h"
 #pragma linkage (EXSMFI,OS)
 
 #ifdef __ZOWE_OS_ZOS
 static int serveStatus(HttpService *service, HttpResponse *response);
-static JsonObject* serverConfig = NULL;
-char productVersion[40];
 extern char **environ;
 
 typedef int EXSMFI();
-EXSMFI *smf_func;
+EXSMFI *smfFunc;
 
 int installServerStatusService(HttpServer *server, JsonObject *serverSettings, char* productVer)
 {
-  HttpService *httpService = makeGeneratedService("REST_Service", "/server/agent/**");
+  HttpService *httpService = makeGeneratedService("Server_Status_Service", "/server/agent/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = &serveStatus;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
+  ServerAgentContext *context = (ServerAgentContext*)safeMalloc(sizeof(ServerAgentContext), "ServerAgentContext");
+  context->serverConfig = serverSettings;
+  memcpy(context->productVersion, productVer, strlen(productVer));
+  httpService->userPointer = context;
   registerHttpService(server, httpService);
-  serverConfig = serverSettings;
-  memcpy(productVersion, productVer, 40);
   return 0;
 }
 
-void respondWithServerConfig(HttpResponse *response){
+void respondWithServerConfig(HttpResponse *response, JsonObject* config){
   jsonPrinter *out = respondWithJsonPrinter(response);
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(out);
   jsonStartObject(out, "options");
-  jsonPrintObject(out, serverConfig);
+  jsonPrintObject(out, config);
   jsonEndObject(out);
   jsonEnd(out);
   finishResponse(response);
@@ -107,9 +105,9 @@ void respondWithServerRoutes(HttpResponse *response){
   finishResponse(response);
 }
 
-void respondWithLogLevels(HttpResponse *response){
+void respondWithLogLevels(HttpResponse *response, ServerAgentContext *context){
   jsonPrinter *out = respondWithJsonPrinter(response);
-  JsonObject *logLevels = jsonObjectGetObject(serverConfig, "logLevels");
+  JsonObject *logLevels = jsonObjectGetObject(context->serverConfig, "logLevels");
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
@@ -121,8 +119,8 @@ void respondWithLogLevels(HttpResponse *response){
   finishResponse(response);
 }
 
-void respondWithServerEnvironment(HttpResponse *response){
-  /*Information about parameters for smc_func: https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.erbb700/smfp.htm#smfp*/
+void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *context){
+  /*Information about parameters for smf_unc: https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.erbb700/smfp.htm#smfp*/
   jsonPrinter *out = respondWithJsonPrinter(response);
   struct utsname unameRet;
   uname(&unameRet);
@@ -147,8 +145,8 @@ void respondWithServerEnvironment(HttpResponse *response){
   int ziip_util = 0x00000000;
   buffer = (char *)safeMalloc(bufferlen, "buffer");
   memset(buffer, 0, bufferlen);
-  smf_func = (EXSMFI *)fetch("ERBSMFI");
-  rc = (*smf_func)(&reqtype,
+  smfFunc = (EXSMFI *)fetch("ERBSMFI");
+  rc = (*smfFunc)(&reqtype,
                &rectype,
                &subtype,
                buffer,
@@ -172,7 +170,7 @@ void respondWithServerEnvironment(HttpResponse *response){
   jsonStart(out);
   jsonAddString(out, "logDirectory", getenv("ZSS_LOG_FILE"));
   jsonAddString(out, "agentName", "zss");
-  jsonAddString(out, "agentVersion", productVersion);
+  jsonAddString(out, "agentVersion", context->productVersion);
   jsonAddString(out, "arch", unameRet.sysname);
   jsonAddString(out, "osRelease", unameRet.release);
   jsonAddString(out, "hardwareIdentifier", unameRet.machine);
@@ -201,7 +199,8 @@ void respondWithServerEnvironment(HttpResponse *response){
 
 static int serveStatus(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
-  JsonObject *dataserviceAuth = jsonObjectGetObject(serverConfig, "dataserviceAuthentication");
+  ServerAgentContext *context = service->userPointer;
+  JsonObject *dataserviceAuth = jsonObjectGetObject(context->serverConfig, "dataserviceAuthentication");
   int rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
   if(!rbacParm){
      respondWithError(response, HTTP_STATUS_UNAUTHORIZED, "Unauthorized - RBAC is disabled.  Enable in zluxserver.json");
@@ -212,7 +211,7 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
         respondWithServerRoutes(response);
       }
       else if (!strcmp(l1, "config")){
-        respondWithServerConfig(response);
+        respondWithServerConfig(response, context->serverConfig);
       }
       else if (!strcmp(l1, "log")) {
         if(strcmp(getenv("ZSS_LOG_FILE"), "")){
@@ -222,10 +221,10 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
         }
       }
       else if (!strcmp(l1, "logLevels")) {
-        respondWithLogLevels(response);
+        respondWithLogLevels(response, context);
       }
       else if (!strcmp(l1, "environment")) {
-        respondWithServerEnvironment(response);
+        respondWithServerEnvironment(response, context);
       }
       else {
         respondWithJsonError(response, "Invalid path", 400, "Bad Request");

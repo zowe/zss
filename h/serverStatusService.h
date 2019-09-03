@@ -12,6 +12,13 @@
 
 #ifndef __SERVER_STATUS_SERVICE_H__
 #define __SERVER_STATUS_SERVICE_H__
+#include "json.h"
+#include "httpserver.h"
+
+typedef struct ServerAgentContext_tag{
+  char productVersion[40];
+  JsonObject *serverConfig;
+} ServerAgentContext;
 
 int installServerStatusService(HttpServer *server, JsonObject* serverSettings, char* productVer);
 
