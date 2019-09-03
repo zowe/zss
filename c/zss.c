@@ -70,7 +70,7 @@
 #include "unixFileService.h"
 #include "omvsService.h"
 #include "datasetService.h"
-#include "restService.h"
+#include "serverStatusService.h"
 
 #define PRODUCT "ZLUX"
 #ifndef PRODUCT_MAJOR_VERSION
@@ -818,12 +818,7 @@ static int validateFilePermissions(const char *filePath) {
   } else {
     return validateConfigPermissionsInner(filePath);
   }
-}
-
-static JsonObject* getServerConfig(){
-  return MVD_SETTINGS;
-}
-  
+}  
 
 #endif /* ZSS_IGNORE_PERMISSION_PROBLEMS */
 
