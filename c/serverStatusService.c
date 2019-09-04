@@ -55,7 +55,8 @@ int installServerStatusService(HttpServer *server, JsonObject *serverSettings, c
   httpService->doImpersonation = TRUE;
   ServerAgentContext *context = (ServerAgentContext*)safeMalloc(sizeof(ServerAgentContext), "ServerAgentContext");
   context->serverConfig = serverSettings;
-  memcpy(context->productVersion, productVer, strlen(productVer));
+  context->productVersion[sizeof(context->productVersion) - 1] = '\0';
+  memcpy(context->productVersion, productVer, sizeof(context->productVersion) - 1);
   httpService->userPointer = context;
   registerHttpService(server, httpService);
   return 0;
@@ -123,7 +124,6 @@ void respondWithLogLevels(HttpResponse *response, ServerAgentContext *context){
 void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *context){
   /*Information about parameters for smf_unc: https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.erbb700/smfp.htm#smfp*/
   struct utsname unameRet;
-  char smfVarBuffer[64];
   char hostnameBuffer[256];
   char* buffer;
   int rc = 0;
@@ -153,16 +153,20 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
                &mvsSrm,
                &zaapUtil,
                &ziipUtil);
+  safeFree(buffer, bufferlen);
   if(rc > 0){
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Unable to fetch from RMF data interface service");
   }
-  safeFree(buffer, bufferlen);
   jsonPrinter *out = respondWithJsonPrinter(response);
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(out);
-  jsonAddString(out, "logDirectory", getenv("ZSS_LOG_FILE"));
+  if(getenv("ZSS_LOG_FILE") != NULL){
+    jsonAddString(out, "logDirectory", getenv("ZSS_LOG_FILE"));
+  } else {
+    jsonAddString(out, "logDirectory", "ZSS_LOG_FILE not defined in environment variables");
+  }
   jsonAddString(out, "agentName", "zss");
   jsonAddString(out, "agentVersion", context->productVersion);
   jsonAddString(out, "arch", unameRet.sysname);
@@ -174,31 +178,27 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   jsonStartObject(out, "userEnvironment");
   char *env_var = *environ;
   for (int i = 1; env_var; i++) {
-    char *len = strchr(env_var, '=');
-    if(len == NULL){
+    char *equalSign = strchr(env_var, '=');
+    if(equalSign == NULL){
       break;
     }
-    char *name = safeMalloc(strlen(env_var)-strlen(len) + 1, "env_var name");
-    snprintf(name, sizeof(char)*(strlen(env_var)-strlen(len) + 1), "%s", env_var);
-    jsonAddString(out, name, len+1);
-    safeFree(name, strlen(name));
+    int nameLen = strlen(env_var) - strlen(equalSign);
+    int nameBufferLen = nameLen + 1;
+    char *name = safeMalloc(nameBufferLen, "env_var name");
+    memcpy(name, env_var, nameLen);
+    name[nameLen] = '\0';
+    jsonAddString(out, name, equalSign+1);
+    safeFree(name, nameBufferLen);
     env_var = *(environ+i);
   }
   jsonEndObject(out);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d%%", demandPaging);
-  jsonAddString(out, "demandPagingRate", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d%%", cpuUtil);
-  jsonAddString(out, "stdCP_CPU_Util", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d%%", mvsSrm);
-  jsonAddString(out, "stdCP_MVS_SRM_CPU_Util", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d%%", zaapUtil);
-  jsonAddString(out, "ZAAP_CPU_Util", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d%%", ziipUtil);
-  jsonAddString(out, "ZIIP_CPU_Util", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", getpid());
-  jsonAddString(out, "PID", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", getppid());
-  jsonAddString(out, "PPID", smfVarBuffer);
+  jsonAddInt(out, "demandPagingRate", demandPaging);
+  jsonAddInt(out, "stdCP_CPU_Util", cpuUtil);
+  jsonAddInt(out, "stdCP_MVS_SRM_CPU_Util", mvsSrm);
+  jsonAddInt(out, "ZAAP_CPU_Util", zaapUtil);
+  jsonAddInt(out, "ZIIP_CPU_Util", ziipUtil);
+  jsonAddInt(out, "PID", getpid());
+  jsonAddInt(out, "PPID", getppid());
   jsonEnd(out);
   finishResponse(response);
 }
@@ -219,7 +219,7 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
         respondWithServerConfig(response, context->serverConfig);
       }else if (!strcmp(l1, "log")) {
         char* logDir = getenv("ZSS_LOG_FILE");
-        if(strcmp(logDir, "") || logDir == NULL){
+        if(logDir == NULL || strcmp(logDir, "")){
           respondWithUnixFile2(NULL, response, logDir, 0, 0, false);
         } else {
            respondWithError(response, HTTP_STATUS_NOT_FOUND, "Log not found");
