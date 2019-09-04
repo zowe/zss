@@ -133,12 +133,12 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   int rectype = 0x0000004F; //SMF record type, only type 79 is supported
   int subtype = 0x00000009; //SMF record subtype
   int bufferlen = 247488; /* length of SMF record buffer */
-  int cpu_util = 0x00000000;
-  int demand_paging = 0x00000000;
+  int cpuUtil = 0x00000000;
+  int demandPaging = 0x00000000;
   int options = 0x00000000;
-  int mvs_srm = 0x00000000;
-  int zaap_util = 0x00000000;
-  int ziip_util = 0x00000000;
+  int mvsSrm = 0x00000000;
+  int zaapUtil = 0x00000000;
+  int ziipUtil = 0x00000000;
   buffer = (char *)safeMalloc(bufferlen, "buffer");
   memset(buffer, 0, bufferlen);
   smfFunc = (EXSMFI *)fetch("ERBSMFI");
@@ -147,12 +147,12 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
                &subtype,
                buffer,
                &bufferlen,
-               &cpu_util,
-               &demand_paging,
+               &cpuUtil,
+               &demandPaging,
                &options,
-               &mvs_srm,
-               &zaap_util,
-               &ziip_util);
+               &mvsSrm,
+               &zaapUtil,
+               &ziipUtil);
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
@@ -179,15 +179,15 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
     env_var = *(environ+i);
   }
   jsonEndObject(out);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", demand_paging);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", demandPaging);
   jsonAddString(out, "demandPagingRate", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", cpu_util);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", cpuUtil);
   jsonAddString(out, "stdCP_CPU_Util", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", mvs_srm);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", mvsSrm);
   jsonAddString(out, "stdCP_MVS_SRM_CPU_Util", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", zaap_util);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", zaapUtil);
   jsonAddString(out, "ZAAP_CPU_Util", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", ziip_util);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", ziipUtil);
   jsonAddString(out, "ZIIP_CPU_Util", smfVarBuffer);
   snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", getpid());
   jsonAddString(out, "PID", smfVarBuffer);
