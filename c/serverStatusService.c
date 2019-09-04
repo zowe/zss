@@ -42,7 +42,9 @@
 static int serveStatus(HttpService *service, HttpResponse *response);
 extern char **environ;
 
-typedef int EXSMFI();
+typedef int EXSMFI(int *reqType, int *recType, int *subType,
+                   char* buffer, int *bufferLen, int *cpuUtil,
+                   int *dpRate, int *options, int *mvs, int *zaap, int *ziip);
 EXSMFI *smfFunc;
 
 int installServerStatusService(HttpServer *server, JsonObject *serverSettings, char* productVer)
@@ -124,13 +126,7 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   jsonPrinter *out = respondWithJsonPrinter(response);
   struct utsname unameRet;
   uname(&unameRet);
-  char pid[64];
-  char ppid[64];
-  char dp[64];
-  char cpu_u[64];
-  char mvs_u[64];
-  char ziip_u[64];
-  char zaap_u[64];
+  char smfVarBuffer[64];
   char* buffer;
   int rc = 0;
   int reqtype = 0x00000005; //fullword. request type
@@ -157,13 +153,6 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
                &mvs_srm,
                &zaap_util,
                &ziip_util);
-  sprintf(pid, "%d", getpid());
-  sprintf(ppid, "%d", getppid());
-  sprintf(dp, "%d", demand_paging);
-  sprintf(cpu_u, "%d%", cpu_util);
-  sprintf(mvs_u, "%d%", mvs_srm);
-  sprintf(zaap_u, "%d%", zaap_util);
-  sprintf(ziip_u, "%d%", ziip_util);
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
@@ -176,24 +165,35 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   jsonAddString(out, "hardwareIdentifier", unameRet.machine);
   jsonAddString(out, "hostname", unameRet.nodename);
   jsonStartObject(out, "userEnvironment");
-  char *env_var = strdup(*environ);
+  char *env_var = *environ;
   int i = 1;
   for (; env_var; i++) {
-    char *var_name = strtok(env_var, "=");
-    char *var_value = strtok(NULL, "=");
-    jsonAddString(out, var_name, var_value);
-    env_var = strdup(*(environ+i));
+    char *len = strchr(env_var, '=');
+    if(len == NULL){
+      break;
+    }
+    char *name = safeMalloc(strlen(env_var)-strlen(len) + 1, "env_var name");
+    snprintf(name, sizeof(char)*(strlen(env_var)-strlen(len) + 1), "%s", env_var);
+    jsonAddString(out, name, len+1);
+    safeFree(name, strlen(name));
+    env_var = *(environ+i);
   }
   jsonEndObject(out);
-  jsonAddString(out, "demandPagingRate", dp); 
-  jsonAddString(out, "stdCP_CPU_Util", cpu_u);
-  jsonAddString(out, "stdCP_MVS_SRM_CPU_Util", mvs_u);
-  jsonAddString(out, "ZAAP_CPU_Util", zaap_u);
-  jsonAddString(out, "ZIIP_CPU_Util", ziip_u);
-  jsonAddString(out, "PID", pid);
-  jsonAddString(out, "PPID", ppid);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", demand_paging);
+  jsonAddString(out, "demandPagingRate", smfVarBuffer);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", cpu_util);
+  jsonAddString(out, "stdCP_CPU_Util", smfVarBuffer);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", mvs_srm);
+  jsonAddString(out, "stdCP_MVS_SRM_CPU_Util", smfVarBuffer);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", zaap_util);
+  jsonAddString(out, "ZAAP_CPU_Util", smfVarBuffer);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", ziip_util);
+  jsonAddString(out, "ZIIP_CPU_Util", smfVarBuffer);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", getpid());
+  jsonAddString(out, "PID", smfVarBuffer);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", getppid());
+  jsonAddString(out, "PPID", smfVarBuffer);
   jsonEnd(out);
-  safeFree(env_var, sizeof(*environ)+1);
   finishResponse(response);
 }
 
@@ -214,8 +214,9 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
         respondWithServerConfig(response, context->serverConfig);
       }
       else if (!strcmp(l1, "log")) {
-        if(strcmp(getenv("ZSS_LOG_FILE"), "")){
-          respondWithUnixFile2(NULL, response, getenv("ZSS_LOG_FILE"), 0, 0, false);
+        char* logDir = getenv("ZSS_LOG_FILE");
+        if(strcmp(logDir, "") || logDir == NULL){
+          respondWithUnixFile2(NULL, response, logDir, 0, 0, false);
         } else {
            respondWithError(response, HTTP_STATUS_NOT_FOUND, "Log not found");
         }
