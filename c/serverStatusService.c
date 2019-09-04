@@ -123,8 +123,8 @@ void respondWithLogLevels(HttpResponse *response, ServerAgentContext *context){
 void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *context){
   /*Information about parameters for smf_unc: https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.erbb700/smfp.htm#smfp*/
   struct utsname unameRet;
-  uname(&unameRet);
   char smfVarBuffer[64];
+  char hostnameBuffer[256];
   char* buffer;
   int rc = 0;
   int reqtype = 0x00000005; //fullword. request type
@@ -137,6 +137,8 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   int mvsSrm = 0x00000000;
   int zaapUtil = 0x00000000;
   int ziipUtil = 0x00000000;
+  uname(&unameRet);
+  gethostname(hostnameBuffer, sizeof(hostnameBuffer));
   buffer = (char *)safeMalloc(bufferlen, "buffer");
   memset(buffer, 0, bufferlen);
   smfFunc = (EXSMFI *)fetch("ERBSMFI");
@@ -165,8 +167,10 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   jsonAddString(out, "agentVersion", context->productVersion);
   jsonAddString(out, "arch", unameRet.sysname);
   jsonAddString(out, "osRelease", unameRet.release);
+  jsonAddString(out, "osVersion", unameRet.version);
   jsonAddString(out, "hardwareIdentifier", unameRet.machine);
-  jsonAddString(out, "hostname", unameRet.nodename);
+  jsonAddString(out, "hostname", hostnameBuffer);
+  jsonAddString(out, "nodename", unameRet.nodename);
   jsonStartObject(out, "userEnvironment");
   char *env_var = *environ;
   for (int i = 1; env_var; i++) {
