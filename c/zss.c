@@ -818,7 +818,7 @@ static int validateFilePermissions(const char *filePath) {
   } else {
     return validateConfigPermissionsInner(filePath);
   }
-}  
+}
 
 #endif /* ZSS_IGNORE_PERMISSION_PROBLEMS */
 
