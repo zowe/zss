@@ -14,6 +14,8 @@
 #define __SERVER_STATUS_SERVICE_H__
 #include "json.h"
 #include "httpserver.h"
+#include "timeutls.h"
+#include "time.h"
 
 typedef struct ServerAgentContext_tag{
   char productVersion[40];
