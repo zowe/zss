@@ -169,8 +169,7 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   jsonAddString(out, "hostname", unameRet.nodename);
   jsonStartObject(out, "userEnvironment");
   char *env_var = *environ;
-  int i = 1;
-  for (; env_var; i++) {
+  for (int i = 1; env_var; i++) {
     char *len = strchr(env_var, '=');
     if(len == NULL){
       break;
@@ -182,15 +181,15 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
     env_var = *(environ+i);
   }
   jsonEndObject(out);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", demandPaging);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d%%", demandPaging);
   jsonAddString(out, "demandPagingRate", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", cpuUtil);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d%%", cpuUtil);
   jsonAddString(out, "stdCP_CPU_Util", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", mvsSrm);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d%%", mvsSrm);
   jsonAddString(out, "stdCP_MVS_SRM_CPU_Util", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", zaapUtil);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d%%", zaapUtil);
   jsonAddString(out, "ZAAP_CPU_Util", smfVarBuffer);
-  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", ziipUtil);
+  snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d%%", ziipUtil);
   jsonAddString(out, "ZIIP_CPU_Util", smfVarBuffer);
   snprintf(smfVarBuffer, sizeof(smfVarBuffer), "%d", getpid());
   jsonAddString(out, "PID", smfVarBuffer);
