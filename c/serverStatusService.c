@@ -36,7 +36,6 @@
 #include "logging.h"
 #include "zssLogging.h"
 #include "serverStatusService.h"
-#pragma linkage (EXSMFI,OS)
 
 #ifdef __ZOWE_OS_ZOS
 static int serveStatus(HttpService *service, HttpResponse *response);
@@ -123,7 +122,6 @@ void respondWithLogLevels(HttpResponse *response, ServerAgentContext *context){
 
 void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *context){
   /*Information about parameters for smf_unc: https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.erbb700/smfp.htm#smfp*/
-  jsonPrinter *out = respondWithJsonPrinter(response);
   struct utsname unameRet;
   uname(&unameRet);
   char smfVarBuffer[64];
@@ -132,7 +130,7 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   int reqtype = 0x00000005; //fullword. request type
   int rectype = 0x0000004F; //SMF record type, only type 79 is supported
   int subtype = 0x00000009; //SMF record subtype
-  int bufferlen = 247488; /* length of SMF record buffer */
+  int bufferlen = 716800; // Yes the SMF buffer is actually 700Kb roughly
   int cpuUtil = 0x00000000;
   int demandPaging = 0x00000000;
   int options = 0x00000000;
@@ -153,6 +151,10 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
                &mvsSrm,
                &zaapUtil,
                &ziipUtil);
+  if(rc > 0){
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Unable to fetch from RMF data interface service");
+  }
+  jsonPrinter *out = respondWithJsonPrinter(response);
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
@@ -205,49 +207,39 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
   if(!rbacParm){
      respondWithError(response, HTTP_STATUS_UNAUTHORIZED, "Unauthorized - RBAC is disabled.  Enable in zluxserver.json");
   } else {
-    if (!strcmp(request->method, methodGET)) {
+    if(!strcmp(request->method, methodGET)){
       char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
       if(!strcmp(l1, "")){
         respondWithServerRoutes(response);
-      }
-      else if (!strcmp(l1, "config")){
+      }else if (!strcmp(l1, "config")){
         respondWithServerConfig(response, context->serverConfig);
-      }
-      else if (!strcmp(l1, "log")) {
+      }else if (!strcmp(l1, "log")) {
         char* logDir = getenv("ZSS_LOG_FILE");
         if(strcmp(logDir, "") || logDir == NULL){
           respondWithUnixFile2(NULL, response, logDir, 0, 0, false);
         } else {
            respondWithError(response, HTTP_STATUS_NOT_FOUND, "Log not found");
         }
-      }
-      else if (!strcmp(l1, "logLevels")) {
+      }else if (!strcmp(l1, "logLevels")){
         respondWithLogLevels(response, context);
-      }
-      else if (!strcmp(l1, "environment")) {
+      }else if (!strcmp(l1, "environment")){
         respondWithServerEnvironment(response, context);
-      }
-      else {
+      } else {
         respondWithJsonError(response, "Invalid path", 400, "Bad Request");
       }
-    }
-    else{
+    } else {
       jsonPrinter *out = respondWithJsonPrinter(response);
-
       setContentType(response, "text/json");
       setResponseStatus(response, 405, "Method Not Allowed");
       addStringHeader(response, "Server", "jdmfws");
       addStringHeader(response, "Transfer-Encoding", "chunked");
       addStringHeader(response, "Allow", "GET");
       writeHeader(response);
-
       jsonStart(out);
       jsonEnd(out);
-
       finishResponse(response);
     }
   }
-
   return 0;
 }
 
