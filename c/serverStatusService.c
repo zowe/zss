@@ -161,7 +161,6 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   if(c_time_str[strlen(c_time_str) - 1] == '\n'){
     c_time_str[strlen(c_time_str) - 1] = '\0';
   }
-  printf("strlen time: %d\n", strlen(c_time_str));
   if(rc > 0){
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Unable to fetch from RMF data interface service");
   }
