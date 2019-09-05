@@ -163,6 +163,7 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   }
   if(rc > 0){
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Unable to fetch from RMF data interface service");
+    return;
   }
   jsonPrinter *out = respondWithJsonPrinter(response);
   setResponseStatus(response, 200, "OK");
