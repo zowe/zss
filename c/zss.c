@@ -70,6 +70,7 @@
 #include "unixFileService.h"
 #include "omvsService.h"
 #include "datasetService.h"
+#include "serverStatusService.h"
 
 #define PRODUCT "ZLUX"
 #ifndef PRODUCT_MAJOR_VERSION
@@ -910,6 +911,7 @@ int main(int argc, char **argv){
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);
+      installServerStatusService(server, MVD_SETTINGS, productVersion);
 #endif
       installLoginService(server);
       installLogoutService(server);
