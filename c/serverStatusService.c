@@ -32,21 +32,23 @@
 #include "bpxnet.h"
 #include "utils.h"
 #include "socketmgmt.h"
-
+#include "timeutls.h"
+#include "time.h"
+#include "json.h"
+#include "httpserver.h"
 #include "logging.h"
 #include "zssLogging.h"
 #include "serverStatusService.h"
 
 #ifdef __ZOWE_OS_ZOS
 static int serveStatus(HttpService *service, HttpResponse *response);
-extern char **environ;
 
 typedef int EXSMFI(int *reqType, int *recType, int *subType,
                    char* buffer, int *bufferLen, int *cpuUtil,
                    int *dpRate, int *options, int *mvs, int *zaap, int *ziip);
 EXSMFI *smfFunc;
 
-int installServerStatusService(HttpServer *server, JsonObject *serverSettings, char* productVer)
+void installServerStatusService(HttpServer *server, JsonObject *serverSettings, char* productVer)
 {
   HttpService *httpService = makeGeneratedService("Server_Status_Service", "/server/agent/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -54,12 +56,13 @@ int installServerStatusService(HttpServer *server, JsonObject *serverSettings, c
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   ServerAgentContext *context = (ServerAgentContext*)safeMalloc(sizeof(ServerAgentContext), "ServerAgentContext");
-  context->serverConfig = serverSettings;
-  context->productVersion[sizeof(context->productVersion) - 1] = '\0';
-  memcpy(context->productVersion, productVer, sizeof(context->productVersion) - 1);
+  if(context != NULL){
+    context->serverConfig = serverSettings;
+    context->productVersion[sizeof(context->productVersion) - 1] = '\0';
+    strncpy(context->productVersion, productVer, sizeof(context->productVersion) - 1);
+  }
   httpService->userPointer = context;
   registerHttpService(server, httpService);
-  return 0;
 }
 
 void respondWithServerConfig(HttpResponse *response, JsonObject* config){
@@ -121,27 +124,28 @@ void respondWithLogLevels(HttpResponse *response, ServerAgentContext *context){
   finishResponse(response);
 }
 
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 256
+#endif
 void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *context){
   /*Information about parameters for smf_unc: https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.erbb700/smfp.htm#smfp*/
+  extern char **environ;
   struct utsname unameRet;
-  char hostnameBuffer[256];
-  char* buffer;
-  time_t curr_time;
-  char* c_time_str;
+  char hostnameBuffer[HOST_NAME_MAX];
+  char *buffer;
   int rc = 0;
   int reqtype = 0x00000005; //fullword. request type
   int rectype = 0x0000004F; //SMF record type, only type 79 is supported
   int subtype = 0x00000009; //SMF record subtype
   int bufferlen = 716800; // Yes the SMF buffer is actually 700Kb roughly
-  int cpuUtil = 0x00000000;
-  int demandPaging = 0x00000000;
-  int options = 0x00000000;
-  int mvsSrm = 0x00000000;
-  int zaapUtil = 0x00000000;
-  int ziipUtil = 0x00000000;
+  int cpuUtil = 0, demandPaging = 0, options = 0, mvsSrm = 0, zaapUtil = 0, ziipUtil = 0;
   uname(&unameRet);
   gethostname(hostnameBuffer, sizeof(hostnameBuffer));
   buffer = (char *)safeMalloc(bufferlen, "buffer");
+  if(buffer == NULL){
+    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to allocate resources");
+    return;
+  }
   memset(buffer, 0, bufferlen);
   smfFunc = (EXSMFI *)fetch("ERBSMFI");
   rc = (*smfFunc)(&reqtype,
@@ -156,21 +160,25 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
                &zaapUtil,
                &ziipUtil);
   safeFree(buffer, bufferlen);
-  curr_time = time(NULL);
-  c_time_str = ctime(&curr_time);
-  if(c_time_str[strlen(c_time_str) - 1] == '\n'){
-    c_time_str[strlen(c_time_str) - 1] = '\0';
-  }
   if(rc > 0){
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Unable to fetch from RMF data interface service");
+    printf("Failed to fetch RMF data, RC = %d\n", rc);
     return;
   }
+  time_t ltime;
+  char tstamp[50];
+  time(&ltime);
   jsonPrinter *out = respondWithJsonPrinter(response);
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(out);
-  jsonAddString(out, "timestamp", c_time_str);
+  if(ctime_r(&ltime, tstamp) != NULL){
+    if(tstamp[strlen(tstamp) - 1] != '\0'){
+      tstamp[strlen(tstamp) - 1] = '\0';
+    }
+    jsonAddString(out, "timestamp", tstamp);
+  }
   if(getenv("ZSS_LOG_FILE") != NULL){
     jsonAddString(out, "logDirectory", getenv("ZSS_LOG_FILE"));
   } else {
@@ -185,20 +193,23 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   jsonAddString(out, "hostname", hostnameBuffer);
   jsonAddString(out, "nodename", unameRet.nodename);
   jsonStartObject(out, "userEnvironment");
-  char *env_var = *environ;
-  for (int i = 1; env_var; i++) {
-    char *equalSign = strchr(env_var, '=');
+  char *envVar = *environ;
+  for (int i = 1; envVar; i++) {
+    char *equalSign = strchr(envVar, '=');
     if(equalSign == NULL){
       break;
     }
-    int nameLen = strlen(env_var) - strlen(equalSign);
+    int nameLen = strlen(envVar) - strlen(equalSign);
     int nameBufferLen = nameLen + 1;
     char *name = safeMalloc(nameBufferLen, "env_var name");
-    memcpy(name, env_var, nameLen);
+    if(name == NULL){
+      break;
+    }
+    memcpy(name, envVar, nameLen);
     name[nameLen] = '\0';
     jsonAddString(out, name, equalSign+1);
     safeFree(name, nameBufferLen);
-    env_var = *(environ+i);
+    envVar = *(environ+i);
   }
   jsonEndObject(out);
   jsonAddInt(out, "demandPagingRate", demandPaging);
@@ -215,10 +226,12 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
 static int serveStatus(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
   ServerAgentContext *context = service->userPointer;
+  //This service is conditional on RBAC being enabled because it is a 
+  //sensitive URL that only RBAC authorized users should be able to access
   JsonObject *dataserviceAuth = jsonObjectGetObject(context->serverConfig, "dataserviceAuthentication");
   int rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
   if(!rbacParm){
-     respondWithError(response, HTTP_STATUS_UNAUTHORIZED, "Unauthorized - RBAC is disabled.  Enable in zluxserver.json");
+     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Set dataserviceAuthentication.rbac to true in server configuration");
   } else {
     if(!strcmp(request->method, methodGET)){
       char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
