@@ -71,6 +71,8 @@
 #include "omvsService.h"
 #include "datasetService.h"
 
+#include "jwt.h"
+
 #define PRODUCT "ZLUX"
 #ifndef PRODUCT_MAJOR_VERSION
 #define PRODUCT_MAJOR_VERSION 0
@@ -220,11 +222,6 @@ int serveLoginWithSessionToken(HttpService *service, HttpResponse *response) {
   addStringHeader(response,"Transfer-Encoding","chunked");
   addStringHeader(response, "Cache-control", "no-store");
   addStringHeader(response, "Pragma", "no-cache");
-  /* HACK: the cookie header should be set inside serviceAuthNativeWithSessionToken, */
-  /* but that is currently broken: the header doesn't get sent if it is set there */
-  if (response->sessionCookie){
-    addStringHeader(response,"Set-Cookie",response->sessionCookie);
-  }
   writeHeader(response);
 
   jsonStart(p);
@@ -855,6 +852,116 @@ static int validateFilePermissions(const char *filePath) {
 
 #endif /* ZSS_IGNORE_PERMISSION_PROBLEMS */
 
+/*
+    "agent": { 
+      ...,      
+      "jwt": {
+        "enabled": true,
+        "fallback": true,
+        "key": {
+          "storeType": "pkcs11",     //optional, since only one type is supported
+          "name": "ZOWE.ZSS.APIMLQA",
+          "keyId": "jwtsecret"       //optional
+        }
+      }
+    }
+ 
+  If `jwtKeystore` is present in the config, this will initialize the server
+  to use the specified keystore and public key, with or without fallback to
+  session tokens, as specified.
+
+  Otherwise we would just use session tokens.
+ */
+int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
+                                      HttpServer *const httpServer) {
+  JsonObject *const agentSettings = jsonObjectGetObject(serverConfig, "agent");
+  if (agentSettings == NULL) {
+    zowelog(NULL,
+        LOG_COMP_ID_MVD_SERVER,
+        ZOWE_LOG_INFO,
+        "Will not accept JWTs: agent configuration missing\n");
+    return 0;
+  }
+
+  JsonObject *const jwtSettings = jsonObjectGetObject(agentSettings, "jwt");
+  if (jwtSettings == NULL) {
+    zowelog(NULL,
+        LOG_COMP_ID_MVD_SERVER,
+        ZOWE_LOG_INFO,
+        "Will not accept JWTs: JWT keystore configuration missing\n");
+    return 0;
+  }
+
+  if (!jsonObjectGetBoolean(jwtSettings, "enabled")) {
+    zowelog(NULL,
+        LOG_COMP_ID_MVD_SERVER,
+        ZOWE_LOG_INFO,
+        "Will not accept JWTs: disabled in the configuration\n");
+    return 0;
+  }
+
+  const int fallback = jsonObjectGetBoolean(jwtSettings, "fallback");
+
+  JsonObject *const jwtKeyConfig = jsonObjectGetObject(jwtSettings, "key");
+  if (jwtKeyConfig == NULL) {
+    zowelog(NULL,
+        LOG_COMP_ID_MVD_SERVER,
+        ZOWE_LOG_SEVERE,
+        "JWT keystore configuration missing\n");
+    return 1;
+  }
+
+  const char *const keystoreType = jsonObjectGetString(jwtKeyConfig, "type");
+  const char *const keystoreName = jsonObjectGetString(jwtKeyConfig, "name");
+  const char *const keyId =
+      jsonObjectHasKey(jwtKeyConfig, "keyId")?
+          jsonObjectGetString(jwtKeyConfig, "keyId")
+          : "jwtsecret";
+
+  if (keystoreType != NULL && strcmp(keystoreType, "pkcs11") != 0) {
+    zowelog(NULL,
+        LOG_COMP_ID_MVD_SERVER,
+        ZOWE_LOG_SEVERE,
+        "Invalid JWT configuration: unknown keystore type %s\n", keystoreType);
+    return 1;
+  } else if (keystoreName == NULL) {
+    zowelog(NULL,
+        LOG_COMP_ID_MVD_SERVER,
+        ZOWE_LOG_SEVERE,
+        "Invalid JWT configuration: keystore name missing\n");
+    return 1;
+  } else {
+    zowelog(NULL,
+        LOG_COMP_ID_MVD_SERVER,
+        ZOWE_LOG_INFO,
+        "Will use JWT using PKCS#11 token '%s', key id '%s',"
+        " %s fallback to legacy tokens\n",
+        keystoreName,
+        keyId,
+        fallback? "with" : "without");
+  }
+
+
+  int initTokenRc, p11rc, p11Rsn;
+  const int contextInitRc = httpServerInitJwtContext(httpServer,
+      fallback,
+      keystoreName,
+      keyId,
+      CKO_PUBLIC_KEY,
+      &initTokenRc, &p11rc, &p11Rsn);
+  if (contextInitRc != 0) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
+        "Server startup problem: could not load the JWT key %s from token %s:"
+          " rc %d, p11rc %d, p11Rsn %d\n",
+        keyId,
+        keystoreName,
+        initTokenRc, p11rc, p11Rsn);
+    return 1;
+  }
+
+  return 0;
+}
+
 int main(int argc, char **argv){
   if (argc == 1) { 
     printf("Usage: zssServer <path to zssServer.json or zluxServer.json file>\n");
@@ -927,6 +1034,9 @@ int main(int argc, char **argv){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS server settings: address=%s, port=%d\n", address, port);
     server = makeHttpServer2(base,inetAddress,port,requiredTLSFlag,&returnCode,&reasonCode);
     if (server){
+      if (0 != initializeJwtKeystoreIfConfigured(mvdSettings, server)) {
+        return 8;
+      }
       server->defaultProductURLPrefix = PRODUCT;
       loadWebServerConfig(server, mvdSettings);
       readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile);
