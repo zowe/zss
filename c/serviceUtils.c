@@ -26,6 +26,7 @@
 #include <strings.h>
 #include <stdarg.h>  
 #include <pthread.h>
+#include <string.h>
 #endif
 
 #include "zowetypes.h"
