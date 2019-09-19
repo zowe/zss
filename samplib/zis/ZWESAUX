@@ -1,0 +1,36 @@
+//ZWESAUX  PROC RGN=0M
+//********************************************************************/
+//* This program and the accompanying materials are                  */
+//* made available under the terms of the                            */
+//* Eclipse Public License v2.0                                      */
+//* which accompanies this distribution, and is available at         */
+//* https://www.eclipse.org/legal/epl-v20.html                       */
+//*                                                                  */
+//* SPDX-License-Identifier: EPL-2.0                                 */
+//*                                                                  */
+//* Copyright Contributors to the Zowe Project.                      */
+//********************************************************************/
+//* A SAMPLE STC JCL FOR THE ZSS CROSS-MEMORY AUX SERVER             */
+//*                                                                  */
+//* 1. RUN-TIME PARAMETERS                                           */
+//*                                                                  */
+//* NONE                                                             */
+//*                                                                  */
+//* 2. PARMLIB                                                       */
+//*                                                                  */
+//* NONE                                                             */
+//*                                                                  */
+//* 3. STEPLIB DATASET NAME                                          */
+//*                                                                  */
+//* VERIFY AND/OR CHANGE THE NAME OF THE STEPLIB DATASET             */
+//*                                                                  */
+//* THE STARTED TASK MUST USE A STEPLIB DD STATEMENT TO DECLARE      */
+//* THE ZSS CROSS MEMORY SERVER AUX LOAD LIBRARY NAME. THIS IS       */
+//* REQUIRED SO THAT THE APPROPRIATE VERSION OF THE SOFTWARE IS      */
+//* LOADED CORRECTLY. DO NOT ADD THE LOAD LIBRARY DATA SET TO        */
+//* THE SYSTEM LNKLST OR LPALST CONCATENATIONS.                      */
+//*                                                                  */
+//********************************************************************/
+//ZWESAUX  EXEC PGM=ZWESAUX,REGION=&RGN
+//STEPLIB  DD   DSNAME=zis-loadlib,DISP=SHR
+//SYSPRINT DD   SYSOUT=*

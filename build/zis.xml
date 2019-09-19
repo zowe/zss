@@ -28,6 +28,8 @@
       <arg value="-Wc,arch(8),agg,exp,list(),so(),off,xref,roconst,longname,lp64"/>
       <arg line="-I ${COMMON}/h"/>
       <arg line="-I ${ZSS}/h"/>
+      <arg line="-I ${ZSS}/zis-aux/include"/>
+      <arg line="-I ${ZSS}/zis-aux/src"/>
       <arg value="${COMMON}/c/alloc.c"/>
       <arg value="${COMMON}/c/cmutils.c"/>
       <arg value="${COMMON}/c/collections.c"/>
@@ -61,6 +63,12 @@
       <arg value="${ZSS}/c/zis/services/tssparsing.c"/>
       <arg value="${ZSS}/c/zis/services/secmgmttss.c"/>
       <arg value="${ZSS}/c/zis/services/secmgmtUtils.c"/>
+      <arg value="${ZSS}/zis-aux/src/as.c"/>
+      <arg value="${ZSS}/zis-aux/src/pc.c"/>
+      <arg value="${ZSS}/zis-aux/src/aux-utils.c"/>
+      <arg value="${ZSS}/zis-aux/src/pause-element.c"/>
+      <arg value="${ZSS}/zis-aux/src/shrmem64.c"/>
+      <arg value="${ZSS}/zis-aux/src/aux-host.c"/>
     </exec> 
 
     <antcall target="assemble"><param name="file" value="alloc"/></antcall>
@@ -103,6 +111,12 @@
     <antcall target="assemble"><param name="file" value="secmgmttss"/></antcall>
     <antcall target="assemble"><param name="file" value="secmgmtUtils"/></antcall>
 
+    <antcall target="assemble"><param name="file" value="as"/></antcall>
+    <antcall target="assemble"><param name="file" value="pc"/></antcall>
+    <antcall target="assemble"><param name="file" value="aux-utils"/></antcall>
+    <antcall target="assemble"><param name="file" value="pause-element"/></antcall>
+    <antcall target="assemble"><param name="file" value="shrmem64"/></antcall>
+    <antcall target="assemble"><param name="file" value="aux-host"/></antcall>
 
     <exec executable="ld" dir="${TMPDIR}" failonerror="true" output="${TMPDIR}/ZWESIS01.link">
       <env key="_LD_SYSLIB" value="//&apos;SYS1.CSSLIB&apos;://&apos;CEE.SCEELKEX&apos;://&apos;CEE.SCEELKED&apos;://&apos;CEE.SCEERUN&apos;://&apos;CEE.SCEERUN2&apos;://&apos;CSF.SCSFMOD0&apos;"/>
@@ -141,6 +155,40 @@
       <arg value="tssparsing.o"/>
       <arg value="secmgmttss.o"/>
       <arg value="secmgmtUtils.o"/>
+    </exec>
+
+    <exec executable="ld" dir="${TMPDIR}" failonerror="true" output="${TMPDIR}/ZWESAUX.link">
+      <env key="_LD_SYSLIB" value="//&apos;SYS1.CSSLIB&apos;://&apos;CEE.SCEELKEX&apos;://&apos;CEE.SCEELKED&apos;://&apos;CEE.SCEERUN&apos;://&apos;CEE.SCEERUN2&apos;://&apos;CSF.SCSFMOD0&apos;"/>
+      <arg line="-V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus"/>
+      <arg line="-e main -o &quot;//&apos;${env.USER}.DEV.LOADLIB(ZWESAUX)&apos;&quot;"/>
+      <arg value="alloc.o"/>
+      <arg value="cmutils.o"/>
+      <arg value="collections.o"/>
+      <arg value="crossmemory.o"/>
+      <arg value="isgenq.o"/>
+      <arg value="le.o"/>
+      <arg value="logging.o"/>
+      <arg value="lpa.o"/>
+      <arg value="metalio.o"/>
+      <arg value="mtlskt.o"/>
+      <arg value="nametoken.o"/>
+      <arg value="pc.o"/>
+      <arg value="qsam.o"/>
+      <arg value="recovery.o"/>
+      <arg value="resmgr.o"/>
+      <arg value="scheduling.o"/>
+      <arg value="stcbase.o"/>
+      <arg value="timeutls.o"/>
+      <arg value="utils.o"/>
+      <arg value="xlate.o"/>
+      <arg value="zos.o"/>
+      <arg value="zvt.o"/>
+      <arg value="parm.o"/>
+      <arg value="as.o"/>
+      <arg value="aux-utils.o"/>
+      <arg value="pause-element.o"/>
+      <arg value="shrmem64.o"/>
+      <arg value="aux-host.o"/>
     </exec>
 
  </target>
