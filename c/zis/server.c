@@ -773,14 +773,14 @@ static ZISPlugin *tryLoadingPlugin(const char *pluginName,
         zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
                 ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in descriptor not "
                 "received from module '%8.8s'",
-                pluginName, moduleName);
+                pluginName, moduleName.text);
       }
 
     } else {
       zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
               ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in EP not executed, "
               "module '%8.8s', recovery RC = %d, ABEND %03X-%02X",
-              pluginName, moduleName, recoveryRC, abendInfo.completionCode,
+              pluginName, moduleName.text, recoveryRC, abendInfo.completionCode,
               abendInfo.reasonCode);
     }
   }
