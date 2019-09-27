@@ -12,10 +12,10 @@
 
 #include "zowetypes.h"
 #include "collections.h"
-
-#include "aux-utils.h"
 #include "pause-element.h"
 #include "shrmem64.h"
+
+#include "aux-utils.h"
 
 #ifndef _LP64
 #error LP64 is supported only

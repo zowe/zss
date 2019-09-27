@@ -31,6 +31,7 @@
       <arg line="-I ${ZSS}/zis-aux/include"/>
       <arg line="-I ${ZSS}/zis-aux/src"/>
       <arg value="${COMMON}/c/alloc.c"/>
+      <arg value="${COMMON}/c/as.c"/>
       <arg value="${COMMON}/c/cmutils.c"/>
       <arg value="${COMMON}/c/collections.c"/>
       <arg value="${COMMON}/c/crossmemory.c"/>
@@ -41,11 +42,14 @@
       <arg value="${COMMON}/c/metalio.c"/>
       <arg value="${COMMON}/c/mtlskt.c"/>
       <arg value="${COMMON}/c/nametoken.c"/>
+      <arg value="${COMMON}/c/pause-element.c"/>
+      <arg value="${COMMON}/c/pc.c"/>
       <arg value="${COMMON}/c/qsam.c"/>
       <arg value="${COMMON}/c/radmin.c"/>
       <arg value="${COMMON}/c/recovery.c"/>
       <arg value="${COMMON}/c/resmgr.c"/>
       <arg value="${COMMON}/c/scheduling.c"/>
+      <arg value="${COMMON}/c/shrmem64.c"/>
       <arg value="${COMMON}/c/stcbase.c"/>
       <arg value="${COMMON}/c/timeutls.c"/>
       <arg value="${COMMON}/c/utils.c"/>
@@ -63,15 +67,12 @@
       <arg value="${ZSS}/c/zis/services/tssparsing.c"/>
       <arg value="${ZSS}/c/zis/services/secmgmttss.c"/>
       <arg value="${ZSS}/c/zis/services/secmgmtUtils.c"/>
-      <arg value="${ZSS}/zis-aux/src/as.c"/>
-      <arg value="${ZSS}/zis-aux/src/pc.c"/>
       <arg value="${ZSS}/zis-aux/src/aux-utils.c"/>
-      <arg value="${ZSS}/zis-aux/src/pause-element.c"/>
-      <arg value="${ZSS}/zis-aux/src/shrmem64.c"/>
       <arg value="${ZSS}/zis-aux/src/aux-host.c"/>
     </exec> 
 
     <antcall target="assemble"><param name="file" value="alloc"/></antcall>
+    <antcall target="assemble"><param name="file" value="as"/></antcall>
     <antcall target="assemble"><param name="file" value="cmutils"/></antcall>
     <antcall target="assemble"><param name="file" value="collections"/></antcall>
     <antcall target="assemble"><param name="file" value="crossmemory"/></antcall>
@@ -82,11 +83,14 @@
     <antcall target="assemble"><param name="file" value="metalio"/></antcall>
     <antcall target="assemble"><param name="file" value="mtlskt"/></antcall>
     <antcall target="assemble"><param name="file" value="nametoken"/></antcall>
+    <antcall target="assemble"><param name="file" value="pause-element"/></antcall>
+    <antcall target="assemble"><param name="file" value="pc"/></antcall>
     <antcall target="assemble"><param name="file" value="qsam"/></antcall>
     <antcall target="assemble"><param name="file" value="radmin"/></antcall>
     <antcall target="assemble"><param name="file" value="recovery"/></antcall>
     <antcall target="assemble"><param name="file" value="resmgr"/></antcall>
     <antcall target="assemble"><param name="file" value="scheduling"/></antcall>
+    <antcall target="assemble"><param name="file" value="shrmem64"/></antcall>
     <antcall target="assemble"><param name="file" value="stcbase"/></antcall>
     <antcall target="assemble"><param name="file" value="timeutls"/></antcall>
     <antcall target="assemble"><param name="file" value="utils"/></antcall>
@@ -111,11 +115,7 @@
     <antcall target="assemble"><param name="file" value="secmgmttss"/></antcall>
     <antcall target="assemble"><param name="file" value="secmgmtUtils"/></antcall>
 
-    <antcall target="assemble"><param name="file" value="as"/></antcall>
-    <antcall target="assemble"><param name="file" value="pc"/></antcall>
     <antcall target="assemble"><param name="file" value="aux-utils"/></antcall>
-    <antcall target="assemble"><param name="file" value="pause-element"/></antcall>
-    <antcall target="assemble"><param name="file" value="shrmem64"/></antcall>
     <antcall target="assemble"><param name="file" value="aux-host"/></antcall>
 
     <exec executable="ld" dir="${TMPDIR}" failonerror="true" output="${TMPDIR}/ZWESIS01.link">
@@ -162,6 +162,7 @@
       <arg line="-V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus"/>
       <arg line="-e main -o &quot;//&apos;${env.USER}.DEV.LOADLIB(ZWESAUX)&apos;&quot;"/>
       <arg value="alloc.o"/>
+      <arg value="as.o"/>
       <arg value="cmutils.o"/>
       <arg value="collections.o"/>
       <arg value="crossmemory.o"/>
@@ -172,11 +173,13 @@
       <arg value="metalio.o"/>
       <arg value="mtlskt.o"/>
       <arg value="nametoken.o"/>
+      <arg value="pause-element.o"/>
       <arg value="pc.o"/>
       <arg value="qsam.o"/>
       <arg value="recovery.o"/>
       <arg value="resmgr.o"/>
       <arg value="scheduling.o"/>
+      <arg value="shrmem64.o"/>
       <arg value="stcbase.o"/>
       <arg value="timeutls.o"/>
       <arg value="utils.o"/>
@@ -184,10 +187,7 @@
       <arg value="zos.o"/>
       <arg value="zvt.o"/>
       <arg value="parm.o"/>
-      <arg value="as.o"/>
       <arg value="aux-utils.o"/>
-      <arg value="pause-element.o"/>
-      <arg value="shrmem64.o"/>
       <arg value="aux-host.o"/>
     </exec>
 

@@ -25,17 +25,17 @@
 #endif
 
 #include "zowetypes.h"
+#include "as.h"
 #include "collections.h"
 #include "cmutils.h"
 #include "crossmemory.h"
 #include "pc.h"
+#include "shrmem64.h"
 #include "zos.h"
 
-#include "as.h"
 #include "aux-host.h"
 #include "aux-utils.h"
 #include "aux-manager.h"
-#include "shrmem64.h"
 
 #define STOKEN_MAP_BACKBONE 257
 #define NICKNAME_MAP_BACKBONE 257

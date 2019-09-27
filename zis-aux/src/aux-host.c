@@ -20,11 +20,13 @@
 
 #include "zowetypes.h"
 #include "alloc.h"
+#include "as.h"
 #include "le.h"
 #include "logging.h"
 #include "metalio.h"
 #include "pc.h"
 #include "qsam.h"
+#include "shrmem64.h"
 #include "stcbase.h"
 #include "utils.h"
 #include "recovery.h"
@@ -35,11 +37,9 @@
 #include "zis/message.h"
 #include "zis/parm.h"
 
-#include "as.h"
 #include "aux-guest.h"
 #include "aux-host.h"
 #include "aux-utils.h"
-#include "shrmem64.h"
 
 #ifndef _LP64
 #error LP64 is supported only

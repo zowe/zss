@@ -20,10 +20,10 @@ xlc "-Wa,goff" \
 -o ../bin/shrmem64-test \
 $ZSSAUX/test/utils/src/shrmem64-test.c \
 $COMMON/c/alloc.c \
+$COMMON/c/shrmem64.c \
 $COMMON/c/utils.c \
 $COMMON/c/timeutls.c \
-$COMMON/c/zos.c \
-$ZSSAUX/src/shrmem64.c ; extattr +a ../bin/shrmem64-test
+$COMMON/c/zos.c ; extattr +a ../bin/shrmem64-test
 
 xlc "-Wa,goff" -DSHRMEM64_TEST_TARGET \
 "-Wc,LANGLVL(EXTC99),FLOAT(HEX),agg,exp,list(),so(),goff,xref,gonum,roconst,gonum,ASM,ASMLIB('SYS1.MACLIB'),LP64,XPLINK" \
@@ -31,10 +31,10 @@ xlc "-Wa,goff" -DSHRMEM64_TEST_TARGET \
 -o ../bin/shrmem64-target-test \
 $ZSSAUX/test/utils/src/shrmem64-test.c \
 $COMMON/c/alloc.c \
+$COMMON/c/shrmem64.c \
 $COMMON/c/utils.c \
 $COMMON/c/timeutls.c \
-$COMMON/c/zos.c \
-$ZSSAUX/src/shrmem64.c ; extattr +a ../bin/shrmem64-target-test
+$COMMON/c/zos.c ; extattr +a ../bin/shrmem64-target-test
 
 # Pause element
 
@@ -44,10 +44,10 @@ xlc "-Wa,goff" -DAS_TEST \
 -o ../bin/pe-test \
 $ZSSAUX/test/utils/src/pe-test.c \
 $COMMON/c/alloc.c \
+$COMMON/c/pause-element.c \
 $COMMON/c/utils.c \
 $COMMON/c/timeutls.c \
 $COMMON/c/zos.c \
-$ZSSAUX/src/pause-element.c
 
 # PC (program call)
 
@@ -57,10 +57,10 @@ xlc "-Wa,goff" -DAS_TEST \
 -o ../bin/pc-test \
 $ZSSAUX/test/utils/src/pc-test.c \
 $COMMON/c/alloc.c \
+$COMMON/c/pc.c \
 $COMMON/c/utils.c \
 $COMMON/c/timeutls.c \
-$COMMON/c/zos.c \
-$ZSSAUX/src/pc.c ; extattr +a ../bin/pc-test
+$COMMON/c/zos.c ; extattr +a ../bin/pc-test
 
 # This program and the accompanying materials are
 # made available under the terms of the Eclipse Public License v2.0 which accompanies

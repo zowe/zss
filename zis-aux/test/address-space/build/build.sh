@@ -16,8 +16,9 @@ mkdir ../bin 2>/dev/null
 xlc "-Wa,goff" -DAS_TEST \
 "-Wc,LANGLVL(EXTC99),FLOAT(HEX),agg,exp,list(),so(),goff,xref,gonum,roconst,gonum,ASM,ASMLIB('SYS1.MACLIB'),LP64,XPLINK" \
 "-Wl,ac=1" -I $COMMON/h -I $ZSSAUX/src -I $ZSSAUX/include -o ../bin/master \
-$ZSSAUX/test/address-space/src/master.c $COMMON/c/alloc.c $COMMON/c/utils.c \
-$COMMON/c/timeutls.c $COMMON/c/zos.c $ZSSAUX/src/as.c ; extattr +a ../bin/master
+$ZSSAUX/test/address-space/src/master.c $COMMON/c/alloc.c $COMMON/c/as.c \
+$COMMON/c/utils.c $COMMON/c/timeutls.c $COMMON/c/zos.c \
+; extattr +a ../bin/master
 
 # Build target
 
@@ -32,22 +33,22 @@ LDFLAGS=(-V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus)
 
 xlc "${CFLAGS[@]}" -DCMS_CLIENT \
 $COMMON/c/alloc.c \
+$COMMON/c/as.c \
 $COMMON/c/metalio.c \
 $COMMON/c/qsam.c \
 $COMMON/c/timeutls.c \
 $COMMON/c/utils.c \
 $COMMON/c/zos.c \
-$ZSSAUX/src/as.c \
 $ZSSAUX/test/address-space/src/target.c \
 $ZSSAUX/test/address-space/src/termexit.c \
 
 as "${ASFLAGS[@]}" -aegimrsx=alloc.asm alloc.s
+as "${ASFLAGS[@]}" -aegimrsx=as.asm as.s
 as "${ASFLAGS[@]}" -aegimrsx=metalio.asm metalio.s
 as "${ASFLAGS[@]}" -aegimrsx=qsam.asm qsam.s
 as "${ASFLAGS[@]}" -aegimrsx=timeutls.asm timeutls.s
 as "${ASFLAGS[@]}" -aegimrsx=utils.asm utils.s
 as "${ASFLAGS[@]}" -aegimrsx=zos.asm zos.s
-as "${ASFLAGS[@]}" -aegimrsx=as.asm as.s
 as "${ASFLAGS[@]}" -aegimrsx=target.asm target.s
 as "${ASFLAGS[@]}" -aegimrsx=termexit.asm termexit.s
 
@@ -56,24 +57,24 @@ export _LD_SYSLIB="//'SYS1.CSSLIB'://'CEE.SCEELKEX'://'CEE.SCEELKED'://'CEE.SCEE
 ld "${LDFLAGS[@]}" -e main \
 -o "//'$USER.DEV.LOADLIB(ASTARGET)'" \
 alloc.o \
+as.o \
 metalio.o \
 qsam.o \
 timeutls.o \
 utils.o \
 zos.o \
-as.o \
 target.o \
 > ASTARGET.link
 
 ld "${LDFLAGS[@]}" -e main \
 -o ../bin/termexit \
 alloc.o \
+as.o \
 metalio.o \
 qsam.o \
 timeutls.o \
 utils.o \
 zos.o \
-as.o \
 termexit.o \
 > TERMEXIT.link
 
