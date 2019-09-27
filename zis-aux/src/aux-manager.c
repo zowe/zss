@@ -216,6 +216,7 @@ int zisauxMgrStartGuest(ZISAUXManager *mgr,
 
  commArea->stoken = asCreateResult.stoken;
  commArea->ascb = asCreateResult.ascb;
+ commArea->parentASID = getASCB()->ascbasid;
 
  return RC_ZISAUX_OK;
 }

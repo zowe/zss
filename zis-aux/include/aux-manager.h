@@ -55,6 +55,8 @@ typedef struct ZISAUXCommArea_tag {
   int32_t termECB;
   uint64_t stoken;
   ASCB * __ptr32 ascb;
+  uint16_t parentASID;
+  char reserved0[2];
 } ZISAUXCommArea;
 
 typedef struct ZISAUXNickname_tag {
@@ -199,5 +201,6 @@ int zisauxMgrWaitForTerm(ZISAUXManager *mgr,
 #define RC_ZISAUX_SHR64_ERROR             40
 #define RC_ZISAUX_BUFFER_TOO_SMALL        41
 #define RC_ZISAUX_NOT_MANAGER_TCB         42
+#define RC_ZISAUX_CALLER_NOT_RECOGNIZED   43
 
 #endif /* SRC_AUX_MANAGER_H_ */

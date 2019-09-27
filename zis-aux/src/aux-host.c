@@ -611,6 +611,37 @@ static int scheduleCommRequestProcessing(ZISAUXContext *context,
   return status;
 }
 
+static unsigned short getSASN(void) {
+
+  unsigned short sasn = 0;
+  __asm(
+      ASM_PREFIX
+      "         LA    %0,0                                                     \n"
+      "         ESAR  %0                                                       \n"
+      : "=r"(sasn)
+      :
+      :
+  );
+
+  return sasn;
+}
+
+static bool isCallerParentServer(ZISAUXContext *context) {
+
+  /*
+   * Check 2 cases:
+   *  - ZIS    -> AUX
+   *  - Client -> ZIS -> AUX
+   *  In both cases, SASN should be the ASID of the parent address space, i.e.
+   *  ZIS.
+   */
+  if (context->masterCommArea->parentASID == getSASN()) {
+    return true;
+  }
+
+  return false;
+}
+
 static int handleUnsafePCSS(AUXPCParmList *parmList) {
 
   if (!isAUXPCParmListValid(parmList)) {
@@ -620,6 +651,10 @@ static int handleUnsafePCSS(AUXPCParmList *parmList) {
   ZISAUXContext *context = parmList->latentParmList->parm1;
   if (!isAUXContextValid(context)) {
     return RC_ZISAUX_COMM_AREA_INVALID;
+  }
+
+  if (!isCallerParentServer(context)) {
+    return RC_ZISAUX_CALLER_NOT_RECOGNIZED;
   }
 
   ZISAUXCommServiceParmList *serviceParmList = parmList->serviceParmList;
