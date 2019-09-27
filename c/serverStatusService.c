@@ -41,22 +41,26 @@
 #include "serverStatusService.h"
 
 #ifdef __ZOWE_OS_ZOS
+
 static int serveStatus(HttpService *service, HttpResponse *response);
+
+static inline bool strne(const char *a, const char *b) { 
+  return a != NULL && b != NULL && strcmp(a, b) != 0;
+}
 
 typedef int EXSMFI(int *reqType, int *recType, int *subType,
                    char* buffer, int *bufferLen, int *cpuUtil,
                    int *dpRate, int *options, int *mvs, int *zaap, int *ziip);
 EXSMFI *smfFunc;
 
-void installServerStatusService(HttpServer *server, JsonObject *serverSettings, char* productVer)
-{
+void installServerStatusService(HttpServer *server, JsonObject *serverSettings, char* productVer) {
   HttpService *httpService = makeGeneratedService("Server_Status_Service", "/server/agent/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = &serveStatus;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   ServerAgentContext *context = (ServerAgentContext*)safeMalloc(sizeof(ServerAgentContext), "ServerAgentContext");
-  if(context != NULL){
+  if (context != NULL) {
     context->serverConfig = serverSettings;
     context->productVersion[sizeof(context->productVersion) - 1] = '\0';
     strncpy(context->productVersion, productVer, sizeof(context->productVersion) - 1);
@@ -65,7 +69,7 @@ void installServerStatusService(HttpServer *server, JsonObject *serverSettings, 
   registerHttpService(server, httpService);
 }
 
-void respondWithServerConfig(HttpResponse *response, JsonObject* config){
+int respondWithServerConfig(HttpResponse *response, JsonObject* config) {
   jsonPrinter *out = respondWithJsonPrinter(response);
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
@@ -76,9 +80,10 @@ void respondWithServerConfig(HttpResponse *response, JsonObject* config){
   jsonEndObject(out);
   jsonEnd(out);
   finishResponse(response);
+  return 0;
 }
 
-void respondWithServerRoutes(HttpResponse *response){
+int respondWithServerRoutes(HttpResponse *response) {
   jsonPrinter *out = respondWithJsonPrinter(response);
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
@@ -108,26 +113,28 @@ void respondWithServerRoutes(HttpResponse *response){
   jsonEndArray(out);
   jsonEnd(out);
   finishResponse(response);
+  return 0;
 }
 
-void respondWithLogLevels(HttpResponse *response, ServerAgentContext *context){
+int respondWithLogLevels(HttpResponse *response, ServerAgentContext *context) {
   jsonPrinter *out = respondWithJsonPrinter(response);
   JsonObject *logLevels = jsonObjectGetObject(context->serverConfig, "logLevels");
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(out);
-  if(logLevels){
+  if (logLevels) {
     jsonPrintObject(out, logLevels);
   }
   jsonEnd(out);
   finishResponse(response);
+  return 0;
 }
 
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 256
 #endif
-void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *context){
+int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *context) {
   /*Information about parameters for smf_unc: https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.erbb700/smfp.htm#smfp*/
   extern char **environ;
   struct utsname unameRet;
@@ -142,9 +149,9 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   uname(&unameRet);
   gethostname(hostnameBuffer, sizeof(hostnameBuffer));
   buffer = (char *)safeMalloc(bufferlen, "buffer");
-  if(buffer == NULL){
+  if (buffer == NULL) {
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to allocate resources");
-    return;
+    return -1;
   }
   memset(buffer, 0, bufferlen);
   smfFunc = (EXSMFI *)fetch("ERBSMFI");
@@ -160,10 +167,10 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
                &zaapUtil,
                &ziipUtil);
   safeFree(buffer, bufferlen);
-  if(rc > 0){
+  if (rc > 0) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Unable to fetch from RMF data interface service");
     printf("Failed to fetch RMF data, RC = %d\n", rc);
-    return;
+    return -1;
   }
   time_t ltime;
   char tstamp[50];
@@ -173,13 +180,13 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(out);
-  if(ctime_r(&ltime, tstamp) != NULL){
-    if(tstamp[strlen(tstamp) - 1] != '\0'){
+  if (ctime_r(&ltime, tstamp) != NULL) {
+    if (tstamp[strlen(tstamp) - 1] != '\0') {
       tstamp[strlen(tstamp) - 1] = '\0';
     }
     jsonAddString(out, "timestamp", tstamp);
   }
-  if(getenv("ZSS_LOG_FILE") != NULL){
+  if (getenv("ZSS_LOG_FILE") != NULL) {
     jsonAddString(out, "logDirectory", getenv("ZSS_LOG_FILE"));
   } else {
     jsonAddString(out, "logDirectory", "ZSS_LOG_FILE not defined in environment variables");
@@ -196,13 +203,13 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   char *envVar = *environ;
   for (int i = 1; envVar; i++) {
     char *equalSign = strchr(envVar, '=');
-    if(equalSign == NULL){
+    if (equalSign == NULL) {
       break;
     }
     int nameLen = strlen(envVar) - strlen(equalSign);
     int nameBufferLen = nameLen + 1;
     char *name = safeMalloc(nameBufferLen, "env_var name");
-    if(name == NULL){
+    if (name == NULL) {
       break;
     }
     memcpy(name, envVar, nameLen);
@@ -221,6 +228,7 @@ void respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *co
   jsonAddInt(out, "PPID", getppid());
   jsonEnd(out);
   finishResponse(response);
+  return 0;
 }
 
 static int serveStatus(HttpService *service, HttpResponse *response) {
@@ -230,28 +238,32 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
   //sensitive URL that only RBAC authorized users should be able to access
   JsonObject *dataserviceAuth = jsonObjectGetObject(context->serverConfig, "dataserviceAuthentication");
   int rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
-  if(!rbacParm){
+  if (!rbacParm) {
      respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Set dataserviceAuthentication.rbac to true in server configuration");
+     return -1;
   } else {
-    if(!strcmp(request->method, methodGET)){
+    if (!strcmp(request->method, methodGET)) {
       char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
-      if(!strcmp(l1, "")){
-        respondWithServerRoutes(response);
-      }else if (!strcmp(l1, "config")){
-        respondWithServerConfig(response, context->serverConfig);
-      }else if (!strcmp(l1, "log")) {
+      if (!strcmp(l1, "")) {
+        return respondWithServerRoutes(response);
+      } else if (!strcmp(l1, "config")) {
+        return respondWithServerConfig(response, context->serverConfig);
+      } else if (!strcmp(l1, "log")) {
         char* logDir = getenv("ZSS_LOG_FILE");
-        if(logDir == NULL || strcmp(logDir, "")){
+        if (strne(logDir, "")) {
           respondWithUnixFile2(NULL, response, logDir, 0, 0, false);
+          return 0;
         } else {
            respondWithError(response, HTTP_STATUS_NOT_FOUND, "Log not found");
+           return -1;
         }
-      }else if (!strcmp(l1, "logLevels")){
-        respondWithLogLevels(response, context);
-      }else if (!strcmp(l1, "environment")){
-        respondWithServerEnvironment(response, context);
+      } else if (!strcmp(l1, "logLevels")) {
+        return respondWithLogLevels(response, context);
+      } else if (!strcmp(l1, "environment")) {
+        return respondWithServerEnvironment(response, context);
       } else {
         respondWithJsonError(response, "Invalid path", 400, "Bad Request");
+        return -1;
       }
     } else {
       jsonPrinter *out = respondWithJsonPrinter(response);
@@ -264,6 +276,7 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
       jsonStart(out);
       jsonEnd(out);
       finishResponse(response);
+      return -1;
     }
   }
   return 0;
