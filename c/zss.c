@@ -678,7 +678,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
   return webPluginListHead;
 }
 
-static const char defaultConfigPath[] = "../deploy/instance/ZLUX/serverConfig/zluxserver.json";
+static const char defaultConfigPath[] = "../deploy/instance/ZLUX/serverConfig/server.json";
 
 static
 void checkAndSetVariable(JsonObject *mvdSettings,
@@ -965,7 +965,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
 
 int main(int argc, char **argv){
   if (argc == 1) { 
-    printf("Usage: zssServer <path to zssServer.json or zluxServer.json file>\n");
+    printf("Usage: zssServer <path to server.json file>\n");
     return 8;
   }
 
@@ -986,7 +986,6 @@ int main(int argc, char **argv){
   const char *serverConfigFile;
   int returnCode = 0;
   int reasonCode = 0;
-  char rootDir[COMMON_PATH_MAX];
   char productDir[COMMON_PATH_MAX];
   char siteDir[COMMON_PATH_MAX];
   char instanceDir[COMMON_PATH_MAX];
@@ -1011,7 +1010,6 @@ int main(int argc, char **argv){
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
   if (mvdSettings) {
     /* Hmm - most of these aren't used, at least here. */
-    checkAndSetVariable(mvdSettings, "rootDir", rootDir, COMMON_PATH_MAX);
     checkAndSetVariable(mvdSettings, "productDir", productDir, COMMON_PATH_MAX);
     checkAndSetVariable(mvdSettings, "siteDir", siteDir, COMMON_PATH_MAX);
     checkAndSetVariable(mvdSettings, "instanceDir", instanceDir, COMMON_PATH_MAX);
