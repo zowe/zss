@@ -19,9 +19,12 @@
 /*** Common security structs and definitions ***/
 
 #define ZIS_SECURITY_CLASS_MAX_LENGTH       8
-#define ZIS_SECURITY_PROFILE_MAX_LENGTH     246
+#define ZIS_SECURITY_PROFILE_MAX_LENGTH     255 /* 246->255: Top Secret has a max profile of 255 and needs to use this struct. */
 #define ZIS_SECURITY_GROUP_MAX_LENGTH       8
 #define ZIS_USER_ID_MAX_LENGTH              8
+
+#define ZIS_PARMLIB_PARM_SECMGMT_USER_CLASS   CMS_PROD_ID".SECMGMT.CLASS"
+#define ZIS_PARMLIB_PARM_SECMGMT_AUTORESFRESH CMS_PROD_ID".SECMGMT.AUTOREFRESH"
 
 typedef struct SAFStatus_tag {
   int safRC;
@@ -62,7 +65,7 @@ ZOWE_PRAGMA_PACK
 typedef struct ZISUserProfileEntry_tag {
   char userID[8];
   char defaultGroup[8];
-  char name[20];
+  char name[32]; /* 20->32: Top Secret has a max name of 32 and needs to use this struct. */
 } ZISUserProfileEntry;
 
 typedef struct ZISUserProfileServiceParmList_tag {
@@ -91,6 +94,7 @@ ZOWE_PRAGMA_PACK_RESET
 #pragma map(zisUserProfilesServiceFunction, "ZISSXUPR")
 int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                    CrossMemoryService *service, void *parm);
+int validateUserProfileParmList(ZISUserProfileServiceParmList *parm);
 
 #define RC_ZIS_UPRFSRV_OK                         0
 #define RC_ZIS_UPRFSRV_PARMLIST_NULL              8
@@ -101,7 +105,8 @@ int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
 #define RC_ZIS_UPRFSRV_IMPERSONATION_MISSING      13
 #define RC_ZIS_UPRFSRV_INTERNAL_SERVICE_FAILED    14
 #define RC_ZIS_UPRFSRV_ALLOC_FAILED               15
-#define RC_ZIS_UPRFSRV_MAX_RC                     15
+#define RC_ZIS_UPRFSRV_UNSUPPORTED_ESM            16
+#define RC_ZIS_UPRFSRV_MAX_RC                     16
 
 /*** Genres profile service ***/
 
@@ -141,6 +146,7 @@ ZOWE_PRAGMA_PACK_RESET
 #pragma map(zisGenresProfilesServiceFunction, "ZISSXGRP")
 int zisGenresProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                      CrossMemoryService *service, void *parm);
+int validateGenresProfileParmList(ZISGenresProfileServiceParmList *parm);
 
 #define RC_ZIS_GRPRFSRV_OK                        0
 #define RC_ZIS_GRPRFSRV_PARMLIST_NULL             8
@@ -153,7 +159,8 @@ int zisGenresProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
 #define RC_ZIS_GRPRFSRV_INTERNAL_SERVICE_FAILED   16
 #define RC_ZIS_GRPRFSRV_ALLOC_FAILED              17
 #define RC_ZIS_GRPRFSRV_USER_CLASS_NOT_READ       18
-#define RC_ZIS_GRPRFSRV_MAX_RC                    18
+#define RC_ZIS_GRPRFSRV_UNSUPPORTED_ESM           19
+#define RC_ZIS_GRPRFSRV_MAX_RC                    19
 
 /*** General resource access list service ***/
 
@@ -194,6 +201,7 @@ ZOWE_PRAGMA_PACK_RESET
 #pragma map(zisGenresAccessListServiceFunction, "ZISSXGAL")
 int zisGenresAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                        CrossMemoryService *service, void *parm);
+int validateGenresAccessListParmList(ZISGenresAccessListServiceParmList *parm);
 
 #define RC_ZIS_ACSLSRV_OK                         0
 #define RC_ZIS_ACSLSRV_PARMLIST_NULL              8
@@ -206,7 +214,8 @@ int zisGenresAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
 #define RC_ZIS_ACSLSRV_INTERNAL_SERVICE_FAILED    15
 #define RC_ZIS_ACSLSRV_INSUFFICIENT_SPACE         16
 #define RC_ZIS_ACSLSRV_USER_CLASS_NOT_READ        17
-#define RC_ZIS_ACSLSRV_MAX_RC                     17
+#define RC_ZIS_ACSLSRV_UNSUPPORTED_ESM            18
+#define RC_ZIS_ACSLSRV_MAX_RC                     18
 
 /*** General resource profile administration service ***/
 
@@ -229,7 +238,8 @@ typedef enum ZISGenresAdminServiceAccessType_tag {
   ZIS_GENRES_ADMIN_ACESS_TYPE_READ = 0,
   ZIS_GENRES_ADMIN_ACESS_TYPE_UPDATE = 1,
   ZIS_GENRES_ADMIN_ACESS_TYPE_ALTER = 2,
-  ZIS_GENRES_ADMIN_ACESS_TYPE_MAX = 2,
+  ZIS_GENRES_ADMIN_ACESS_TYPE_ALL = 3, /* Top Secret doesn't have alter. */
+  ZIS_GENRES_ADMIN_ACESS_TYPE_MAX = 3,
 } ZISGenresAdminServiceAccessType;
 
 #pragma enum(reset)
@@ -276,6 +286,7 @@ ZOWE_PRAGMA_PACK_RESET
 #pragma map(zisGenresProfileAdminServiceFunction, "ZISSXPAA")
 int zisGenresProfileAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                          CrossMemoryService *service, void *parm);
+int validateGenresParmList(ZISGenresAdminServiceParmList *parmList);
 
 #define RC_ZIS_GSADMNSRV_OK                       0
 #define RC_ZIS_GSADMNSRV_PARMLIST_NULL            8
@@ -293,7 +304,8 @@ int zisGenresProfileAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea
 #define RC_ZIS_GSADMNSRV_USER_CLASS_NOT_READ      20
 #define RC_ZIS_GSADMNSRV_AUTOREFRESH_NOT_READ     21
 #define RC_ZIS_GSADMNSRV_OWNER_TOO_LONG           22
-#define RC_ZIS_GSADMNSRV_MAX_RC                   22
+#define RC_ZIS_GSADMNSRV_UNSUPPORTED_ESM          23
+#define RC_ZIS_GSADMNSRV_MAX_RC                   23
 
 /*** Group profile service ***/
 
@@ -333,6 +345,7 @@ ZOWE_PRAGMA_PACK_RESET
 #pragma map(zisGroupProfilesServiceFunction, "ZISSXGPP")
 int zisGroupProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                     CrossMemoryService *service, void *parm);
+int validateGroupProfileParmList(ZISGroupProfileServiceParmList *parm);
 
 #define RC_ZIS_GPPRFSRV_OK                        0
 #define RC_ZIS_GPPRFSRV_PARMLIST_NULL             8
@@ -343,6 +356,7 @@ int zisGroupProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
 #define RC_ZIS_GPPRFSRV_IMPERSONATION_MISSING     13
 #define RC_ZIS_GPPRFSRV_INTERNAL_SERVICE_FAILED   14
 #define RC_ZIS_GPPRFSRV_ALLOC_FAILED              15
+#define RC_ZIS_GPPRFSRV_UNSUPPORTED_ESM           16
 #define RC_ZIS_GPPRFSRV_MAX_RC                    16
 
 /*** Group access list service ***/
@@ -384,6 +398,7 @@ ZOWE_PRAGMA_PACK_RESET
 #pragma map(zisGroupAccessListServiceFunction, "ZISSXGPA")
 int zisGroupAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                       CrossMemoryService *service, void *parm);
+int validateGroupAccessListParmList(ZISGroupAccessListServiceParmList *parm);
 
 #define RC_ZIS_GRPALSRV_OK                        0
 #define RC_ZIS_GRPALSRV_PARMLIST_NULL             8
@@ -394,7 +409,8 @@ int zisGroupAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
 #define RC_ZIS_GRPALSRV_ALLOC_FAILED              13
 #define RC_ZIS_GRPALSRV_INTERNAL_SERVICE_FAILED   14
 #define RC_ZIS_GRPALSRV_INSUFFICIENT_SPACE        15
-#define RC_ZIS_GRPALSRV_MAX_RC                    15
+#define RC_ZIS_GRPALSRV_UNSUPPORTED_ESM           16
+#define RC_ZIS_GRPALSRV_MAX_RC                    16
 
 /*** Group administration service ***/
 
@@ -467,6 +483,7 @@ ZOWE_PRAGMA_PACK_RESET
 #pragma map(zisGroupAdminServiceFunction, "ZISSXPGA")
 int zisGroupAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                  CrossMemoryService *service, void *parm);
+int validateGroupParmList(ZISGroupAdminServiceParmList *parmList);
 
 #define RC_ZIS_GRPASRV_OK                         0
 #define RC_ZIS_GRPASRV_PARMLIST_NULL              8
@@ -483,7 +500,8 @@ int zisGroupAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea,
 #define RC_ZIS_GRPASRV_USER_CLASS_TOO_LONG        19
 #define RC_ZIS_GRPASRV_USER_CLASS_NOT_READ        20
 #define RC_ZIS_GRPASRV_AUTOREFRESH_NOT_READ       21
-#define RC_ZIS_GRPASRV_MAX_RC                     21
+#define RC_ZIS_GRPASRV_UNSUPPORTED_ESM            22
+#define RC_ZIS_GRPASRV_MAX_RC                     22
 
 #endif /* ZIS_SERVICES_SECMGMT_H_ */
 
