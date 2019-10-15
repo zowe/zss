@@ -70,6 +70,7 @@
 #include "unixFileService.h"
 #include "omvsService.h"
 #include "datasetService.h"
+#include "serverStatusService.h"
 
 #include "jwt.h"
 
@@ -247,7 +248,7 @@ int serveLogoutByRemovingSessionToken(HttpService *service, HttpResponse *respon
   addStringHeader(response, "Pragma", "no-cache");
   
   /* Remove the session token when the user wants to log out */
-  addStringHeader(response,"Set-Cookie","jedHTTPSession=non-token");
+  addStringHeader(response,"Set-Cookie","jedHTTPSession=non-token; Path=/; HttpOnly");
   response->sessionCookie = "non-token";
   writeHeader(response);
 
@@ -1054,6 +1055,7 @@ int main(int argc, char **argv){
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);
+      installServerStatusService(server, MVD_SETTINGS, productVersion);
 #endif
       installLoginService(server);
       installLogoutService(server);
