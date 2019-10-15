@@ -704,13 +704,13 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
     respondWithUnixFileContentsWithAutocvtMode(NULL, response, routeFileName, TRUE, 0);
   }
   else if (!strcmp(request->method, methodDELETE)) {
-	if (doesFileExist(routeFileName) == 1) {
-		if (isDir(routeFileName) == 1) {
-			deleteUnixDirectoryAndRespond(response, routeFileName);
-		}
-		else {
-			deleteUnixFileAndRespond(response, routeFileName);
-		}
+    if (doesFileExist(routeFileName) == TRUE) {
+	  if (isDir(routeFileName) == TRUE) {
+		deleteUnixDirectoryAndRespond(response, routeFileName);
+	  }
+	  else {
+		deleteUnixFileAndRespond(response, routeFileName);
+	  }
 	}
 	else {
       respondWithUnixFileNotFound(response, 1);
@@ -754,13 +754,13 @@ static int serveUnixFileCopy(HttpService *service, HttpResponse *response) {
   }
 
   if (!strcmp(request->method, methodPOST)) {
-	if (doesFileExist(routeFileName) == 1) {
-		if (isDir(routeFileName) == 1) {
-			copyUnixDirectoryAndRespond(response, routeFileName, newName, force);
-		}
-		else {
-			copyUnixFileAndRespond(response, routeFileName, newName, force);
-		}
+	if (doesFileExist(routeFileName) == TRUE) {
+	  if (isDir(routeFileName) == TRUE) {
+	    copyUnixDirectoryAndRespond(response, routeFileName, newName, force);
+	  }
+	  else {
+	    copyUnixFileAndRespond(response, routeFileName, newName, force);
+	  }
 	}
 	else {
       respondWithUnixFileNotFound(response, 1);
@@ -802,13 +802,13 @@ static int serveUnixFileRename(HttpService *service, HttpResponse *response) {
   }
 
   if (!strcmp(request->method, methodPOST)) {
-	if (doesFileExist(routeFileName) == 1) {
-		if (isDir(routeFileName) == 1) {
-			renameUnixDirectoryAndRespond(response, routeFileName, newName, force);
-		}
-		else {
-			renameUnixFileAndRespond(response, routeFileName, newName, force);
-		}
+	if (doesFileExist(routeFileName) == TRUE) {
+	  if (isDir(routeFileName) == TRUE) {
+	    renameUnixDirectoryAndRespond(response, routeFileName, newName, force);
+	  }
+	  else {
+	    renameUnixFileAndRespond(response, routeFileName, newName, force);
+	  }
 	}
 	else {
       respondWithUnixFileNotFound(response, 1);
