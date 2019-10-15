@@ -704,8 +704,8 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
     respondWithUnixFileContentsWithAutocvtMode(NULL, response, routeFileName, TRUE, 0);
   }
   else if (!strcmp(request->method, methodDELETE)) {
-    if (doesFileExist(routeFileName) == TRUE) {
-	  if (isDir(routeFileName) == TRUE) {
+    if (doesFileExist(routeFileName) == true) {
+	  if (isDir(routeFileName) == true) {
 		deleteUnixDirectoryAndRespond(response, routeFileName);
 	  }
 	  else {
@@ -754,8 +754,8 @@ static int serveUnixFileCopy(HttpService *service, HttpResponse *response) {
   }
 
   if (!strcmp(request->method, methodPOST)) {
-	if (doesFileExist(routeFileName) == TRUE) {
-	  if (isDir(routeFileName) == TRUE) {
+	if (doesFileExist(routeFileName) == true) {
+	  if (isDir(routeFileName) == true) {
 	    copyUnixDirectoryAndRespond(response, routeFileName, newName, force);
 	  }
 	  else {
@@ -802,8 +802,8 @@ static int serveUnixFileRename(HttpService *service, HttpResponse *response) {
   }
 
   if (!strcmp(request->method, methodPOST)) {
-	if (doesFileExist(routeFileName) == TRUE) {
-	  if (isDir(routeFileName) == TRUE) {
+	if (doesFileExist(routeFileName) == true) {
+	  if (isDir(routeFileName) == true) {
 	    renameUnixDirectoryAndRespond(response, routeFileName, newName, force);
 	  }
 	  else {
