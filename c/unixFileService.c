@@ -50,7 +50,7 @@ typedef struct UploadSession_tag {
   unsigned int sessionID;
   int targetCCSID;
   int sourceCCSID;
- enum TransferType tType;
+  enum TransferType tType;
   char userName[9];
 } UploadSession;
 
@@ -712,7 +712,7 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
         deleteUnixFileAndRespond(response, routeFileName);
       }
     }
-  else {
+    else {
       respondWithUnixFileNotFound(response, 1);
     }
   }
@@ -754,15 +754,15 @@ static int serveUnixFileCopy(HttpService *service, HttpResponse *response) {
   }
 
   if (!strcmp(request->method, methodPOST)) {
-	if (doesFileExist(routeFileName) == true) {
-	  if (isDir(routeFileName) == true) {
-	    copyUnixDirectoryAndRespond(response, routeFileName, newName, force);
-	  }
-	  else {
-	    copyUnixFileAndRespond(response, routeFileName, newName, force);
-	  }
-	}
-	else {
+    if (doesFileExist(routeFileName) == true) {
+      if (isDir(routeFileName) == true) {
+        copyUnixDirectoryAndRespond(response, routeFileName, newName, force);
+      }
+      else {
+        copyUnixFileAndRespond(response, routeFileName, newName, force);
+      }
+    }
+    else {
       respondWithUnixFileNotFound(response, 1);
     }
   }
@@ -802,15 +802,15 @@ static int serveUnixFileRename(HttpService *service, HttpResponse *response) {
   }
 
   if (!strcmp(request->method, methodPOST)) {
-	if (doesFileExist(routeFileName) == true) {
-	  if (isDir(routeFileName) == true) {
-	    renameUnixDirectoryAndRespond(response, routeFileName, newName, force);
-	  }
-	  else {
-	    renameUnixFileAndRespond(response, routeFileName, newName, force);
-	  }
-	}
-	else {
+    if (doesFileExist(routeFileName) == true) {
+      if (isDir(routeFileName) == true) {
+        renameUnixDirectoryAndRespond(response, routeFileName, newName, force);
+      }
+      else {
+        renameUnixFileAndRespond(response, routeFileName, newName, force);
+      }
+    }
+    else {
       respondWithUnixFileNotFound(response, 1);
     }
   }
