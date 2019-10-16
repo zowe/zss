@@ -50,7 +50,7 @@ typedef struct UploadSession_tag {
   unsigned int sessionID;
   int targetCCSID;
   int sourceCCSID;
-  enum TransferType tType;
+ enum TransferType tType;
   char userName[9];
 } UploadSession;
 
@@ -712,7 +712,7 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
         deleteUnixFileAndRespond(response, routeFileName);
       }
     }
-    else {
+  else {
       respondWithUnixFileNotFound(response, 1);
     }
   }
