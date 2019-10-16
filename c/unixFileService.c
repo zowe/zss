@@ -705,14 +705,14 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
   }
   else if (!strcmp(request->method, methodDELETE)) {
     if (doesFileExist(routeFileName) == true) {
-	  if (isDir(routeFileName) == true) {
-		deleteUnixDirectoryAndRespond(response, routeFileName);
-	  }
-	  else {
-		deleteUnixFileAndRespond(response, routeFileName);
-	  }
-	}
-	else {
+      if (isDir(routeFileName) == true) {
+        deleteUnixDirectoryAndRespond(response, routeFileName);
+      }
+      else {
+        deleteUnixFileAndRespond(response, routeFileName);
+      }
+    }
+    else {
       respondWithUnixFileNotFound(response, 1);
     }
   }
