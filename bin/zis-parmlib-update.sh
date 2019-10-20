@@ -62,9 +62,8 @@ resolve_env_parameter() {
   parm=$1
 
   # Are we dealing with an env variable based value?
-  echo $parm | grep -E "^[$]{1}[A-Z0-9_]+$" 1>/dev/null
   # Yes, resolve the value using eval, otherwise return the value itself.
-  if [ $? -eq 0 ]; then
+  if echo $parm | grep -q -E "^[$]{1}[A-Z0-9_]+$"; then
     ( eval "echo $parm" 2>/dev/null )
     if [ $? -ne 0 ]; then
       echo "VALUE_NOT_FOUND"
@@ -105,11 +104,11 @@ add_key_value_parm_to_parmlib() {(
   key_value="$parm_key=$parm_value"
   parm_file_updated="$parm_file"_updated
 
+  # Trap all errors in this subshell.
+  trap "exit 8" ERR
+
   # Make a temp file for sed.
   touch $parm_file_updated
-  if [ $? -ne 0 ]; then
-    exit 8
-  fi
 
   # Make sure the temporary file produced by sed is removed.
   trap "rm $parm_file_updated" EXIT
@@ -117,34 +116,29 @@ add_key_value_parm_to_parmlib() {(
   echo "info: adding/updaing $parm_key with value $parm_value"
 
   # Try to find the key in our parameter file.
-  grep "^[[:blank:]]*$parm_key=" $parm_file 1>/dev/null
-
   # Does the key already exist? If yes, subtitute the value.
-  if [ $? -eq 0 ]; then
+  if grep -q "^[[:blank:]]*$parm_key=" $parm_file; then
 
     echo "info: parameter $parm_key found, updating its value"
 
     sed -E "s/(^[[:blank:]]*)$parm_key=(.*$)/$key_value/g" \
       $parm_file > $parm_file_updated
-    if [ $? -ne 0 ]; then
-      exit 8
-    fi
 
     # Copy the updated file. Make sure the cp knows it's text and does the
     # correct conversion.
     cp -T -O u $parm_file_updated $parm_file
-    if [ $? -ne 0 ]; then
+
+  else
+
+    # If $?=1, the key is new, add it to the parameter file, otherwise leave
+    # due to a grep error.
+    if [ $? -eq 1 ]; then
+      echo "info: parameter $parm_key not found, adding it as a new value"
+      echo $key_value >> $parm_file
+    else
       exit 8
     fi
 
-  # The key is new, add it to the parameter file.
-  elif [ $? -eq 1 ]; then
-
-    echo "info: parameter $parm_key not found, adding it as a new value"
-    echo $key_value >> $parm_file
-
-  else
-    exit 8
   fi
 
   exit 0
@@ -201,7 +195,7 @@ update_parmlib() {(
   # Generate a name for the temporary PARMLIB file.
   TEMP_PARMLIB_MEMBER=$(make_temp_filename)
 
-  # Setup out exit handler.
+  # Setup our exit handler.
   trap "handle_update_parmlib_exit" EXIT
 
   # Copy the ZIS PARMLIB member to a temporary file.
