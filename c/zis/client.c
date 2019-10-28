@@ -1169,6 +1169,7 @@ int zisCallNWMService(const CrossMemoryServerName *serverName,
 static int zisCallServiceInternal(const CrossMemoryServerName *serverName,
                                   const ZISServicePath *path, void *parm,
                                   unsigned int version,
+                                  bool noSAFCheck,
                                   ZISServiceStatus *status) {
 
   if (status == NULL) {
@@ -1217,8 +1218,14 @@ static int zisCallServiceInternal(const CrossMemoryServerName *serverName,
   routerParmList.targetServiceParm = parm;
   routerParmList.serviceVersion = version;
 
+  int cmsFlags = CMS_CALL_FLAG_NONE;
+  if (noSAFCheck) {
+    cmsFlags = CMS_CALL_FLAG_NO_SAF_CHECK;
+  }
+
   int routerRC = 0;
-  int cmsRC = cmsCallService2(cmsGA, routerServiceID, &routerParmList, &routerRC);
+  int cmsRC = cmsCallService3(cmsGA, routerServiceID, &routerParmList,
+                              cmsFlags, &routerRC);
 
   if (cmsRC != RC_CMS_OK) {
     status->cmsRC = cmsRC;
@@ -1239,8 +1246,19 @@ int zisCallService(const CrossMemoryServerName *serverName,
 
   return zisCallServiceInternal(serverName, path, parm,
                                 ZIS_SERVICE_ANY_VERSION,
+                                false,
                                 status);
 
+}
+
+int zisCallServiceUnchecked(const CrossMemoryServerName *serverName,
+                            const ZISServicePath *path, void *parm,
+                            ZISServiceStatus *status) {
+
+  return zisCallServiceInternal(serverName, path, parm,
+                                ZIS_SERVICE_ANY_VERSION,
+                                true,
+                                status);
 }
 
 int zisCallVersionedService(const CrossMemoryServerName *serverName,
@@ -1248,7 +1266,7 @@ int zisCallVersionedService(const CrossMemoryServerName *serverName,
                             unsigned int version,
                             ZISServiceStatus *status) {
 
-  return zisCallServiceInternal(serverName, path, parm, version, status);
+  return zisCallServiceInternal(serverName, path, parm, version, false, status);
 
 }
 

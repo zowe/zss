@@ -400,8 +400,7 @@ static int callPluginTerm(ZISContext *context, ZISPlugin *plugin,
         int termRC = plugin->term(context, plugin, anchor);
         if (termRC != RC_ZIS_OK) {
           zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
-                  ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in '%16.16s' term "
-                  "RC = %d",
+                  ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in term RC = %d",
                   plugin->name.text, termRC);
           status = RC_ZIS_ERROR;
         }
@@ -453,7 +452,7 @@ static int callServiceInit(ZISContext *context, ZISPlugin *plugin,
 
     } else {
       zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
-              ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" service %16.16s' init failed, "
+              ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" service '%16.16s' init failed, "
               "ABEND S%03X-%02X (recovery RC = %d)",
               plugin->name.text, service->name.text, abendInfo.completionCode,
               abendInfo.reasonCode, recoveryRC);
