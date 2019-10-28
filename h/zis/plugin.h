@@ -125,7 +125,7 @@ ZISPlugin *zisCreatePlugin(ZISPluginName name,
                            ZISPuginInitFunction *initFunction,
                            ZISPuginInitFunction *termFunction,
                            ZISPuginModifyCommandFunction *commandFunction,
-                           unsigned int verison,
+                           unsigned int version,
                            unsigned int serviceCount,
                            int flags);
 

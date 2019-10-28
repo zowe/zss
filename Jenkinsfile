@@ -160,7 +160,8 @@ withCredentials([usernamePassword(
                     cd ${buildDir} &&
                     mkdir LOADLIB &&
                     mkdir SAMPLIB &&
-                    cp "//DEV.LOADLIB(ZWESIS01)" LOADLIB/ZWESIS01  &&
+                    cp -X "//DEV.LOADLIB(ZWESIS01)" LOADLIB/ZWESIS01  &&
+                    cp -X "//DEV.LOADLIB(ZWESAUX)" LOADLIB/ZWESAUX  &&
                     cp zss/samplib/zis/* SAMPLIB/  &&
                     cp zss/bin/zssServer ./  &&
                     extattr +p zssServer &&
