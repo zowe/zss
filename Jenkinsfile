@@ -50,8 +50,16 @@ node("ibm-jenkins-slave-nvm") {
         }
     )
 
+    pipeline.test(
+        name              : "Smoke",
+        operation         : {
+            echo "Test will happen in pre-packaging"
+        },
+        allowMissingJunit : true
+    )
+
     // define we need packaging stage, which processed in .pax folder
-    pipeline.packaging(name: 'zss')
+    pipeline.packaging(name: 'zss', paxOptions: '-x os390')
 
     // define we need publish stage
     pipeline.publish(
