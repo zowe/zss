@@ -21,7 +21,7 @@ export STEPLIB=CBC.SCCNCMP
 
 # build
 echo "$SCRIPT_NAME build zss ..."
-cd build && ${ANT_HOME}/bin/ant
+cd "$SCRIPT_DIR/content/build" && ${ANT_HOME}/bin/ant
 
 # clean up content folder
 echo "$SCRIPT_NAME cleaning up pax folder ..."
