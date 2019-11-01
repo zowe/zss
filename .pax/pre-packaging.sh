@@ -13,7 +13,7 @@ set -x
 
 # contants
 SCRIPT_NAME=$(basename "$0")
-SCRIPT_DIR=$(dirname "$0")
+SCRIPT_DIR=$(pwd)
 # these are folders on build server
 export JAVA_HOME=/usr/lpp/java/J8.0_64
 export ANT_HOME=/ZOWE/apache-ant-1.10.5
@@ -30,7 +30,7 @@ mv content bak && mkdir -p content
 
 # move real files to the content folder
 echo "$SCRIPT_NAME coping files should be in pax ..."
-cd content
+cd "$SCRIPT_DIR/content"
 mkdir LOADLIB SAMPLIB &&
   cp -X "//DEV.LOADLIB(ZWESIS01)" LOADLIB/ZWESIS01  &&
   cp -X "//DEV.LOADLIB(ZWESAUX)" LOADLIB/ZWESAUX  &&
