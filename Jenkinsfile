@@ -19,20 +19,6 @@ node("ibm-jenkins-slave-nvm") {
 
     pipeline.setup(
         packageName: 'org.zowe.zss',
-        github: [
-            email                      : lib.Constants.DEFAULT_GITHUB_ROBOT_EMAIL,
-            usernamePasswordCredential : lib.Constants.DEFAULT_GITHUB_ROBOT_CREDENTIAL,
-        ],
-        artifactory: [
-            url                        : lib.Constants.DEFAULT_ARTIFACTORY_URL,
-            usernamePasswordCredential : lib.Constants.DEFAULT_ARTIFACTORY_ROBOT_CREDENTIAL,
-        ],
-        pax: [
-            sshHost                    : lib.Constants.DEFAULT_PAX_PACKAGING_SSH_HOST,
-            sshPort                    : lib.Constants.DEFAULT_PAX_PACKAGING_SSH_PORT,
-            sshCredential              : lib.Constants.DEFAULT_PAX_PACKAGING_SSH_CREDENTIAL,
-            remoteWorkspace            : lib.Constants.DEFAULT_PAX_PACKAGING_REMOTE_WORKSPACE,
-        ],
         extraInit: {
             def version = [
                 sh(script: "cat build/version.properties | grep PRODUCT_MAJOR_VERSION | awk -F= '{print \$2};'", returnStdout: true).trim(),
@@ -50,19 +36,12 @@ node("ibm-jenkins-slave-nvm") {
         }
     )
 
-    pipeline.test(
-        name              : "Smoke",
-        operation         : {
-            echo "Test will happen in pre-packaging"
-        },
-        allowMissingJunit : true
-    )
-
     // define we need packaging stage, which processed in .pax folder
     pipeline.packaging(name: 'zss', paxOptions: '-x os390')
 
     // define we need publish stage
     pipeline.publish(
+        allowPublishWithoutTest: true,
         artifacts: [
             '.pax/zss.pax',
         ]
