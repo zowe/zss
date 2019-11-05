@@ -153,6 +153,15 @@ static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response
     fflush(stdout);
     updateVSAMDataset(response, filename, cache->acbTable, TRUE);
   }
+  else if (!strcmp(request->method, methodDELETE)) {
+    char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
+    char *percentDecoded = cleanURLParamValue(response->slh, l1);
+    char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
+    char *filename = stringConcatenate(response->slh, filenamep1, "'");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Deleting if exists: %s\n", filename);
+    fflush(stdout);
+    deleteVSAMDataset(response, filename);
+  }
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Returning from serveVSAMdatasetcontents\n");
   return 0;
