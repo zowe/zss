@@ -160,7 +160,7 @@ static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Deleting if exists: %s\n", filename);
     fflush(stdout);
-	deleteVSAMDataset(response, filename);
+    deleteVSAMDataset(response, filename);
   }
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Returning from serveVSAMdatasetcontents\n");
