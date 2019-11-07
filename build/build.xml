@@ -15,9 +15,8 @@
   <record name="build.log" loglevel="info"/>
   
   <property environment="env"/>
-  <property name="capstone" location="../../"/>
-  <property name="COMMON" value="${capstone}/zss/deps/zowe-common-c"/>
-  <property name="ZSS" value="${capstone}/zss"/>
+  <property name="COMMON" value="../../deps/zowe-common-c"/>
+  <property name="ZSS" value="../.."/>
 
   <target name="zis" description="Compile for ZSS Cross-Memory Server">
     <ant antfile="zis.xml" dir="."/>
