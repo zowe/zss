@@ -186,6 +186,11 @@ void installDatasetMetadataService(HttpServer *server) {
   registerHttpService(server, httpService);
 }
 
+void installDatasetWritingService(HttpServer *server) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Installing dataset writing service\n");
+  HttpService *httpService = makeGeneratedService("writeDataset", "/writeDataset/**");
+}
+
 #endif /* __ZOWE_OS_ZOS */
 
 
