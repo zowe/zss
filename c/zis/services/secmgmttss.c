@@ -2984,6 +2984,11 @@ int zisGenresProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
         &radminStatus
     );
     
+    if (radminExtractRC != RC_RADMIN_OK) {
+      CMS_DEBUG2(globalArea, traceLevel, "Error retrieving profiles...\n");
+      break;
+    }
+    
     if (startProfileNullTerm == NULL) {
       CMS_DEBUG2(globalArea, traceLevel, "No start profile was specified...\n");
       break; /* We aren't starting from a specific profile, so just return everything. */
