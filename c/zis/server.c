@@ -68,6 +68,9 @@ See details in the ZSS Cross Memory Server installation guide
 #define ZIS_PARM_COLD_START                   "COLD"
 #define ZIS_PARM_DEBUG_MODE                   "DEBUG"
 
+#define ZIS_PARM_CHECKAUTH                    CMS_PROD_ID".CHECKAUTH"
+  #define ZIS_PARM_CHECKAUTH_VALUE_ON           "YES"
+
 #define ZIS_PARMLIB_PARM_SERVER_NAME          CMS_PROD_ID".NAME"
 
 static int zisRouteService(struct CrossMemoryServerGlobalArea_tag *globalArea,
@@ -1221,6 +1224,11 @@ static int getCMSConfigFlags(const ZISParmSet *zisParms) {
   const char *debugValue = zisGetParmValue(zisParms, ZIS_PARM_DEBUG_MODE);
   if (coldStartValue && strlen(coldStartValue) == 0) {
     flags |= CMS_SERVER_FLAG_DEBUG;
+  }
+
+  const char *checkAuthValue = zisGetParmValue(zisParms, ZIS_PARM_CHECKAUTH);
+  if (checkAuthValue && !strcmp(checkAuthValue, ZIS_PARM_CHECKAUTH_VALUE_ON)) {
+    flags |= CMS_SERVER_FLAG_CHECKAUTH;
   }
 
   return flags;
