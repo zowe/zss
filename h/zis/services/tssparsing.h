@@ -16,7 +16,12 @@
 #define TSS_KEY_DELIMITER " = "
 #define TSS_KEY_DELIMITER_LEN 3
 
-#define TSS_ADMIN_INDICATOR "-SC"
+#define TSS_ADMIN_INDICATOR_MASTER "-MS"
+#define TSS_ADMIN_INDICATOR_CENTRAL "-SC"
+#define TSS_ADMIN_INDICATOR_LSCA "-LC"
+#define TSS_ADMIN_INDICATOR_ZCA "-ZC"
+#define TSS_ADMIN_INDICATOR_VCA "-VC"
+#define TSS_ADMIN_INDICATOR_DCA "-DC"
 #define TSS_ADMIN_INDICATOR_LEN 3
 
 #define TSS_MAX_KEY_LENGTH 10
@@ -40,6 +45,7 @@
 #define TSS_ACID_KEY                    "ACID("
 #define TSS_ACCESS_KEY                  "ACCESS"
 #define TSS_ACIDS_KEY                   "ACIDS"
+#define TSS_PROFILE_KEY                 "PROFILES"
 
 /* Stores information about a specific
  * key.
