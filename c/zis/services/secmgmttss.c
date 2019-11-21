@@ -2583,6 +2583,7 @@ typedef struct TSSGenresProfileParms_t {
   int startIndex;
   bool reachedEndOfOutput;
   TSSLogData *logData;
+  bool extractGeneric;
 } TSSGenresProfileParms;
 
 /* Iterates through the tmpResultBuffer (ZISGenresProfileEntry array) to check for a duplicate
@@ -2781,15 +2782,16 @@ static int genresProfileHandler(RadminAPIStatus status, const RadminCommandOutpu
           
           memcpy(currOwner, currentLine->text+ownerIndex+6, sizeof(currOwner));
           padWithSpaces(currOwner, sizeof(currOwner), 1, 1);
-
-          if (!isDuplicateProfile(buffer, entry.profile, sizeof(entry.profile), numExtracted)) {
-            ZISGenresProfileEntry *p = &buffer[numExtracted++];
-            memset(p, 0, sizeof(*p));
-            
-            memcpy(p->owner, currOwner, sizeof(currOwner));
-            memcpy(p->profile, entry.profile, sizeof(p->profile));
-            
-            memset(&entry, 0, sizeof(ZISGenresProfileEntry));
+          if (parms->extractGeneric) {
+            if (!isDuplicateProfile(buffer, entry.profile, sizeof(entry.profile), numExtracted)) {
+              ZISGenresProfileEntry *p = &buffer[numExtracted++];
+              memset(p, 0, sizeof(*p));
+              
+              memcpy(p->owner, currOwner, sizeof(currOwner));
+              memcpy(p->profile, entry.profile, sizeof(p->profile));
+              
+              memset(&entry, 0, sizeof(ZISGenresProfileEntry));
+            }
           }
         }
         else {        
@@ -2965,93 +2967,127 @@ int zisGenresProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
     .profilesToExtract = localParmList.profilesToExtract,
     .className = classNullTerm,
     .lineData = &lineData,
-    .logData = &logData
+    .logData = &logData,
+    .extractGeneric = TRUE
   };
   
+  bool searchByPrefix = FALSE;
+  if (startProfileNullTerm) {
+    if (startProfileNullTerm[strlen(startProfileNullTerm) - 1] == '.') {
+      searchByPrefix = TRUE;
+      parms.extractGeneric = FALSE;
+    }
+  }
   
-  bool isProfileFound = FALSE;
-  int foundAt = -1;
-  do {
-#define TSS_EXTRACT_PROFILE_CMD_MAX_LEN 33  /* Class - 8, Data - 10, Rest of command - 15 */
-    char extractGenresProfileCommand[TSS_EXTRACT_PROFILE_CMD_MAX_LEN + 1] = {0};
-    snprintf(extractGenresProfileCommand, sizeof(extractGenresProfileCommand), "TSS WHOH %s(*) DATA(MASK)", classNullTerm);
-         
+  /* This won't work with pagination at this time. We should expect unintended results,
+   * if we extract more than a thousand and need to get more. I'm not sure if any consumers
+   * are currently dealing with this situation, since one-thousand profiles are a lot to
+   * have in one class to begin with. I determine prefixing with a ".".
+   */
+  if (searchByPrefix) {
+#define TSS_EXTRACT_PREFIX_PROFILE_CMD_MAX_LEN 289
+    char extractGenresProfileCommand[TSS_EXTRACT_PREFIX_PROFILE_CMD_MAX_LEN + 1] = {0};
+    snprintf(extractGenresProfileCommand, sizeof(extractGenresProfileCommand), "TSS WHOH %s(%s) DATA(NOPREFIX)", classNullTerm, startProfileNullTerm);
+    
     radminExtractRC = radminRunRACFCommand(
-        authInfo,
-        extractGenresProfileCommand,
-        genresProfileHandler,
-        &parms,
-        &radminStatus
+          authInfo,
+          extractGenresProfileCommand,
+          genresProfileHandler,
+          &parms,
+          &radminStatus
     );
-    
-    if (startProfileNullTerm == NULL) {
-      CMS_DEBUG2(globalArea, traceLevel, "No start profile was specified...\n");
-      break; /* We aren't starting from a specific profile, so just return everything. */
-    }
-       
-    if (!isProfileFound) {
-      isProfileFound = findStartProfile(tmpResultBuffer, parms.profilesExtracted, startProfileNullTerm, &foundAt);
+  }
+  /* This will work with pagination and just extracts all the profiles in the current class.
+   * It also extracts generic profiles.
+   */
+  else {
+    bool isProfileFound = FALSE;
+    int foundAt = -1;
+    do {
+#define TSS_EXTRACT_PROFILE_CMD_MAX_LEN 33  /* Class - 8, Data - 10, Rest of command - 15 */
+      char extractGenresProfileCommand[TSS_EXTRACT_PROFILE_CMD_MAX_LEN + 1] = {0};
+      snprintf(extractGenresProfileCommand, sizeof(extractGenresProfileCommand), "TSS WHOH %s(*) DATA(MASK)", classNullTerm);
+           
+      radminExtractRC = radminRunRACFCommand(
+          authInfo,
+          extractGenresProfileCommand,
+          genresProfileHandler,
+          &parms,
+          &radminStatus
+      );
+      
+      if (radminExtractRC != RC_RADMIN_OK) {
+        CMS_DEBUG2(globalArea, traceLevel, "Error retrieving profiles...\n");
+        break;
+      }
+      
+      if (startProfileNullTerm == NULL) {
+        CMS_DEBUG2(globalArea, traceLevel, "No start profile was specified...\n");
+        break; /* We aren't starting from a specific profile, so just return everything. */
+      }
+         
       if (!isProfileFound) {
-        CMS_DEBUG2(globalArea, traceLevel, "Profile was not found on current interation, clearing buffer...\n");
-        memset(tmpResultBuffer, 0, tmpResultBufferSize); /* We found nothing of value, just clear the array. */
+        isProfileFound = findStartProfile(tmpResultBuffer, parms.profilesExtracted, startProfileNullTerm, &foundAt);
+        if (!isProfileFound) {
+          CMS_DEBUG2(globalArea, traceLevel, "Profile was not found on current interation, clearing buffer...\n");
+          memset(tmpResultBuffer, 0, tmpResultBufferSize); /* We found nothing of value, just clear the array. */
+        }
+        
+        if (foundAt == 0) {
+          CMS_DEBUG2(globalArea, traceLevel, "Profile was found at index #0, nothing needs to be done...\n");
+          break; /* Nothing needs to be done. Just return the output. */
+        }
       }
       
-      if (foundAt == 0) {
-        CMS_DEBUG2(globalArea, traceLevel, "Profile was found at index #0, nothing needs to be done...\n");
-        break; /* Nothing needs to be done. Just return the output. */
-      }
-    }
-    
-    if (isProfileFound) {
-      CMS_DEBUG2(globalArea, traceLevel, "Profile was found at index #%d, shifting everything left...\n", foundAt);
-      
-      unsigned int validExtractedProfiles = parms.profilesExtracted - foundAt;
-      CMS_DEBUG2(globalArea, traceLevel, "The valid number of extracted profiles is %d...\n", validExtractedProfiles);
-              
-      if (foundAt != 0) {        
-        shiftProfileBufferLeft(tmpResultBuffer, validExtractedProfiles, foundAt);        
-        foundAt = 0; /* it will now always be index 0 */
+      if (isProfileFound) {
+        CMS_DEBUG2(globalArea, traceLevel, "Profile was found at index #%d, shifting everything left...\n", foundAt);
+        
+        unsigned int validExtractedProfiles = parms.profilesExtracted - foundAt;
+        CMS_DEBUG2(globalArea, traceLevel, "The valid number of extracted profiles is %d...\n", validExtractedProfiles);
+                
+        if (foundAt != 0) {        
+          shiftProfileBufferLeft(tmpResultBuffer, validExtractedProfiles, foundAt);        
+          foundAt = 0; /* it will now always be index 0 */
+        }
+        
+        if (parms.reachedEndOfOutput) {
+          CMS_DEBUG2(globalArea, traceLevel, "The end of the output has been reached...\n");
+          parms.profilesExtracted = validExtractedProfiles;
+          break; /* Just return the output. Everything has already been shifted. */
+        }
+        
+        if (validExtractedProfiles >= localParmList.profilesToExtract) {
+          CMS_DEBUG2(globalArea, traceLevel, "There are enough profiles left...\n");
+          parms.profilesExtracted = validExtractedProfiles;
+          break; /* Just return the output. Everything up to the requested count will be returned */
+        }
+        
+        if (validExtractedProfiles < localParmList.profilesToExtract) {
+          CMS_DEBUG2(globalArea, traceLevel, "Not enough profiles, looping again...\n");
+          parms.startIndex = validExtractedProfiles; /* Start at the index after the last valid profile. */
+        }
       }
       
       if (parms.reachedEndOfOutput) {
-        CMS_DEBUG2(globalArea, traceLevel, "The end of the output has been reached...\n");
-        parms.profilesExtracted = validExtractedProfiles;
-        break; /* Just return the output. Everything has already been shifted. */
+        CMS_DEBUG2(globalArea, traceLevel, "The start profile was not found...\n");
+        parms.profilesExtracted = 0; /* We didn't find the profile, so we should return an error. */
+        break;
       }
       
-      if (validExtractedProfiles >= localParmList.profilesToExtract) {
-        CMS_DEBUG2(globalArea, traceLevel, "There are enough profiles left...\n");
-        parms.profilesExtracted = validExtractedProfiles;
-        break; /* Just return the output. Everything up to the requested count will be returned */
-      }
-      
-      if (validExtractedProfiles < localParmList.profilesToExtract) {
-        CMS_DEBUG2(globalArea, traceLevel, "Not enough profiles, looping again...\n");
-        parms.startIndex = validExtractedProfiles; /* Start at the index after the last valid profile. */
-      }
-    }
-    
-    if (parms.reachedEndOfOutput) {
-      CMS_DEBUG2(globalArea, traceLevel, "The start profile was not found...\n");
-      parms.profilesExtracted = 0; /* We didn't find the profile, so we should return an error. */
-      break;
-    }
-    
-  } while (1);     
+    } while (1);
+  }  
   
   CMS_DEBUG2(globalArea, traceLevel,
              "Extracted %d genres profiles\n",
              parms.profilesExtracted);
   
-  /* Return some sort of error to prevent
-   * having an empty array. Note, even if having no profiles was correct,
-   * returning an empty array is not.
-   */ 
-  if (parms.profilesExtracted == 0 && radminExtractRC == RC_RADMIN_OK) {
-    CMS_DEBUG2(globalArea, traceLevel, "No genres profiles could be found...\n");
-    radminExtractRC = RC_RADMIN_NONZERO_USER_RC;
-  }
+  /* We used to return an error here if we had no profiles extracted, but
+   * the consensus is that it was bad behavior, so I will just return an empty array.
+   */
   
+  /* We need to make sure we have the right owner for each profile since we can't
+   * parse them all.
+   */
   if (radminExtractRC == RC_RADMIN_OK) {
     if (startProfileNullTerm) {
       CMS_DEBUG2(globalArea, traceLevel, "Assigning correct profile owners...\n");   
