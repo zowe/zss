@@ -1,5 +1,5 @@
 #!/bin/sh -e
-set -x
+set -xe
 
 ################################################################################
 # This program and the accompanying materials are made available under the terms of the
@@ -8,20 +8,17 @@ set -x
 #
 # SPDX-License-Identifier: EPL-2.0
 #
-# Copyright IBM Corporation 2018, 2019
+# Copyright Contributors to the Zowe Project.
 ################################################################################
+
 
 # contants
 SCRIPT_NAME=$(basename "$0")
 SCRIPT_DIR=$(pwd)
-# these are folders on build server
-export JAVA_HOME=/usr/lpp/java/J8.0_64
-export ANT_HOME=/ZOWE/apache-ant-1.10.5
-export STEPLIB=CBC.SCCNCMP
 
 # build
 echo "$SCRIPT_NAME build zss ..."
-cd "$SCRIPT_DIR/content/build" && ${ANT_HOME}/bin/ant
+STEPLIB=CBC.SCCNCMP "$SCRIPT_DIR/content/build/build.sh"
 
 # clean up content folder
 echo "$SCRIPT_NAME cleaning up pax folder ..."
@@ -31,9 +28,9 @@ mv content bak && mkdir -p content
 # move real files to the content folder
 echo "$SCRIPT_NAME coping files should be in pax ..."
 cd "$SCRIPT_DIR/content"
-mkdir LOADLIB SAMPLIB &&
-  cp -X "//DEV.LOADLIB(ZWESIS01)" LOADLIB/ZWESIS01  &&
-  cp -X "//DEV.LOADLIB(ZWESAUX)" LOADLIB/ZWESAUX  &&
-  cp ../bak/samplib/zis/* SAMPLIB/  &&
-  cp ../bak/bin/zssServer ./  &&
-  extattr +p zssServer
+mkdir LOADLIB SAMPLIB
+cp -X "//DEV.LOADLIB(ZWESIS01)" LOADLIB/ZWESIS01
+cp -X "//DEV.LOADLIB(ZWESAUX)" LOADLIB/ZWESAUX
+cp ../bak/samplib/zis/* SAMPLIB
+cp ../bak/bin/zssServer .
+extattr +p zssServer

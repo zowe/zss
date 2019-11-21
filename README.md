@@ -15,8 +15,7 @@ directory and run ant:
 
 ```
 git submodule update --init
-cd build
-ant
+./build/build.sh
 ``` 
 
 zssServer will be placed in the `bin` directory, the cross-memory server's load module will be placed 
