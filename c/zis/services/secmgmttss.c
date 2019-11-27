@@ -219,7 +219,7 @@ static unsigned int getAcidsInLine(const RadminVLText *currentLine, TSSAcidData 
   unsigned int acidCounter = 0;
   for (int i = 0; i < 4; i++) {
     char tmpBuffer[11] = {0}; /* Acid - 8, Admin Indicator - 3 */
-    
+
     /* Line can start with spaces. Make sure we get to the actual output. */
     for (int j = startPos; j < currentLine->length; j++) {
       if (currentLine->text[j] != ' ') {
@@ -227,42 +227,206 @@ static unsigned int getAcidsInLine(const RadminVLText *currentLine, TSSAcidData 
         break;
       }
     }
-    
+
     /* Check that we aren't going out of bounds. If we reach end of line,
      * copy up to that index.
      */
     int copySize = sizeof(tmpBuffer);
-    if (startPos + copySize > currentLine->length - 1) {
-      copySize = (currentLine->length - 1) - startPos;
+
+    if (startPos + copySize > currentLine->length) {
+      copySize = currentLine->length - startPos;
     }
-    
+
     if (copySize <= 0) {
       return acidCounter; /* Probably less than four acids on this line... */
     }
-                 
+
     memcpy(tmpBuffer, currentLine->text+startPos, copySize);
-    
+
     memcpy(data[i].acid, tmpBuffer, sizeof(data[i].acid));
+
     padWithSpaces(data[i].acid, sizeof(data[i].acid), 1, 1); /* All other values are padded with spaces. */
-      
-    int isAdmin = lastIndexOfString(tmpBuffer, sizeof(tmpBuffer), TSS_ADMIN_INDICATOR);
-    if (isAdmin == -1) {
-      data[i].isAdmin = FALSE;
+
+    const char *adminIndicators[] = { TSS_ADMIN_INDICATOR_MASTER, TSS_ADMIN_INDICATOR_CENTRAL,
+                                    TSS_ADMIN_INDICATOR_LSCA, TSS_ADMIN_INDICATOR_ZCA,
+                                    TSS_ADMIN_INDICATOR_VCA, TSS_ADMIN_INDICATOR_DCA };
+
+    data[i].isAdmin = FALSE;
+    for (int i = 0; i < sizeof(adminIndicators) / sizeof(adminIndicators[0]); i++) {
+      int adminIndex = lastIndexOfString(tmpBuffer, sizeof(tmpBuffer), (char*)adminIndicators[i]);
+      if (adminIndex != -1) {
+        data[i].isAdmin = TRUE;
+        break;
+      }
     }
-    else {
-      data[i].isAdmin = TRUE;
-    }
-   
+
 #define ACID_OFFSET 12
     startPos+=ACID_OFFSET; /* This is safe enough. */
     
     acidCounter++;
   }
-  
+
    CMS_DEBUG2(logData->globalArea, logData->traceLevel,
               "Returning %d acids...\n", acidCounter);
                
   return acidCounter;
+}
+
+
+typedef struct TSSCallerProfileParms_t {
+  bool extractGroups;
+  char *searchGroup;
+  bool isInGroup;
+
+  bool extractProfiles;
+  char *searchClass;
+  ZISGenresProfileEntry *profiles;
+  unsigned int profilesExtracted;
+  unsigned int profilesToExtract;
+  char *filterByPrefix;
+  char *filterByProfile;
+
+  TSSLogData *logData;
+} TSSCallerProfileParms;
+
+static int callerProfileHandler(RadminAPIStatus status, const RadminCommandOutput *result,
+                               void *userData) {
+  if (status.racfRC != 0) {
+    return -1;
+  }
+
+  TSSCallerProfileParms *parms = userData;
+  ZISGenresProfileEntry *buffer = parms->profiles;
+  TSSLogData *logData = parms->logData;
+  ZISGenresProfileEntry entry = {0};
+
+  const RadminCommandOutput *currentBlock = result;
+
+  if (currentBlock == NULL) {
+    CMS_DEBUG2(logData->globalArea, logData->traceLevel,
+               "No output was found in output message entry on first block...\n");
+    return 0;
+  }
+
+  const RadminVLText *currentLine = &currentBlock->firstMessageEntry;
+
+  /* Look for an obvious error before we start parsing.
+   * The output will look something like:
+   *
+   *  TSS{SOME NUMBERS}  {SOME MESSAGE}
+   *  TSS0301I  TSS      FUNCTION FAILED, RETURN CODE =  {SOME NUMBER}
+   */
+  bool errorDetected = tssIsErrorDetected(currentLine->text, currentLine->length);
+  if (errorDetected) {
+    CMS_DEBUG2(logData->globalArea, logData->traceLevel,
+               "Error detected!\n");
+    CMS_DEBUG2(logData->globalArea, logData->traceLevel,
+               "%.*s\n", currentLine->length, currentLine->text);
+    return -1;
+  }
+
+  bool foundStartProfile = FALSE;
+  unsigned int offsetInBlock = 16;
+  unsigned int numExtracted = 0;
+  do {
+  while (offsetInBlock < currentBlock->lastByteOffset) {
+    if (numExtracted == parms->profilesToExtract || tssIsOutputDone(currentLine->text, currentLine->length)) {
+      parms->profilesExtracted = numExtracted;
+      return 0;
+    }
+
+    TSSKeyData keys[TSS_MAX_NUM_OF_KEYS] = {0};
+
+    int numberOfKeys = tssParseLineForKeys(currentLine->text, currentLine->length, keys);
+    if (numberOfKeys == -1) {
+      /* In this case, print the line in question. */
+      CMS_DEBUG2(logData->globalArea, logData->traceLevel,
+                 "An invalid number of keys were detected on line: '"
+                 "%.*s'\n", currentLine->length, currentLine->text);
+      return -1;
+    }
+    else {
+      if (parms->extractGroups && !parms->isInGroup) {
+        int keyIndex = tssFindDesiredKey(TSS_PROFILE_KEY, keys);
+        if (keyIndex != -1) {
+          int groupIndex = lastIndexOfString((char*)currentLine->text, currentLine->length, parms->searchGroup);
+          if (groupIndex != -1) {
+            parms->isInGroup = TRUE;
+          }
+        }
+      }
+
+      if (parms->extractProfiles) {
+        char tmpKey[12] = {0};
+        snprintf(tmpKey, sizeof(tmpKey), "XA %s", parms->searchClass);
+
+        int keyIndex = tssFindDesiredKey(tmpKey, keys);
+        if (keyIndex != -1) {
+          int ownerIndex = lastIndexOfString((char*)currentLine->text, currentLine->length, TSS_OWNER_KEY);
+          if (ownerIndex != -1) {
+            char currOwner[ZIS_USER_ID_MAX_LENGTH] = {0};
+            memcpy(currOwner, currentLine->text+ownerIndex+6, sizeof(currOwner));
+            padWithSpaces(currOwner, sizeof(currOwner), 1, 1);
+
+            int status = tssFindValueForKey(currentLine->text, ownerIndex-1, keys,
+                                            keyIndex, numberOfKeys, entry.profile,
+                                            sizeof(entry.profile));
+            if (status != -1) {
+               if (parms->filterByPrefix) {
+                 if (!memcmp(entry.profile, parms->filterByPrefix, strlen(parms->filterByPrefix))) {
+                  CMS_DEBUG2(logData->globalArea, logData->traceLevel,
+                              "Found value with prefix!\n");
+                  ZISGenresProfileEntry *p = &buffer[numExtracted++];
+                  memset(p, 0, sizeof(*p));
+                  memcpy(p->profile, entry.profile, sizeof(p->profile));
+                  memcpy(p->owner, currOwner, sizeof(p->owner));
+                  memset(&entry, 0, sizeof(ZISGenresProfileEntry));
+                }
+              }
+              else if (parms->filterByProfile) {
+                if (!foundStartProfile) {
+                  if (!memcmp(entry.profile, parms->filterByProfile, strlen(parms->filterByProfile))) {
+                    ZISGenresProfileEntry *p = &buffer[numExtracted++];
+                    memset(p, 0, sizeof(*p));
+                    memcpy(p->profile, entry.profile, sizeof(p->profile));
+                    memcpy(p->owner, currOwner, sizeof(p->owner));
+                    memset(&entry, 0, sizeof(ZISGenresProfileEntry));
+                    foundStartProfile = TRUE;
+                  }
+                }
+                else {
+                  ZISGenresProfileEntry *p = &buffer[numExtracted++];
+                  memset(p, 0, sizeof(*p));
+                  memcpy(p->profile, entry.profile, sizeof(p->profile));
+                  memcpy(p->owner, currOwner, sizeof(p->owner));
+                  memset(&entry, 0, sizeof(ZISGenresProfileEntry));
+                }
+              }
+              else {
+                ZISGenresProfileEntry *p = &buffer[numExtracted++];
+                memset(p, 0, sizeof(*p));
+                memcpy(p->profile, entry.profile, sizeof(p->profile));
+                memcpy(p->owner, currOwner, sizeof(p->owner));
+                memset(&entry, 0, sizeof(ZISGenresProfileEntry));
+              }
+            }
+          }
+        }
+      }
+    }
+
+    offsetInBlock += currentLine->length + 2;
+    currentLine = (RadminVLText *)(currentLine->text + currentLine->length);
+  }
+
+  currentBlock = currentBlock->next;
+  if (currentBlock != NULL) {
+    currentLine = (RadminVLText *)&(currentBlock->firstMessageEntry);
+    offsetInBlock = 16;
+  }
+} while (currentBlock != NULL);
+
+  return 0;
 }
 
 
@@ -1616,27 +1780,27 @@ int zisGroupAccessListServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea
   if (tmpResultBuffer == NULL) {
     return RC_ZIS_GRPALSRV_ALLOC_FAILED;
   }
-  
+
   RadminStatus radminStatus = {0};
-  
+
   TSSLogData logData = {
     .globalArea = globalArea,
     .traceLevel = traceLevel
   };
-  
+
   TSSGroupAccessListParms parms = {
     .tmpResultBuffer = tmpResultBuffer,
     .logData = &logData,
     .entriesToExtract = localParmList.resultBufferCapacity,
   };
-  
+
   CMS_DEBUG2(globalArea, traceLevel, "ResultBufferCapacity: %d\n",
              localParmList.resultBufferCapacity);
              
 #define TSS_GRP_ACCESS_LIST_EXTR_MAX_LEN 30 /* ACID - 8, Rest of command - 22 */             
   char extractGroupAccessList[TSS_GRP_ACCESS_LIST_EXTR_MAX_LEN + 1] = {0};
   snprintf(extractGroupAccessList, sizeof(extractGroupAccessList), "TSS LIST(%s) DATA(ACIDS)", groupNameNullTerm);
-  
+
   radminExtractRC = radminRunRACFCommand(
       authInfo,
       extractGroupAccessList,
@@ -1644,6 +1808,43 @@ int zisGroupAccessListServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea
       &parms,
       &radminStatus
   );
+
+  if (radminExtractRC != RC_RADMIN_OK) {
+    CMS_DEBUG2(globalArea, traceLevel, "Attempting command with less privileges\n");
+
+    TSSCallerProfileParms callerParms = {
+      .extractGroups = TRUE,
+      .searchGroup = groupNameNullTerm,
+      .isInGroup = FALSE,
+      .extractProfiles = FALSE,
+      .profilesToExtract = localParmList.resultBufferCapacity,
+      .logData = &logData
+    };
+
+#define TSS_GRP_ACCESS_LIST_EXTR_CALLER_MAX_LEN 28
+    char extractGroupAccessListCaller[TSS_GRP_ACCESS_LIST_EXTR_CALLER_MAX_LEN + 1] = {0};
+    snprintf(extractGroupAccessListCaller, sizeof(extractGroupAccessListCaller), "TSS LIST(%.*s)", sizeof(caller.value), caller.value);
+
+    radminExtractRC = radminRunRACFCommand(
+      authInfo,
+      extractGroupAccessListCaller,
+      callerProfileHandler,
+      &callerParms,
+      &radminStatus
+    );
+
+    if (radminExtractRC == RC_RADMIN_OK) {
+      if (callerParms.isInGroup) {
+        parms.entriesFound = 1;
+        parms.entriesExtracted = 1;
+
+        ZISGroupAccessEntry *p = &tmpResultBuffer[0];
+        memset(p, 0, sizeof(*p));
+        memcpy(p->id, caller.value, sizeof(caller.value));
+        memcpy(p->accessType, "USE", sizeof(p->accessType));
+      }
+    }
+  }
 
   CMS_DEBUG2(globalArea, traceLevel, "Entries Extracted: %d\n",
              parms.entriesExtracted);
@@ -2583,6 +2784,7 @@ typedef struct TSSGenresProfileParms_t {
   int startIndex;
   bool reachedEndOfOutput;
   TSSLogData *logData;
+  bool extractGeneric;
 } TSSGenresProfileParms;
 
 /* Iterates through the tmpResultBuffer (ZISGenresProfileEntry array) to check for a duplicate
@@ -2781,15 +2983,16 @@ static int genresProfileHandler(RadminAPIStatus status, const RadminCommandOutpu
           
           memcpy(currOwner, currentLine->text+ownerIndex+6, sizeof(currOwner));
           padWithSpaces(currOwner, sizeof(currOwner), 1, 1);
-
-          if (!isDuplicateProfile(buffer, entry.profile, sizeof(entry.profile), numExtracted)) {
-            ZISGenresProfileEntry *p = &buffer[numExtracted++];
-            memset(p, 0, sizeof(*p));
-            
-            memcpy(p->owner, currOwner, sizeof(currOwner));
-            memcpy(p->profile, entry.profile, sizeof(p->profile));
-            
-            memset(&entry, 0, sizeof(ZISGenresProfileEntry));
+          if (parms->extractGeneric) {
+            if (!isDuplicateProfile(buffer, entry.profile, sizeof(entry.profile), numExtracted)) {
+              ZISGenresProfileEntry *p = &buffer[numExtracted++];
+              memset(p, 0, sizeof(*p));
+              
+              memcpy(p->owner, currOwner, sizeof(currOwner));
+              memcpy(p->profile, entry.profile, sizeof(p->profile));
+              
+              memset(&entry, 0, sizeof(ZISGenresProfileEntry));
+            }
           }
         }
         else {        
@@ -2965,93 +3168,127 @@ int zisGenresProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
     .profilesToExtract = localParmList.profilesToExtract,
     .className = classNullTerm,
     .lineData = &lineData,
-    .logData = &logData
+    .logData = &logData,
+    .extractGeneric = TRUE
   };
   
+  bool searchByPrefix = FALSE;
+  if (startProfileNullTerm) {
+    if (startProfileNullTerm[strlen(startProfileNullTerm) - 1] == '.') {
+      searchByPrefix = TRUE;
+      parms.extractGeneric = FALSE;
+    }
+  }
   
-  bool isProfileFound = FALSE;
-  int foundAt = -1;
-  do {
-#define TSS_EXTRACT_PROFILE_CMD_MAX_LEN 33  /* Class - 8, Data - 10, Rest of command - 15 */
-    char extractGenresProfileCommand[TSS_EXTRACT_PROFILE_CMD_MAX_LEN + 1] = {0};
-    snprintf(extractGenresProfileCommand, sizeof(extractGenresProfileCommand), "TSS WHOH %s(*) DATA(MASK)", classNullTerm);
-         
+  /* This won't work with pagination at this time. We should expect unintended results,
+   * if we extract more than a thousand and need to get more. I'm not sure if any consumers
+   * are currently dealing with this situation, since one-thousand profiles are a lot to
+   * have in one class to begin with. I determine prefixing with a ".".
+   */
+  if (searchByPrefix) {
+#define TSS_EXTRACT_PREFIX_PROFILE_CMD_MAX_LEN 289
+    char extractGenresProfileCommand[TSS_EXTRACT_PREFIX_PROFILE_CMD_MAX_LEN + 1] = {0};
+    snprintf(extractGenresProfileCommand, sizeof(extractGenresProfileCommand), "TSS WHOH %s(%s) DATA(NOPREFIX)", classNullTerm, startProfileNullTerm);
+    
     radminExtractRC = radminRunRACFCommand(
-        authInfo,
-        extractGenresProfileCommand,
-        genresProfileHandler,
-        &parms,
-        &radminStatus
+          authInfo,
+          extractGenresProfileCommand,
+          genresProfileHandler,
+          &parms,
+          &radminStatus
     );
-    
-    if (startProfileNullTerm == NULL) {
-      CMS_DEBUG2(globalArea, traceLevel, "No start profile was specified...\n");
-      break; /* We aren't starting from a specific profile, so just return everything. */
-    }
-       
-    if (!isProfileFound) {
-      isProfileFound = findStartProfile(tmpResultBuffer, parms.profilesExtracted, startProfileNullTerm, &foundAt);
+  }
+  /* This will work with pagination and just extracts all the profiles in the current class.
+   * It also extracts generic profiles.
+   */
+  else {
+    bool isProfileFound = FALSE;
+    int foundAt = -1;
+    do {
+#define TSS_EXTRACT_PROFILE_CMD_MAX_LEN 33  /* Class - 8, Data - 10, Rest of command - 15 */
+      char extractGenresProfileCommand[TSS_EXTRACT_PROFILE_CMD_MAX_LEN + 1] = {0};
+      snprintf(extractGenresProfileCommand, sizeof(extractGenresProfileCommand), "TSS WHOH %s(*) DATA(MASK)", classNullTerm);
+           
+      radminExtractRC = radminRunRACFCommand(
+          authInfo,
+          extractGenresProfileCommand,
+          genresProfileHandler,
+          &parms,
+          &radminStatus
+      );
+      
+      if (radminExtractRC != RC_RADMIN_OK) {
+        CMS_DEBUG2(globalArea, traceLevel, "Error retrieving profiles...\n");
+        break;
+      }
+      
+      if (startProfileNullTerm == NULL) {
+        CMS_DEBUG2(globalArea, traceLevel, "No start profile was specified...\n");
+        break; /* We aren't starting from a specific profile, so just return everything. */
+      }
+         
       if (!isProfileFound) {
-        CMS_DEBUG2(globalArea, traceLevel, "Profile was not found on current interation, clearing buffer...\n");
-        memset(tmpResultBuffer, 0, tmpResultBufferSize); /* We found nothing of value, just clear the array. */
+        isProfileFound = findStartProfile(tmpResultBuffer, parms.profilesExtracted, startProfileNullTerm, &foundAt);
+        if (!isProfileFound) {
+          CMS_DEBUG2(globalArea, traceLevel, "Profile was not found on current interation, clearing buffer...\n");
+          memset(tmpResultBuffer, 0, tmpResultBufferSize); /* We found nothing of value, just clear the array. */
+        }
+        
+        if (foundAt == 0) {
+          CMS_DEBUG2(globalArea, traceLevel, "Profile was found at index #0, nothing needs to be done...\n");
+          break; /* Nothing needs to be done. Just return the output. */
+        }
       }
       
-      if (foundAt == 0) {
-        CMS_DEBUG2(globalArea, traceLevel, "Profile was found at index #0, nothing needs to be done...\n");
-        break; /* Nothing needs to be done. Just return the output. */
-      }
-    }
-    
-    if (isProfileFound) {
-      CMS_DEBUG2(globalArea, traceLevel, "Profile was found at index #%d, shifting everything left...\n", foundAt);
-      
-      unsigned int validExtractedProfiles = parms.profilesExtracted - foundAt;
-      CMS_DEBUG2(globalArea, traceLevel, "The valid number of extracted profiles is %d...\n", validExtractedProfiles);
-              
-      if (foundAt != 0) {        
-        shiftProfileBufferLeft(tmpResultBuffer, validExtractedProfiles, foundAt);        
-        foundAt = 0; /* it will now always be index 0 */
+      if (isProfileFound) {
+        CMS_DEBUG2(globalArea, traceLevel, "Profile was found at index #%d, shifting everything left...\n", foundAt);
+        
+        unsigned int validExtractedProfiles = parms.profilesExtracted - foundAt;
+        CMS_DEBUG2(globalArea, traceLevel, "The valid number of extracted profiles is %d...\n", validExtractedProfiles);
+                
+        if (foundAt != 0) {        
+          shiftProfileBufferLeft(tmpResultBuffer, validExtractedProfiles, foundAt);        
+          foundAt = 0; /* it will now always be index 0 */
+        }
+        
+        if (parms.reachedEndOfOutput) {
+          CMS_DEBUG2(globalArea, traceLevel, "The end of the output has been reached...\n");
+          parms.profilesExtracted = validExtractedProfiles;
+          break; /* Just return the output. Everything has already been shifted. */
+        }
+        
+        if (validExtractedProfiles >= localParmList.profilesToExtract) {
+          CMS_DEBUG2(globalArea, traceLevel, "There are enough profiles left...\n");
+          parms.profilesExtracted = validExtractedProfiles;
+          break; /* Just return the output. Everything up to the requested count will be returned */
+        }
+        
+        if (validExtractedProfiles < localParmList.profilesToExtract) {
+          CMS_DEBUG2(globalArea, traceLevel, "Not enough profiles, looping again...\n");
+          parms.startIndex = validExtractedProfiles; /* Start at the index after the last valid profile. */
+        }
       }
       
       if (parms.reachedEndOfOutput) {
-        CMS_DEBUG2(globalArea, traceLevel, "The end of the output has been reached...\n");
-        parms.profilesExtracted = validExtractedProfiles;
-        break; /* Just return the output. Everything has already been shifted. */
+        CMS_DEBUG2(globalArea, traceLevel, "The start profile was not found...\n");
+        parms.profilesExtracted = 0; /* We didn't find the profile, so we should return an error. */
+        break;
       }
       
-      if (validExtractedProfiles >= localParmList.profilesToExtract) {
-        CMS_DEBUG2(globalArea, traceLevel, "There are enough profiles left...\n");
-        parms.profilesExtracted = validExtractedProfiles;
-        break; /* Just return the output. Everything up to the requested count will be returned */
-      }
-      
-      if (validExtractedProfiles < localParmList.profilesToExtract) {
-        CMS_DEBUG2(globalArea, traceLevel, "Not enough profiles, looping again...\n");
-        parms.startIndex = validExtractedProfiles; /* Start at the index after the last valid profile. */
-      }
-    }
-    
-    if (parms.reachedEndOfOutput) {
-      CMS_DEBUG2(globalArea, traceLevel, "The start profile was not found...\n");
-      parms.profilesExtracted = 0; /* We didn't find the profile, so we should return an error. */
-      break;
-    }
-    
-  } while (1);     
+    } while (1);
+  }  
   
   CMS_DEBUG2(globalArea, traceLevel,
              "Extracted %d genres profiles\n",
              parms.profilesExtracted);
   
-  /* Return some sort of error to prevent
-   * having an empty array. Note, even if having no profiles was correct,
-   * returning an empty array is not.
-   */ 
-  if (parms.profilesExtracted == 0 && radminExtractRC == RC_RADMIN_OK) {
-    CMS_DEBUG2(globalArea, traceLevel, "No genres profiles could be found...\n");
-    radminExtractRC = RC_RADMIN_NONZERO_USER_RC;
-  }
+  /* We used to return an error here if we had no profiles extracted, but
+   * the consensus is that it was bad behavior, so I will just return an empty array.
+   */
   
+  /* We need to make sure we have the right owner for each profile since we can't
+   * parse them all.
+   */
   if (radminExtractRC == RC_RADMIN_OK) {
     if (startProfileNullTerm) {
       CMS_DEBUG2(globalArea, traceLevel, "Assigning correct profile owners...\n");   
@@ -3060,6 +3297,55 @@ int zisGenresProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
     }
   }
   
+  if (radminExtractRC != RC_RADMIN_OK) {
+    CMS_DEBUG2(globalArea, traceLevel, "Attempting command with less privileges\n");
+
+    TSSCallerProfileParms callerParms = {
+      .extractProfiles = TRUE,
+      .searchClass = classNullTerm,
+      .profilesToExtract = localParmList.profilesToExtract,
+      .profiles = tmpResultBuffer,
+      .extractGroups = FALSE,
+      .logData = &logData
+    };
+
+    if (searchByPrefix) {
+      CMS_DEBUG2(logData.globalArea, logData.traceLevel,
+                  "Searching by prefix...\n");
+      callerParms.filterByPrefix = (char*)startProfileNullTerm;
+    }
+    else if (startProfileNullTerm) {
+      CMS_DEBUG2(logData.globalArea, logData.traceLevel,
+                 "Searching by profile...\n");
+      callerParms.filterByProfile = (char*)startProfileNullTerm;
+    }
+    else {
+      callerParms.filterByPrefix = NULL;
+      callerParms.filterByProfile = NULL;
+      CMS_DEBUG2(logData.globalArea, logData.traceLevel,
+                 "Searching all...\n");
+    }
+
+#define TSS_PRF_EXTR_CALLER_MAX_LEN 30
+    char extractProfileCaller[TSS_PRF_EXTR_CALLER_MAX_LEN + 1] = {0};
+    snprintf(extractProfileCaller, sizeof(extractProfileCaller), "TSS LIST(%.*s) DATA(XAUTH)", sizeof(caller.value), caller.value);
+
+    radminExtractRC = radminRunRACFCommand(
+      authInfo,
+      extractProfileCaller,
+      callerProfileHandler,
+      &callerParms,
+      &radminStatus
+    );
+
+    if (radminExtractRC == RC_RADMIN_OK) {
+      CMS_DEBUG2(globalArea, traceLevel, "command success\n");
+      CMS_DEBUG2(globalArea, traceLevel, "extracted %d profiles\n", callerParms.profilesExtracted);
+    }
+
+    parms.profilesExtracted = callerParms.profilesExtracted;
+  }
+
   if (radminExtractRC == RC_RADMIN_OK) {
     copyGenresProfiles(localParmList.resultBuffer, tmpResultBuffer, 
                        parms.profilesExtracted, 0);
@@ -3074,7 +3360,7 @@ int zisGenresProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
   }
 
   int freeRC = 0, freeSysRC = 0, freeSysRSN = 0;
-  
+
   freeRC = safeFree64v3(tmpResultBuffer, tmpResultBufferSize,
                         &freeSysRC, &freeSysRSN);
                         

@@ -1222,7 +1222,7 @@ static int getCMSConfigFlags(const ZISParmSet *zisParms) {
   }
 
   const char *debugValue = zisGetParmValue(zisParms, ZIS_PARM_DEBUG_MODE);
-  if (coldStartValue && strlen(coldStartValue) == 0) {
+  if (debugValue && strlen(debugValue) == 0) {
     flags |= CMS_SERVER_FLAG_DEBUG;
   }
 
