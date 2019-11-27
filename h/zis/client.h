@@ -28,6 +28,7 @@
 #ifndef __LONGNAME__
 
 #define zisCallService              ZISCSRVC
+#define zisCallServiceUnchecked     ZISCUSVC
 #define zisCallVersionedService     ZISCVSVC
 
 #define zisGetDefaultServerName     ZISGDSNM
@@ -73,6 +74,10 @@ typedef struct ZISServiceStatus_tag {
 int zisCallService(const CrossMemoryServerName *serverName,
                    const ZISServicePath *path, void *parm,
                    ZISServiceStatus *status);
+
+int zisCallServiceUnchecked(const CrossMemoryServerName *serverName,
+                            const ZISServicePath *path, void *parm,
+                            ZISServiceStatus *status);
 
 int zisCallVersionedService(const CrossMemoryServerName *serverName,
                             const ZISServicePath *path, void *parm,
