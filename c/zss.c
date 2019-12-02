@@ -343,6 +343,19 @@ TraceDefinition traceDefs[] = {
   {0,0}
 };
 
+static JsonObject *readEnvSettings(ShortLivedHeap *slh) {
+  char errorBuffer[512] = { 0 };
+  char envConfig[1024];
+  sprintf(envConfig, "{\n \"zssPort\": %s }", "12345");
+  Json *envSettings = jsonParseString(slh, envConfig, errorBuffer, sizeof(errorBuffer));
+  JsonObject *envSettingsJsonObject = NULL;
+    if (jsonIsObject(envSettings)) {
+      envSettingsJsonObject = jsonAsObject(envSettings);
+    }
+
+    return envSettingsJsonObject;
+}
+
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename) {
 
   char jsonErrorBuffer[512] = { 0 };
@@ -731,12 +744,16 @@ static void printZISStatus(HttpServer *server) {
 
 }
 
-static void readAgentAddressAndPort(JsonObject *serverConfig, char **address, int *port) {
+static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envSettings, char **address, int *port) {
   JsonObject *agentSettings = jsonObjectGetObject(serverConfig, "agent");
+  *port = jsonObjectGetNumber(envSettings, "zssPort");
+
   if (agentSettings){
     JsonObject *agentHttp = jsonObjectGetObject(agentSettings, "http");
     if (agentHttp) {
-      *port = jsonObjectGetNumber(agentHttp, "port");
+      if (!(*port)) {
+        *port = jsonObjectGetNumber(agentHttp, "port");
+      }
       JsonArray *ipAddresses = jsonObjectGetArray(agentHttp, "ipAddresses");
       if (ipAddresses) {
         if (jsonArrayGetCount(ipAddresses) > 0) {
@@ -1009,6 +1026,8 @@ int main(int argc, char **argv){
   } 
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
+  JsonObject *envSettings = readEnvSettings(slh);
+  
   if (mvdSettings) {
     /* Hmm - most of these aren't used, at least here. */
     checkAndSetVariable(mvdSettings, "rootDir", rootDir, COMMON_PATH_MAX);
@@ -1024,7 +1043,7 @@ int main(int argc, char **argv){
     HttpServer *server = NULL;
     int port = 0;
     char *address = NULL;
-    readAgentAddressAndPort(mvdSettings, &address, &port);
+    readAgentAddressAndPort(mvdSettings, envSettings, &address, &port);
     InetAddr *inetAddress = NULL;
     int requiredTLSFlag = 0;
     if (!validateAddress(address, &inetAddress, &requiredTLSFlag)) {
