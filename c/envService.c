@@ -17,19 +17,20 @@
 
 extern char **environ;
 
-static int startsWith(const char *pre, const char *str) {
-  size_t lenpre = strlen(pre),
-          lenstr = strlen(str);
+static bool isNumber(const char s[]) 
+{ 
+  int i;
+  for (i = 0; i < strlen(s); i++) 
+      if (!isdigit(s[i])) 
+          return false; 
 
-  if(lenstr < lenpre) {
-    return 1;
-  }
-  
-  if(memcmp(pre, str, lenpre) == 0) {
-    return 0;
-  } else {
-    return 1;
-  }
+  return true; 
+}
+
+static bool startsWith(const char *pre, const char *str) {
+    size_t lenpre = strlen(pre),
+           lenstr = strlen(str);
+    return lenstr < lenpre ? false : memcmp(pre, str, lenpre) == 0;
 }
 
 static void splitEnvKeyValue(char buf[], char* array[]) {
@@ -40,22 +41,17 @@ static void splitEnvKeyValue(char buf[], char* array[]) {
 static char* returnJSONRow(const char* key, const char* val) {
   size_t len=sizeof(char)*(strlen(key)+strlen(val)+6);
   char *row = malloc(len);
-  if(isNumber(val)==0) {
+  if(isNumber(val) || (val[0] == '[') || strcmp(val,"true")==0 || strcmp(val,"false")==0) {
     snprintf(row, len, "\"%s\":%s", key, val);
-  } else {
+  } 
+  else if((val[0] == '{')) {
+    free(row);
+    return NULL;
+  }
+  else {
     snprintf(row, len, "\"%s\":\"%s\"", key, val);
   }
   return row;
-}
-
-static int isNumber(char s[]) 
-{ 
-  int i;
-  for (i = 0; i < strlen(s); i++) 
-      if (!isdigit(s[i])) 
-          return 1; 
-
-  return 0; 
 }
 
 static JsonObject *returnJsonObj(ShortLivedHeap *slh, char buf[]) {
@@ -85,15 +81,17 @@ static JsonObject *envVarsToObject(const char *prefix) {
 
   while(environ[i] != NULL)
   {
-    if(startsWith(prefix, environ[i])==0) {
+    if(startsWith(prefix, environ[i])) {
       j++;
       splitEnvKeyValue(environ[i], array);
       foo = returnJSONRow(array[0], array[1]);
-      if(j>1) {
-        strcat(envJsonStr," , ");
+      if(foo!=NULL) {
+        if(j>1) {
+          strcat(envJsonStr," , ");
+        }
+        strcat(envJsonStr, foo);
+        free(foo);
       }
-      strcat(envJsonStr, foo);
-      free(foo);
     }
     i++;
   }
@@ -109,15 +107,54 @@ JsonObject *readEnvSettings(const char *prefix) {
     return envVarsToObject(prefix);
 }
 
+
 /*
-int main(int argc, char *argv[])
-{
-    JsonObject *envSettings=environmentVarsToObject("ZWED");
-    int port = jsonObjectGetNumber(envSettings, "ZWED_PORT");
-    printf("abc %d\n", port);
-    return 0;
-}
+  // Will move these to test
+  // valid json key-value from shell environment
+  export ZWED_AGENT_PORT=1234
+  export ZWED_PLUGIN_PATH=/u/user
+  export ZWED_BOOLEAN_TRUE_TEST=true
+  export ZWED_BOOLEAN_FALSE_TEST=false
+  export ZWED_ARRAY_TEST=[30,20]
+  export ZWED_ARRAY_TEST2=[true,false]
+
+// NOT SUPPORRTED: they both loose quotes
+  export ZWED_ARRAY_TEST=["a","b"] // not supported array of strings
+  export ZWED_JSON_TEST={"a":2,"c":"ddd"} //not supported json values
 */
+
+/*int main(int argc, char *argv[])
+{
+    JsonObject *envSettings=envVarsToObject("ZWED");
+    printf("Port: %d\n", jsonObjectGetNumber(envSettings, "ZWED_AGENT_PORT"));
+    printf("Plugin Dir: %s\n", jsonObjectGetString(envSettings, "ZWED_PLUGIN_PATH"));
+    printf("TRUE TEST: %s\n", jsonObjectGetBoolean(envSettings, "ZWED_BOOLEAN_TRUE_TEST")? "true":"false");
+    printf("FALSE TEST: %s\n", jsonObjectGetBoolean(envSettings, "ZWED_BOOLEAN_FALSE_TEST")? "true":"false");
+
+    
+    //  printf("JSON TEST: %s\n", jsonObjectGetObject(envSettings, "ZWED_JSON_TEST"));
+    
+    JsonArray *zwed_array_test = jsonObjectGetArray(envSettings, "ZWED_ARRAY_TEST");
+    if (zwed_array_test && jsonArrayGetCount(zwed_array_test) > 0) {
+      for (int i = 0; i < jsonArrayGetCount(zwed_array_test); i++) {
+        Json *item = jsonArrayGetItem(zwed_array_test, i);
+        if (jsonIsNumber(item)) {
+          printf("Num Arr[%d]: %d\n",i, jsonAsNumber(item));
+        }
+      }
+    }
+
+    JsonArray *zwed_array_test2 = jsonObjectGetArray(envSettings, "ZWED_ARRAY_TEST2");
+    if (zwed_array_test2 && jsonArrayGetCount(zwed_array_test2) > 0) {
+      for (int i = 0; i < jsonArrayGetCount(zwed_array_test2); i++) {
+        Json *item = jsonArrayGetItem(zwed_array_test2, i);
+        if (jsonIsBoolean(item)) {
+          printf("Bool Arr[%d]: %s\n",i, jsonAsBoolean(item)? "true":"false");
+        }
+      }
+    }
+    return 0;
+}*/
 
 
 /*
