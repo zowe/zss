@@ -53,6 +53,7 @@
 #include "httpserver.h"
 #include "httpfileservice.h"
 #include "dataservice.h"
+#include "envService.h"
 #ifdef __ZOWE_OS_ZOS
 #include "zosDiscovery.h"
 #endif
@@ -342,19 +343,6 @@ TraceDefinition traceDefs[] = {
 
   {0,0}
 };
-
-static JsonObject *readEnvSettings(ShortLivedHeap *slh) {
-  char errorBuffer[512] = { 0 };
-  char envConfig[1024];
-  sprintf(envConfig, "{\n \"zssPort\": %s }", "12345");
-  Json *envSettings = jsonParseString(slh, envConfig, errorBuffer, sizeof(errorBuffer));
-  JsonObject *envSettingsJsonObject = NULL;
-    if (jsonIsObject(envSettings)) {
-      envSettingsJsonObject = jsonAsObject(envSettings);
-    }
-
-    return envSettingsJsonObject;
-}
 
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename) {
 
@@ -744,16 +732,12 @@ static void printZISStatus(HttpServer *server) {
 
 }
 
-static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envSettings, char **address, int *port) {
+static void readAgentAddressAndPort(JsonObject *serverConfig, char **address, int *port) {
   JsonObject *agentSettings = jsonObjectGetObject(serverConfig, "agent");
-  *port = jsonObjectGetNumber(envSettings, "zssPort");
-
   if (agentSettings){
     JsonObject *agentHttp = jsonObjectGetObject(agentSettings, "http");
     if (agentHttp) {
-      if (!(*port)) {
-        *port = jsonObjectGetNumber(agentHttp, "port");
-      }
+      *port = jsonObjectGetNumber(agentHttp, "port");
       JsonArray *ipAddresses = jsonObjectGetArray(agentHttp, "ipAddresses");
       if (ipAddresses) {
         if (jsonArrayGetCount(ipAddresses) > 0) {
@@ -1025,8 +1009,11 @@ int main(int argc, char **argv){
     return invalid;
   } 
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
+  JsonObject *envSettings = readEnvSettings("ZWED");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS env settings: plugin=%s, port=%d\n"
+  ,jsonObjectGetString(envSettings, "ZWED_PLUGIN_PATH"), jsonObjectGetNumber(envSettings, "ZWED_AGENT_PORT"));
+
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
-  JsonObject *envSettings = readEnvSettings(slh);
   
   if (mvdSettings) {
     /* Hmm - most of these aren't used, at least here. */
@@ -1043,7 +1030,7 @@ int main(int argc, char **argv){
     HttpServer *server = NULL;
     int port = 0;
     char *address = NULL;
-    readAgentAddressAndPort(mvdSettings, envSettings, &address, &port);
+    readAgentAddressAndPort(mvdSettings, &address, &port);
     InetAddr *inetAddress = NULL;
     int requiredTLSFlag = 0;
     if (!validateAddress(address, &inetAddress, &requiredTLSFlag)) {

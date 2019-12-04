@@ -97,6 +97,7 @@ c89 \
   ${ZSS}/c/omvsService.c \
   ${ZSS}/c/unixFileService.c \
   ${ZSS}/c/datasetService.c \
+  ${ZSS}/c/envService.c \
   ${ZSS}/c/zosDiscovery.c \
   ${ZSS}/c/securityService.c \
   ${ZSS}/c/zis/client.c \
