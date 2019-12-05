@@ -82,15 +82,17 @@ static JsonObject *envVarsToObject(const char *prefix) {
   while(environ[i] != NULL)
   {
     if(startsWith(prefix, environ[i])) {
-      j++;
       splitEnvKeyValue(environ[i], array);
-      foo = returnJSONRow(array[0], array[1]);
-      if(foo!=NULL) {
-        if(j>1) {
-          strcat(envJsonStr," , ");
+      if(array[1]!=NULL) {
+        j++;
+        foo = returnJSONRow(array[0], array[1]);
+        if(foo!=NULL) {
+          if(j>1) {
+            strcat(envJsonStr," , ");
+          }
+          strcat(envJsonStr, foo);
+          free(foo);
         }
-        strcat(envJsonStr, foo);
-        free(foo);
       }
     }
     i++;
