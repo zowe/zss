@@ -68,6 +68,9 @@ See details in the ZSS Cross Memory Server installation guide
 #define ZIS_PARM_COLD_START                   "COLD"
 #define ZIS_PARM_DEBUG_MODE                   "DEBUG"
 
+#define ZIS_PARM_CHECKAUTH                    CMS_PROD_ID".CHECKAUTH"
+  #define ZIS_PARM_CHECKAUTH_VALUE_ON           "YES"
+
 #define ZIS_PARMLIB_PARM_SERVER_NAME          CMS_PROD_ID".NAME"
 
 static int zisRouteService(struct CrossMemoryServerGlobalArea_tag *globalArea,
@@ -400,8 +403,7 @@ static int callPluginTerm(ZISContext *context, ZISPlugin *plugin,
         int termRC = plugin->term(context, plugin, anchor);
         if (termRC != RC_ZIS_OK) {
           zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
-                  ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in '%16.16s' term "
-                  "RC = %d",
+                  ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in term RC = %d",
                   plugin->name.text, termRC);
           status = RC_ZIS_ERROR;
         }
@@ -453,7 +455,7 @@ static int callServiceInit(ZISContext *context, ZISPlugin *plugin,
 
     } else {
       zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
-              ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" service %16.16s' init failed, "
+              ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" service '%16.16s' init failed, "
               "ABEND S%03X-%02X (recovery RC = %d)",
               plugin->name.text, service->name.text, abendInfo.completionCode,
               abendInfo.reasonCode, recoveryRC);
@@ -1220,8 +1222,13 @@ static int getCMSConfigFlags(const ZISParmSet *zisParms) {
   }
 
   const char *debugValue = zisGetParmValue(zisParms, ZIS_PARM_DEBUG_MODE);
-  if (coldStartValue && strlen(coldStartValue) == 0) {
+  if (debugValue && strlen(debugValue) == 0) {
     flags |= CMS_SERVER_FLAG_DEBUG;
+  }
+
+  const char *checkAuthValue = zisGetParmValue(zisParms, ZIS_PARM_CHECKAUTH);
+  if (checkAuthValue && !strcmp(checkAuthValue, ZIS_PARM_CHECKAUTH_VALUE_ON)) {
+    flags |= CMS_SERVER_FLAG_CHECKAUTH;
   }
 
   return flags;

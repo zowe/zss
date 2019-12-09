@@ -14,6 +14,11 @@
 //* DESCRIPTION:                                                     */
 //*                                                                  */
 //*   ZWES - CORE PARAMETERS NAMESPACE.                              */
+//*     CHECKAUTH -                                                  */
+//*       OPTION USED TO CONTROL THE PC ROUTINE SAF CHECK.           */
+//*       IF YES, THE SAF CHECK IS PERFORMED FOR ALL CALLERS.        */
+//*       OTHERWISE, SUPERVISOR CALLERS AND CALLERS RUNNING IN       */
+//*       A SYSTEM KEY CAN SKIP THE SAF CHECK USING A SPECIAL FLAG.  */
 //*     NAME - SERVER NAME. IF OMITTED, ZWESIS_STD IS USED.          */
 //*     PLUGIN - NAME OF A PLUG-IN LOAD MODULE.                      */
 //*     AUTH - AUTH SERVICES PARAMETERS NAMESPACE.                   */
