@@ -182,6 +182,74 @@ static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response
   return 0;
 }
 
+static int serveDatasetWritingService(HttpService *service, HttpResponse *response) {
+  HttpRequest *request = response->request;
+  if (!strcmp(request->method, methodPOST)) {
+    char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
+    if (!strcmp(l1, "")) {
+      int contentLength = request->contentLength;
+      if(contentLength < 0){
+        respondWithJsonError(response, "Malformed request, missing 'contentLength' header.", 400, "Bad Request");
+        return -1;
+      } else {
+        #define JSON_ERROR_BUFFER_SIZE 1024
+        char* inPtr = request->contentBody;
+        char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
+        int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
+        char errBuf[JSON_ERROR_BUFFER_SIZE];
+        Json *body = jsonParseUnterminatedString(request->slh, nativeBody, inLen, errBuf, JSON_ERROR_BUFFER_SIZE);
+        #undef JSON_ERROR_BUFFER_SIZE
+        if(body != NULL){
+          JsonObject *reqObj = jsonAsObject(body);
+          Json *datasetName = jsonObjectGetPropertyValue(reqObj,"datasetName");
+          Json *datasetContent = jsonObjectGetPropertyValue(reqObj,"content");
+          if(datasetName == NULL || datasetName != NULL && !jsonIsString(datasetName)){
+            respondWithJsonError(response, "Malformed request body, attribute 'datasetName' is null or not a string.", 400, "Bad Request");
+            return -1;
+          }
+          if(datasetContent == NULL || datasetContent != NULL && !jsonIsString(datasetContent)){
+            respondWithJsonError(response, "Malformed request body, attribute 'datasetContent' is null or not a string.", 400, "Bad Request");
+            return -1;
+          }
+          //proceed writing
+        } else {
+          respondWithJsonError(response, "Malformed request, missing request body.", 400, "Bad Request");
+          return -1;
+        }
+      }
+    }else {
+      respondWithJsonError(response, "Invalid path", 400, "Bad Request");
+      return -1;
+    }
+  } else {
+    jsonPrinter *out = respondWithJsonPrinter(response);
+    setContentType(response, "text/json");
+    setResponseStatus(response, 405, "Method Not Allowed");
+    addStringHeader(response, "Server", "jdmfws");
+    addStringHeader(response, "Transfer-Encoding", "chunked");
+    addStringHeader(response, "Allow", "GET");
+    writeHeader(response);
+    jsonStart(out);
+    jsonAddString(out, "405", "Method Not Allowed.  Only POST is permitted.");
+    jsonEnd(out);
+    finishResponse(response);
+    return -1;
+  }
+  return 0;
+}
+
+void installDatasetWritingService(HttpServer *server) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Installing dataset writing service\n");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+
+  HttpService *httpService = makeGeneratedService("writeDataset", "/writeDataset/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
+  httpService->serviceFunction = serveDatasetWritingService;
+  registerHttpService(server, httpService);
+}
+
 void installDatasetContentsService(HttpServer *server) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Installing dataset contents service\n");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
