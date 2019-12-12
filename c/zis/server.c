@@ -1166,7 +1166,7 @@ static int loadConfig(ZISContext *context,
             ZIS_LOG_INPUT_PARM_MSG, mainParms);
     zowedump(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
              (void *)mainParms,
-             sizeof(mainParms) + mainParms->textLength);
+             sizeof(ZISMainFunctionParms) + mainParms->textLength);
   }
 
   context->parms = zisMakeParmSet();
