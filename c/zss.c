@@ -53,6 +53,7 @@
 #include "httpserver.h"
 #include "httpfileservice.h"
 #include "dataservice.h"
+#include "envService.h"
 #ifdef __ZOWE_OS_ZOS
 #include "zosDiscovery.h"
 #endif
@@ -269,14 +270,22 @@ void checkAndSetVariable(JsonObject *mvdSettings,
                          char* target,
                          size_t targetMax);
 
+static
+void checkAndSetVariableWithEnvOverride(JsonObject *mvdSettings,
+                         const char* configVariableName,
+                         JsonObject *envSettings,
+                         const char* envConfigVariableName,
+                         char* target,
+                         size_t targetMax);
+
 #ifdef __ZOWE_OS_ZOS
-static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings) {
+static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings, JsonObject *envSettings) {
 
   CrossMemoryServerName *privilegedServerName = (CrossMemoryServerName *)SLHAlloc(server->slh, sizeof(CrossMemoryServerName));
   char priviligedServerNameNullTerm[sizeof(privilegedServerName->nameSpacePadded) + 1];
   memset(priviligedServerNameNullTerm, 0, sizeof(priviligedServerNameNullTerm));
 
-  checkAndSetVariable(mvdSettings, "privilegedServerName", priviligedServerNameNullTerm, sizeof(priviligedServerNameNullTerm));
+  checkAndSetVariableWithEnvOverride(mvdSettings, "privilegedServerName", envSettings, "ZWED_privilegedServerName", priviligedServerNameNullTerm, sizeof(priviligedServerNameNullTerm));
 
   if (strlen(priviligedServerNameNullTerm) != 0) {
     *privilegedServerName = cmsMakeServerName(priviligedServerNameNullTerm);
@@ -289,7 +298,7 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings)
 }
 #endif /* __ZOWE_OS_ZOS */
 
-static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings){
+static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings, JsonObject *envSettings){
   MVD_SETTINGS = mvdSettings;
   /* Disabled because this server is not being used by end users, but called by other servers
    * HttpService *mainService = makeGeneratedService("main", "/");
@@ -300,7 +309,7 @@ static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings){
   //registerHttpService(server, mainService);
   registerHttpServiceOfLastResort(server,NULL);
 #ifdef __ZOWE_OS_ZOS
-  setPrivilegedServerName(server, mvdSettings);
+  setPrivilegedServerName(server, mvdSettings, envSettings);
 #endif
 }
 
@@ -695,6 +704,33 @@ void checkAndSetVariable(JsonObject *mvdSettings,
   }
 }
 
+static
+void checkAndSetVariableWithEnvOverride(JsonObject *mvdSettings,
+                         const char* configVariableName,
+                         JsonObject *envSettings,
+                         const char* envConfigVariableName,
+                         char* target,
+                         size_t targetMax)
+{
+  bool override=true;
+  char* tempString = jsonObjectGetString(envSettings, envConfigVariableName);
+  if(tempString == NULL) {
+    override=false;
+    tempString = jsonObjectGetString(mvdSettings, configVariableName);
+  }
+  if (tempString){
+    snprintf(target, targetMax, "%s", tempString);
+    if(override){
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s override with env %s is '%s'\n", configVariableName, envConfigVariableName, target);
+    }
+    else {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s is '%s'\n", configVariableName, target);
+    }
+  } else {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s or env %s is not specified, or is NULL.\n", configVariableName, envConfigVariableName);
+  }
+}
+
 static void initLoggingComponents(void) {
   logConfigureComponent(NULL, LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
@@ -731,18 +767,25 @@ static void printZISStatus(HttpServer *server) {
 
 }
 
-static void readAgentAddressAndPort(JsonObject *serverConfig, char **address, int *port) {
+static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envConfig, char **address, int *port) {
+  *port = jsonObjectGetNumber(envConfig, "ZWED_agent_http_port");
+  *address = jsonObjectGetString(envConfig, "ZWED_agent_http_ipAddresses");
+
   JsonObject *agentSettings = jsonObjectGetObject(serverConfig, "agent");
   if (agentSettings){
     JsonObject *agentHttp = jsonObjectGetObject(agentSettings, "http");
     if (agentHttp) {
+      if (!(*port)) {
       *port = jsonObjectGetNumber(agentHttp, "port");
+      }
       JsonArray *ipAddresses = jsonObjectGetArray(agentHttp, "ipAddresses");
       if (ipAddresses) {
         if (jsonArrayGetCount(ipAddresses) > 0) {
 	  Json *firstAddressItem = jsonArrayGetItem(ipAddresses, 0);
 	  if (jsonIsString(firstAddressItem)) {
-	    *address = jsonAsString(firstAddressItem);
+	    if (!(*address)) {
+        *address = jsonAsString(firstAddressItem);
+      }
 	  }
 	}
       }
@@ -1008,7 +1051,9 @@ int main(int argc, char **argv){
     return invalid;
   } 
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
+  JsonObject *envSettings = readEnvSettings("ZWED");
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
+  
   if (mvdSettings) {
     /* Hmm - most of these aren't used, at least here. */
     checkAndSetVariable(mvdSettings, "rootDir", rootDir, COMMON_PATH_MAX);
@@ -1019,12 +1064,12 @@ int main(int argc, char **argv){
     checkAndSetVariable(mvdSettings, "usersDir", usersDir, COMMON_PATH_MAX);
 
     /* This one IS used*/
-    checkAndSetVariable(mvdSettings, "pluginsDir", pluginsDir, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "pluginsDir", envSettings, "ZWED_pluginsDir", pluginsDir, COMMON_PATH_MAX);
 
     HttpServer *server = NULL;
     int port = 0;
     char *address = NULL;
-    readAgentAddressAndPort(mvdSettings, &address, &port);
+    readAgentAddressAndPort(mvdSettings,envSettings,&address, &port);
     InetAddr *inetAddress = NULL;
     int requiredTLSFlag = 0;
     if (!validateAddress(address, &inetAddress, &requiredTLSFlag)) {
@@ -1039,7 +1084,7 @@ int main(int argc, char **argv){
         return 8;
       }
       server->defaultProductURLPrefix = PRODUCT;
-      loadWebServerConfig(server, mvdSettings);
+      loadWebServerConfig(server, mvdSettings, envSettings);
       readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
