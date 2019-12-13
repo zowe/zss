@@ -896,6 +896,35 @@ static int serveUnixFileTouch(HttpService *service, HttpResponse *response) {
 
     finishResponse(response);
   }
+}
+
+static int serveUnixFileChangeMode(HttpService *service, HttpResponse *response) {
+  HttpRequest *request = response->request;
+  char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
+
+  char *Recursive = getQueryParam(response->request, "recursive");
+  char *mode      = getQueryParam(response->request, "mode");
+  char *pattern = getQueryParam(response->request, "pattern");
+
+  if (!strcmp(request->method, methodPOST)) {
+    directoryChangeModeAndRespond (response, routeFileName,
+          Recursive, mode, pattern );
+  }
+  else {
+    jsonPrinter *out = respondWithJsonPrinter(response);
+
+    setResponseStatus(response, 405, "Method Not Allowed");
+    setDefaultJSONRESTHeaders(response);
+    addStringHeader(response, "Allow", "POST");
+    writeHeader(response);
+
+    jsonStart(out);
+    jsonEnd(out);
+
+    finishResponse(response);
+  }
 
   return 0;
 }
@@ -988,6 +1017,10 @@ static int serveTableOfContents(HttpService *service, HttpResponse *response) {
 
     jsonStartObject(out, NULL);
     jsonAddString(out, "stat", "/unixfile/metadata/{absPath}");
+    jsonEndObject(out);
+
+    jsonStartObject(out, NULL);
+    jsonAddString(out, "chmod", "/unixfile/chmod/{absPath}");
     jsonEndObject(out);
 
     jsonEndArray(out);
@@ -1088,6 +1121,16 @@ void installUnixFileChangeOwnerService(HttpServer *server) {
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveUnixFileChangeOwner;
+  registerHttpService(server, httpService);
+}
+
+void installUnixFileChangeModeService(HttpServer *server) {
+  HttpService *httpService = makeGeneratedService("UnixFileChmod",
+      "/unixfile/chmod/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->serviceFunction = serveUnixFileChangeMode;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
   registerHttpService(server, httpService);
 }
 
