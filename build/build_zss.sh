@@ -30,8 +30,8 @@ echo "Version: $major.$minor.$micro"
 echo "Date stamp: $date_stamp"
 
 c89 \
-  -DPRODUCT_MINOR_VERSION="$major" \
-  -DPRODUCT_MAJOR_VERSION="$minor" \
+  -DPRODUCT_MAJOR_VERSION="$major" \
+  -DPRODUCT_MINOR_VERSION="$minor" \
   -DPRODUCT_REVISION="$micro" \
   -DPRODUCT_VERSION_DATE_STAMP="$date_stamp" \
   -D_XOPEN_SOURCE=600 \
