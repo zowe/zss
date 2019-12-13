@@ -678,7 +678,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
   return webPluginListHead;
 }
 
-static const char defaultConfigPath[] = "../deploy/instance/ZLUX/serverConfig/server.json";
+static const char defaultConfigPath[] = "../defaults/serverConfig/server.json";
 
 static
 void checkAndSetVariable(JsonObject *mvdSettings,
