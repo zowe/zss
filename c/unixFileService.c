@@ -899,13 +899,13 @@ static int serveUnixFileChangeMode(HttpService *service, HttpResponse *response)
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
   char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
  
-  char *Recursive = getQueryParam(response->request, "recursive");
+  char *recursive = getQueryParam(response->request, "recursive");
   char *mode      = getQueryParam(response->request, "mode");
   char *pattern = getQueryParam(response->request, "pattern");
 
   if (!strcmp(request->method, methodPOST)) {
     directoryChangeModeAndRespond (response, routeFileName, 
-          Recursive, mode, pattern );
+          recursive, mode, pattern );
   }
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
