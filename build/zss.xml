@@ -50,7 +50,7 @@
       <arg value="-D_OPEN_THREADS=1"/>
       <arg value="-DHTTPSERVER_BPX_IMPERSONATION=1"/>
       <arg value="${compilerAPFArg}"/>
-      <arg value="-Wc,dll,expo,langlvl(extc99),gonum,goff,hgpr,roconst,ASM,asmlib('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN')"/>
+      <arg value="-Wc,dll,expo,langlvl(extc99),gonum,goff,hgpr,roconst,ASM,asmlib('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'),stackprotect(all)"/>
       <arg value="-Wl,ac=1"/>
       <arg line="-I ${COMMON}/h"/>
       <arg line="-I ${COMMON}/jwt/jwt"/>
