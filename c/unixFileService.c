@@ -836,15 +836,20 @@ static int serveUnixFileMakeDirectory(HttpService *service, HttpResponse *respon
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
   char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
-  char *forceVal = getQueryParam(response->request, "forceOverwrite");
-  int force = FALSE;
+
+  char *forceVal  = getQueryParam(response->request,  "forceOverwrite");
+  char *recursive = getQueryParam(response->request, "recursive");
+  int force = FALSE, recurse = FALSE;
 
   if (!strcmp(strupcase(forceVal), "TRUE")) {
     force = TRUE;
   }
+  if (!strcmp(strupcase(recursive), "TRUE")) {
+    recurse = TRUE;
+  }
 
   if (!strcmp(request->method, methodPOST)) {
-    createUnixDirectoryAndRespond(response, routeFileName, force);
+    createUnixDirectoryAndRespond(response, routeFileName, recurse, force);
   }
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
