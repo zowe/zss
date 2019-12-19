@@ -1132,7 +1132,7 @@ int main(int argc, char **argv){
   initVersionComponents();
   initLoggingComponents();
 
-  if (argc == 1) { 
+  if (argc == 1) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PATH_TO_SERVER_MSG);
     zssStatus = ZSS_STATUS_ERROR;
     goto out_term_stcbase;
@@ -1173,7 +1173,7 @@ int main(int argc, char **argv){
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
   JsonObject *envSettings = readEnvSettings("ZWED");
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
-  
+
   if (mvdSettings) {
     /* Hmm - most of these aren't used, at least here. */
     checkAndSetVariable(mvdSettings, "productDir", productDir, COMMON_PATH_MAX);
@@ -1215,6 +1215,7 @@ int main(int argc, char **argv){
       installUnixFileTouchService(server);
       installUnixFileMetadataService(server);
       installUnixFileChangeOwnerService(server);
+      installUnixFileChangeTagService(server);
       installUnixFileTableOfContentsService(server);
 #ifdef __ZOWE_OS_ZOS
       installVSAMDatasetContentsService(server);
