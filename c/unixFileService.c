@@ -920,6 +920,45 @@ static int serveUnixFileMetadata(HttpService *service, HttpResponse *response) {
   return 0;
 }
 
+
+static int serveUnixFileChangeTag (HttpService *service, HttpResponse *response) {
+  HttpRequest *request = response->request;
+  char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
+
+  char *codepage  = getQueryParam(response->request, "codepage");
+  char *recursive = getQueryParam(response->request, "recursive");
+  char *pattern   = getQueryParam(response->request, "pattern");
+  char *type      = getQueryParam(response->request, "type");
+
+
+  if (!strcmp(request->method, methodPOST)) {
+    directoryChangeTagAndRespond (response, routeFileName,
+                                  type, codepage, recursive, pattern);
+  }
+  else if (!strcmp(request->method, methodDELETE)) {
+      char ctype[] = "delete";
+      char *ccodepage = NULL;
+      directoryChangeTagAndRespond (response, routeFileName,
+                                  ctype, ccodepage, recursive, pattern);
+    }
+  else {
+    jsonPrinter *out = respondWithJsonPrinter(response);
+
+    setResponseStatus(response, 405, "Method Not Allowed");
+    setDefaultJSONRESTHeaders(response);
+    addStringHeader(response, "Allow", "POST");
+    writeHeader(response);
+
+    jsonStart(out);
+    jsonEnd(out);
+
+    finishResponse(response);
+  }
+  return 0;
+}
+
 static int serveTableOfContents(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
 
@@ -1045,6 +1084,16 @@ void installUnixFileMetadataService(HttpServer *server) {
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveUnixFileMetadata;
+  registerHttpService(server, httpService);
+}
+
+void installUnixFileChangeTagService(HttpServer *server) {
+  HttpService *httpService = makeGeneratedService("UnixFileChtag",
+      "/unixfile/chtag/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->serviceFunction = serveUnixFileChangeTag;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
   registerHttpService(server, httpService);
 }
 
