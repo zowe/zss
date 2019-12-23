@@ -959,7 +959,7 @@ static int serveUnixFileChangeTag (HttpService *service, HttpResponse *response)
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
   char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
 
-  char *codepage  = getQueryParam(response->request, "codepage");
+  char *codepage  = getQueryParam(response->request, "codeset");
   char *recursive = getQueryParam(response->request, "recursive");
   char *pattern   = getQueryParam(response->request, "pattern");
   char *type      = getQueryParam(response->request, "type");
@@ -970,10 +970,10 @@ static int serveUnixFileChangeTag (HttpService *service, HttpResponse *response)
                                   type, codepage, recursive, pattern);
   }
   else if (!strcmp(request->method, methodDELETE)) {
-      char ctype[] = "delete";
-      char *ccodepage = NULL;
-      directoryChangeTagAndRespond (response, routeFileName,
-                                  ctype, ccodepage, recursive, pattern);
+      char type[10];
+      strncpy (type, "delete", 10);
+      directoryChangeDeleteTagAndRespond (response, routeFileName,
+                                  type, codepage, recursive, pattern);
     }
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
