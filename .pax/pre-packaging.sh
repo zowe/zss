@@ -32,5 +32,5 @@ mkdir LOADLIB SAMPLIB
 cp -X "//DEV.LOADLIB(ZWESIS01)" LOADLIB/ZWESIS01
 cp -X "//DEV.LOADLIB(ZWESAUX)" LOADLIB/ZWESAUX
 cp ../bak/samplib/zis/* SAMPLIB
-cp ../bak/bin/zssServer .
-extattr +p zssServer
+cp -r ../bak/bin .
+extattr +p bin/zssServer
