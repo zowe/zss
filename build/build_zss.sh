@@ -88,6 +88,7 @@ c89 \
   ${COMMON}/c/vsam.c \
   ${COMMON}/c/xlate.c \
   ${COMMON}/c/xml.c \
+  ${COMMON}/c/zosaccounts.c \
   ${COMMON}/c/zosfile.c \
   ${COMMON}/c/zvt.c \
   ${ZSS}/c/zssLogging.c \

@@ -942,10 +942,6 @@ static int serveUnixFileChangeOwner (HttpService *service, HttpResponse *respons
     setDefaultJSONRESTHeaders(response);
     addStringHeader(response, "Allow", "POST");
     writeHeader(response);
-
-    jsonStart(out);
-    jsonEnd(out);
-
     finishResponse(response);
   }
   return 0;
