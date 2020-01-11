@@ -190,6 +190,7 @@ int zisauxMgrStartGuest(ZISAUXManager *mgr,
  if (startRC != 0) {
    freeCommArea(mgr, commArea);
    commArea = NULL;
+   *reasonCode = (startRC << 16) | startRSN;
    return RC_ZISAUX_AS_NOT_STARTED;
  }
 
