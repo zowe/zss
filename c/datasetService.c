@@ -290,15 +290,16 @@ void installDatasetMetadataService(HttpServer *server) {
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveDatasetMetadata;
   httpService->paramSpecList =
-    makeStringParamSpec("types", SERVICE_ARG_OPTIONAL,
-      makeStringParamSpec("detail", SERVICE_ARG_OPTIONAL,
-        makeStringParamSpec("listMembers", SERVICE_ARG_OPTIONAL,
-          makeStringParamSpec("includeMigrated", SERVICE_ARG_OPTIONAL,
-            makeStringParamSpec("updateCache", SERVICE_ARG_OPTIONAL,
-              makeStringParamSpec("resumeName", SERVICE_ARG_OPTIONAL,
-                makeStringParamSpec("resumeCatalogName", SERVICE_ARG_OPTIONAL,
-                  makeStringParamSpec("includeUnprintable", SERVICE_ARG_OPTIONAL,
-                    makeIntParamSpec("workAreaSize", SERVICE_ARG_OPTIONAL, 0,0,0,0, NULL)))))))));
+    makeStringParamSpec("addQualifiers", SERVICE_ARG_OPTIONAL,
+      makeStringParamSpec("types", SERVICE_ARG_OPTIONAL,
+        makeStringParamSpec("detail", SERVICE_ARG_OPTIONAL,
+          makeStringParamSpec("listMembers", SERVICE_ARG_OPTIONAL,
+            makeStringParamSpec("includeMigrated", SERVICE_ARG_OPTIONAL,
+              makeStringParamSpec("updateCache", SERVICE_ARG_OPTIONAL,
+                makeStringParamSpec("resumeName", SERVICE_ARG_OPTIONAL,
+                  makeStringParamSpec("resumeCatalogName", SERVICE_ARG_OPTIONAL,
+                    makeStringParamSpec("includeUnprintable", SERVICE_ARG_OPTIONAL,
+                      makeIntParamSpec("workAreaSize", SERVICE_ARG_OPTIONAL, 0,0,0,0, NULL))))))))));
   registerHttpService(server, httpService);
 }
 
