@@ -212,10 +212,15 @@ static int checkForOverwritePermission(HttpResponse *response, int fileExists, i
 static void getEncodingInfoFromQueryParameters(char *inSourceEncoding, char *inTargetEncoding, int *outSourceCCSID,
                                        int *outTargetCCSID, enum TransferType *outTransferType) {
 
-  if (!strcmp(strupcase(inSourceEncoding), "BINARY") && !strcmp(strupcase(inTargetEncoding), "BINARY")) {
+  if (!strcmp(strupcase(inSourceEncoding), "BINARY")) {
     *outSourceCCSID = CCSID_BINARY;
-    *outTargetCCSID = CCSID_BINARY;
-    *outTransferType = BINARY;
+    *outTargetCCSID = getCharsetCode(inTargetEncoding);
+    *outTransferType = TEXT;
+    if ((inTargetEncoding != NULL) && 
+        (!strcmp(strupcase(inTargetEncoding), "BINARY"))) {
+      *outTargetCCSID  = CCSID_BINARY;
+      *outTransferType = BINARY;
+    }
   }
   else {
     *outSourceCCSID = getCharsetCode(inSourceEncoding);
@@ -228,13 +233,18 @@ static int parseEncodingParameter(HttpResponse *response, int *outSourceCCSID, i
                                   enum TransferType *outTransferType) {
   char *sourceEncoding = getQueryParam(response->request, "sourceEncoding");
   char *targetEncoding = getQueryParam(response->request, "targetEncoding");
-  if (sourceEncoding == NULL || targetEncoding == NULL) {
-    respondWithJsonError(response, "Source encoding and/or target encoding are missing.", 400, "Bad Request");
+
+  /* targetEncoding optional if file exist currently */
+  if (sourceEncoding == NULL) {
+    respondWithJsonError(response, "Source encoding is missing.",
+          400, "Bad Request");
     return -1;
   }
 
   getEncodingInfoFromQueryParameters(sourceEncoding, targetEncoding, outSourceCCSID, outTargetCCSID, outTransferType);
-  if ((*outSourceCCSID == -1 || *outTargetCCSID == -1) && (*outTransferType == TEXT)) {
+  if ((*outSourceCCSID == -1  && *outTransferType == TEXT) ||
+      ((*outTargetCCSID == -1 &&  targetEncoding != NULL) && 
+       (*outTransferType == TEXT))) {
     *outTransferType = NONE;
     respondWithJsonError(response, "Unsupported encodings requested.", 400, "Bad Request");
     return -1;
@@ -369,7 +379,7 @@ static int checkIfFileIsBusy(HttpResponse *response, char *encodedFileName, Unix
   if (*file == NULL) {
     zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not open file. Ret: %d, Res: %d\n",
           returnCode, reasonCode);
-    respondWithJsonError(response, "Could not open file. Requested resource is busy. Please try again later.",
+    respondWithJsonError(response, "Could not open file. Resource busy OR Privilage issue.",
           403, "Forbidden");
     return -1;
   }
@@ -434,18 +444,30 @@ static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse 
    * before a sessionID has been assigned.
    */
   int sourceCCSID = 0;
-  int targetCCSID = 0;
+  int targetCCSID = 0, reqTargetCCSID;
   enum TransferType transferType = NONE;
   status = parseEncodingParameter(response, &sourceCCSID, &targetCCSID, &transferType);
+  reqTargetCCSID = targetCCSID;
   if (status == -1) {
     return;
   }
 
   FileInfo info;
-  int fileExists = FALSE;
+  int fileExists;
   status = fileInfo(routeFileName, &info, &returnCode, &reasonCode);
   if (status == 0) {
     fileExists = TRUE;
+    if (targetCCSID == -1) {
+      targetCCSID = fileInfoCCSID(&info);
+    }
+  }
+  else {
+    fileExists = FALSE;
+    if (targetCCSID == -1) {
+      respondWithJsonError(response, "Missing targetEncoding with new file.",
+          400, "Bad Request");
+      return;
+    }
   }
 
   status = checkForOverwritePermission(response, fileExists, forceValue);
@@ -476,19 +498,40 @@ static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse 
     fileID.deviceID = info.deviceID;
   }
 
+
+  /* Make sure we can modify tag field: check for premission and ownership */
+  if (reqTargetCCSID != -1) {
+    status = tagFileForUploading(response, routeFileName, targetCCSID);
+    if (status == -1) {
+      return;
+    }
+  }
+
   /* Because the server does work on behalf of the caller,
    * the processID accessing files will be the same. As a result,
    * we can't rely on fileOpen to fail to notify the caller that
    * a file is currently busy. The solution to this is to store
    * active files in a HashTable. Here, we are searching the HashTable
    * to see if the requested file is currently active in an UploadSession.
-   * If it's not active, then we can go ahead and add it to the HashTable.
+   * If it's not active, then we can open the file and add it to the HashTable.
    */
-  status = checkForDuplicatesInTable(response, sessionsByFileID, &fileID, &tracker->fileHashLock);
+  status = checkForDuplicatesInTable(response, sessionsByFileID, &fileID, 
+           &tracker->fileHashLock);
   if (status == -1) {
     return;
   }
 
+  /* Now we must open the file that we will be uploading. We do this now
+   * as an indicator of whether or not the file is currently busy. If it
+   * is busy on behalf of another instance of ZSS, then this WILL fail.
+   */
+  UnixFile *file = NULL;
+  status = checkIfFileIsBusy(response, routeFileName, &file);
+  if (status == -1) {
+    return;
+  }
+
+  /* Now create a session and add it to the table. */
   UploadSession *currentSession = (UploadSession*)safeMalloc(sizeof(UploadSession), "UploadSession");
   currentSession->sourceCCSID = sourceCCSID;
   currentSession->targetCCSID = targetCCSID;
@@ -498,28 +541,11 @@ static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse 
   FileID *currentFileID = (FileID*)safeMalloc(sizeof(FileID), "FileID");
   currentFileID->iNode = fileID.iNode;
   currentFileID->deviceID = fileID.deviceID;
-
-  addToTable(sessionsByFileID, currentFileID, currentSession, &tracker->fileHashLock);
-
-  /* Now we must open the file that we will be uploading. We do this now
-   * as an indicator of whether or not the file is currently busy. If it
-   * is busy on behalf of another instance of ZSS, then this WILL fail. In
-   * the case of failure, then we must remove the entry from the HashTable.
-   */
-  UnixFile *file = NULL;
-  status = checkIfFileIsBusy(response, routeFileName, &file);
-  if (status == -1) {
-    removeFromTable(sessionsByFileID, currentFileID, &tracker->fileHashLock);
-    return;
-  }
-
-  status = tagFileForUploading(response, routeFileName, targetCCSID);
-  if (status == -1) {
-    removeFromTable(sessionsByFileID, currentFileID, &tracker->fileHashLock);
-    return;
-  }
-
   currentSession->file = file;
+  addToTable(sessionsByFileID, currentFileID, currentSession, 
+             &tracker->fileHashLock);
+
+
 
   /* The following scheme is used to derive session identifier:
    *
@@ -628,7 +654,7 @@ static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, ch
     if (currentSession->tType == TEXT) {
       status = 0;
       //Only write to file if string isn't empty. If string is empty, case is handled by creation of new file.
-      if (response->request->contentLength > 0) {
+     if (response->request->contentLength > 0) {
         status = writeAsciiDataFromBase64(currentSession->file, response->request->contentBody,
                                         response->request->contentLength, currentSession->sourceCCSID,
                                         currentSession->targetCCSID);
@@ -683,7 +709,6 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
     UploadSessionTracker *tracker = service->userPointer;
 
     removeSessionTimeOuts(tracker, &currUnixTime);
-
     /* Attempt to find the sessionID query parameter
      * attached to the current request. If it is present,
      * we check it's validity before allowing the caller
