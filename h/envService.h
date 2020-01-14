@@ -10,17 +10,11 @@
   Copyright Contributors to the Zowe Project.
 */
 
-#ifndef __UNIXSERVICE__
-#define __UNIXSERVICE__
+#ifndef __ENVSERVICE__
+#define __ENVSERVICE__
+#include "json.h"
 
-void installUnixFileContentsService(HttpServer *server);
-void installUnixFileRenameService(HttpServer *server);
-void installUnixFileCopyService(HttpServer *server);
-void installUnixFileMakeDirectoryService(HttpServer *server);
-void installUnixFileTouchService(HttpServer *server);
-void installUnixFileMetadataService(HttpServer *server);
-void installUnixFileChangeOwnerService(HttpServer *server);
-void installUnixFileTableOfContentsService(HttpServer *server);
+JsonObject *readEnvSettings(const char *prefix);
 
 #endif
 

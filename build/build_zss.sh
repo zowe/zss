@@ -30,8 +30,8 @@ echo "Version: $major.$minor.$micro"
 echo "Date stamp: $date_stamp"
 
 c89 \
-  -DPRODUCT_MINOR_VERSION="$major" \
-  -DPRODUCT_MAJOR_VERSION="$minor" \
+  -DPRODUCT_MAJOR_VERSION="$major" \
+  -DPRODUCT_MINOR_VERSION="$minor" \
   -DPRODUCT_REVISION="$micro" \
   -DPRODUCT_VERSION_DATE_STAMP="$date_stamp" \
   -D_XOPEN_SOURCE=600 \
@@ -88,6 +88,7 @@ c89 \
   ${COMMON}/c/vsam.c \
   ${COMMON}/c/xlate.c \
   ${COMMON}/c/xml.c \
+  ${COMMON}/c/zosaccounts.c \
   ${COMMON}/c/zosfile.c \
   ${COMMON}/c/zvt.c \
   ${ZSS}/c/zssLogging.c \
@@ -97,6 +98,7 @@ c89 \
   ${ZSS}/c/omvsService.c \
   ${ZSS}/c/unixFileService.c \
   ${ZSS}/c/datasetService.c \
+  ${ZSS}/c/envService.c \
   ${ZSS}/c/zosDiscovery.c \
   ${ZSS}/c/securityService.c \
   ${ZSS}/c/zis/client.c \
