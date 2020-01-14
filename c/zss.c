@@ -1123,6 +1123,9 @@ static void initializePluginIDHashTable(HttpServer *server) {
 #define ZSS_STATUS_ERROR  8
 
 int main(int argc, char **argv){
+  if (argc == 1) { 
+    printf("Usage: zssServer <path to server.json file>\n");
+    return 8;
 
   int zssStatus = ZSS_STATUS_OK;
 
@@ -1174,6 +1177,7 @@ int main(int argc, char **argv){
   JsonObject *envSettings = readEnvSettings("ZWED");
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
 
+
   if (mvdSettings) {
     /* Hmm - most of these aren't used, at least here. */
     checkAndSetVariable(mvdSettings, "productDir", productDir, COMMON_PATH_MAX);
@@ -1216,8 +1220,8 @@ int main(int argc, char **argv){
       installUnixFileMetadataService(server);
       installUnixFileChangeOwnerService(server);
       installUnixFileChangeTagService(server);
-      installUnixFileTableOfContentsService(server);
-#ifdef __ZOWE_OS_ZOS
+      installUnixFileTableOfContentsService(server); /* MUST be last in list */
+	#ifdef __ZOWE_OS_ZOS
       installVSAMDatasetContentsService(server);
       installDatasetMetadataService(server);
       installDatasetContentsService(server);

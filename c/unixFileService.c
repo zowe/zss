@@ -952,6 +952,33 @@ static int serveUnixFileChangeOwner (HttpService *service, HttpResponse *respons
   return 0;
 }
 
+static int serveUnixFileChangeOwner (HttpService *service, HttpResponse *response) {
+  HttpRequest *request = response->request;
+  char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
+
+  char *userId    = getQueryParam(response->request, "user");
+  char *groupId   = getQueryParam(response->request, "group");
+  char *pattern   = getQueryParam(response->request, "pattern");
+  char *recursive = getQueryParam(response->request, "recursive");
+
+  if (!strcmp(request->method, methodPOST)) {
+    directoryChangeOwnerAndRespond (response, routeFileName,
+                          userId, groupId, recursive, pattern);
+  }
+  else {
+    jsonPrinter *out = respondWithJsonPrinter(response);
+
+    setResponseStatus(response, 405, "Method Not Allowed");
+    setDefaultJSONRESTHeaders(response);
+    addStringHeader(response, "Allow", "POST");
+    writeHeader(response);
+    finishResponse(response);
+  }
+  return 0;
+}
+
 
 static int serveUnixFileChangeTag (HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
@@ -963,7 +990,6 @@ static int serveUnixFileChangeTag (HttpService *service, HttpResponse *response)
   char *recursive = getQueryParam(response->request, "recursive");
   char *pattern   = getQueryParam(response->request, "pattern");
   char *type      = getQueryParam(response->request, "type");
-
 
   if (!strcmp(request->method, methodPOST)) {
     directoryChangeTagAndRespond (response, routeFileName,
@@ -982,10 +1008,6 @@ static int serveUnixFileChangeTag (HttpService *service, HttpResponse *response)
     setDefaultJSONRESTHeaders(response);
     addStringHeader(response, "Allow", "POST");
     writeHeader(response);
-
-    jsonStart(out);
-    jsonEnd(out);
-
     finishResponse(response);
   }
   return 0;
