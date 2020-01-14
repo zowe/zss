@@ -836,15 +836,20 @@ static int serveUnixFileMakeDirectory(HttpService *service, HttpResponse *respon
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
   char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
-  char *forceVal = getQueryParam(response->request, "forceOverwrite");
-  int force = FALSE;
+
+  char *forceVal  = getQueryParam(response->request,  "forceOverwrite");
+  char *recursive = getQueryParam(response->request, "recursive");
+  int force = FALSE, recurse = FALSE;
 
   if (!strcmp(strupcase(forceVal), "TRUE")) {
     force = TRUE;
   }
+  if (!strcmp(strupcase(recursive), "TRUE")) {
+    recurse = TRUE;
+  }
 
   if (!strcmp(request->method, methodPOST)) {
-    createUnixDirectoryAndRespond(response, routeFileName, force);
+    createUnixDirectoryAndRespond(response, routeFileName, recurse, force);
   }
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
@@ -920,6 +925,32 @@ static int serveUnixFileMetadata(HttpService *service, HttpResponse *response) {
   return 0;
 }
 
+static int serveUnixFileChangeOwner (HttpService *service, HttpResponse *response) {
+  HttpRequest *request = response->request;
+  char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
+
+  char *userId    = getQueryParam(response->request, "user");
+  char *groupId   = getQueryParam(response->request, "group");
+  char *pattern   = getQueryParam(response->request, "pattern");
+  char *recursive = getQueryParam(response->request, "recursive");
+
+  if (!strcmp(request->method, methodPOST)) {
+    directoryChangeOwnerAndRespond (response, routeFileName,
+                          userId, groupId, recursive, pattern);
+  }
+  else {
+    jsonPrinter *out = respondWithJsonPrinter(response);
+
+    setResponseStatus(response, 405, "Method Not Allowed");
+    setDefaultJSONRESTHeaders(response);
+    addStringHeader(response, "Allow", "POST");
+    writeHeader(response);
+    finishResponse(response);
+  }
+  return 0;
+}
 
 static int serveUnixFileChangeTag (HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
@@ -931,7 +962,6 @@ static int serveUnixFileChangeTag (HttpService *service, HttpResponse *response)
   char *recursive = getQueryParam(response->request, "recursive");
   char *pattern   = getQueryParam(response->request, "pattern");
   char *type      = getQueryParam(response->request, "type");
-
 
   if (!strcmp(request->method, methodPOST)) {
     directoryChangeTagAndRespond (response, routeFileName,
@@ -950,10 +980,6 @@ static int serveUnixFileChangeTag (HttpService *service, HttpResponse *response)
     setDefaultJSONRESTHeaders(response);
     addStringHeader(response, "Allow", "POST");
     writeHeader(response);
-
-    jsonStart(out);
-    jsonEnd(out);
-
     finishResponse(response);
   }
   return 0;
@@ -1084,6 +1110,16 @@ void installUnixFileMetadataService(HttpServer *server) {
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveUnixFileMetadata;
+  registerHttpService(server, httpService);
+}
+
+void installUnixFileChangeOwnerService(HttpServer *server) {
+  HttpService *httpService = makeGeneratedService("unixFileMetadata",
+      "/unixfile/chown/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
+  httpService->serviceFunction = serveUnixFileChangeOwner;
   registerHttpService(server, httpService);
 }
 
