@@ -13,7 +13,6 @@
 #ifndef __DATASET_SERVICE_H__
 #define __DATASET_SERVICE_H__
 
-void installDatasetWritingService(HttpServer *server);
 void installDatasetContentsService(HttpServer *server);
 void installVSAMDatasetContentsService(HttpServer *server);
 void installDatasetMetadataService(HttpServer *server);
