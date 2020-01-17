@@ -40,13 +40,14 @@
 #include "datasetjson.h"
 #include "logging.h"
 #include "zssLogging.h"
+#include "dynalloc.h"
 
 #include "datasetService.h"
 
 #ifdef __ZOWE_OS_ZOS
-static void respondWithQsamFileCreate(HttpResponse *response) {
+static void respondWithDataSetCreate(HttpResponse *response) {
 
-  qsamFileRequest qsamRequest = {0};
+  dataSetRequest datasetRequest = {0};
 
   /* Extract data set name */
   HttpRequest *request = response->request;
@@ -54,65 +55,65 @@ static void respondWithQsamFileCreate(HttpResponse *response) {
   char *datasetOrMember = stringListPrint(request->parsedFile, startElement,
                                           maxElement, "?", 0);
   if (datasetOrMember == NULL || strlen(datasetOrMember) < 1){
-    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"No Qsam dataset name given");
+    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"No dataset name given");
     return;
   }
-  qsamRequest.daName        = datasetOrMember;
-  qsamRequest.ddName        = getQueryParam(request,"ddName");
-  qsamRequest.manageClass   = getQueryParam(request,"manageClass");
-  qsamRequest.storageClass  = getQueryParam(request,"storageClass");
-  qsamRequest.volume        = getQueryParam(request,"volume");
-  qsamRequest.dsnType       = getQueryParam(request,"dsnType");
-  qsamRequest.organization  = getQueryParam(request,"organization");
-  qsamRequest.recordFormat  = getQueryParam(request,"recordFormat");
-  qsamRequest.fileData      = getQueryParam(request,"fileData");
+  datasetRequest.daName        = datasetOrMember;
+  datasetRequest.ddName        = getQueryParam(request,"ddName");
+  datasetRequest.manageClass   = getQueryParam(request,"manageClass");
+  datasetRequest.storageClass  = getQueryParam(request,"storageClass");
+  datasetRequest.volume        = getQueryParam(request,"volume");
+  datasetRequest.dsnType       = getQueryParam(request,"dsnType");
+  datasetRequest.organization  = getQueryParam(request,"organization");
+  datasetRequest.recordFormat  = getQueryParam(request,"recordFormat");
+  datasetRequest.fileData      = getQueryParam(request,"fileData");
   char *recordLength        = getQueryParam(request,"recordLength");
   char *blockSize           = getQueryParam(request,"blockSize");
   char *numGenerations      = getQueryParam(request,"numGeneration");
-  qsamRequest.eattr         = getQueryParam(request,"eattr");
-  qsamRequest.dataClass     = getQueryParam(request,"dataClass");
-  qsamRequest.averageRecord = getQueryParam(request,"averageRecord");
-  qsamRequest.expiration    = getQueryParam(request,"expiration");
-  qsamRequest.spaceUnit     = getQueryParam(request,"spaceUnit");
+  datasetRequest.eattr         = getQueryParam(request,"eattr");
+  datasetRequest.dataClass     = getQueryParam(request,"dataClass");
+  datasetRequest.averageRecord = getQueryParam(request,"averageRecord");
+  datasetRequest.expiration    = getQueryParam(request,"expiration");
+  datasetRequest.spaceUnit     = getQueryParam(request,"spaceUnit");
 
   char *fileSize            = getQueryParam(request,"fileSize");
 
   if (recordLength != NULL) {
-    qsamRequest.recordLength = atoi(recordLength);
+    datasetRequest.recordLength = atoi(recordLength);
   }
   if (blockSize != NULL) {
-    qsamRequest.blkSize  = atoi(blockSize);
+    datasetRequest.blkSize  = atoi(blockSize);
   }
   if (fileSize != NULL) {
-    qsamRequest.fileSize  = atoi(fileSize);
+    datasetRequest.fileSize  = atoi(fileSize);
   }
   if (numGenerations != NULL) {
-    qsamRequest.numGenerations  = atoi(numGenerations);
+    datasetRequest.numGenerations  = atoi(numGenerations);
   }
   if (fileSize != NULL) {
-    qsamRequest.fileSize  = atoi(fileSize);
+    datasetRequest.fileSize  = atoi(fileSize);
   }
 #if 0
   if (primary != NULL) {
-    qsamRequest.primary  = atoi(primary);
+    datasetRequest.primary  = atoi(primary);
   }
   if (secondary != NULL) {
-    qsamRequest.secondary  = atoi(secondary);
+    datasetRequest.secondary  = atoi(secondary);
   }
 #endif
 
-  /* create qsam file. */
+  /* create dataset. */
 # define MESSAGE_LENGTH  200
   char message[MESSAGE_LENGTH] = {};
   char errorMessage[MESSAGE_LENGTH] = {};
 
-  int status = qsamAllocFile( &qsamRequest,  message, sizeof (message));
+  int status = allocDataSet( &datasetRequest,  message, sizeof (message));
   if (status == 0){
-    respondWithMessage(response, 201, "Created File: %s\n", qsamRequest.daName);
+    respondWithMessage(response, 201, "Created DataSet: %s\n", datasetRequest.daName);
   }
   else {
     snprintf(errorMessage, sizeof (errorMessage),
-             "Unable to create QSAM file %s:: ", qsamRequest.daName);
+             "Unable to create DataSet %s:: ", datasetRequest.daName);
     if (strlen(message)) {
       strncat (errorMessage, message, sizeof (errorMessage));
     }
@@ -145,12 +146,12 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
   }
   /* Create files */
   else if (!strcmp(request->method, methodPOST)) {
-    char *lrequest = stringListPrint(request->parsedFile, 1, 1, "/", 0); //qsam
-    if (!strcmp(lrequest, "qsam")) {
-      respondWithQsamFileCreate(response);
+    char *lrequest = stringListPrint(request->parsedFile, 1, 1, "/", 0); 
+    if (!strcmp(lrequest, "dataset")) {
+      respondWithDataSetCreate(response);
     }
     else {
-      respondWithJsonError(response, "File creation type", 400, "Bad Request");
+      respondWithJsonError(response, "DataSet creation type", 400, "Bad Request");
     }
   }
 
