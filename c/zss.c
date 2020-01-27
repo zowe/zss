@@ -1090,6 +1090,7 @@ int main(int argc, char **argv){
       installUnixFileMakeDirectoryService(server);
       installUnixFileTouchService(server);
       installUnixFileMetadataService(server);
+      installUnixFileChangeOwnerService(server);
       installUnixFileTableOfContentsService(server);
 #ifdef __ZOWE_OS_ZOS
       installVSAMDatasetContentsService(server);
