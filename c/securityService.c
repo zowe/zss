@@ -1063,6 +1063,14 @@ static void respondToProfileGET(ClassMgmtCommonParms *commonParms,
 
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s begin\n", __FUNCTION__);
 
+  if (strlen(commonParms->className) > 0) {
+    respondWithError(response, HTTP_STATUS_FORBIDDEN,
+                     "non standard class not allowed");
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+           "non standard class provided for profiles GET, leaving...\n");
+    return;
+  }
+
   if (strlen(commonParms->profileName) > 0) {
     respondWithError(response, HTTP_STATUS_NOT_IMPLEMENTED,
                      "specific profile info retrieval not implemented");
@@ -1390,6 +1398,14 @@ static void respondToProfileAccessListGET(ClassMgmtCommonParms *commonParms,
                                           HttpResponse *response) {
 
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s begin\n", __FUNCTION__);
+
+  if (strlen(commonParms->className) > 0) {
+    respondWithError(response, HTTP_STATUS_FORBIDDEN,
+                     "non standard class not allowed");
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+           "non standard class provided for access list GET, leaving...\n");
+    return;
+  }
 
   if (strlen(commonParms->accessListEntryID) > 0) {
     respondWithError(response, HTTP_STATUS_NOT_IMPLEMENTED,
