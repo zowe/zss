@@ -1064,8 +1064,7 @@ static void respondToProfileGET(ClassMgmtCommonParms *commonParms,
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s begin\n", __FUNCTION__);
 
   if (strlen(commonParms->className) > 0) {
-    respondWithError(response, HTTP_STATUS_FORBIDDEN,
-                     "non standard class not allowed");
+    respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "non standard class provided for profiles GET, leaving...\n");
     return;
@@ -1137,8 +1136,7 @@ static void respondToProfilePOST(ClassMgmtCommonParms *commonParms,
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s begin\n", __FUNCTION__);
 
   if (strlen(commonParms->className) > 0) {
-    respondWithError(response, HTTP_STATUS_FORBIDDEN,
-                     "non standard class not allowed for mutation requests");
+    respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "non standard class provided for profiles POST, leaving...\n");
     return;
@@ -1209,8 +1207,7 @@ static void respondToProfileDELETE(ClassMgmtCommonParms *commonParms,
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s begin\n", __FUNCTION__);
 
   if (strlen(commonParms->className) > 0) {
-    respondWithError(response, HTTP_STATUS_FORBIDDEN,
-                     "non standard class not allowed for mutation requests");
+    respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "non standard class provided for profiles DELETE, leaving...\n");
     return;
@@ -1289,8 +1286,7 @@ static void respondToProfileAccessListPUT(ClassMgmtCommonParms *commonParms,
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s begin\n", __FUNCTION__);
 
   if (strlen(commonParms->className) > 0) {
-    respondWithError(response, HTTP_STATUS_FORBIDDEN,
-                     "non standard class not allowed for mutation requests");
+    respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "non standard class provided for user POST/PUT, leaving...\n");
     return;
@@ -1400,8 +1396,7 @@ static void respondToProfileAccessListGET(ClassMgmtCommonParms *commonParms,
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s begin\n", __FUNCTION__);
 
   if (strlen(commonParms->className) > 0) {
-    respondWithError(response, HTTP_STATUS_FORBIDDEN,
-                     "non standard class not allowed");
+    respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "non standard class provided for access list GET, leaving...\n");
     return;
@@ -1508,8 +1503,7 @@ static void respondToProfileAccessListDELETE(ClassMgmtCommonParms *commonParms,
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s begin\n", __FUNCTION__);
 
   if (strlen(commonParms->className) > 0) {
-    respondWithError(response, HTTP_STATUS_FORBIDDEN,
-                     "non standard class not allowed for mutation requests");
+    respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "non standard class provided for access list DELETE, leaving...\n");
     return;
