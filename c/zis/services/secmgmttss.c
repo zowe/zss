@@ -1429,28 +1429,23 @@ int zisGenresAccessListServiceFunctionTSS(CrossMemoryServerGlobalArea *globalAre
       .userID = caller
   };
  
-  char classNullTerm[ZIS_SECURITY_CLASS_MAX_LENGTH + 1] = {0};
-  memcpy(classNullTerm, localParmList.class.value,
-         localParmList.class.length);
+  char *classNullTerm = NULL;
   char profileNullTerm[ZIS_SECURITY_PROFILE_MAX_LENGTH + 1] = {0};
   memcpy(profileNullTerm, localParmList.profile.value,
          localParmList.profile.length);
 
-  if (localParmList.class.length == 0) {
-    CrossMemoryServerConfigParm userClassParm = {0};
-    int getParmRC = cmsGetConfigParm(&globalArea->serverName,
-                                     ZIS_PARMLIB_PARM_SECMGMT_USER_CLASS,
-                                     &userClassParm);
-    if (getParmRC != RC_CMS_OK) {
-      localParmList.internalServiceRC = getParmRC;
-      return RC_ZIS_ACSLSRV_USER_CLASS_NOT_READ;
-    }
-    if (userClassParm.valueLength > ZIS_SECURITY_CLASS_MAX_LENGTH) {
-      return RC_ZIS_ACSLSRV_CLASS_TOO_LONG;
-    }
-    memcpy(classNullTerm, userClassParm.charValueNullTerm,
-           userClassParm.valueLength);
+  CrossMemoryServerConfigParm userClassParm = {0};
+  int getParmRC = cmsGetConfigParm(&globalArea->serverName,
+                                   ZIS_PARMLIB_PARM_SECMGMT_USER_CLASS,
+                                   &userClassParm);
+  if (getParmRC != RC_CMS_OK) {
+    localParmList.internalServiceRC = getParmRC;
+    return RC_ZIS_ACSLSRV_USER_CLASS_NOT_READ;
   }
+  if (userClassParm.valueLength > ZIS_SECURITY_CLASS_MAX_LENGTH) {
+    return RC_ZIS_ACSLSRV_CLASS_TOO_LONG;
+  }
+  classNullTerm = userClassParm.charValueNullTerm;
 
   size_t tmpResultBufferSize =
       sizeof(ZISGenresAccessEntry) * localParmList.resultBufferCapacity;
@@ -3106,30 +3101,25 @@ int zisGenresProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
       .userID = caller
   };
 
-  char classNullTerm[ZIS_SECURITY_CLASS_MAX_LENGTH + 1] = {0};
-  memcpy(classNullTerm, localParmList.class.value,
-         localParmList.class.length);
+  char *classNullTerm = NULL;
   char profileNameBuffer[ZIS_SECURITY_PROFILE_MAX_LENGTH + 1] = {0};
   memcpy(profileNameBuffer, localParmList.startProfile.value,
          localParmList.startProfile.length);
   const char *startProfileNullTerm = localParmList.startProfile.length > 0 ?
                                      profileNameBuffer : NULL;                                                
 
-  if (localParmList.class.length == 0) {
-    CrossMemoryServerConfigParm userClassParm = {0};
-    int getParmRC = cmsGetConfigParm(&globalArea->serverName,
-                                     ZIS_PARMLIB_PARM_SECMGMT_USER_CLASS,
-                                     &userClassParm);
-    if (getParmRC != RC_CMS_OK) {
-      localParmList.internalServiceRC = getParmRC;
-      return RC_ZIS_GRPRFSRV_USER_CLASS_NOT_READ;
-    }
-    if (userClassParm.valueLength > ZIS_SECURITY_CLASS_MAX_LENGTH) {
-      return RC_ZIS_GRPRFSRV_CLASS_TOO_LONG;
-    }
-    memcpy(classNullTerm, userClassParm.charValueNullTerm,
-           userClassParm.valueLength);
+  CrossMemoryServerConfigParm userClassParm = {0};
+  int getParmRC = cmsGetConfigParm(&globalArea->serverName,
+                                   ZIS_PARMLIB_PARM_SECMGMT_USER_CLASS,
+                                   &userClassParm);
+  if (getParmRC != RC_CMS_OK) {
+    localParmList.internalServiceRC = getParmRC;
+    return RC_ZIS_GRPRFSRV_USER_CLASS_NOT_READ;
   }
+  if (userClassParm.valueLength > ZIS_SECURITY_CLASS_MAX_LENGTH) {
+    return RC_ZIS_GRPRFSRV_CLASS_TOO_LONG;
+  }
+  classNullTerm = userClassParm.charValueNullTerm;
 
   size_t tmpResultBufferSize =
       sizeof(ZISGenresProfileEntry) * localParmList.profilesToExtract;
