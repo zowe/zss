@@ -48,7 +48,7 @@ cd zss/build/
 ```
  * Run the zis ant file to build the host module (ZWESAUX)
 ```
-ant zis
+./build_zis.sh
 ```
  * Go to the AUX test guest directory and build the guest module
 ```

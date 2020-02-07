@@ -1,7 +1,6 @@
-<?xml version="1.0"?>
 
 
-<!-- 
+/*
   This program and the accompanying materials are
   made available under the terms of the Eclipse Public License v2.0 which accompanies
   this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
@@ -9,30 +8,18 @@
   SPDX-License-Identifier: EPL-2.0
   
   Copyright Contributors to the Zowe Project.
--->
+*/
 
-<project default="all" xmlns:if="ant:if" xmlns:unless="ant:unless">
-  <record name="build.log" loglevel="info"/>
-  
-  <property environment="env"/>
-  <property name="COMMON" value="../../deps/zowe-common-c"/>
-  <property name="ZSS" value="../.."/>
+#ifndef __ENVSERVICE__
+#define __ENVSERVICE__
+#include "json.h"
 
-  <target name="zis" description="Compile for ZSS Cross-Memory Server">
-    <ant antfile="zis.xml" dir="."/>
-  </target>
+JsonObject *readEnvSettings(const char *prefix);
 
-  <target name="zss" description="Compile for ZSS">
-    <property name="isUnauthorized" value="true"/>
-    <ant antfile="zss.xml" dir="."/>
-  </target>
-
-  <target name="all" depends="zis,zss"/>
-
-</project>
+#endif
 
 
-<!-- 
+/*
   This program and the accompanying materials are
   made available under the terms of the Eclipse Public License v2.0 which accompanies
   this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
@@ -40,5 +27,5 @@
   SPDX-License-Identifier: EPL-2.0
   
   Copyright Contributors to the Zowe Project.
--->
+*/
 

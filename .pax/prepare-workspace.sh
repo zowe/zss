@@ -1,5 +1,5 @@
 #!/bin/sh -e
-set -x
+set -xe
 
 ################################################################################
 # This program and the accompanying materials are made available under the terms of the
@@ -8,7 +8,7 @@ set -x
 #
 # SPDX-License-Identifier: EPL-2.0
 #
-# Copyright IBM Corporation 2019
+# Copyright Contributors to the Zowe Project.
 ################################################################################
 
 ################################################################################

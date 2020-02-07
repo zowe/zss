@@ -14,6 +14,11 @@
 //* DESCRIPTION:                                                     */
 //*                                                                  */
 //*   ZWES - CORE PARAMETERS NAMESPACE.                              */
+//*     CHECKAUTH -                                                  */
+//*       OPTION USED TO CONTROL THE PC ROUTINE SAF CHECK.           */
+//*       IF YES, THE SAF CHECK IS PERFORMED FOR ALL CALLERS.        */
+//*       OTHERWISE, SUPERVISOR CALLERS AND CALLERS RUNNING IN       */
+//*       A SYSTEM KEY CAN SKIP THE SAF CHECK USING A SPECIAL FLAG.  */
 //*     NAME - SERVER NAME. IF OMITTED, ZWESIS_STD IS USED.          */
 //*     PLUGIN - NAME OF A PLUG-IN LOAD MODULE.                      */
 //*     AUTH - AUTH SERVICES PARAMETERS NAMESPACE.                   */
@@ -23,7 +28,7 @@
 //*         THE PARMLIB CLASS VALUE IS USED.                         */
 //*     SECMGMT - SECURITY SERVICES PARAMETERS NAMESPACE.            */
 //*       CLASS -                                                    */
-//*         SAF CLASS USED BY THE PROFILE MANAGEMENT SERVICES.       */
+//*         SAF CLASS USED BY THE SECURITY MANAGEMENT SERVICES.      */
 //*         ANY PROFILE OPERATIONS WILL BE PERFORMED WITHIN          */
 //*         THIS CLASS ONLY. IF OMITTED, THE PROFILE SERVICES        */
 //*         WILL RETURN THE CORRESPONDING ERROR CODE.                */
