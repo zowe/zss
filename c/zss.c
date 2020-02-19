@@ -1108,7 +1108,7 @@ int main(int argc, char **argv){
 
     } else{
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "Server startup problem ret=%d reason=0x%x\n", returnCode, reasonCode);
-      if (returnCode==1115) {
+      if (returnCode==EADDRINUSE) {
         zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "This is usually due to the server port (%d) already being occupied. Is ZSS running twice?\n",port);
       }
     }
