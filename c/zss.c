@@ -1107,7 +1107,10 @@ int main(int argc, char **argv){
       mainHttpLoop(server);
 
     } else{
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "server startup problem ret=%d reason=0x%x\n", returnCode, reasonCode);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "Server startup problem ret=%d reason=0x%x\n", returnCode, reasonCode);
+      if (returnCode==1115) {
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "This is usually due to the server port (%d) already being occupied. Is ZSS running twice?\n",port);
+      }
     }
   }
 

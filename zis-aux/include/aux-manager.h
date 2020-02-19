@@ -11,6 +11,7 @@
 #endif
 
 #include "zowetypes.h"
+#include "cellpool.h"
 #include "collections.h"
 #include "pause-element.h"
 #include "shrmem64.h"

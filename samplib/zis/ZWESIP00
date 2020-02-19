@@ -14,7 +14,15 @@
 //* DESCRIPTION:                                                     */
 //*                                                                  */
 //*   ZWES - CORE PARAMETERS NAMESPACE.                              */
-//*     CHECKAUTH -                                                  */
+//*     PCSS_STACK_POOL_SIZE - THE NUMBER OF PREALLOCATED STACK      */
+//*       FRAMES FOR THE PC-SS ROUTINE. USE THIS OPTION TO OVERRIDE  */
+//*       THE DEFAULT SIZE TO ADJUST TO THE NUMBER OF SIMULTANEOUS   */
+//*       PC-SS CALLERS.                                             */
+//*     PCSS_RECOVERY_POOL_SIZE - THE NUMBER OF PREALLOCATED         */
+//*       RECOVERY STATES FOR THE PC-SS ROUTINE. USE THIS OPTION TO  */
+//*       OVERRIDE THE DEFAULT SIZE TO ADJUST TO THE NUMBER OF       */
+//*       SIMULTANEOUS PC-SS CALLERS OR SERVICE WITH A LARGE NUMBER  */
+//*       OF RECOVERY STATE.                                         */
 //*       OPTION USED TO CONTROL THE PC ROUTINE SAF CHECK.           */
 //*       IF YES, THE SAF CHECK IS PERFORMED FOR ALL CALLERS.        */
 //*       OTHERWISE, SUPERVISOR CALLERS AND CALLERS RUNNING IN       */
