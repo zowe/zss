@@ -734,7 +734,7 @@ void checkAndSetVariableWithEnvOverride(JsonObject *mvdSettings,
 static void initLoggingComponents(void) {
   logConfigureComponent(NULL, LOG_COMP_ID_SECURITY, "ZSS Security API", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_DISCOVERY, "Zowe Discovery", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
-  logConfigureComponent(NULL, LOG_COMP_DATASERVICE, "Zowe Dataset REST", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+  logConfigureComponent(NULL, LOG_COMP_RESTDATASET, "Zowe Dataset REST", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_RESTFILE, "Zowe UNIX REST", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_UNIXFILE, "ZSS UNIX REST", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_DATASERVICE, "ZSS dataservices", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
