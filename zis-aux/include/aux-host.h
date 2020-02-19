@@ -17,7 +17,7 @@
 #error Non-metal C code is not supported
 #endif
 
-#define ZISAUX_VERSION "0.9.1"
+#define ZISAUX_VERSION "1.9.0"
 
 typedef struct ZISAUXContext_tag {
 

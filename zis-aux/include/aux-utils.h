@@ -76,11 +76,6 @@ ZOWE_PRAGMA_PACK_RESET
 
 #define auxutilGetCallersKey AUXUGCK
 
-#define cellpoolBuild CPBUILD
-#define cellpoolDelete CPDEL
-#define cellpoolGet CPGET
-#define cellpoolFree CPFREE
-
 #define auxutilWait AUXUWT
 #define auxutilPost AUXUPST
 
@@ -119,27 +114,6 @@ typedef int ECB;
 int auxutilGetTCBKey(void);
 
 int auxutilGetCallersKey(void);
-
-/* Cell pools */
-
-ZOWE_PRAGMA_PACK
-
-typedef int32_t CPID;
-
-typedef struct CPHeader_tag {
-  char text[24];
-} CPHeader;
-
-ZOWE_PRAGMA_PACK_RESET
-
-CPID cellpoolBuild(unsigned int pCellCount,
-                   unsigned int sCellCount,
-                   unsigned int cellSize,
-                   int subpool, int key,
-                   const CPHeader *header);
-void cellpoolDelete(CPID cellpoolID);
-void *cellpoolGet(CPID cellpoolID, bool conditional);
-void cellpoolFree(CPID cellpoolID, void *cell);
 
 void auxutilWait(int32_t * __ptr32 ecb);
 void auxutilPost(int32_t * __ptr32 ecb, int code);
