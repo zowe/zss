@@ -151,7 +151,7 @@ static int parseOMVSSegment(RadminAPIStatus status, const RadminCommandOutput *r
   if (status.racfRC != 0)
   {
 #ifdef DEBUG
-    printf("Error: reason: %d, return: %d\n", status.racfRSN, status.racfRC);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, "Error: reason: %d, return: %d\n", status.racfRSN, status.racfRC);
 #endif
 
     return status.racfRC;

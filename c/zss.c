@@ -1014,7 +1014,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
 
 int main(int argc, char **argv){
   if (argc == 1) { 
-    printf("Usage: zssServer <path to server.json file>\n");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Usage: zssServer <path to server.json file>\n");
     return 8;
   }
 
@@ -1022,7 +1022,7 @@ int main(int argc, char **argv){
 #ifndef METTLE
   int sigignoreRC = sigignore(SIGPIPE);
   if (sigignoreRC == -1) {
-    printf("warning: sigignore(SIGPIPE)=%d, errno=%d\n", sigignoreRC, errno);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "warning: sigignore(SIGPIPE)=%d, errno=%d\n", sigignoreRC, errno);
   }
 #endif
 
