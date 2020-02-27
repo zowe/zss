@@ -231,7 +231,7 @@ static void initLogMessagePrefix(LogMessagePrefix *prefix) {
 #define PREFIXED_LINE_MAX_COUNT         1000
 #define PREFIXED_LINE_MAX_MSG_LENGTH    4096
 
-void auxutilPrintWithPrefix(LoggingContext *context, LoggingComponent *component,
+void auxutilPrintWithPrefix(LoggingContext *context, LoggingComponent *component, char* path, int line, int level, uint64 compID,
                      void *data, char *formatString, va_list argList) {
 
   char messageBuffer[PREFIXED_LINE_MAX_MSG_LENGTH];
@@ -266,7 +266,7 @@ void auxutilPrintWithPrefix(LoggingContext *context, LoggingComponent *component
 #define DUMP_MSG_ID ZIS_LOG_DUMP_MSG_ID
 
 char *auxutilDumpWithEmptyMessageID(char *workBuffer, int workBufferSize,
-                             void *data, int dataSize, int lineNumber) {
+                             void *data, int dataSize, int lineNumber, char* path, int line) {
 
   int formatWidth = 16;
   int index = lineNumber * formatWidth;

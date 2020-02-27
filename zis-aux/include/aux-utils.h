@@ -85,10 +85,10 @@ ZOWE_PRAGMA_PACK_RESET
 
 /* Logging fucntion */
 
-void auxutilPrintWithPrefix(LoggingContext *context, LoggingComponent *component,
+void auxutilPrintWithPrefix(LoggingContext *context, LoggingComponent *component, char* path, int line, int level, uint64 compID,
                             void *data, char *formatString, va_list argList);
 char *auxutilDumpWithEmptyMessageID(char *workBuffer, int workBufferSize,
-                                    void *data, int dataSize, int lineNumber);
+                                    void *data, int dataSize, int lineNumber, char* path, int line);
 
 /* Misc string util functions for... utils.c */
 int auxutilTokenizeString(ShortLivedHeap *slh,

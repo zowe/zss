@@ -121,13 +121,13 @@ static int serveRASData(HttpService *service, HttpResponse *response) {
 
   char *command = stringListPrint(request->parsedFile, 1, 1, "/", 0);
   if (command == NULL) {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "httpserver: error - RAS command not provided\n");
+    zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_WARNING, "httpserver: error - RAS command not provided\n");
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "RAS command not provided");
     return 0;
   }
 
   if (strcmp(command, "traceLevel")) {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "httpserver: error - unsupported RAS command, %s\n", command);
+    zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_WARNING, "httpserver: error - unsupported RAS command, %s\n", command);
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "unsupported RAS command");
     return 0;
   }
@@ -150,7 +150,7 @@ static int serveRASData(HttpService *service, HttpResponse *response) {
     return 0;
   }
 
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s: componentID=0x%016llX\n", __FUNCTION__, componentID);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "%s: componentID=0x%016llX\n", __FUNCTION__, componentID);
 
   if (!strcmp(request->method, methodPUT)) {
 
@@ -223,7 +223,7 @@ static int serveRASData(HttpService *service, HttpResponse *response) {
 }
 
 int installRASService(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpService *httpService = makeGeneratedService("RAS service", "/ras/**");
   httpService->serviceFunction = serveRASData;
   httpService->runInSubtask = FALSE;
@@ -233,7 +233,7 @@ int installRASService(HttpServer *server) {
                               makeIntParamSpec("level", SERVICE_ARG_OPTIONAL, 0, 0, 0, 0,
                                                NULL));
   registerHttpService(server, httpService);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   return 0;
 }
 

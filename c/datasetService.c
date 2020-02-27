@@ -45,7 +45,7 @@
 
 #ifdef __ZOWE_OS_ZOS
 static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
   if (!strcmp(request->method, methodGET)) {
     if (service->userPointer == NULL){
@@ -54,7 +54,7 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
     }
 
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0); //expect name or hlq
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "l1=%s\n", l1);
+    zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "l1=%s\n", l1);
     if (!strcmp(l1, "name")){
       respondWithDatasetMetadata(response);
     }
@@ -81,12 +81,12 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
     finishResponse(response);
   }
 
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   return 0;
 }
 
 static int serveDatasetContents(HttpService *service, HttpResponse *response){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
 
   if (!strcmp(request->method, methodGET)) {
@@ -94,7 +94,7 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Serving: %s\n", filename);
+    zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "Serving: %s\n", filename);
     fflush(stdout);
     respondWithDataset(response, filename, TRUE);
   }
@@ -103,7 +103,7 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Updating if exists: %s\n", filename);
+    zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "Updating if exists: %s\n", filename);
     fflush(stdout);
     updateDataset(response, filename, TRUE);
 
@@ -113,7 +113,7 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Deleting if exists: %s\n", filename);
+    zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "Deleting if exists: %s\n", filename);
     fflush(stdout);
     deleteDatasetOrMember(response, filename);
   }
@@ -132,24 +132,24 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
 
     finishResponse(response);
   }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Returning from servedatasetcontents\n");
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "Returning from servedatasetcontents\n");
   return 0;
 }
 
 static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
   serveVSAMCache *cache = (serveVSAMCache *)service->userPointer;
   if (!strcmp(request->method, methodGET)) {
     char *filename = stringListPrint(request->parsedFile, 1, 1, "/", 0);
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Serving: %s\n", filename);
+    zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "Serving: %s\n", filename);
     fflush(stdout);
     respondWithVSAMDataset(response, filename, cache->acbTable, TRUE);
   }
   else if (!strcmp(request->method, methodPOST)){
     char *filename = stringListPrint(request->parsedFile, 1, 1, "/", 0);
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Updating if exists: %s\n", filename);
+    zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "Updating if exists: %s\n", filename);
     fflush(stdout);
     updateVSAMDataset(response, filename, cache->acbTable, TRUE);
   }
@@ -158,7 +158,7 @@ static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Deleting if exists: %s\n", filename);
+    zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "Deleting if exists: %s\n", filename);
     fflush(stdout);
     deleteVSAMDataset(response, filename);
   }
@@ -177,14 +177,14 @@ static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response
 
     finishResponse(response);
   }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Returning from serveVSAMdatasetcontents\n");
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "Returning from serveVSAMdatasetcontents\n");
   return 0;
 }
 
 void installDatasetContentsService(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Installing dataset contents service\n");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "Installing dataset contents service\n");
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
   HttpService *httpService = makeGeneratedService("datasetContents", "/datasetContents/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -195,8 +195,8 @@ void installDatasetContentsService(HttpServer *server) {
 }
 
 void installVSAMDatasetContentsService(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Installing VSAM dataset contents service\n");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "Installing VSAM dataset contents service\n");
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
   HttpService *httpService = makeGeneratedService("VSAMdatasetContents", "/VSAMdatasetContents/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -212,8 +212,8 @@ void installVSAMDatasetContentsService(HttpServer *server) {
 }
 
 void installDatasetMetadataService(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Installing dataset metadata service\n");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "Installing dataset metadata service\n");
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
 
   HttpService *httpService = makeGeneratedService("datasetMetadata", "/datasetMetadata/**");
