@@ -25,11 +25,13 @@ echo "Building ZIS..."
 mkdir -p "${WORKING_DIR}/tmp-zis" && cd "$_"
 xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
   -DRADMIN_XMEM_MODE \
+  -DRCVR_CPOOL_STATES \
   -qreserved_reg=r12 \
   -Wc,arch\(8\),agg,exp,list\(\),so\(\),off,xref,roconst,longname,lp64 \
   -I ${COMMON}/h -I ${ZSS}/h -I ${ZSS}/zis-aux/include -I ${ZSS}/zis-aux/src \
    ${COMMON}/c/alloc.c \
    ${COMMON}/c/as.c \
+   ${COMMON}/c/cellpool.c \
    ${COMMON}/c/cmutils.c \
    ${COMMON}/c/collections.c \
    ${COMMON}/c/crossmemory.c \
@@ -69,7 +71,7 @@ xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
    ${ZSS}/zis-aux/src/aux-host.c
 
 for file in \
-    alloc as cmutils collections crossmemory isgenq le logging lpa metalio mtlskt nametoken \
+    alloc as cellpool cmutils collections crossmemory isgenq le logging lpa metalio mtlskt nametoken \
     pause-element pc qsam radmin recovery resmgr scheduling shrmem64 stcbase timeutls utils xlate \
     zos zvt \
     parm plugin server service \
@@ -83,6 +85,7 @@ done
 ld -V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus \
   -e main -o "//'${USER}.DEV.LOADLIB(ZWESIS01)'" \
   alloc.o \
+  cellpool.o \
   cmutils.o \
   collections.o \
   crossmemory.o \
@@ -121,6 +124,7 @@ ld -V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus \
   -e main -o "//'${USER}.DEV.LOADLIB(ZWESAUX)'" \
   alloc.o \
   as.o \
+  cellpool.o \
   cmutils.o \
   collections.o \
   crossmemory.o \

@@ -26,6 +26,7 @@
 
 #include "zowetypes.h"
 #include "as.h"
+#include "cellpool.h"
 #include "collections.h"
 #include "cmutils.h"
 #include "crossmemory.h"
