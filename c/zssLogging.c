@@ -48,6 +48,8 @@ bool isLogLevelValid(int level) {
 #define PREFIXED_LINE_MAX_COUNT         1000
 #define PREFIXED_LINE_MAX_MSG_LENGTH    4096
 #define LOG_MSG_PREFIX_SIZE 57
+#define LOCATION_PREFIX_PADDING         7
+#define LOCATION_SUFFIX_PADDING         5
 
 typedef struct LogMessagePrefix_tag {
   char text[LOG_MSG_PREFIX_SIZE];
@@ -148,17 +150,17 @@ static void getLocationData(char *path, int line, char **locationInfo, uint64 co
     }
   }
   else if (compID > LOG_PROD_PLUGINS) {
-    snprintf(suffix,strlen(component->name),"%s",(strrchr(component->name, '/')+1)); // given more characters than it writes
-    snprintf(prefix,strlen(component->name)-strlen(suffix),"%s",component->name);
+    snprintf(suffix,sizeof(component->name),"%s",(strrchr(component->name, '/')+1)); // given more characters than it writes
+    snprintf(prefix,sizeof(component->name)-sizeof(suffix),"%s",component->name);
   }
 
   char *filename;
   filename = strrchr(path, '/'); // returns a pointer to the last occurence of '/'
   filename+=1; 
   //               formatting + prefix + suffix + filename + line number
-  int locationSize =  7  + strlen(prefix) + strlen(suffix) + strlen(filename) + 5; 
+  int locationSize =  LOCATION_PREFIX_PADDING  + strlen(prefix) + strlen(suffix) + strlen(filename) + LOCATION_SUFFIX_PADDING; 
   *locationInfo = (char*) safeMalloc(locationSize,"locationInfo");
-  snprintf(*locationInfo,locationSize+1," (%s:%s,%s:%d) ",prefix,suffix,filename,line); 
+  snprintf(*locationInfo,locationSize," (%s:%s,%s:%d) ",prefix,suffix,filename,line); 
 }
 
 void initLogMessagePrefix(LogMessagePrefix *prefix, LoggingComponent *component, char* path, int line, int level, uint64 compID) {
@@ -171,11 +173,11 @@ void initLogMessagePrefix(LogMessagePrefix *prefix, LoggingComponent *component,
   ACEE *acee;
   acee = getAddressSpaceAcee();
   char user[7] = { 0 }; // wil this always be 7?
-  snprintf(user,7,acee->aceeuser+1);
+  snprintf(user,sizeof(user),acee->aceeuser+1);
 
   pthread_t threadID = pthread_self();
   char thread[10];
-  snprintf(thread,10,"%d",threadID);
+  snprintf(thread,sizeof(thread),"%d",threadID);
   
   char *logLevel;
   
