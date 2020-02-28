@@ -266,7 +266,7 @@ void auxutilPrintWithPrefix(LoggingContext *context, LoggingComponent *component
 #define DUMP_MSG_ID ZIS_LOG_DUMP_MSG_ID
 
 char *auxutilDumpWithEmptyMessageID(char *workBuffer, int workBufferSize,
-                             void *data, int dataSize, int lineNumber, char* path, int line) {
+                             void *data, int dataSize, int lineNumber) {
 
   int formatWidth = 16;
   int index = lineNumber * formatWidth;
