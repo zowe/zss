@@ -84,8 +84,8 @@ static void getCurrentLogTimestamp(LogTimestamp *timestamp) {
 
 static void getLocationData(char *path, int line, char **locationInfo, uint64 compID, LoggingComponent *component) {
 
-  char prefix[128]; 
-  char suffix[128]; 
+  char prefix[PREFIX_SUFFIX_SIZE]; 
+  char suffix[PREFIX_SUFFIX_SIZE]; 
 
   unsigned int id = compID & 0xFFFFFFFF;
   if(compID >= LOG_PROD_COMMON && compID < LOG_PROD_ZIS) {
@@ -165,25 +165,25 @@ static void initZssLogMessagePrefix(LogMessagePrefix *prefix, LoggingComponent *
 
   ACEE *acee;
   acee = getAddressSpaceAcee();
-  char user[7] = { 0 }; // will this always be 7?
+  char user[USER_SIZE] = { 0 };
   snprintf(user,sizeof(user),acee->aceeuser+1);
   pthread_t threadID = pthread_self();
-  char thread[10];
+  char thread[THREAD_SIZE];
   snprintf(thread,sizeof(thread),"%d",threadID);
-  char logLevel[16];
+  char logLevel[LOG_LEVEL_MAX_SIZE];
   
   switch(level) {
-    case 0: snprintf(logLevel,sizeof(LOG_LEVEL_SERVER),LOG_LEVEL_SERVER);
+    case LOG_LEVEL_ID_SEVERE: snprintf(logLevel,sizeof(LOG_LEVEL_SEVERE),LOG_LEVEL_SEVERE);
             break;
-    case 1: snprintf(logLevel,sizeof(LOG_LEVEL_WARN),LOG_LEVEL_WARN);
+    case LOG_LEVEL_ID_WARN: snprintf(logLevel,sizeof(LOG_LEVEL_WARN),LOG_LEVEL_WARN);
             break;
-    case 2: snprintf(logLevel,sizeof(LOG_LEVEL_INFO),LOG_LEVEL_INFO); 
+    case LOG_LEVEL_ID_INFO: snprintf(logLevel,sizeof(LOG_LEVEL_INFO),LOG_LEVEL_INFO); 
             break;
-    case 3: snprintf(logLevel,sizeof(LOG_LEVEL_DEBUG),LOG_LEVEL_DEBUG);
+    case LOG_LEVEL_ID_DEBUG: snprintf(logLevel,sizeof(LOG_LEVEL_DEBUG),LOG_LEVEL_DEBUG);
             break;
-    case 4: snprintf(logLevel,sizeof(LOG_LEVEL_DEBUG),LOG_LEVEL_DEBUG);
+    case LOG_LEVEL_ID_DEBUG2: snprintf(logLevel,sizeof(LOG_LEVEL_DEBUG),LOG_LEVEL_DEBUG);
             break;
-    case 5: snprintf(logLevel,sizeof(LOG_LEVEL_TRACE),LOG_LEVEL_TRACE);
+    case LOG_LEVEL_ID_TRACE: snprintf(logLevel,sizeof(LOG_LEVEL_TRACE),LOG_LEVEL_TRACE);
             break;
   }
   

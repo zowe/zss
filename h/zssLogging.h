@@ -27,17 +27,28 @@
 #define LOG_PREFIX_ZCC "_zcc"
 #define LOG_PREFIX_ZIS "_zis"
 
-#define LOG_LEVEL_SERVER "SEVERE"
+#define LOG_LEVEL_SEVERE "SEVERE"
 #define LOG_LEVEL_WARN "WARN"
 #define LOG_LEVEL_INFO "INFO"
 #define LOG_LEVEL_DEBUG "DEBUG"
 #define LOG_LEVEL_TRACE "TRACE"
+
+#define LOG_LEVEL_ID_SEVERE      0
+#define LOG_LEVEL_ID_WARN        1  
+#define LOG_LEVEL_ID_INFO        2 
+#define LOG_LEVEL_ID_DEBUG       3
+#define LOG_LEVEL_ID_DEBUG2      4
+#define LOG_LEVEL_ID_TRACE       5
 
 #define PREFIXED_LINE_MAX_COUNT         1000
 #define PREFIXED_LINE_MAX_MSG_LENGTH    4096
 #define LOG_MSG_PREFIX_SIZE             1000
 #define LOCATION_PREFIX_PADDING         7
 #define LOCATION_SUFFIX_PADDING         5
+#define USER_SIZE                       7     //Will this always be 7?
+#define THREAD_SIZE                     10
+#define LOG_LEVEL_MAX_SIZE              16
+#define PREFIX_SUFFIX_SIZE              128
 
 bool isLogLevelValid(int level);
 void zssFormatter(LoggingContext *context, LoggingComponent *component, char* path, int line, int level, uint64 compID, void *data, char *formatString, va_list argList);
