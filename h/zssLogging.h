@@ -18,6 +18,27 @@
 #define LOG_COMP_ID_SECURITY   0x008F000300030000
 #define LOG_COMP_ID_UNIXFILE   0x008F000300040000
 
+#define LOG_COMP_ID_TEXT_ZSS        "zss"
+#define LOG_COMP_ID_TEXT_CTDS       "ctds"
+#define LOG_COMP_ID_TEXT_SECURITY   "security"
+#define LOG_COMP_ID_TEXT_UNIXFILE   "unixfile"
+
+#define LOG_PREFIX_ZSS "_zss"
+#define LOG_PREFIX_ZCC "_zcc"
+#define LOG_PREFIX_ZIS "_zis"
+
+#define LOG_LEVEL_SERVER "SEVERE"
+#define LOG_LEVEL_WARN "WARN"
+#define LOG_LEVEL_INFO "INFO"
+#define LOG_LEVEL_DEBUG "DEBUG"
+#define LOG_LEVEL_TRACE "TRACE"
+
+#define PREFIXED_LINE_MAX_COUNT         1000
+#define PREFIXED_LINE_MAX_MSG_LENGTH    4096
+#define LOG_MSG_PREFIX_SIZE             1000
+#define LOCATION_PREFIX_PADDING         7
+#define LOCATION_SUFFIX_PADDING         5
+
 bool isLogLevelValid(int level);
 void zssFormatter(LoggingContext *context, LoggingComponent *component, char* path, int line, int level, uint64 compID, void *data, char *formatString, va_list argList);
 

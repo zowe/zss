@@ -45,12 +45,6 @@ bool isLogLevelValid(int level) {
   return TRUE;
 }
 
-#define PREFIXED_LINE_MAX_COUNT         1000
-#define PREFIXED_LINE_MAX_MSG_LENGTH    4096
-#define LOG_MSG_PREFIX_SIZE 57
-#define LOCATION_PREFIX_PADDING         7
-#define LOCATION_SUFFIX_PADDING         5
-
 typedef struct LogMessagePrefix_tag {
   char text[LOG_MSG_PREFIX_SIZE];
 } LogMessagePrefix;
@@ -95,57 +89,57 @@ static void getLocationData(char *path, int line, char **locationInfo, uint64 co
 
   unsigned int id = compID & 0xFFFFFFFF;
   if(compID >= LOG_PROD_COMMON && compID < LOG_PROD_ZIS) {
-    snprintf(prefix,5,"_zcc");
+    snprintf(prefix,sizeof(LOG_PREFIX_ZCC),LOG_PREFIX_ZCC);
     switch (id) { // most of these don't actally log, but are defined in logging.h
-      case LOG_COMP_ALLOC: snprintf(suffix,6,"alloc");
+      case LOG_COMP_ALLOC: snprintf(suffix,sizeof(LOG_COMP_TEXT_ALLOC),LOG_COMP_TEXT_ALLOC);
                     break;
-      case LOG_COMP_UTILS: snprintf(suffix,6,"utils");
+      case LOG_COMP_UTILS: snprintf(suffix,sizeof(LOG_COMP_TEXT_UTILS),LOG_COMP_TEXT_UTILS);
                     break;
-      case LOG_COMP_COLLECTIONS: snprintf(suffix,12,"collections");    
+      case LOG_COMP_COLLECTIONS: snprintf(suffix,sizeof(LOG_COMP_TEXT_COLLECTIONS),LOG_COMP_TEXT_COLLECTIONS);    
                     break;
-      case LOG_COMP_SERIALIZATION: snprintf(suffix,14,"serialization");
+      case LOG_COMP_SERIALIZATION: snprintf(suffix,sizeof(LOG_COMP_TEXT_SERIALIZATION),LOG_COMP_TEXT_SERIALIZATION);
                     break;
-      case LOG_COMP_ZLPARSER: snprintf(suffix,9,"zlparser");
+      case LOG_COMP_ZLPARSER: snprintf(suffix,sizeof(LOG_COMP_TEXT_ZLPARSER),LOG_COMP_TEXT_ZLPARSER);
                     break;
-      case LOG_COMP_ZLCOMPILER: snprintf(suffix,11,"zlcompiler");
+      case LOG_COMP_ZLCOMPILER: snprintf(suffix,sizeof(LOG_COMP_TEXT_ZLCOMPILER),LOG_COMP_TEXT_ZLCOMPILER);
                     break;
-      case LOG_COMP_ZLRUNTIME: snprintf(suffix,10,"zlruntime"); 
+      case LOG_COMP_ZLRUNTIME: snprintf(suffix,sizeof(LOG_COMP_TEXT_ZLRUNTIME),LOG_COMP_TEXT_ZLRUNTIME); 
                     break;
-      case LOG_COMP_STCBASE: snprintf(suffix,8,"stcbase");
+      case LOG_COMP_STCBASE: snprintf(suffix,sizeof(LOG_COMP_TEXT_STCBASE),LOG_COMP_TEXT_STCBASE);
                     break;
-      case LOG_COMP_HTTPSERVER: snprintf(suffix,11,"httpserver");
+      case LOG_COMP_HTTPSERVER: snprintf(suffix,sizeof(LOG_COMP_TEXT_HTTPSERVER),LOG_COMP_TEXT_HTTPSERVER);
                     break;
-      case LOG_COMP_DISCOVERY: snprintf(suffix,10,"discovery");
+      case LOG_COMP_DISCOVERY: snprintf(suffix,sizeof(LOG_COMP_TEXT_DISCOVERY),LOG_COMP_TEXT_DISCOVERY);
                     break;
-      case LOG_COMP_DATASERVICE: snprintf(suffix,12,"dataservice");
+      case LOG_COMP_DATASERVICE: snprintf(suffix,sizeof(LOG_COMP_TEXT_DATASERVICE),LOG_COMP_TEXT_DATASERVICE);
                     break;
-      case LOG_COMP_CMS: snprintf(suffix,4,"cms");
+      case LOG_COMP_CMS: snprintf(suffix,sizeof(LOG_COMP_TEXT_CMS),LOG_COMP_TEXT_CMS);
                     break;
-      case 0xC0001: snprintf(suffix,4,"cms");
+      case 0xC0001: snprintf(suffix,sizeof(LOG_COMP_TEXT_CMS),LOG_COMP_TEXT_CMS);
                     break;
       case 0xC0002: snprintf(suffix,6,"cmspc");
                     break;
-      case LOG_COMP_LPA: snprintf(suffix,4,"lpa");
+      case LOG_COMP_LPA: snprintf(suffix,sizeof(LOG_COMP_TEXT_LPA),LOG_COMP_TEXT_LPA);
                     break;
-      case LOG_COMP_RESTDATASET: snprintf(suffix,12,"restdataset");
+      case LOG_COMP_RESTDATASET: snprintf(suffix,sizeof(LOG_COMP_TEXT_RESTDATASET),LOG_COMP_TEXT_RESTDATASET);
                     break;
-      case LOG_COMP_RESTFILE: snprintf(suffix,9,"restfile");
+      case LOG_COMP_RESTFILE: snprintf(suffix,sizeof(LOG_COMP_TEXT_RESTFILE),LOG_COMP_TEXT_RESTFILE);
                     break;
     }
   }
   else if (compID >= LOG_PROD_ZIS && compID < LOG_PROD_ZSS) {
-    snprintf(prefix,5,"_zis");
+    snprintf(prefix,sizeof(LOG_PREFIX_ZIS),LOG_PREFIX_ZIS);
   }
   else if (compID >= LOG_PROD_ZSS && compID < LOG_PROD_PLUGINS ) {
-    snprintf(prefix,5,"_zss"); 
+    snprintf(prefix,sizeof(LOG_PREFIX_ZSS),LOG_PREFIX_ZSS); 
     switch (id) {
-      case LOG_COMP_ID_ZSS: snprintf(suffix,4,"zss");
+      case LOG_COMP_ID_ZSS: snprintf(suffix,sizeof(LOG_COMP_ID_TEXT_ZSS),LOG_COMP_ID_TEXT_ZSS);
                     break;
-      case LOG_COMP_ID_CTDS: snprintf(suffix,5,"ctds");
+      case LOG_COMP_ID_CTDS: snprintf(suffix,sizeof(LOG_COMP_ID_TEXT_CTDS),LOG_COMP_ID_TEXT_CTDS);
                     break;
-      case LOG_COMP_ID_SECURITY: snprintf(suffix,9,"security");
+      case LOG_COMP_ID_SECURITY: snprintf(suffix,sizeof(LOG_COMP_ID_TEXT_SECURITY),LOG_COMP_ID_TEXT_SECURITY);
                     break;
-      case LOG_COMP_ID_UNIXFILE: snprintf(suffix,9, "unixfile");
+      case LOG_COMP_ID_UNIXFILE: snprintf(suffix,sizeof(LOG_COMP_ID_TEXT_UNIXFILE), LOG_COMP_ID_TEXT_UNIXFILE);
                     break;
     }
   }
@@ -160,47 +154,43 @@ static void getLocationData(char *path, int line, char **locationInfo, uint64 co
   //               formatting + prefix + suffix + filename + line number
   int locationSize =  LOCATION_PREFIX_PADDING  + strlen(prefix) + strlen(suffix) + strlen(filename) + LOCATION_SUFFIX_PADDING; 
   *locationInfo = (char*) safeMalloc(locationSize,"locationInfo");
-  snprintf(*locationInfo,locationSize," (%s:%s,%s:%d) ",prefix,suffix,filename,line); 
+  snprintf(*locationInfo,locationSize,"(%s:%s,%s:%d)",prefix,suffix,filename,line); 
 }
 
-void initLogMessagePrefix(LogMessagePrefix *prefix, LoggingComponent *component, char* path, int line, int level, uint64 compID) {
+static void initZssLogMessagePrefix(LogMessagePrefix *prefix, LoggingComponent *component, char* path, int line, int level, uint64 compID) {
   LogTimestamp currentTime;
   getCurrentLogTimestamp(&currentTime);
   ASCB *ascb = getASCB();
   char *jobName = getASCBJobname(ascb);
-//  TCB *tcb = getTCB();
 
   ACEE *acee;
   acee = getAddressSpaceAcee();
-  char user[7] = { 0 }; // wil this always be 7?
+  char user[7] = { 0 }; // will this always be 7?
   snprintf(user,sizeof(user),acee->aceeuser+1);
-
   pthread_t threadID = pthread_self();
   char thread[10];
   snprintf(thread,sizeof(thread),"%d",threadID);
-  
-  char *logLevel;
+  char logLevel[16];
   
   switch(level) {
-    case 0: snprintf(logLevel,7,"SEVERE");
+    case 0: snprintf(logLevel,sizeof(LOG_LEVEL_SERVER),LOG_LEVEL_SERVER);
             break;
-    case 1: snprintf(logLevel,8,"WARN");
+    case 1: snprintf(logLevel,sizeof(LOG_LEVEL_WARN),LOG_LEVEL_WARN);
             break;
-    case 2: snprintf(logLevel,5,"INFO"); 
+    case 2: snprintf(logLevel,sizeof(LOG_LEVEL_INFO),LOG_LEVEL_INFO); 
             break;
-    case 3: snprintf(logLevel,5,"DEBUG");
+    case 3: snprintf(logLevel,sizeof(LOG_LEVEL_DEBUG),LOG_LEVEL_DEBUG);
             break;
-    case 4: snprintf(logLevel,6,"DEBUG");
+    case 4: snprintf(logLevel,sizeof(LOG_LEVEL_DEBUG),LOG_LEVEL_DEBUG);
             break;
-    case 5: snprintf(logLevel,7,"TRACE");
+    case 5: snprintf(logLevel,sizeof(LOG_LEVEL_TRACE),LOG_LEVEL_TRACE);
             break;
   }
   
   char *locationInfo; // largest possible variation in size
   getLocationData(path,line,&locationInfo,compID,component); // location info is allocated in getLocationData
-
   
-  snprintf(prefix->text, sizeof(prefix->text), "%22.22s <%8.8s:%s> %s %s (%s) ", currentTime.text, jobName, thread, user, logLevel, locationInfo);
+  snprintf(prefix->text, sizeof(prefix->text), "%22.22s <%8.8s:%s> %s %s %s ", currentTime.text, jobName, thread, user, logLevel, locationInfo);
   prefix->text[sizeof(prefix->text) - 1] = ' ';
 }
 
@@ -212,7 +202,7 @@ void zssFormatter(LoggingContext *context, LoggingComponent *component, char* pa
     messageLength = sizeof(messageBuffer) - 1;
   }
 
-  LogMessagePrefix prefix;
+  LogMessagePrefix prefix = {0};
 
   char *nextLine = messageBuffer;
   char *lastLine = messageBuffer + messageLength;
@@ -224,12 +214,11 @@ void zssFormatter(LoggingContext *context, LoggingComponent *component, char* pa
     size_t nextLineLength = endOfLine ? (endOfLine - nextLine) : (lastLine - nextLine);
     memset(prefix.text, ' ', sizeof(prefix.text));
     if (lineIdx == 0) {
-      initLogMessagePrefix(&prefix, component, path, line, level, compID);
+      initZssLogMessagePrefix(&prefix, component, path, line, level, compID);
     }
     printf("%.*s%.*s\n", sizeof(prefix.text), prefix.text, nextLineLength, nextLine);
     nextLine += (nextLineLength + 1);
   }
-
 }
 
 
