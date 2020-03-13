@@ -23,7 +23,6 @@
 #include "socketmgmt.h"
 #include "httpserver.h"
 #include "json.h"
-#include "logging.h"
 
 #include "radmin.h"
 #include "omvsService.h"
@@ -151,7 +150,7 @@ static int parseOMVSSegment(RadminAPIStatus status, const RadminCommandOutput *r
   if (status.racfRC != 0)
   {
 #ifdef DEBUG
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, "Error: reason: %d, return: %d\n", status.racfRSN, status.racfRC);
+    printf("Error: reason: %d, return: %d\n", status.racfRSN, status.racfRC);
 #endif
 
     return status.racfRC;

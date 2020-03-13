@@ -1014,7 +1014,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
 
 int main(int argc, char **argv){
   if (argc == 1) { 
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Usage: zssServer <path to server.json file>\n");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "Usage: zssServer <path to server.json file>\n");
     return 8;
   }
 

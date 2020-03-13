@@ -199,12 +199,12 @@ static void serveCICSData(ZOSModel         *model,
   }
   jsonStartArray(p,"rows");
   SoftwareInstance *subsystemList = model->cicsSubsystems;
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "before CICS list subsystemList 0x%x\n",subsystemList);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "before CICS list subsystemList 0x%x\n",subsystemList);
   while (subsystemList){
 
     SoftwareInstance *info = subsystemList;
     char *name = info->bestName;
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "CICS list elt=0x%x, best=%s type=0x%llx\n",info,info->bestName,info->type);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "CICS list elt=0x%x, best=%s type=0x%llx\n",info,info->bestName,info->type);
     if (info->type == SOFTWARE_TYPE_CICS){                        /* check is a little redundant, but defensive coding wins */
       if (!strcmp(tableName,"files")){
         jsonStartObject(p,NULL);
@@ -300,7 +300,7 @@ static int serveSubsystemData(HttpService *service,
   zowelog(NULL, LOG_COMP_DISCOVERY, ZOWE_LOG_DEBUG2, "should serve discovery stuff\n");
   ZOSModel *model = discoveryServiceState->model;
   SoftwareInstance *instanceList = zModelGetSoftware(model);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "done with discovery, or reusing cache \n");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "done with discovery, or reusing cache \n");
   jsonStart(p);
 
   if (subsystemType == SOFTWARE_TYPE_ALL){
@@ -324,7 +324,7 @@ static int serveSubsystemData(HttpService *service,
   }
   jsonEnd(p);
   finishResponse(response);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "done with ss response\n");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "done with ss response\n");
   fflush(stdout);
   return 0;
 }
@@ -359,7 +359,7 @@ static int serveTN3270Data(HttpService *service,
   char *luname = NULL;
   char *ipAddress = NULL;
   zowelog(NULL, LOG_COMP_DISCOVERY, ZOWE_LOG_DEBUG2, "*** NYI *** should serve discovery stuff\n");
-  zowelog(NULL, LOG_COMP_DISCOVERY, ZOWE_LOG_INFO, "done with discovery\n");
+  zowelog(NULL, LOG_COMP_DISCOVERY, ZOWE_LOG_DEBUG, "done with discovery\n");
   jsonStart(p);
 
   startTypeInfo(p,"tn3270","TN3270 Info");
@@ -383,7 +383,7 @@ static int serveTN3270Data(HttpService *service,
     findSessions(context,SESSION_KEY_TYPE_IP6_STRING,0,luname);
   } else{
     findSessions(context,SESSION_KEY_TYPE_ALL,0,luname);
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "get'em all\n");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "get'em all\n");
   }
   /* rows begin here */
 
@@ -419,7 +419,7 @@ static int serveTN3270Data(HttpService *service,
   jsonEnd(p);
   freeDiscoveryContext(context);
   finishResponse(response);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "done with system response\n"); 
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "done with system response\n"); 
   fflush(stdout);
   return 0;
 
@@ -510,7 +510,7 @@ static int serveDiscoveryData(HttpService *service, HttpResponse *response){
 }
 
 int zosDiscoveryServiceInstaller(DataService *dataService, HttpServer *server){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s begin\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "%s begin\n", __FUNCTION__);
   HttpService *httpService = makeHttpDataService(dataService, server);
   if (httpService != NULL) {
     httpService->serviceFunction = serveDiscoveryData;
@@ -524,7 +524,7 @@ int zosDiscoveryServiceInstaller(DataService *dataService, HttpServer *server){
     CrossMemoryServerName *priviligedServerName = getConfiguredProperty(server, HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
     state->model = makeZOSModel(priviligedServerName);
     dataService->extension = state;
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s end\n", __FUNCTION__);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "%s end\n", __FUNCTION__);
   }
   return 0;
 }
