@@ -927,7 +927,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_INFO,
-        LOG_COMP_NO_JWT_MSG);
+        LOG_COMP_NO_JWT_AGENT_MSG);
     return 0;
   }
 

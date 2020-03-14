@@ -337,8 +337,8 @@ bool isLogLevelValid(int level);
 #define LOG_COMP_DISC_THIRD_NKNOWN_MSG_TEXT   "zosDiscovery third level name not known %s\n"
 #define LOG_COMP_DISC_THIRD_NKNOWN            LOG_COMP_DISC_THIRD_NKNOWN_MSG_ID" "LOG_COMP_DISC_THIRD_NKNOWN_MSG_TEXT
 
-#ifndef LOG_COMP_DISC_THIRD_NGIVEN_MSG_ID
-#define LOG_COMP_DISC_THIRD_NGIVEN_MSG_ID     LOG_MSG_PRFX"1047W"
+#ifndef LOG_COMP_DISC_SECND_NGIVEN_MSG_ID
+#define LOG_COMP_DISC_SECND_NGIVEN_MSG_ID     LOG_MSG_PRFX"1047W"
 #endif
 #define LOG_COMP_DISC_SECND_NGIVEN_MSG_TEXT   "zosDiscovery second level name not given\n"
 #define LOG_COMP_DISC_SECND_NGIVEN            LOG_COMP_DISC_SECND_NGIVEN_MSG_ID" "LOG_COMP_DISC_SECND_NGIVEN_MSG_TEXT
@@ -436,7 +436,7 @@ bool isLogLevelValid(int level);
 #ifndef LOG_COMP_NON_STRD_USER_PP_MSG_ID
 #define LOG_COMP_NON_STRD_USER_PP_MSG_ID      LOG_MSG_PRFX"1406W"
 #endif
-#define LOG_COMP_NON_STRD_USER_PP_MSG_TEXT    "non standard class provided for user POST/PUT, leaving...\n");
+#define LOG_COMP_NON_STRD_USER_PP_MSG_TEXT    "non standard class provided for user POST/PUT, leaving...\n"
 #define LOG_COMP_NON_STRD_USER_PP             LOG_COMP_NON_STRD_USER_PP_MSG_ID" "LOG_COMP_NON_STRD_USER_PP_MSG_TEXT
 
 #ifndef LOG_COMP_PROF_REQ_USER_PP_MSG_ID
