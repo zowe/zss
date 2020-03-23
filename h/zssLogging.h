@@ -13,8 +13,8 @@
 #ifndef MVD_H_ZSSLOGGING_H_
 #define MVD_H_ZSSLOGGING_H_
 
-#ifndef LOG_COMP_ID
-#define LOG_COMP_ID     "ZWE"
+#ifndef ZSS_LOG_ID
+#define ZSS_LOG_ID     "ZWE"
 #endif
 
 #ifndef LOG_SUBCOMP_ID
@@ -22,7 +22,7 @@
 #endif
 
 #ifndef LOG_PROD_ID
-#define LOG_PROD_ID LOG_COMP_ID LOG_SUBCOMP_ID
+#define LOG_PROD_ID ZSS_LOG_ID LOG_SUBCOMP_ID
 #endif
 
 #ifndef LOG_MSG_SUBCOMP
@@ -30,7 +30,7 @@
 #endif
 
 #ifndef LOG_MSG_PRFX
-#define LOG_MSG_PRFX  LOG_COMP_ID LOG_MSG_SUBCOMP
+#define LOG_MSG_PRFX  ZSS_LOG_ID LOG_MSG_SUBCOMP
 #endif
 
 #define LOG_COMP_ID_MVD_SERVER    0x008F000300010000
@@ -51,531 +51,531 @@ bool isLogLevelValid(int level);
 
 /* MVD Server */
 
-#ifndef LOG_COMP_PRV_SRV_NAME_MSG_ID
-#define LOG_COMP_PRV_SRV_NAME_MSG_ID          LOG_MSG_PRFX"1000W"
+#ifndef ZSS_LOG_PRV_SRV_NAME_MSG_ID
+#define ZSS_LOG_PRV_SRV_NAME_MSG_ID          LOG_MSG_PRFX"1000W"
 #endif
-#define LOG_COMP_PRV_SRV_NAME_MSG_TEXT        "warning: privileged server name not provided, falling back to default\n"
-#define LOG_COMP_PRV_SRV_NAME_MSG             LOG_COMP_PRV_SRV_NAME_MSG_ID" "LOG_COMP_PRV_SRV_NAME_MSG_TEXT
+#define ZSS_LOG_PRV_SRV_NAME_MSG_TEXT        "warning: privileged server name not provided, falling back to default\n"
+#define ZSS_LOG_PRV_SRV_NAME_MSG             ZSS_LOG_PRV_SRV_NAME_MSG_ID" "ZSS_LOG_PRV_SRV_NAME_MSG_TEXT
 
-#ifndef LOG_COMP_INC_LOG_LEVEL_MSG_ID
-#define LOG_COMP_INC_LOG_LEVEL_MSG_ID         LOG_MSG_PRFX"1001E"
+#ifndef ZSS_LOG_INC_LOG_LEVEL_MSG_ID
+#define ZSS_LOG_INC_LOG_LEVEL_MSG_ID         LOG_MSG_PRFX"1001E"
 #endif
-#define LOG_COMP_INC_LOG_LEVEL_MSG_TEXT       "error: log level %d is incorrect\n"
-#define LOG_COMP_INC_LOG_LEVEL_MSG            LOG_COMP_INC_LOG_LEVEL_MSG_ID" "LOG_COMP_INC_LOG_LEVEL_MSG_TEXT
+#define ZSS_LOG_INC_LOG_LEVEL_MSG_TEXT       "error: log level %d is incorrect\n"
+#define ZSS_LOG_INC_LOG_LEVEL_MSG            ZSS_LOG_INC_LOG_LEVEL_MSG_ID" "ZSS_LOG_INC_LOG_LEVEL_MSG_TEXT
 
-#ifndef LOG_COMP_FILE_EXPECTED_TOP_MSG_ID
-#define LOG_COMP_FILE_EXPECTED_TOP_MSG_ID     LOG_MSG_PRFX"1002E"
+#ifndef ZSS_LOG_FILE_EXPECTED_TOP_MSG_ID
+#define ZSS_LOG_FILE_EXPECTED_TOP_MSG_ID     LOG_MSG_PRFX"1002E"
 #endif
-#define LOG_COMP_FILE_EXPECTED_TOP_MSG_TEXT   "error in file %s: expected top level object\n"
-#define LOG_COMP_FILE_EXPECTED_TOP_MSG        LOG_COMP_FILE_EXPECTED_TOP_MSG_ID" "LOG_COMP_FILE_EXPECTED_TOP_MSG_TEXT
+#define ZSS_LOG_FILE_EXPECTED_TOP_MSG_TEXT   "error in file %s: expected top level object\n"
+#define ZSS_LOG_FILE_EXPECTED_TOP_MSG        ZSS_LOG_FILE_EXPECTED_TOP_MSG_ID" "ZSS_LOG_FILE_EXPECTED_TOP_MSG_TEXT
 
-#ifndef LOG_COMP_PARS_ZSS_SETTING_MSG_ID
-#define LOG_COMP_PARS_ZSS_SETTING_MSG_ID      LOG_MSG_PRFX"1003E"
+#ifndef ZSS_LOG_PARS_ZSS_SETTING_MSG_ID
+#define ZSS_LOG_PARS_ZSS_SETTING_MSG_ID      LOG_MSG_PRFX"1003E"
 #endif
-#define LOG_COMP_PARS_ZSS_SETTING_MSG_TEXT    "error while parsing ZSS settings from file %s: %s\n"
-#define LOG_COMP_PARS_ZSS_SETTING_MSG         LOG_COMP_PARS_ZSS_SETTING_MSG_ID" "LOG_COMP_PARS_ZSS_SETTING_MSG_TEXT
+#define ZSS_LOG_PARS_ZSS_SETTING_MSG_TEXT    "error while parsing ZSS settings from file %s: %s\n"
+#define ZSS_LOG_PARS_ZSS_SETTING_MSG         ZSS_LOG_PARS_ZSS_SETTING_MSG_ID" "ZSS_LOG_PARS_ZSS_SETTING_MSG_TEXT
 
-#ifndef LOG_COMP_EXPEC_PLUGIN_ID_MSG_ID
-#define LOG_COMP_EXPEC_PLUGIN_ID_MSG_ID       LOG_MSG_PRFX"1004I"
+#ifndef ZSS_LOG_EXPEC_PLUGIN_ID_MSG_ID
+#define ZSS_LOG_EXPEC_PLUGIN_ID_MSG_ID       LOG_MSG_PRFX"1004I"
 #endif
-#define LOG_COMP_EXPEC_PLUGIN_ID_MSG_TEXT     "expected plugin identifier %s, got %s\n"
-#define LOG_COMP_EXPEC_PLUGIN_ID_MSG          LOG_COMP_EXPEC_PLUGIN_ID_MSG_ID" "LOG_COMP_EXPEC_PLUGIN_ID_MSG_TEXT
+#define ZSS_LOG_EXPEC_PLUGIN_ID_MSG_TEXT     "expected plugin identifier %s, got %s\n"
+#define ZSS_LOG_EXPEC_PLUGIN_ID_MSG          ZSS_LOG_EXPEC_PLUGIN_ID_MSG_ID" "ZSS_LOG_EXPEC_PLUGIN_ID_MSG_TEXT
 
-#ifndef LOG_COMP_PLUGIN_ID_NFOUND_MSG_ID
-#define LOG_COMP_PLUGIN_ID_NFOUND_MSG_ID      LOG_MSG_PRFX"1005I"
+#ifndef ZSS_LOG_PLUGIN_ID_NFOUND_MSG_ID
+#define ZSS_LOG_PLUGIN_ID_NFOUND_MSG_ID      LOG_MSG_PRFX"1005I"
 #endif
-#define LOG_COMP_PLUGIN_ID_NFOUND_MSG_TEXT    "plugin identifier was not found in %s\n"
-#define LOG_COMP_PLUGIN_ID_NFOUND_MSG         LOG_COMP_PLUGIN_ID_NFOUND_MSG_ID" "LOG_COMP_PLUGIN_ID_NFOUND_MSG_TEXT
+#define ZSS_LOG_PLUGIN_ID_NFOUND_MSG_TEXT    "plugin identifier was not found in %s\n"
+#define ZSS_LOG_PLUGIN_ID_NFOUND_MSG         ZSS_LOG_PLUGIN_ID_NFOUND_MSG_ID" "ZSS_LOG_PLUGIN_ID_NFOUND_MSG_TEXT
 
-#ifndef LOG_COMP_PARS_FILE_MSG_ID
-#define LOG_COMP_PARS_FILE_MSG_ID             LOG_MSG_PRFX"1006E"
+#ifndef ZSS_LOG_PARS_FILE_MSG_ID
+#define ZSS_LOG_PARS_FILE_MSG_ID             LOG_MSG_PRFX"1006E"
 #endif
-#define LOG_COMP_PARS_FILE_MSG_TEXT           "error while parsing file %s: %s\n"
-#define LOG_COMP_PARS_FILE_MSG                LOG_COMP_PARS_FILE_MSG_ID" "LOG_COMP_PARS_FILE_MSG_TEXT
+#define ZSS_LOG_PARS_FILE_MSG_TEXT           "error while parsing file %s: %s\n"
+#define ZSS_LOG_PARS_FILE_MSG                ZSS_LOG_PARS_FILE_MSG_ID" "ZSS_LOG_PARS_FILE_MSG_TEXT
 
-#ifndef LOG_COMP_WEB_CONT_NFOUND_MSG_ID
-#define LOG_COMP_WEB_CONT_NFOUND_MSG_ID       LOG_MSG_PRFX"1007I"
+#ifndef ZSS_LOG_WEB_CONT_NFOUND_MSG_ID
+#define ZSS_LOG_WEB_CONT_NFOUND_MSG_ID       LOG_MSG_PRFX"1007I"
 #endif
-#define LOG_COMP_WEB_CONT_NFOUND_MSG_TEXT     "webContent wasn't found in plugin defintion for %s\n"
-#define LOG_COMP_WEB_CONT_NFOUND_MSG          LOG_COMP_WEB_CONT_NFOUND_MSG_ID" "LOG_COMP_WEB_CONT_NFOUND_MSG_TEXT
+#define ZSS_LOG_WEB_CONT_NFOUND_MSG_TEXT     "webContent wasn't found in plugin defintion for %s\n"
+#define ZSS_LOG_WEB_CONT_NFOUND_MSG          ZSS_LOG_WEB_CONT_NFOUND_MSG_ID" "ZSS_LOG_WEB_CONT_NFOUND_MSG_TEXT
 
-#ifndef LOG_COMP_LIBR_VER_NFOUND_MSG_ID
-#define LOG_COMP_LIBR_VER_NFOUND_MSG_ID       LOG_MSG_PRFX"1008I"
+#ifndef ZSS_LOG_LIBR_VER_NFOUND_MSG_ID
+#define ZSS_LOG_LIBR_VER_NFOUND_MSG_ID       LOG_MSG_PRFX"1008I"
 #endif
-#define LOG_COMP_LIBR_VER_NFOUND_MSG_TEXT     "libraryVersion wasn't found in plugin defintion for %s\n"
-#define LOG_COMP_LIBR_VER_NFOUND_MSG          LOG_COMP_LIBR_VER_NFOUND_MSG_ID" "LOG_COMP_LIBR_VER_NFOUND_MSG_TEXT
+#define ZSS_LOG_LIBR_VER_NFOUND_MSG_TEXT     "libraryVersion wasn't found in plugin defintion for %s\n"
+#define ZSS_LOG_LIBR_VER_NFOUND_MSG          ZSS_LOG_LIBR_VER_NFOUND_MSG_ID" "ZSS_LOG_LIBR_VER_NFOUND_MSG_TEXT
 
-#ifndef LOG_COMP_PLUGIN_ID_NULL_MSG_ID
-#define LOG_COMP_PLUGIN_ID_NULL_MSG_ID        LOG_MSG_PRFX"1009W"
+#ifndef ZSS_LOG_PLUGIN_ID_NULL_MSG_ID
+#define ZSS_LOG_PLUGIN_ID_NULL_MSG_ID        LOG_MSG_PRFX"1009W"
 #endif
-#define LOG_COMP_PLUGIN_ID_NULL_MSG_TEXT      "plugin id=%s is NULL and cannot be loaded.\n"
-#define LOG_COMP_PLUGIN_ID_NULL_MSG           LOG_COMP_PLUGIN_ID_NULL_MSG_ID" "LOG_COMP_PLUGIN_ID_NULL_MSG_TEXT
+#define ZSS_LOG_PLUGIN_ID_NULL_MSG_TEXT      "plugin id=%s is NULL and cannot be loaded.\n"
+#define ZSS_LOG_PLUGIN_ID_NULL_MSG           ZSS_LOG_PLUGIN_ID_NULL_MSG_ID" "ZSS_LOG_PLUGIN_ID_NULL_MSG_TEXT
 
-#ifndef LOG_COMP_PLUGIN_IDLOC_NFOUND_MSG_ID
-#define LOG_COMP_PLUGIN_IDLOC_NFOUND_MSG_ID   LOG_MSG_PRFX"1010I"
+#ifndef ZSS_LOG_PLUGIN_IDLOC_NFOUND_MSG_ID
+#define ZSS_LOG_PLUGIN_IDLOC_NFOUND_MSG_ID   LOG_MSG_PRFX"1010I"
 #endif
-#define LOG_COMP_PLUGIN_IDLOC_NFOUND_MSG_TEXT "plugin identifier or/and pluginLocation was not found in %s\n"
-#define LOG_COMP_PLUGIN_IDLOC_NFOUND_MSG      LOG_COMP_PLUGIN_IDLOC_NFOUND_MSG_ID" "LOG_COMP_PLUGIN_IDLOC_NFOUND_MSG_TEXT
+#define ZSS_LOG_PLUGIN_IDLOC_NFOUND_MSG_TEXT "plugin identifier or/and pluginLocation was not found in %s\n"
+#define ZSS_LOG_PLUGIN_IDLOC_NFOUND_MSG      ZSS_LOG_PLUGIN_IDLOC_NFOUND_MSG_ID" "ZSS_LOG_PLUGIN_IDLOC_NFOUND_MSG_TEXT
 
-#ifndef LOG_COMP_PARS_GENERIC_MSG_ID
-#define LOG_COMP_PARS_GENERIC_MSG_ID          LOG_MSG_PRFX"1011E"
+#ifndef ZSS_LOG_PARS_GENERIC_MSG_ID
+#define ZSS_LOG_PARS_GENERIC_MSG_ID          LOG_MSG_PRFX"1011E"
 #endif
-#define LOG_COMP_PARS_GENERIC_MSG_TEXT        "error while parsing %s: %s\n"
-#define LOG_COMP_PARS_GENERIC_MSG             LOG_COMP_PARS_GENERIC_MSG_ID" "LOG_COMP_PARS_GENERIC_MSG_TEXT
+#define ZSS_LOG_PARS_GENERIC_MSG_TEXT        "error while parsing %s: %s\n"
+#define ZSS_LOG_PARS_GENERIC_MSG             ZSS_LOG_PARS_GENERIC_MSG_ID" "ZSS_LOG_PARS_GENERIC_MSG_TEXT
 
-#ifndef LOG_COMP_OPEN_DIR_FAIL_MSG_ID
-#define LOG_COMP_OPEN_DIR_FAIL_MSG_ID         LOG_MSG_PRFX"1012W"
+#ifndef ZSS_LOG_OPEN_DIR_FAIL_MSG_ID
+#define ZSS_LOG_OPEN_DIR_FAIL_MSG_ID         LOG_MSG_PRFX"1012W"
 #endif
-#define LOG_COMP_OPEN_DIR_FAIL_MSG_TEXT       "couldn't open directory '%s' returnCode=%d reasonCode=0x%x\n"
-#define LOG_COMP_OPEN_DIR_FAIL_MSG            LOG_COMP_OPEN_DIR_FAIL_MSG_ID" "LOG_COMP_OPEN_DIR_FAIL_MSG_TEXT
+#define ZSS_LOG_OPEN_DIR_FAIL_MSG_TEXT       "couldn't open directory '%s' returnCode=%d reasonCode=0x%x\n"
+#define ZSS_LOG_OPEN_DIR_FAIL_MSG            ZSS_LOG_OPEN_DIR_FAIL_MSG_ID" "ZSS_LOG_OPEN_DIR_FAIL_MSG_TEXT
 
-#ifndef LOG_COMP_ZSS_START_VER_MSG_ID
-#define LOG_COMP_ZSS_START_VER_MSG_ID         LOG_MSG_PRFX"1013I"
+#ifndef ZSS_LOG_ZSS_START_VER_MSG_ID
+#define ZSS_LOG_ZSS_START_VER_MSG_ID         LOG_MSG_PRFX"1013I"
 #endif
-#define LOG_COMP_ZSS_START_VER_MSG_TEXT       "zssServer startup, version %s\n"
-#define LOG_COMP_ZSS_START_VER_MSG            LOG_COMP_ZSS_START_VER_MSG_ID" "LOG_COMP_ZSS_START_VER_MSG_TEXT
+#define ZSS_LOG_ZSS_START_VER_MSG_TEXT       "zssServer startup, version %s\n"
+#define ZSS_LOG_ZSS_START_VER_MSG            ZSS_LOG_ZSS_START_VER_MSG_ID" "ZSS_LOG_ZSS_START_VER_MSG_TEXT
 
-#ifndef LOG_COMP_ZIS_STATUS_MSG_ID
-#define LOG_COMP_ZIS_STATUS_MSG_ID            LOG_MSG_PRFX"1014I"
+#ifndef ZSS_LOG_ZIS_STATUS_MSG_ID
+#define ZSS_LOG_ZIS_STATUS_MSG_ID            LOG_MSG_PRFX"1014I"
 #endif
-#define LOG_COMP_ZIS_STATUS_MSG_TEXT          "ZIS status - %s (name='%.16s', cmsRC=%d, description='%s', clientVersion=%d)\n"
-#define LOG_COMP_ZIS_STATUS_MSG               LOG_COMP_ZIS_STATUS_MSG_ID" "LOG_COMP_ZIS_STATUS_MSG_TEXT
+#define ZSS_LOG_ZIS_STATUS_MSG_TEXT          "ZIS status - %s (name='%.16s', cmsRC=%d, description='%s', clientVersion=%d)\n"
+#define ZSS_LOG_ZIS_STATUS_MSG               ZSS_LOG_ZIS_STATUS_MSG_ID" "ZSS_LOG_ZIS_STATUS_MSG_TEXT
 
-#ifndef LOG_COMP_HTTPS_NO_IMPLEM_MSG_ID
-#define LOG_COMP_HTTPS_NO_IMPLEM_MSG_ID       LOG_MSG_PRFX"1015W"
+#ifndef ZSS_LOG_HTTPS_NO_IMPLEM_MSG_ID
+#define ZSS_LOG_HTTPS_NO_IMPLEM_MSG_ID       LOG_MSG_PRFX"1015W"
 #endif
-#define LOG_COMP_HTTPS_NO_IMPLEM_MSG_TEXT     "*** WARNING: Server doesn't implement HTTPS! ***\n*** In production only use localhost or 127.0.0.1! Server using: %s ***\n"
-#define LOG_COMP_HTTPS_NO_IMPLEM_MSG          LOG_COMP_HTTPS_NO_IMPLEM_MSG_ID" "LOG_COMP_HTTPS_NO_IMPLEM_MSG_TEXT
+#define ZSS_LOG_HTTPS_NO_IMPLEM_MSG_TEXT     "*** WARNING: Server doesn't implement HTTPS! ***\n*** In production only use localhost or 127.0.0.1! Server using: %s ***\n"
+#define ZSS_LOG_HTTPS_NO_IMPLEM_MSG          ZSS_LOG_HTTPS_NO_IMPLEM_MSG_ID" "ZSS_LOG_HTTPS_NO_IMPLEM_MSG_TEXT
 
-#ifndef LOG_COMP_CANT_VAL_PERMISS_MSG_ID
-#define LOG_COMP_CANT_VAL_PERMISS_MSG_ID      LOG_MSG_PRFX"1016E"
+#ifndef ZSS_LOG_CANT_VAL_PERMISS_MSG_ID
+#define ZSS_LOG_CANT_VAL_PERMISS_MSG_ID      LOG_MSG_PRFX"1016E"
 #endif
-#define LOG_COMP_CANT_VAL_PERMISS_MSG_TEXT    "Cannot validate file permission, path is not defined.\n"
-#define LOG_COMP_CANT_VAL_PERMISS_MSG         LOG_COMP_CANT_VAL_PERMISS_MSG_ID" "LOG_COMP_CANT_VAL_PERMISS_MSG_TEXT
+#define ZSS_LOG_CANT_VAL_PERMISS_MSG_TEXT    "Cannot validate file permission, path is not defined.\n"
+#define ZSS_LOG_CANT_VAL_PERMISS_MSG         ZSS_LOG_CANT_VAL_PERMISS_MSG_ID" "ZSS_LOG_CANT_VAL_PERMISS_MSG_TEXT
 
-#ifndef LOG_COMP_CANT_STAT_CONFIG_MSG_ID
-#define LOG_COMP_CANT_STAT_CONFIG_MSG_ID      LOG_MSG_PRFX"1017E"
+#ifndef ZSS_LOG_CANT_STAT_CONFIG_MSG_ID
+#define ZSS_LOG_CANT_STAT_CONFIG_MSG_ID      LOG_MSG_PRFX"1017E"
 #endif
-#define LOG_COMP_CANT_STAT_CONFIG_MSG_TEXT    "Couldnt stat config path=%s. return=%d, reason=%d\n"
-#define LOG_COMP_CANT_STAT_CONFIG_MSG         LOG_COMP_CANT_STAT_CONFIG_MSG_ID" "LOG_COMP_CANT_STAT_CONFIG_MSG_TEXT
+#define ZSS_LOG_CANT_STAT_CONFIG_MSG_TEXT    "Couldnt stat config path=%s. return=%d, reason=%d\n"
+#define ZSS_LOG_CANT_STAT_CONFIG_MSG         ZSS_LOG_CANT_STAT_CONFIG_MSG_ID" "ZSS_LOG_CANT_STAT_CONFIG_MSG_TEXT
 
-#ifndef LOG_COMP_CONFIG_OPEN_PERMISS_MSG_ID
-#define LOG_COMP_CONFIG_OPEN_PERMISS_MSG_ID   LOG_MSG_PRFX"1018E"
+#ifndef ZSS_LOG_CONFIG_OPEN_PERMISS_MSG_ID
+#define ZSS_LOG_CONFIG_OPEN_PERMISS_MSG_ID   LOG_MSG_PRFX"1018E"
 #endif
-#define LOG_COMP_CONFIG_OPEN_PERMISS_MSG_TEXT "Config path=%s has group & other permissions that are too open! Refusing to start.\n"
-#define LOG_COMP_CONFIG_OPEN_PERMISS_MSG      LOG_COMP_CONFIG_OPEN_PERMISS_MSG_ID" "LOG_COMP_CONFIG_OPEN_PERMISS_MSG_TEXT
+#define ZSS_LOG_CONFIG_OPEN_PERMISS_MSG_TEXT "Config path=%s has group & other permissions that are too open! Refusing to start.\n"
+#define ZSS_LOG_CONFIG_OPEN_PERMISS_MSG      ZSS_LOG_CONFIG_OPEN_PERMISS_MSG_ID" "ZSS_LOG_CONFIG_OPEN_PERMISS_MSG_TEXT
 
-#ifndef LOG_COMP_ENSURE_PERMISS_MSG_ID
-#define LOG_COMP_ENSURE_PERMISS_MSG_ID        LOG_MSG_PRFX"1019E"
+#ifndef ZSS_LOG_ENSURE_PERMISS_MSG_ID
+#define ZSS_LOG_ENSURE_PERMISS_MSG_ID        LOG_MSG_PRFX"1019E"
 #endif
-#define LOG_COMP_ENSURE_PERMISS_MSG_TEXT      "Ensure group has no write (or execute, if file) permission. Ensure other has no permissions. Then, restart zssServer to retry.\n"
-#define LOG_COMP_ENSURE_PERMISS_MSG           LOG_COMP_ENSURE_PERMISS_MSG_ID" "LOG_COMP_ENSURE_PERMISS_MSG_TEXT
+#define ZSS_LOG_ENSURE_PERMISS_MSG_TEXT      "Ensure group has no write (or execute, if file) permission. Ensure other has no permissions. Then, restart zssServer to retry.\n"
+#define ZSS_LOG_ENSURE_PERMISS_MSG           ZSS_LOG_ENSURE_PERMISS_MSG_ID" "ZSS_LOG_ENSURE_PERMISS_MSG_TEXT
 
-#ifndef LOG_COMP_SKIP_PERMISS_MSG_ID
-#define LOG_COMP_SKIP_PERMISS_MSG_ID          LOG_MSG_PRFX"1020E"
+#ifndef ZSS_LOG_SKIP_PERMISS_MSG_ID
+#define ZSS_LOG_SKIP_PERMISS_MSG_ID          LOG_MSG_PRFX"1020E"
 #endif
-#define LOG_COMP_SKIP_PERMISS_MSG_TEXT        "Skipping validation of file permissions: disabled during compilation, file %s.\n"
-#define LOG_COMP_SKIP_PERMISS_MSG             LOG_COMP_SKIP_PERMISS_MSG_ID" "LOG_COMP_SKIP_PERMISS_MSG_TEXT
+#define ZSS_LOG_SKIP_PERMISS_MSG_TEXT        "Skipping validation of file permissions: disabled during compilation, file %s.\n"
+#define ZSS_LOG_SKIP_PERMISS_MSG             ZSS_LOG_SKIP_PERMISS_MSG_ID" "ZSS_LOG_SKIP_PERMISS_MSG_TEXT
 
-#ifndef LOG_COMP_PATH_UNDEF_MSG_ID
-#define LOG_COMP_PATH_UNDEF_MSG_ID            LOG_MSG_PRFX"1021E"
+#ifndef ZSS_LOG_PATH_UNDEF_MSG_ID
+#define ZSS_LOG_PATH_UNDEF_MSG_ID            LOG_MSG_PRFX"1021E"
 #endif
-#define LOG_COMP_PATH_UNDEF_MSG_TEXT          "Cannot validate file permission, path is not defined.\n"
-#define LOG_COMP_PATH_UNDEF_MSG               LOG_COMP_PATH_UNDEF_MSG_ID" "LOG_COMP_PATH_UNDEF_MSG_TEXT
+#define ZSS_LOG_PATH_UNDEF_MSG_TEXT          "Cannot validate file permission, path is not defined.\n"
+#define ZSS_LOG_PATH_UNDEF_MSG               ZSS_LOG_PATH_UNDEF_MSG_ID" "ZSS_LOG_PATH_UNDEF_MSG_TEXT
 
-#ifndef LOG_COMP_PATH_DIR_MSG_ID
-#define LOG_COMP_PATH_DIR_MSG_ID              LOG_MSG_PRFX"1022E"
+#ifndef ZSS_LOG_PATH_DIR_MSG_ID
+#define ZSS_LOG_PATH_DIR_MSG_ID              LOG_MSG_PRFX"1022E"
 #endif
-#define LOG_COMP_PATH_DIR_MSG_TEXT            "Cannot validate file permission, path was for a directory not a file.\n"
-#define LOG_COMP_PATH_DIR_MSG                 LOG_COMP_PATH_DIR_MSG_ID" "LOG_COMP_PATH_DIR_MSG_TEXT
+#define ZSS_LOG_PATH_DIR_MSG_TEXT            "Cannot validate file permission, path was for a directory not a file.\n"
+#define ZSS_LOG_PATH_DIR_MSG                 ZSS_LOG_PATH_DIR_MSG_ID" "ZSS_LOG_PATH_DIR_MSG_TEXT
 
-#ifndef LOG_COMP_NO_JWT_AGENT_MSG_ID
-#define LOG_COMP_NO_JWT_AGENT_MSG_ID          LOG_MSG_PRFX"1023I"
+#ifndef ZSS_LOG_NO_JWT_AGENT_MSG_ID
+#define ZSS_LOG_NO_JWT_AGENT_MSG_ID          LOG_MSG_PRFX"1023I"
 #endif
-#define LOG_COMP_NO_JWT_AGENT_MSG_TEXT        "Will not accept JWTs: agent configuration missing\n"
-#define LOG_COMP_NO_JWT_AGENT_MSG             LOG_COMP_NO_JWT_AGENT_MSG_ID" "LOG_COMP_NO_JWT_AGENT_MSG_TEXT
+#define ZSS_LOG_NO_JWT_AGENT_MSG_TEXT        "Will not accept JWTs: agent configuration missing\n"
+#define ZSS_LOG_NO_JWT_AGENT_MSG             ZSS_LOG_NO_JWT_AGENT_MSG_ID" "ZSS_LOG_NO_JWT_AGENT_MSG_TEXT
 
-#ifndef LOG_COMP_NO_JWT_CONFIG_MSG_ID
-#define LOG_COMP_NO_JWT_CONFIG_MSG_ID         LOG_MSG_PRFX"1024I"
+#ifndef ZSS_LOG_NO_JWT_CONFIG_MSG_ID
+#define ZSS_LOG_NO_JWT_CONFIG_MSG_ID         LOG_MSG_PRFX"1024I"
 #endif
-#define LOG_COMP_NO_JWT_CONFIG_MSG_TEXT       "Will not accept JWTs: JWT keystore configuration missing\n"
-#define LOG_COMP_NO_JWT_CONFIG_MSG            LOG_COMP_NO_JWT_CONFIG_MSG_ID" "LOG_COMP_NO_JWT_CONFIG_MSG_TEXT
+#define ZSS_LOG_NO_JWT_CONFIG_MSG_TEXT       "Will not accept JWTs: JWT keystore configuration missing\n"
+#define ZSS_LOG_NO_JWT_CONFIG_MSG            ZSS_LOG_NO_JWT_CONFIG_MSG_ID" "ZSS_LOG_NO_JWT_CONFIG_MSG_TEXT
 
-#ifndef LOG_COMP_NO_JWT_DISABLED_MSG_ID
-#define LOG_COMP_NO_JWT_DISABLED_MSG_ID       LOG_MSG_PRFX"1025I"
+#ifndef ZSS_LOG_NO_JWT_DISABLED_MSG_ID
+#define ZSS_LOG_NO_JWT_DISABLED_MSG_ID       LOG_MSG_PRFX"1025I"
 #endif
-#define LOG_COMP_NO_JWT_DISABLED_MSG_TEXT     "Will not accept JWTs: disabled in the configuration\n"
-#define LOG_COMP_NO_JWT_DISABLED_MSG          LOG_COMP_NO_JWT_DISABLED_MSG_ID" "LOG_COMP_NO_JWT_DISABLED_MSG_TEXT
+#define ZSS_LOG_NO_JWT_DISABLED_MSG_TEXT     "Will not accept JWTs: disabled in the configuration\n"
+#define ZSS_LOG_NO_JWT_DISABLED_MSG          ZSS_LOG_NO_JWT_DISABLED_MSG_ID" "ZSS_LOG_NO_JWT_DISABLED_MSG_TEXT
 
-#ifndef LOG_COMP_JWT_CONFIG_MISSING_MSG_ID
-#define LOG_COMP_JWT_CONFIG_MISSING_MSG_ID    LOG_MSG_PRFX"1026E"
+#ifndef ZSS_LOG_JWT_CONFIG_MISSING_MSG_ID
+#define ZSS_LOG_JWT_CONFIG_MISSING_MSG_ID    LOG_MSG_PRFX"1026E"
 #endif
-#define LOG_COMP_JWT_CONFIG_MISSING_MSG_TEXT  "JWT keystore configuration missing\n"
-#define LOG_COMP_JWT_CONFIG_MISSING_MSG       LOG_COMP_JWT_CONFIG_MISSING_MSG_ID" "LOG_COMP_JWT_CONFIG_MISSING_MSG_TEXT
+#define ZSS_LOG_JWT_CONFIG_MISSING_MSG_TEXT  "JWT keystore configuration missing\n"
+#define ZSS_LOG_JWT_CONFIG_MISSING_MSG       ZSS_LOG_JWT_CONFIG_MISSING_MSG_ID" "ZSS_LOG_JWT_CONFIG_MISSING_MSG_TEXT
 
-#ifndef LOG_COMP_JWT_KEYSTORE_UNKN_MSG_ID
-#define LOG_COMP_JWT_KEYSTORE_UNKN_MSG_ID     LOG_MSG_PRFX"1027E"
+#ifndef ZSS_LOG_JWT_KEYSTORE_UNKN_MSG_ID
+#define ZSS_LOG_JWT_KEYSTORE_UNKN_MSG_ID     LOG_MSG_PRFX"1027E"
 #endif
-#define LOG_COMP_JWT_KEYSTORE_UNKN_MSG_TEXT   "Invalid JWT configuration: unknown keystore type %s\n"
-#define LOG_COMP_JWT_KEYSTORE_UNKN_MSG        LOG_COMP_JWT_KEYSTORE_UNKN_MSG_ID" "LOG_COMP_JWT_KEYSTORE_UNKN_MSG_TEXT
+#define ZSS_LOG_JWT_KEYSTORE_UNKN_MSG_TEXT   "Invalid JWT configuration: unknown keystore type %s\n"
+#define ZSS_LOG_JWT_KEYSTORE_UNKN_MSG        ZSS_LOG_JWT_KEYSTORE_UNKN_MSG_ID" "ZSS_LOG_JWT_KEYSTORE_UNKN_MSG_TEXT
 
-#ifndef LOG_COMP_JWT_KEYSTORE_NAME_MSG_ID
-#define LOG_COMP_JWT_KEYSTORE_NAME_MSG_ID     LOG_MSG_PRFX"1028E"
+#ifndef ZSS_LOG_JWT_KEYSTORE_NAME_MSG_ID
+#define ZSS_LOG_JWT_KEYSTORE_NAME_MSG_ID     LOG_MSG_PRFX"1028E"
 #endif
-#define LOG_COMP_JWT_KEYSTORE_NAME_MSG_TEXT   "Invalid JWT configuration: keystore name missing\n"
-#define LOG_COMP_JWT_KEYSTORE_NAME_MSG        LOG_COMP_JWT_KEYSTORE_NAME_MSG_ID" "LOG_COMP_JWT_KEYSTORE_NAME_MSG_TEXT
+#define ZSS_LOG_JWT_KEYSTORE_NAME_MSG_TEXT   "Invalid JWT configuration: keystore name missing\n"
+#define ZSS_LOG_JWT_KEYSTORE_NAME_MSG        ZSS_LOG_JWT_KEYSTORE_NAME_MSG_ID" "ZSS_LOG_JWT_KEYSTORE_NAME_MSG_TEXT
 
-#ifndef LOG_COMP_JWT_TOKEN_FALLBK_MSG_ID
-#define LOG_COMP_JWT_TOKEN_FALLBK_MSG_ID      LOG_MSG_PRFX"1029I"
+#ifndef ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID
+#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID      LOG_MSG_PRFX"1029I"
 #endif
-#define LOG_COMP_JWT_TOKEN_FALLBK_MSG_TEXT    "Will use JWT using PKCS#11 token '%s', key id '%s', %s fallback to legacy tokens\n"
-#define LOG_COMP_JWT_TOKEN_FALLBK_MSG         LOG_COMP_JWT_TOKEN_FALLBK_MSG_ID" "LOG_COMP_JWT_TOKEN_FALLBK_MSG_TEXT
+#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG_TEXT    "Will use JWT using PKCS#11 token '%s', key id '%s', %s fallback to legacy tokens\n"
+#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG         ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID" "ZSS_LOG_JWT_TOKEN_FALLBK_MSG_TEXT
 
-#ifndef LOG_COMP_NO_LOAD_JWT_MSG_ID
-#define LOG_COMP_NO_LOAD_JWT_MSG_ID           LOG_MSG_PRFX"1030W"
+#ifndef ZSS_LOG_NO_LOAD_JWT_MSG_ID
+#define ZSS_LOG_NO_LOAD_JWT_MSG_ID           LOG_MSG_PRFX"1030W"
 #endif
-#define LOG_COMP_NO_LOAD_JWT_MSG_TEXT         "Server startup problem: could not load the JWT key %s from token %s: rc %d, p11rc %d, p11Rsn %d\n"
-#define LOG_COMP_NO_LOAD_JWT_MSG              LOG_COMP_NO_LOAD_JWT_MSG_ID" "LOG_COMP_NO_LOAD_JWT_MSG_TEXT
+#define ZSS_LOG_NO_LOAD_JWT_MSG_TEXT         "Server startup problem: could not load the JWT key %s from token %s: rc %d, p11rc %d, p11Rsn %d\n"
+#define ZSS_LOG_NO_LOAD_JWT_MSG              ZSS_LOG_NO_LOAD_JWT_MSG_ID" "ZSS_LOG_NO_LOAD_JWT_MSG_TEXT
 
-#ifndef LOG_COMP_PATH_TO_SERVER_MSG_ID
-#define LOG_COMP_PATH_TO_SERVER_MSG_ID        LOG_MSG_PRFX"1031W"
+#ifndef ZSS_LOG_PATH_TO_SERVER_MSG_ID
+#define ZSS_LOG_PATH_TO_SERVER_MSG_ID        LOG_MSG_PRFX"1031W"
 #endif
-#define LOG_COMP_PATH_TO_SERVER_MSG_TEXT      "Usage: zssServer <path to server.json file>\n"
-#define LOG_COMP_PATH_TO_SERVER_MSG           LOG_COMP_PATH_TO_SERVER_MSG_ID" "LOG_COMP_PATH_TO_SERVER_MSG_TEXT
+#define ZSS_LOG_PATH_TO_SERVER_MSG_TEXT      "Usage: zssServer <path to server.json file>\n"
+#define ZSS_LOG_PATH_TO_SERVER_MSG           ZSS_LOG_PATH_TO_SERVER_MSG_ID" "ZSS_LOG_PATH_TO_SERVER_MSG_TEXT
 
-#ifndef LOG_COMP_SIG_IGNORE_MSG_ID
-#define LOG_COMP_SIG_IGNORE_MSG_ID            LOG_MSG_PRFX"1032W"
+#ifndef ZSS_LOG_SIG_IGNORE_MSG_ID
+#define ZSS_LOG_SIG_IGNORE_MSG_ID            LOG_MSG_PRFX"1032W"
 #endif
-#define LOG_COMP_SIG_IGNORE_MSG_TEXT          "warning: sigignore(SIGPIPE)=%d, errno=%d\n"
-#define LOG_COMP_SIG_IGNORE_MSG               LOG_COMP_SIG_IGNORE_MSG_ID" "LOG_COMP_SIG_IGNORE_MSG_TEXT
+#define ZSS_LOG_SIG_IGNORE_MSG_TEXT          "warning: sigignore(SIGPIPE)=%d, errno=%d\n"
+#define ZSS_LOG_SIG_IGNORE_MSG               ZSS_LOG_SIG_IGNORE_MSG_ID" "ZSS_LOG_SIG_IGNORE_MSG_TEXT
 
-#ifndef LOG_COMP_SERVER_CONFIG_MSG_ID
-#define LOG_COMP_SERVER_CONFIG_MSG_ID         LOG_MSG_PRFX"1033I"
+#ifndef ZSS_LOG_SERVER_CONFIG_MSG_ID
+#define ZSS_LOG_SERVER_CONFIG_MSG_ID         LOG_MSG_PRFX"1033I"
 #endif
-#define LOG_COMP_SERVER_CONFIG_MSG_TEXT       "Server config file=%s\n"
-#define LOG_COMP_SERVER_CONFIG_MSG            LOG_COMP_SERVER_CONFIG_MSG_ID" "LOG_COMP_SERVER_CONFIG_MSG_TEXT
+#define ZSS_LOG_SERVER_CONFIG_MSG_TEXT       "Server config file=%s\n"
+#define ZSS_LOG_SERVER_CONFIG_MSG            ZSS_LOG_SERVER_CONFIG_MSG_ID" "ZSS_LOG_SERVER_CONFIG_MSG_TEXT
 
-#ifndef LOG_COMP_SERVER_STARTUP_MSG_ID
-#define LOG_COMP_SERVER_STARTUP_MSG_ID        LOG_MSG_PRFX"1034W"
+#ifndef ZSS_LOG_SERVER_STARTUP_MSG_ID
+#define ZSS_LOG_SERVER_STARTUP_MSG_ID        LOG_MSG_PRFX"1034W"
 #endif
-#define LOG_COMP_SERVER_STARTUP_MSG_TEXT      "server startup problem, address %s not valid\n"
-#define LOG_COMP_SERVER_STARTUP_MSG           LOG_COMP_SERVER_STARTUP_MSG_ID" "LOG_COMP_SERVER_STARTUP_MSG_TEXT
+#define ZSS_LOG_SERVER_STARTUP_MSG_TEXT      "server startup problem, address %s not valid\n"
+#define ZSS_LOG_SERVER_STARTUP_MSG           ZSS_LOG_SERVER_STARTUP_MSG_ID" "ZSS_LOG_SERVER_STARTUP_MSG_TEXT
 
-#ifndef LOG_COMP_ZSS_SETTINGS_MSG_ID
-#define LOG_COMP_ZSS_SETTINGS_MSG_ID          LOG_MSG_PRFX"1035I"
+#ifndef ZSS_LOG_ZSS_SETTINGS_MSG_ID
+#define ZSS_LOG_ZSS_SETTINGS_MSG_ID          LOG_MSG_PRFX"1035I"
 #endif
-#define LOG_COMP_ZSS_SETTINGS_MSG_TEXT        "ZSS server settings: address=%s, port=%d\n"
-#define LOG_COMP_ZSS_SETTINGS_MSG             LOG_COMP_ZSS_SETTINGS_MSG_ID" "LOG_COMP_ZSS_SETTINGS_MSG_TEXT
+#define ZSS_LOG_ZSS_SETTINGS_MSG_TEXT        "ZSS server settings: address=%s, port=%d\n"
+#define ZSS_LOG_ZSS_SETTINGS_MSG             ZSS_LOG_ZSS_SETTINGS_MSG_ID" "ZSS_LOG_ZSS_SETTINGS_MSG_TEXT
 
-#ifndef LOG_COMP_ZSS_STARTUP_MSG_ID
-#define LOG_COMP_ZSS_STARTUP_MSG_ID           LOG_MSG_PRFX"1036W"
+#ifndef ZSS_LOG_ZSS_STARTUP_MSG_ID
+#define ZSS_LOG_ZSS_STARTUP_MSG_ID           LOG_MSG_PRFX"1036W"
 #endif
-#define LOG_COMP_ZSS_STARTUP_MSG_TEXT         "Server startup problem ret=%d reason=0x%x\n"
-#define LOG_COMP_ZSS_STARTUP_MSG              LOG_COMP_ZSS_STARTUP_MSG_ID" "LOG_COMP_ZSS_STARTUP_MSG_TEXT
+#define ZSS_LOG_ZSS_STARTUP_MSG_TEXT         "Server startup problem ret=%d reason=0x%x\n"
+#define ZSS_LOG_ZSS_STARTUP_MSG              ZSS_LOG_ZSS_STARTUP_MSG_ID" "ZSS_LOG_ZSS_STARTUP_MSG_TEXT
 
-#ifndef LOG_COMP_PORT_OCCUP_MSG_ID
-#define LOG_COMP_PORT_OCCUP_MSG_ID            LOG_MSG_PRFX"1037W"
+#ifndef ZSS_LOG_PORT_OCCUP_MSG_ID
+#define ZSS_LOG_PORT_OCCUP_MSG_ID            LOG_MSG_PRFX"1037W"
 #endif
-#define LOG_COMP_PORT_OCCUP_MSG_TEXT          "This is usually due to the server port (%d) already being occupied. Is ZSS running twice?\n"
-#define LOG_COMP_PORT_OCCUP_MSG               LOG_COMP_PORT_OCCUP_MSG_ID" "LOG_COMP_PORT_OCCUP_MSG_TEXT
+#define ZSS_LOG_PORT_OCCUP_MSG_TEXT          "This is usually due to the server port (%d) already being occupied. Is ZSS running twice?\n"
+#define ZSS_LOG_PORT_OCCUP_MSG               ZSS_LOG_PORT_OCCUP_MSG_ID" "ZSS_LOG_PORT_OCCUP_MSG_TEXT
 
 /* MVD Server (Datasets) */
 
-#ifndef LOG_COMP_DS_NAME_HLQ_MSG_ID
-#define LOG_COMP_DS_NAME_HLQ_MSG_ID            LOG_MSG_PRFX"1038I"
+#ifndef ZSS_LOG_DS_NAME_HLQ_MSG_ID
+#define ZSS_LOG_DS_NAME_HLQ_MSG_ID            LOG_MSG_PRFX"1038I"
 #endif
-#define LOG_COMP_DS_NAME_HLQ_MSG_TEXT          "l1=%s\n"
-#define LOG_COMP_DS_NAME_HLQ_MSG               LOG_COMP_DS_NAME_HLQ_MSG_ID" "LOG_COMP_DS_NAME_HLQ_MSG_TEXT
+#define ZSS_LOG_DS_NAME_HLQ_MSG_TEXT          "l1=%s\n"
+#define ZSS_LOG_DS_NAME_HLQ_MSG               ZSS_LOG_DS_NAME_HLQ_MSG_ID" "ZSS_LOG_DS_NAME_HLQ_MSG_TEXT
 
-#ifndef LOG_COMP_DS_SERVING_NAME_MSG_ID
-#define LOG_COMP_DS_SERVING_NAME_MSG_ID        LOG_MSG_PRFX"1039I"
+#ifndef ZSS_LOG_DS_SERVING_NAME_MSG_ID
+#define ZSS_LOG_DS_SERVING_NAME_MSG_ID        LOG_MSG_PRFX"1039I"
 #endif
-#define LOG_COMP_DS_SERVING_NAME_MSG_TEXT      "Serving: %s\n"
-#define LOG_COMP_DS_SERVING_NAME               LOG_COMP_DS_SERVING_NAME_MSG_ID" "LOG_COMP_DS_SERVING_NAME_MSG_TEXT
+#define ZSS_LOG_DS_SERVING_NAME_MSG_TEXT      "Serving: %s\n"
+#define ZSS_LOG_DS_SERVING_NAME               ZSS_LOG_DS_SERVING_NAME_MSG_ID" "ZSS_LOG_DS_SERVING_NAME_MSG_TEXT
 
-#ifndef LOG_COMP_DS_UPDATING_IF_MSG_ID
-#define LOG_COMP_DS_UPDATING_IF_MSG_ID        LOG_MSG_PRFX"1040I"
+#ifndef ZSS_LOG_DS_UPDATING_IF_MSG_ID
+#define ZSS_LOG_DS_UPDATING_IF_MSG_ID        LOG_MSG_PRFX"1040I"
 #endif
-#define LOG_COMP_DS_UPDATING_IF_MSG_TEXT      "Updating if exists: %s\n"
-#define LOG_COMP_DS_UPDATING_IF               LOG_COMP_DS_UPDATING_IF_MSG_ID" "LOG_COMP_DS_UPDATING_IF_MSG_TEXT
+#define ZSS_LOG_DS_UPDATING_IF_MSG_TEXT      "Updating if exists: %s\n"
+#define ZSS_LOG_DS_UPDATING_IF               ZSS_LOG_DS_UPDATING_IF_MSG_ID" "ZSS_LOG_DS_UPDATING_IF_MSG_TEXT
 
-#ifndef LOG_COMP_DS_DELETING_IF_MSG_ID
-#define LOG_COMP_DS_DELETING_IF_MSG_ID        LOG_MSG_PRFX"1041I"
+#ifndef ZSS_LOG_DS_DELETING_IF_MSG_ID
+#define ZSS_LOG_DS_DELETING_IF_MSG_ID        LOG_MSG_PRFX"1041I"
 #endif
-#define LOG_COMP_DS_DELETING_IF_MSG_TEXT      "Deleting if exists: %s\n"
-#define LOG_COMP_DS_DELETING_IF               LOG_COMP_DS_DELETING_IF_MSG_ID" "LOG_COMP_DS_DELETING_IF_MSG_TEXT
+#define ZSS_LOG_DS_DELETING_IF_MSG_TEXT      "Deleting if exists: %s\n"
+#define ZSS_LOG_DS_DELETING_IF               ZSS_LOG_DS_DELETING_IF_MSG_ID" "ZSS_LOG_DS_DELETING_IF_MSG_TEXT
 
-#ifndef LOG_COMP_INSTALL_DS_CONT_MSG_ID
-#define LOG_COMP_INSTALL_DS_CONT_MSG_ID       LOG_MSG_PRFX"1042I"
+#ifndef ZSS_LOG_INSTALL_DS_CONT_MSG_ID
+#define ZSS_LOG_INSTALL_DS_CONT_MSG_ID       LOG_MSG_PRFX"1042I"
 #endif
-#define LOG_COMP_INSTALL_DS_CONT_MSG_TEXT     "Installing dataset contents service\n"
-#define LOG_COMP_INSTALL_DS_CONT              LOG_COMP_INSTALL_DS_CONT_MSG_ID" "LOG_COMP_INSTALL_DS_CONT_MSG_TEXT
+#define ZSS_LOG_INSTALL_DS_CONT_MSG_TEXT     "Installing dataset contents service\n"
+#define ZSS_LOG_INSTALL_DS_CONT              ZSS_LOG_INSTALL_DS_CONT_MSG_ID" "ZSS_LOG_INSTALL_DS_CONT_MSG_TEXT
 
-#ifndef LOG_COMP_INSTALL_VSAM_CONT_MSG_ID
-#define LOG_COMP_INSTALL_VSAM_CONT_MSG_ID     LOG_MSG_PRFX"1043I"
+#ifndef ZSS_LOG_INSTALL_VSAM_CONT_MSG_ID
+#define ZSS_LOG_INSTALL_VSAM_CONT_MSG_ID     LOG_MSG_PRFX"1043I"
 #endif
-#define LOG_COMP_INSTALL_VSAM_CONT_MSG_TEXT   "Installing VSAM dataset contents service\n"
-#define LOG_COMP_INSTALL_VSAM_CONT            LOG_COMP_INSTALL_VSAM_CONT_MSG_ID" "LOG_COMP_INSTALL_VSAM_CONT_MSG_TEXT
+#define ZSS_LOG_INSTALL_VSAM_CONT_MSG_TEXT   "Installing VSAM dataset contents service\n"
+#define ZSS_LOG_INSTALL_VSAM_CONT            ZSS_LOG_INSTALL_VSAM_CONT_MSG_ID" "ZSS_LOG_INSTALL_VSAM_CONT_MSG_TEXT
 
-#ifndef LOG_COMP_INSTALL_DS_MTADTA_MSG_ID
-#define LOG_COMP_INSTALL_DS_MTADTA_MSG_ID     LOG_MSG_PRFX"1044I"
+#ifndef ZSS_LOG_INSTALL_DS_MTADTA_MSG_ID
+#define ZSS_LOG_INSTALL_DS_MTADTA_MSG_ID     LOG_MSG_PRFX"1044I"
 #endif
-#define LOG_COMP_INSTALL_DS_MTADTA_MSG_TEXT   "Installing dataset metadata service\n"
-#define LOG_COMP_INSTALL_DS_MTADTA            LOG_COMP_INSTALL_DS_MTADTA_MSG_ID" "LOG_COMP_INSTALL_DS_MTADTA_MSG_TEXT
+#define ZSS_LOG_INSTALL_DS_MTADTA_MSG_TEXT   "Installing dataset metadata service\n"
+#define ZSS_LOG_INSTALL_DS_MTADTA            ZSS_LOG_INSTALL_DS_MTADTA_MSG_ID" "ZSS_LOG_INSTALL_DS_MTADTA_MSG_TEXT
 
 /* MVD Server (Discovery) */
 
-#ifndef LOG_COMP_DISC_THIRD_NGIVEN_MSG_ID
-#define LOG_COMP_DISC_THIRD_NGIVEN_MSG_ID     LOG_MSG_PRFX"1045W"
+#ifndef ZSS_LOG_DISC_THIRD_NGIVEN_MSG_ID
+#define ZSS_LOG_DISC_THIRD_NGIVEN_MSG_ID     LOG_MSG_PRFX"1045W"
 #endif
-#define LOG_COMP_DISC_THIRD_NGIVEN_MSG_TEXT   "zosDiscovery third level name not given\n"
-#define LOG_COMP_DISC_THIRD_NGIVEN            LOG_COMP_DISC_THIRD_NGIVEN_MSG_ID" "LOG_COMP_DISC_THIRD_NGIVEN_MSG_TEXT
+#define ZSS_LOG_DISC_THIRD_NGIVEN_MSG_TEXT   "zosDiscovery third level name not given\n"
+#define ZSS_LOG_DISC_THIRD_NGIVEN            ZSS_LOG_DISC_THIRD_NGIVEN_MSG_ID" "ZSS_LOG_DISC_THIRD_NGIVEN_MSG_TEXT
 
-#ifndef LOG_COMP_DISC_THIRD_NKNOWN_MSG_ID
-#define LOG_COMP_DISC_THIRD_NKNOWN_MSG_ID     LOG_MSG_PRFX"1046W"
+#ifndef ZSS_LOG_DISC_THIRD_NKNOWN_MSG_ID
+#define ZSS_LOG_DISC_THIRD_NKNOWN_MSG_ID     LOG_MSG_PRFX"1046W"
 #endif
-#define LOG_COMP_DISC_THIRD_NKNOWN_MSG_TEXT   "zosDiscovery third level name not known %s\n"
-#define LOG_COMP_DISC_THIRD_NKNOWN            LOG_COMP_DISC_THIRD_NKNOWN_MSG_ID" "LOG_COMP_DISC_THIRD_NKNOWN_MSG_TEXT
+#define ZSS_LOG_DISC_THIRD_NKNOWN_MSG_TEXT   "zosDiscovery third level name not known %s\n"
+#define ZSS_LOG_DISC_THIRD_NKNOWN            ZSS_LOG_DISC_THIRD_NKNOWN_MSG_ID" "ZSS_LOG_DISC_THIRD_NKNOWN_MSG_TEXT
 
-#ifndef LOG_COMP_DISC_SECND_NGIVEN_MSG_ID
-#define LOG_COMP_DISC_SECND_NGIVEN_MSG_ID     LOG_MSG_PRFX"1047W"
+#ifndef ZSS_LOG_DISC_SECND_NGIVEN_MSG_ID
+#define ZSS_LOG_DISC_SECND_NGIVEN_MSG_ID     LOG_MSG_PRFX"1047W"
 #endif
-#define LOG_COMP_DISC_SECND_NGIVEN_MSG_TEXT   "zosDiscovery second level name not given\n"
-#define LOG_COMP_DISC_SECND_NGIVEN            LOG_COMP_DISC_SECND_NGIVEN_MSG_ID" "LOG_COMP_DISC_SECND_NGIVEN_MSG_TEXT
+#define ZSS_LOG_DISC_SECND_NGIVEN_MSG_TEXT   "zosDiscovery second level name not given\n"
+#define ZSS_LOG_DISC_SECND_NGIVEN            ZSS_LOG_DISC_SECND_NGIVEN_MSG_ID" "ZSS_LOG_DISC_SECND_NGIVEN_MSG_TEXT
 
-#ifndef LOG_COMP_DISC_SECND_NKNOWN_MSG_ID
-#define LOG_COMP_DISC_SECND_NKNOWN_MSG_ID     LOG_MSG_PRFX"1048W"
+#ifndef ZSS_LOG_DISC_SECND_NKNOWN_MSG_ID
+#define ZSS_LOG_DISC_SECND_NKNOWN_MSG_ID     LOG_MSG_PRFX"1048W"
 #endif
-#define LOG_COMP_DISC_SECND_NKNOWN_MSG_TEXT   "zosDiscovery second level name not known %s\n"
-#define LOG_COMP_DISC_SECND_NKNOWN            LOG_COMP_DISC_SECND_NKNOWN_MSG_ID" "LOG_COMP_DISC_SECND_NKNOWN_MSG_TEXT
+#define ZSS_LOG_DISC_SECND_NKNOWN_MSG_TEXT   "zosDiscovery second level name not known %s\n"
+#define ZSS_LOG_DISC_SECND_NKNOWN            ZSS_LOG_DISC_SECND_NKNOWN_MSG_ID" "ZSS_LOG_DISC_SECND_NKNOWN_MSG_TEXT
 
-#ifndef LOG_COMP_DISC_FIRST_NKNOWN_MSG_ID
-#define LOG_COMP_DISC_FIRST_NKNOWN_MSG_ID     LOG_MSG_PRFX"1049W"
+#ifndef ZSS_LOG_DISC_FIRST_NKNOWN_MSG_ID
+#define ZSS_LOG_DISC_FIRST_NKNOWN_MSG_ID     LOG_MSG_PRFX"1049W"
 #endif
-#define LOG_COMP_DISC_FIRST_NKNOWN_MSG_TEXT   "zosDiscovery first level name not known %s\n"
-#define LOG_COMP_DISC_FIRST_NKNOWN            LOG_COMP_DISC_FIRST_NKNOWN_MSG_ID" "LOG_COMP_DISC_FIRST_NKNOWN_MSG_TEXT
+#define ZSS_LOG_DISC_FIRST_NKNOWN_MSG_TEXT   "zosDiscovery first level name not known %s\n"
+#define ZSS_LOG_DISC_FIRST_NKNOWN            ZSS_LOG_DISC_FIRST_NKNOWN_MSG_ID" "ZSS_LOG_DISC_FIRST_NKNOWN_MSG_TEXT
 
 /* MVD Server (ServerStatusService) */
 
-#ifndef LOG_COMP_FAIL_RMF_FETCH_MSG_ID
-#define LOG_COMP_FAIL_RMF_FETCH_MSG_ID        LOG_MSG_PRFX"1050W"
+#ifndef ZSS_LOG_FAIL_RMF_FETCH_MSG_ID
+#define ZSS_LOG_FAIL_RMF_FETCH_MSG_ID        LOG_MSG_PRFX"1050W"
 #endif
-#define LOG_COMP_FAIL_RMF_FETCH_MSG_TEXT      "Failed to fetch RMF data, RC = %d\n"
-#define LOG_COMP_FAIL_RMF_FETCH               LOG_COMP_FAIL_RMF_FETCH_MSG_ID" "LOG_COMP_FAIL_RMF_FETCH_MSG_TEXT
+#define ZSS_LOG_FAIL_RMF_FETCH_MSG_TEXT      "Failed to fetch RMF data, RC = %d\n"
+#define ZSS_LOG_FAIL_RMF_FETCH               ZSS_LOG_FAIL_RMF_FETCH_MSG_ID" "ZSS_LOG_FAIL_RMF_FETCH_MSG_TEXT
 
 /* Unixfile */
 
-#ifndef LOG_COMP_UNABLE_CLOSE_MSG_ID
-#define LOG_COMP_UNABLE_CLOSE_MSG_ID          LOG_MSG_PRFX"1200W"
+#ifndef ZSS_LOG_UNABLE_CLOSE_MSG_ID
+#define ZSS_LOG_UNABLE_CLOSE_MSG_ID          LOG_MSG_PRFX"1200W"
 #endif
-#define LOG_COMP_UNABLE_CLOSE_MSG_TEXT        "Could not close file. Ret: %d, Res: %d\n"
-#define LOG_COMP_UNABLE_CLOSE_MSG             LOG_COMP_UNABLE_CLOSE_MSG_ID" "LOG_COMP_UNABLE_CLOSE_MSG_TEXT
+#define ZSS_LOG_UNABLE_CLOSE_MSG_TEXT        "Could not close file. Ret: %d, Res: %d\n"
+#define ZSS_LOG_UNABLE_CLOSE_MSG             ZSS_LOG_UNABLE_CLOSE_MSG_ID" "ZSS_LOG_UNABLE_CLOSE_MSG_TEXT
 
-#ifndef LOG_COMP_UNABLE_CREATE_MSG_ID
-#define LOG_COMP_UNABLE_CREATE_MSG_ID         LOG_MSG_PRFX"1201W"
+#ifndef ZSS_LOG_UNABLE_CREATE_MSG_ID
+#define ZSS_LOG_UNABLE_CREATE_MSG_ID         LOG_MSG_PRFX"1201W"
 #endif
-#define LOG_COMP_UNABLE_CREATE_MSG_TEXT       "Could not create file. Ret: %d, Res: %d\n"
-#define LOG_COMP_UNABLE_CREATE_MSG            LOG_COMP_UNABLE_CREATE_MSG_ID" "LOG_COMP_UNABLE_CREATE_MSG_TEXT
+#define ZSS_LOG_UNABLE_CREATE_MSG_TEXT       "Could not create file. Ret: %d, Res: %d\n"
+#define ZSS_LOG_UNABLE_CREATE_MSG            ZSS_LOG_UNABLE_CREATE_MSG_ID" "ZSS_LOG_UNABLE_CREATE_MSG_TEXT
 
-#ifndef LOG_COMP_UNABLE_METADATA_MSG_ID
-#define LOG_COMP_UNABLE_METADATA_MSG_ID       LOG_MSG_PRFX"1202W"
+#ifndef ZSS_LOG_UNABLE_METADATA_MSG_ID
+#define ZSS_LOG_UNABLE_METADATA_MSG_ID       LOG_MSG_PRFX"1202W"
 #endif
-#define LOG_COMP_UNABLE_METADATA_MSG_TEXT     "Could not get metadata for file. Ret: %d, Res: %d\n"
-#define LOG_COMP_UNABLE_METADATA_MSG          LOG_COMP_UNABLE_METADATA_MSG_ID" "LOG_COMP_UNABLE_METADATA_MSG_TEXT
+#define ZSS_LOG_UNABLE_METADATA_MSG_TEXT     "Could not get metadata for file. Ret: %d, Res: %d\n"
+#define ZSS_LOG_UNABLE_METADATA_MSG          ZSS_LOG_UNABLE_METADATA_MSG_ID" "ZSS_LOG_UNABLE_METADATA_MSG_TEXT
 
-#ifndef LOG_COMP_UNABLE_OPEN_MSG_ID
-#define LOG_COMP_UNABLE_OPEN_MSG_ID           LOG_MSG_PRFX"1203W"
+#ifndef ZSS_LOG_UNABLE_OPEN_MSG_ID
+#define ZSS_LOG_UNABLE_OPEN_MSG_ID           LOG_MSG_PRFX"1203W"
 #endif
-#define LOG_COMP_UNABLE_OPEN_MSG_TEXT         "Could not open file. Ret: %d, Res: %d\n"
-#define LOG_COMP_UNABLE_OPEN_MSG              LOG_COMP_UNABLE_OPEN_MSG_ID" "LOG_COMP_UNABLE_OPEN_MSG_TEXT
+#define ZSS_LOG_UNABLE_OPEN_MSG_TEXT         "Could not open file. Ret: %d, Res: %d\n"
+#define ZSS_LOG_UNABLE_OPEN_MSG              ZSS_LOG_UNABLE_OPEN_MSG_ID" "ZSS_LOG_UNABLE_OPEN_MSG_TEXT
 
-#ifndef LOG_COMP_TTYPE_NOT_SET_MSG_ID
-#define LOG_COMP_TTYPE_NOT_SET_MSG_ID         LOG_MSG_PRFX"1203W"
+#ifndef ZSS_LOG_TTYPE_NOT_SET_MSG_ID
+#define ZSS_LOG_TTYPE_NOT_SET_MSG_ID         LOG_MSG_PRFX"1203W"
 #endif
-#define LOG_COMP_TTYPE_NOT_SET_MSG_TEXT       "Transfer type hasn't been set."
-#define LOG_COMP_TTYPE_NOT_SET_MSG            LOG_COMP_TTYPE_NOT_SET_MSG_ID" "LOG_COMP_TTYPE_NOT_SET_MSG_TEXT
+#define ZSS_LOG_TTYPE_NOT_SET_MSG_TEXT       "Transfer type hasn't been set."
+#define ZSS_LOG_TTYPE_NOT_SET_MSG            ZSS_LOG_TTYPE_NOT_SET_MSG_ID" "ZSS_LOG_TTYPE_NOT_SET_MSG_TEXT
 
 /* Security */
 
-#ifndef LOG_COMP_NON_STRD_GET_MSG_ID
-#define LOG_COMP_NON_STRD_GET_MSG_ID          LOG_MSG_PRFX"1400W"
+#ifndef ZSS_LOG_NON_STRD_GET_MSG_ID
+#define ZSS_LOG_NON_STRD_GET_MSG_ID          LOG_MSG_PRFX"1400W"
 #endif
-#define LOG_COMP_NON_STRD_GET_MSG_TEXT        "non standard class provided for profiles GET, leaving...\n"
-#define LOG_COMP_NON_STRD_GET                 LOG_COMP_NON_STRD_GET_MSG_ID" "LOG_COMP_NON_STRD_GET_MSG_TEXT
+#define ZSS_LOG_NON_STRD_GET_MSG_TEXT        "non standard class provided for profiles GET, leaving...\n"
+#define ZSS_LOG_NON_STRD_GET                 ZSS_LOG_NON_STRD_GET_MSG_ID" "ZSS_LOG_NON_STRD_GET_MSG_TEXT
 
-#ifndef LOG_COMP_PROF_REQ_GET_MSG_ID
-#define LOG_COMP_PROF_REQ_GET_MSG_ID          LOG_MSG_PRFX"1401W"
+#ifndef ZSS_LOG_PROF_REQ_GET_MSG_ID
+#define ZSS_LOG_PROF_REQ_GET_MSG_ID          LOG_MSG_PRFX"1401W"
 #endif
-#define LOG_COMP_PROF_REQ_GET_MSG_TEXT        "profile not provided for profiles GET, leaving...\n"
-#define LOG_COMP_PROF_REQ_GET                 LOG_COMP_PROF_REQ_GET_MSG_ID" "LOG_COMP_PROF_REQ_GET_MSG_TEXT
+#define ZSS_LOG_PROF_REQ_GET_MSG_TEXT        "profile not provided for profiles GET, leaving...\n"
+#define ZSS_LOG_PROF_REQ_GET                 ZSS_LOG_PROF_REQ_GET_MSG_ID" "ZSS_LOG_PROF_REQ_GET_MSG_TEXT
 
-#ifndef LOG_COMP_NON_STRD_POST_MSG_ID
-#define LOG_COMP_NON_STRD_POST_MSG_ID         LOG_MSG_PRFX"1402W"
+#ifndef ZSS_LOG_NON_STRD_POST_MSG_ID
+#define ZSS_LOG_NON_STRD_POST_MSG_ID         LOG_MSG_PRFX"1402W"
 #endif
-#define LOG_COMP_NON_STRD_POST_MSG_TEXT       "non standard class provided for profiles POST, leaving...\n"
-#define LOG_COMP_NON_STRD_POST                LOG_COMP_NON_STRD_POST_MSG_ID" "LOG_COMP_NON_STRD_POST_MSG_TEXT
+#define ZSS_LOG_NON_STRD_POST_MSG_TEXT       "non standard class provided for profiles POST, leaving...\n"
+#define ZSS_LOG_NON_STRD_POST                ZSS_LOG_NON_STRD_POST_MSG_ID" "ZSS_LOG_NON_STRD_POST_MSG_TEXT
 
-#ifndef LOG_COMP_PROF_REQ_POST_MSG_ID
-#define LOG_COMP_PROF_REQ_POST_MSG_ID         LOG_MSG_PRFX"1403W"
+#ifndef ZSS_LOG_PROF_REQ_POST_MSG_ID
+#define ZSS_LOG_PROF_REQ_POST_MSG_ID         LOG_MSG_PRFX"1403W"
 #endif
-#define LOG_COMP_PROF_REQ_POST_MSG_TEXT       "profile name required for profile POST\n"
-#define LOG_COMP_PROF_REQ_POST                LOG_COMP_PROF_REQ_POST_MSG_ID" "LOG_COMP_PROF_REQ_POST_MSG_TEXT
+#define ZSS_LOG_PROF_REQ_POST_MSG_TEXT       "profile name required for profile POST\n"
+#define ZSS_LOG_PROF_REQ_POST                ZSS_LOG_PROF_REQ_POST_MSG_ID" "ZSS_LOG_PROF_REQ_POST_MSG_TEXT
 
-#ifndef LOG_COMP_NON_STRD_DEL_MSG_ID
-#define LOG_COMP_NON_STRD_DEL_MSG_ID          LOG_MSG_PRFX"1404W"
+#ifndef ZSS_LOG_NON_STRD_DEL_MSG_ID
+#define ZSS_LOG_NON_STRD_DEL_MSG_ID          LOG_MSG_PRFX"1404W"
 #endif
-#define LOG_COMP_NON_STRD_DEL_MSG_TEXT        "non standard class provided for profiles DELETE, leaving...\n"
-#define LOG_COMP_NON_STRD_DEL                 LOG_COMP_NON_STRD_DEL_MSG_ID" "LOG_COMP_NON_STRD_DEL_MSG_TEXT
+#define ZSS_LOG_NON_STRD_DEL_MSG_TEXT        "non standard class provided for profiles DELETE, leaving...\n"
+#define ZSS_LOG_NON_STRD_DEL                 ZSS_LOG_NON_STRD_DEL_MSG_ID" "ZSS_LOG_NON_STRD_DEL_MSG_TEXT
 
-#ifndef LOG_COMP_PROF_REQ_DEL_MSG_ID
-#define LOG_COMP_PROF_REQ_DEL_MSG_ID          LOG_MSG_PRFX"1405W"
+#ifndef ZSS_LOG_PROF_REQ_DEL_MSG_ID
+#define ZSS_LOG_PROF_REQ_DEL_MSG_ID          LOG_MSG_PRFX"1405W"
 #endif
-#define LOG_COMP_PROF_REQ_DEL_MSG_TEXT        "profile name required for profile DELETE\n"
-#define LOG_COMP_PROF_REQ_DEL                 LOG_COMP_PROF_REQ_DEL_MSG_ID" "LOG_COMP_PROF_REQ_DEL_MSG_TEXT
+#define ZSS_LOG_PROF_REQ_DEL_MSG_TEXT        "profile name required for profile DELETE\n"
+#define ZSS_LOG_PROF_REQ_DEL                 ZSS_LOG_PROF_REQ_DEL_MSG_ID" "ZSS_LOG_PROF_REQ_DEL_MSG_TEXT
 
-#ifndef LOG_COMP_NON_STRD_USER_PP_MSG_ID
-#define LOG_COMP_NON_STRD_USER_PP_MSG_ID      LOG_MSG_PRFX"1406W"
+#ifndef ZSS_LOG_NON_STRD_USER_PP_MSG_ID
+#define ZSS_LOG_NON_STRD_USER_PP_MSG_ID      LOG_MSG_PRFX"1406W"
 #endif
-#define LOG_COMP_NON_STRD_USER_PP_MSG_TEXT    "non standard class provided for user POST/PUT, leaving...\n"
-#define LOG_COMP_NON_STRD_USER_PP             LOG_COMP_NON_STRD_USER_PP_MSG_ID" "LOG_COMP_NON_STRD_USER_PP_MSG_TEXT
+#define ZSS_LOG_NON_STRD_USER_PP_MSG_TEXT    "non standard class provided for user POST/PUT, leaving...\n"
+#define ZSS_LOG_NON_STRD_USER_PP             ZSS_LOG_NON_STRD_USER_PP_MSG_ID" "ZSS_LOG_NON_STRD_USER_PP_MSG_TEXT
 
-#ifndef LOG_COMP_PROF_REQ_USER_PP_MSG_ID
-#define LOG_COMP_PROF_REQ_USER_PP_MSG_ID      LOG_MSG_PRFX"1407W"
+#ifndef ZSS_LOG_PROF_REQ_USER_PP_MSG_ID
+#define ZSS_LOG_PROF_REQ_USER_PP_MSG_ID      LOG_MSG_PRFX"1407W"
 #endif
-#define LOG_COMP_PROF_REQ_USER_PP_MSG_TEXT    "profile name required for user POST/PUT\n"
-#define LOG_COMP_PROF_REQ_USER_PP             LOG_COMP_PROF_REQ_USER_PP_MSG_ID" "LOG_COMP_PROF_REQ_USER_PP_MSG_TEXT
+#define ZSS_LOG_PROF_REQ_USER_PP_MSG_TEXT    "profile name required for user POST/PUT\n"
+#define ZSS_LOG_PROF_REQ_USER_PP             ZSS_LOG_PROF_REQ_USER_PP_MSG_ID" "ZSS_LOG_PROF_REQ_USER_PP_MSG_TEXT
 
-#ifndef LOG_COMP_USER_REQ_USER_PP_MSG_ID
-#define LOG_COMP_USER_REQ_USER_PP_MSG_ID      LOG_MSG_PRFX"1408W"
+#ifndef ZSS_LOG_USER_REQ_USER_PP_MSG_ID
+#define ZSS_LOG_USER_REQ_USER_PP_MSG_ID      LOG_MSG_PRFX"1408W"
 #endif
-#define LOG_COMP_USER_REQ_USER_PP_MSG_TEXT    "user ID required for user POST/PUT\n"
-#define LOG_COMP_USER_REQ_USER_PP             LOG_COMP_USER_REQ_USER_PP_MSG_ID" "LOG_COMP_USER_REQ_USER_PP_MSG_TEXT
+#define ZSS_LOG_USER_REQ_USER_PP_MSG_TEXT    "user ID required for user POST/PUT\n"
+#define ZSS_LOG_USER_REQ_USER_PP             ZSS_LOG_USER_REQ_USER_PP_MSG_ID" "ZSS_LOG_USER_REQ_USER_PP_MSG_TEXT
 
-#ifndef LOG_COMP_BODY_NPROV_USER_PP_MSG_ID
-#define LOG_COMP_BODY_NPROV_USER_PP_MSG_ID    LOG_MSG_PRFX"1409W"
+#ifndef ZSS_LOG_BODY_NPROV_USER_PP_MSG_ID
+#define ZSS_LOG_BODY_NPROV_USER_PP_MSG_ID    LOG_MSG_PRFX"1409W"
 #endif
-#define LOG_COMP_BODY_NPROV_USER_PP_MSG_TEXT  "body not provided for user POST/PUT, leaving...\n"
-#define LOG_COMP_BODY_NPROV_USER_PP           LOG_COMP_BODY_NPROV_USER_PP_MSG_ID" "LOG_COMP_BODY_NPROV_USER_PP_MSG_TEXT
+#define ZSS_LOG_BODY_NPROV_USER_PP_MSG_TEXT  "body not provided for user POST/PUT, leaving...\n"
+#define ZSS_LOG_BODY_NPROV_USER_PP           ZSS_LOG_BODY_NPROV_USER_PP_MSG_ID" "ZSS_LOG_BODY_NPROV_USER_PP_MSG_TEXT
 
-#ifndef LOG_COMP_BAD_TYPE_USER_PP_MSG_ID
-#define LOG_COMP_BAD_TYPE_USER_PP_MSG_ID      LOG_MSG_PRFX"1410W"
+#ifndef ZSS_LOG_BAD_TYPE_USER_PP_MSG_ID
+#define ZSS_LOG_BAD_TYPE_USER_PP_MSG_ID      LOG_MSG_PRFX"1410W"
 #endif
-#define LOG_COMP_BAD_TYPE_USER_PP_MSG_TEXT    "bad access type provided for user POST/PUT, leaving...\n"
-#define LOG_COMP_BAD_TYPE_USER_PP             LOG_COMP_BAD_TYPE_USER_PP_MSG_ID" "LOG_COMP_BAD_TYPE_USER_PP_MSG_TEXT
+#define ZSS_LOG_BAD_TYPE_USER_PP_MSG_TEXT    "bad access type provided for user POST/PUT, leaving...\n"
+#define ZSS_LOG_BAD_TYPE_USER_PP             ZSS_LOG_BAD_TYPE_USER_PP_MSG_ID" "ZSS_LOG_BAD_TYPE_USER_PP_MSG_TEXT
 
-#ifndef LOG_COMP_UNK_TYPE_USER_PP_MSG_ID
-#define LOG_COMP_UNK_TYPE_USER_PP_MSG_ID      LOG_MSG_PRFX"1411W"
+#ifndef ZSS_LOG_UNK_TYPE_USER_PP_MSG_ID
+#define ZSS_LOG_UNK_TYPE_USER_PP_MSG_ID      LOG_MSG_PRFX"1411W"
 #endif
-#define LOG_COMP_UNK_TYPE_USER_PP_MSG_TEXT    "unknown access type (%d( provided for user POST/PUT, leaving...\n"
-#define LOG_COMP_UNK_TYPE_USER_PP             LOG_COMP_UNK_TYPE_USER_PP_MSG_ID" "LOG_COMP_UNK_TYPE_USER_PP_MSG_TEXT
+#define ZSS_LOG_UNK_TYPE_USER_PP_MSG_TEXT    "unknown access type (%d( provided for user POST/PUT, leaving...\n"
+#define ZSS_LOG_UNK_TYPE_USER_PP             ZSS_LOG_UNK_TYPE_USER_PP_MSG_ID" "ZSS_LOG_UNK_TYPE_USER_PP_MSG_TEXT
 
-#ifndef LOG_COMP_NON_STRD_ACCESS_GET_MSG_ID
-#define LOG_COMP_NON_STRD_ACCESS_GET_MSG_ID   LOG_MSG_PRFX"1412W"
+#ifndef ZSS_LOG_NON_STRD_ACCESS_GET_MSG_ID
+#define ZSS_LOG_NON_STRD_ACCESS_GET_MSG_ID   LOG_MSG_PRFX"1412W"
 #endif
-#define LOG_COMP_NON_STRD_ACCESS_GET_MSG_TEXT "non standard class provided for access list GET, leaving...\n"
-#define LOG_COMP_NON_STRD_ACCESS_GET          LOG_COMP_NON_STRD_ACCESS_GET_MSG_ID" "LOG_COMP_NON_STRD_ACCESS_GET_MSG_TEXT
+#define ZSS_LOG_NON_STRD_ACCESS_GET_MSG_TEXT "non standard class provided for access list GET, leaving...\n"
+#define ZSS_LOG_NON_STRD_ACCESS_GET          ZSS_LOG_NON_STRD_ACCESS_GET_MSG_ID" "ZSS_LOG_NON_STRD_ACCESS_GET_MSG_TEXT
 
-#ifndef LOG_COMP_ACCESS_LIST_BULK_MSG_ID
-#define LOG_COMP_ACCESS_LIST_BULK_MSG_ID      LOG_MSG_PRFX"1413W"
+#ifndef ZSS_LOG_ACCESS_LIST_BULK_MSG_ID
+#define ZSS_LOG_ACCESS_LIST_BULK_MSG_ID      LOG_MSG_PRFX"1413W"
 #endif
-#define LOG_COMP_ACCESS_LIST_BULK_MSG_TEXT    "access list can only be retrieved in bulk, leaving...\n"
-#define LOG_COMP_ACCESS_LIST_BULK             LOG_COMP_ACCESS_LIST_BULK_MSG_ID" "LOG_COMP_ACCESS_LIST_BULK_MSG_TEXT
+#define ZSS_LOG_ACCESS_LIST_BULK_MSG_TEXT    "access list can only be retrieved in bulk, leaving...\n"
+#define ZSS_LOG_ACCESS_LIST_BULK             ZSS_LOG_ACCESS_LIST_BULK_MSG_ID" "ZSS_LOG_ACCESS_LIST_BULK_MSG_TEXT
 
-#ifndef LOG_COMP_ACCESS_LIST_BUFR_MSG_ID
-#define LOG_COMP_ACCESS_LIST_BUFR_MSG_ID      LOG_MSG_PRFX"1414W"
+#ifndef ZSS_LOG_ACCESS_LIST_BUFR_MSG_ID
+#define ZSS_LOG_ACCESS_LIST_BUFR_MSG_ID      LOG_MSG_PRFX"1414W"
 #endif
-#define LOG_COMP_ACCESS_LIST_BUFR_MSG_TEXT    "access list buffer with size %u not allocated, leaving...\n"
-#define LOG_COMP_ACCESS_LIST_BUFR             LOG_COMP_ACCESS_LIST_BUFR_MSG_ID" "LOG_COMP_ACCESS_LIST_BUFR_MSG_TEXT
+#define ZSS_LOG_ACCESS_LIST_BUFR_MSG_TEXT    "access list buffer with size %u not allocated, leaving...\n"
+#define ZSS_LOG_ACCESS_LIST_BUFR             ZSS_LOG_ACCESS_LIST_BUFR_MSG_ID" "ZSS_LOG_ACCESS_LIST_BUFR_MSG_TEXT
 
-#ifndef LOG_COMP_ACCESS_LIST_OORG_MSG_ID
-#define LOG_COMP_ACCESS_LIST_OORG_MSG_ID      LOG_MSG_PRFX"1415W"
+#ifndef ZSS_LOG_ACCESS_LIST_OORG_MSG_ID
+#define ZSS_LOG_ACCESS_LIST_OORG_MSG_ID      LOG_MSG_PRFX"1415W"
 #endif
-#define LOG_COMP_ACCESS_LIST_OORG_MSG_TEXT    "access list size out of range (%u), leaving...\n"
-#define LOG_COMP_ACCESS_LIST_OORG             LOG_COMP_ACCESS_LIST_OORG_MSG_ID" "LOG_COMP_ACCESS_LIST_OORG_MSG_TEXT
+#define ZSS_LOG_ACCESS_LIST_OORG_MSG_TEXT    "access list size out of range (%u), leaving...\n"
+#define ZSS_LOG_ACCESS_LIST_OORG             ZSS_LOG_ACCESS_LIST_OORG_MSG_ID" "ZSS_LOG_ACCESS_LIST_OORG_MSG_TEXT
 
-#ifndef LOG_COMP_NON_STRD_ACCESS_DEL_MSG_ID
-#define LOG_COMP_NON_STRD_ACCESS_DEL_MSG_ID   LOG_MSG_PRFX"1416W"
+#ifndef ZSS_LOG_NON_STRD_ACCESS_DEL_MSG_ID
+#define ZSS_LOG_NON_STRD_ACCESS_DEL_MSG_ID   LOG_MSG_PRFX"1416W"
 #endif
-#define LOG_COMP_NON_STRD_ACCESS_DEL_MSG_TEXT "non standard class provided for access list DELETE, leaving...\n"
-#define LOG_COMP_NON_STRD_ACCESS_DEL          LOG_COMP_NON_STRD_ACCESS_DEL_MSG_ID" "LOG_COMP_NON_STRD_ACCESS_DEL_MSG_TEXT
+#define ZSS_LOG_NON_STRD_ACCESS_DEL_MSG_TEXT "non standard class provided for access list DELETE, leaving...\n"
+#define ZSS_LOG_NON_STRD_ACCESS_DEL          ZSS_LOG_NON_STRD_ACCESS_DEL_MSG_ID" "ZSS_LOG_NON_STRD_ACCESS_DEL_MSG_TEXT
 
-#ifndef LOG_COMP_PROF_REQ_ACCESS_DEL_MSG_ID
-#define LOG_COMP_PROF_REQ_ACCESS_DEL_MSG_ID   LOG_MSG_PRFX"1417W"
+#ifndef ZSS_LOG_PROF_REQ_ACCESS_DEL_MSG_ID
+#define ZSS_LOG_PROF_REQ_ACCESS_DEL_MSG_ID   LOG_MSG_PRFX"1417W"
 #endif
-#define LOG_COMP_PROF_REQ_ACCESS_DEL_MSG_TEXT "profile name required for access list  DELETE\n"
-#define LOG_COMP_PROF_REQ_ACCESS_DEL          LOG_COMP_PROF_REQ_ACCESS_DEL_MSG_ID" "LOG_COMP_PROF_REQ_ACCESS_DEL_MSG_TEXT
+#define ZSS_LOG_PROF_REQ_ACCESS_DEL_MSG_TEXT "profile name required for access list  DELETE\n"
+#define ZSS_LOG_PROF_REQ_ACCESS_DEL          ZSS_LOG_PROF_REQ_ACCESS_DEL_MSG_ID" "ZSS_LOG_PROF_REQ_ACCESS_DEL_MSG_TEXT
 
-#ifndef LOG_COMP_ACCESS_REQ_ACCESS_DEL_MSG_ID
-#define LOG_COMP_ACCESS_REQ_ACCESS_DEL_MSG_ID LOG_MSG_PRFX"1418W"
+#ifndef ZSS_LOG_ACCESS_REQ_ACCESS_DEL_MSG_ID
+#define ZSS_LOG_ACCESS_REQ_ACCESS_DEL_MSG_ID LOG_MSG_PRFX"1418W"
 #endif
-#define LOG_COMP_ACCESS_REQ_ACCESS_DEL_MSG_TEXT "access list entry name required for access list DELETE\n"
-#define LOG_COMP_ACCESS_REQ_ACCESS_DEL        LOG_COMP_ACCESS_REQ_ACCESS_DEL_MSG_ID" "LOG_COMP_ACCESS_REQ_ACCESS_DEL_MSG_TEXT
+#define ZSS_LOG_ACCESS_REQ_ACCESS_DEL_MSG_TEXT "access list entry name required for access list DELETE\n"
+#define ZSS_LOG_ACCESS_REQ_ACCESS_DEL        ZSS_LOG_ACCESS_REQ_ACCESS_DEL_MSG_ID" "ZSS_LOG_ACCESS_REQ_ACCESS_DEL_MSG_TEXT
 
-#ifndef LOG_COMP_CLASS_MGMT_QRY_DEL_MSG_ID
-#define LOG_COMP_CLASS_MGMT_QRY_DEL_MSG_ID LOG_MSG_PRFX"1419W"
+#ifndef ZSS_LOG_CLASS_MGMT_QRY_DEL_MSG_ID
+#define ZSS_LOG_CLASS_MGMT_QRY_DEL_MSG_ID LOG_MSG_PRFX"1419W"
 #endif
-#define LOG_COMP_CLASS_MGMT_QRY_DEL_MSG_TEXT  "class-mgmt query string is invalid, leaving...\n"
-#define LOG_COMP_CLASS_MGMT_QRY_DEL           LOG_COMP_CLASS_MGMT_QRY_DEL_MSG_ID" "LOG_COMP_CLASS_MGMT_QRY_DEL_MSG_TEXT
+#define ZSS_LOG_CLASS_MGMT_QRY_DEL_MSG_TEXT  "class-mgmt query string is invalid, leaving...\n"
+#define ZSS_LOG_CLASS_MGMT_QRY_DEL           ZSS_LOG_CLASS_MGMT_QRY_DEL_MSG_ID" "ZSS_LOG_CLASS_MGMT_QRY_DEL_MSG_TEXT
 
-#ifndef LOG_COMP_GROUP_REQ_PROF_POST_MSG_ID
-#define LOG_COMP_GROUP_REQ_PROF_POST_MSG_ID LOG_MSG_PRFX"1420W"
+#ifndef ZSS_LOG_GROUP_REQ_PROF_POST_MSG_ID
+#define ZSS_LOG_GROUP_REQ_PROF_POST_MSG_ID LOG_MSG_PRFX"1420W"
 #endif
-#define LOG_COMP_GROUP_REQ_PROF_POST_MSG_TEXT "group name required for profile POST\n"
-#define LOG_COMP_GROUP_REQ_PROF_POST          LOG_COMP_GROUP_REQ_PROF_POST_MSG_ID" "LOG_COMP_GROUP_REQ_PROF_POST_MSG_TEXT
+#define ZSS_LOG_GROUP_REQ_PROF_POST_MSG_TEXT "group name required for profile POST\n"
+#define ZSS_LOG_GROUP_REQ_PROF_POST          ZSS_LOG_GROUP_REQ_PROF_POST_MSG_ID" "ZSS_LOG_GROUP_REQ_PROF_POST_MSG_TEXT
 
-#ifndef LOG_COMP_BODY_REQ_GRP_POST_MSG_ID
-#define LOG_COMP_BODY_REQ_GRP_POST_MSG_ID LOG_MSG_PRFX"1421W"
+#ifndef ZSS_LOG_BODY_REQ_GRP_POST_MSG_ID
+#define ZSS_LOG_BODY_REQ_GRP_POST_MSG_ID LOG_MSG_PRFX"1421W"
 #endif
-#define LOG_COMP_BODY_REQ_GRP_POST_MSG_TEXT   "body not provided for group POST, leaving...\n"
-#define LOG_COMP_BODY_REQ_GRP_POST            LOG_COMP_BODY_REQ_GRP_POST_MSG_ID" "LOG_COMP_BODY_REQ_GRP_POST_MSG_TEXT
+#define ZSS_LOG_BODY_REQ_GRP_POST_MSG_TEXT   "body not provided for group POST, leaving...\n"
+#define ZSS_LOG_BODY_REQ_GRP_POST            ZSS_LOG_BODY_REQ_GRP_POST_MSG_ID" "ZSS_LOG_BODY_REQ_GRP_POST_MSG_TEXT
 
-#ifndef LOG_COMP_SPRR_REQ_GRP_POST_MSG_ID
-#define LOG_COMP_SPRR_REQ_GRP_POST_MSG_ID LOG_MSG_PRFX"1422W"
+#ifndef ZSS_LOG_SPRR_REQ_GRP_POST_MSG_ID
+#define ZSS_LOG_SPRR_REQ_GRP_POST_MSG_ID LOG_MSG_PRFX"1422W"
 #endif
-#define LOG_COMP_SPRR_REQ_GRP_POST_MSG_TEXT   "superior not provided for group POST, leaving...\n"
-#define LOG_COMP_SPRR_REQ_GRP_POST            LOG_COMP_SPRR_REQ_GRP_POST_MSG_ID" "LOG_COMP_SPRR_REQ_GRP_POST_MSG_TEXT
+#define ZSS_LOG_SPRR_REQ_GRP_POST_MSG_TEXT   "superior not provided for group POST, leaving...\n"
+#define ZSS_LOG_SPRR_REQ_GRP_POST            ZSS_LOG_SPRR_REQ_GRP_POST_MSG_ID" "ZSS_LOG_SPRR_REQ_GRP_POST_MSG_TEXT
 
-#ifndef LOG_COMP_BSPR_PROV_GRP_POST_MSG_ID
-#define LOG_COMP_BSPR_PROV_GRP_POST_MSG_ID LOG_MSG_PRFX"1423W"
+#ifndef ZSS_LOG_BSPR_PROV_GRP_POST_MSG_ID
+#define ZSS_LOG_BSPR_PROV_GRP_POST_MSG_ID LOG_MSG_PRFX"1423W"
 #endif
-#define LOG_COMP_BSPR_PROV_GRP_POST_MSG_TEXT  "bad superior group provided for group POST, leaving...\n"
-#define LOG_COMP_BSPR_PROV_GRP_POST           LOG_COMP_BSPR_PROV_GRP_POST_MSG_ID" "LOG_COMP_BSPR_PROV_GRP_POST_MSG_TEXT
+#define ZSS_LOG_BSPR_PROV_GRP_POST_MSG_TEXT  "bad superior group provided for group POST, leaving...\n"
+#define ZSS_LOG_BSPR_PROV_GRP_POST           ZSS_LOG_BSPR_PROV_GRP_POST_MSG_ID" "ZSS_LOG_BSPR_PROV_GRP_POST_MSG_TEXT
 
-#ifndef LOG_COMP_GROUP_REQ_USER_PP_MSG_ID
-#define LOG_COMP_GROUP_REQ_USER_PP_MSG_ID LOG_MSG_PRFX"1424W"
+#ifndef ZSS_LOG_GROUP_REQ_USER_PP_MSG_ID
+#define ZSS_LOG_GROUP_REQ_USER_PP_MSG_ID LOG_MSG_PRFX"1424W"
 #endif
-#define LOG_COMP_GROUP_REQ_USER_PP_MSG_TEXT  "group name required for user POST/PUT\n"
-#define LOG_COMP_GROUP_REQ_USER_PP           LOG_COMP_GROUP_REQ_USER_PP_MSG_ID" "LOG_COMP_GROUP_REQ_USER_PP_MSG_TEXT
+#define ZSS_LOG_GROUP_REQ_USER_PP_MSG_TEXT  "group name required for user POST/PUT\n"
+#define ZSS_LOG_GROUP_REQ_USER_PP           ZSS_LOG_GROUP_REQ_USER_PP_MSG_ID" "ZSS_LOG_GROUP_REQ_USER_PP_MSG_TEXT
 
-#ifndef LOG_COMP_ACCESS_REQ_USER_PP_MSG_ID
-#define LOG_COMP_ACCESS_REQ_USER_PP_MSG_ID LOG_MSG_PRFX"1425W"
+#ifndef ZSS_LOG_ACCESS_REQ_USER_PP_MSG_ID
+#define ZSS_LOG_ACCESS_REQ_USER_PP_MSG_ID LOG_MSG_PRFX"1425W"
 #endif
-#define LOG_COMP_ACCESS_REQ_USER_PP_MSG_TEXT "access type not provided for user POST/PUT, leaving...\n"
-#define LOG_COMP_ACCESS_REQ_USER_PP          LOG_COMP_ACCESS_REQ_USER_PP_MSG_ID" "LOG_COMP_ACCESS_REQ_USER_PP_MSG_TEXT
+#define ZSS_LOG_ACCESS_REQ_USER_PP_MSG_TEXT "access type not provided for user POST/PUT, leaving...\n"
+#define ZSS_LOG_ACCESS_REQ_USER_PP          ZSS_LOG_ACCESS_REQ_USER_PP_MSG_ID" "ZSS_LOG_ACCESS_REQ_USER_PP_MSG_TEXT
 
-#ifndef LOG_COMP_UNK_TYPE_UCCJ_MSG_ID
-#define LOG_COMP_UNK_TYPE_UCCJ_MSG_ID LOG_MSG_PRFX"1426W"
+#ifndef ZSS_LOG_UNK_TYPE_UCCJ_MSG_ID
+#define ZSS_LOG_UNK_TYPE_UCCJ_MSG_ID LOG_MSG_PRFX"1426W"
 #endif
-#define LOG_COMP_UNK_TYPE_UCCJ_MSG_TEXT       "unknown access type, use [USE, CREATE, CONNECT, JOIN]"
-#define LOG_COMP_UNK_TYPE_UCCJ                LOG_COMP_UNK_TYPE_UCCJ_MSG_ID" "LOG_COMP_UNK_TYPE_UCCJ_MSG_TEXT
+#define ZSS_LOG_UNK_TYPE_UCCJ_MSG_TEXT       "unknown access type, use [USE, CREATE, CONNECT, JOIN]"
+#define ZSS_LOG_UNK_TYPE_UCCJ                ZSS_LOG_UNK_TYPE_UCCJ_MSG_ID" "ZSS_LOG_UNK_TYPE_UCCJ_MSG_TEXT
 
-#ifndef LOG_COMP_LIST_REALLOC_MSG_ID
-#define LOG_COMP_LIST_REALLOC_MSG_ID LOG_MSG_PRFX"1427W"
+#ifndef ZSS_LOG_LIST_REALLOC_MSG_ID
+#define ZSS_LOG_LIST_REALLOC_MSG_ID LOG_MSG_PRFX"1427W"
 #endif
-#define LOG_COMP_LIST_REALLOC_MSG_TEXT        "access list will be re-allocated with capacity %u\n"
-#define LOG_COMP_LIST_REALLOC                 LOG_COMP_LIST_REALLOC_MSG_ID" "LOG_COMP_LIST_REALLOC_MSG_TEXT
+#define ZSS_LOG_LIST_REALLOC_MSG_TEXT        "access list will be re-allocated with capacity %u\n"
+#define ZSS_LOG_LIST_REALLOC                 ZSS_LOG_LIST_REALLOC_MSG_ID" "ZSS_LOG_LIST_REALLOC_MSG_TEXT
 
-#ifndef LOG_COMP_GROUP_REQ_LIST_DEL_MSG_ID
-#define LOG_COMP_GROUP_REQ_LIST_DEL_MSG_ID LOG_MSG_PRFX"1428W"
+#ifndef ZSS_LOG_GROUP_REQ_LIST_DEL_MSG_ID
+#define ZSS_LOG_GROUP_REQ_LIST_DEL_MSG_ID LOG_MSG_PRFX"1428W"
 #endif
-#define LOG_COMP_GROUP_REQ_LIST_DEL_MSG_TEXT  "group name required for access list  DELETE\n"
-#define LOG_COMP_GROUP_REQ_LIST_DEL           LOG_COMP_GROUP_REQ_LIST_DEL_MSG_ID" "LOG_COMP_GROUP_REQ_LIST_DEL_MSG_TEXT
+#define ZSS_LOG_GROUP_REQ_LIST_DEL_MSG_TEXT  "group name required for access list  DELETE\n"
+#define ZSS_LOG_GROUP_REQ_LIST_DEL           ZSS_LOG_GROUP_REQ_LIST_DEL_MSG_ID" "ZSS_LOG_GROUP_REQ_LIST_DEL_MSG_TEXT
 
-#ifndef LOG_COMP_GROUP_MGMT_QRY_DEL_MSG_ID
-#define LOG_COMP_GROUP_MGMT_QRY_DEL_MSG_ID LOG_MSG_PRFX"1429W"
+#ifndef ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG_ID
+#define ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG_ID LOG_MSG_PRFX"1429W"
 #endif
-#define LOG_COMP_GROUP_MGMT_QRY_DEL_MSG_TEXT  "group-mgmt query string is invalid, leaving...\n"
-#define LOG_COMP_GROUP_MGMT_QRY_DEL           LOG_COMP_GROUP_MGMT_QRY_DEL_MSG_ID" "LOG_COMP_GROUP_MGMT_QRY_DEL_MSG_TEXT
+#define ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG_TEXT  "group-mgmt query string is invalid, leaving...\n"
+#define ZSS_LOG_GROUP_MGMT_QRY_DEL           ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG_ID" "ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG_TEXT
 
 #endif /* MVD_H_ZSSLOGGING_H_ */
 

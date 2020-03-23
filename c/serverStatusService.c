@@ -169,7 +169,7 @@ int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *con
   safeFree(buffer, bufferlen);
   if (rc > 0) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Unable to fetch from RMF data interface service");
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, LOG_COMP_FAIL_RMF_FETCH, rc);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_FAIL_RMF_FETCH, rc);
     return -1;
   }
   time_t ltime;

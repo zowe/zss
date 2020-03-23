@@ -290,7 +290,7 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
   if (strlen(priviligedServerNameNullTerm) != 0) {
     *privilegedServerName = cmsMakeServerName(priviligedServerNameNullTerm);
   } else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, LOG_COMP_PRV_SRV_NAME_MSG);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PRV_SRV_NAME_MSG);
     *privilegedServerName = zisGetDefaultServerName();
   }
 
@@ -321,7 +321,7 @@ static int setMVDTrace(int toWhat) {
     traceLevel = toWhat;
     logSetLevel(NULL, LOG_COMP_ID_MVD_SERVER, toWhat);
   } else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_ALWAYS, LOG_COMP_INC_LOG_LEVEL_MSG, toWhat);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_ALWAYS, ZSS_LOG_INC_LOG_LEVEL_MSG, toWhat);
   }
   return was;
 }
@@ -364,7 +364,7 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
     if (jsonIsObject(mvdSettings)) {
       mvdSettingsJsonObject = jsonAsObject(mvdSettings);
     } else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, LOG_COMP_FILE_EXPECTED_TOP_MSG, filename);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_FILE_EXPECTED_TOP_MSG, filename);
     }
     JsonObject *logLevels = jsonObjectGetObject(mvdSettingsJsonObject, "logLevels");
     if (logLevels) {
@@ -379,7 +379,7 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
     }
     dumpJson(mvdSettings);
   } else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, LOG_COMP_PARS_ZSS_SETTING_MSG, filename, jsonErrorBuffer);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PARS_ZSS_SETTING_MSG, filename, jsonErrorBuffer);
   }
   return mvdSettingsJsonObject;
 }
@@ -463,16 +463,16 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh, char *pluginIdentif
         if (0 == strcmp(pluginIdentifier, identifier)) {
           pluginDefinition = pluginDefinitionJsonObject;
         } else {
-          zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, LOG_COMP_EXPEC_PLUGIN_ID_MSG, pluginIdentifier, identifier);
+          zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_EXPEC_PLUGIN_ID_MSG, pluginIdentifier, identifier);
         }
       } else {
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, LOG_COMP_PLUGIN_ID_NFOUND_MSG, path);
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PLUGIN_ID_NFOUND_MSG, path);
       }
     } else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, LOG_COMP_FILE_EXPECTED_TOP_MSG, path);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_FILE_EXPECTED_TOP_MSG, path);
     }
   } else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, LOG_COMP_PARS_FILE_MSG, path, errorBuffer);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PARS_FILE_MSG, path, errorBuffer);
   }
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s end result is %s\n", __FUNCTION__, pluginDefinition ? "not null" : "null");
   return pluginDefinition;
@@ -508,7 +508,7 @@ static void installWebPluginFilesServices(WebPlugin* plugin, HttpServer *server)
       httpService->serviceFunction = serveWebContent;
       registerHttpService(server, httpService);
     } else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, LOG_COMP_WEB_CONT_NFOUND_MSG, plugin->identifier);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_WEB_CONT_NFOUND_MSG, plugin->identifier);
     }
   } else if (WEB_PLUGIN_TYPE_LIBRARY == plugin->pluginType) {
     char *libraryVersion = jsonObjectGetString(pluginDefintion, "libraryVersion");
@@ -535,7 +535,7 @@ static void installWebPluginFilesServices(WebPlugin* plugin, HttpServer *server)
       httpService->serviceFunction = serveLibraryContent;
       registerHttpService(server, httpService);
     } else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, LOG_COMP_LIBR_VER_NFOUND_MSG, plugin->identifier);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_LIBR_VER_NFOUND_MSG, plugin->identifier);
     }
   }
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
@@ -658,17 +658,17 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
                       webPluginListTail = pluginListElt;
                     }
                   } else {
-                    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, LOG_COMP_PLUGIN_ID_NULL_MSG, identifier);
+                    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PLUGIN_ID_NULL_MSG, identifier);
                   }
                 }
               } else {
-                zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, LOG_COMP_PLUGIN_IDLOC_NFOUND_MSG, path);
+                zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PLUGIN_IDLOC_NFOUND_MSG, path);
               }
             } else {
-              zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, LOG_COMP_FILE_EXPECTED_TOP_MSG, path);
+              zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_FILE_EXPECTED_TOP_MSG, path);
             }
           } else {
-            zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, LOG_COMP_PARS_GENERIC_MSG, errorBuffer);
+            zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PARS_GENERIC_MSG, errorBuffer);
           }
         }
         entryStart += entryLength;
@@ -678,7 +678,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
     directoryClose(directory, &returnCode, &reasonCode);
     directory = NULL;
   } else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, LOG_COMP_OPEN_DIR_FAIL_MSG, dirname, returnCode, reasonCode);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_OPEN_DIR_FAIL_MSG, dirname, returnCode, reasonCode);
   }
   if (webPluginListHead) {
     installWebPluginDefintionsService(webPluginListHead, server);
@@ -740,7 +740,7 @@ static void initLoggingComponents(void) {
   logConfigureComponent(NULL, LOG_COMP_DATASERVICE, "ZSS dataservices", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, LOG_COMP_ZSS_START_VER_MSG, productVersion);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_START_VER_MSG, productVersion);
 }
 
 static void initVersionComponents(void){
@@ -763,7 +763,7 @@ static void printZISStatus(HttpServer *server) {
   }
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_ALWAYS,
-          LOG_COMP_ZIS_STATUS_MSG,
+          ZSS_LOG_ZIS_STATUS_MSG,
           shortDescription,
           zisName ? zisName->nameSpacePadded : "name not set",
           status.cmsRC,
@@ -808,7 +808,7 @@ static int validateAddress(char *address, InetAddr **inetAddress, int *requiredT
   *inetAddress = getAddressByName(address);
   if (strcmp(address,"127.0.0.1") && strcmp(address,"localhost")) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, 
-      LOG_COMP_HTTPS_NO_IMPLEM_MSG,
+      ZSS_LOG_HTTPS_NO_IMPLEM_MSG,
       address);
     *requiredTLSFlag = RS_TLS_WANT_TLS;
   }
@@ -831,7 +831,7 @@ static const int FORBIDDEN_OTHER_PERMISSION = 0x07;
 static int validateConfigPermissionsInner(const char *path) {
   if (!path) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
-      LOG_COMP_CANT_VAL_PERMISS_MSG);
+      ZSS_LOG_CANT_VAL_PERMISS_MSG);
     return 8;
   }
 
@@ -841,15 +841,15 @@ static int validateConfigPermissionsInner(const char *path) {
   int returnValue = fileInfo(path, &stat, &returnCode, &reasonCode);
   if (returnValue != 0) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
-      LOG_COMP_CANT_STAT_CONFIG_MSG,path,returnCode, reasonCode);
+      ZSS_LOG_CANT_STAT_CONFIG_MSG,path,returnCode, reasonCode);
     return 8;
   } else if (((stat.fileType == BPXSTA_FILETYPE_DIRECTORY) && (stat.flags3 & FORBIDDEN_GROUP_DIR_PERMISSION)) 
       || ((stat.fileType != BPXSTA_FILETYPE_DIRECTORY) && (stat.flags3 & FORBIDDEN_GROUP_FILE_PERMISSION))
       || (stat.flags3 & FORBIDDEN_OTHER_PERMISSION)) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
-      LOG_COMP_CONFIG_OPEN_PERMISS_MSG,path);
+      ZSS_LOG_CONFIG_OPEN_PERMISS_MSG,path);
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
-      LOG_COMP_ENSURE_PERMISS_MSG);
+      ZSS_LOG_ENSURE_PERMISS_MSG);
     return 8;
   }
   return 0;
@@ -859,7 +859,7 @@ static int validateConfigPermissionsInner(const char *path) {
 
 static int validateFilePermissions(const char *filePath) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
-    LOG_COMP_SKIP_PERMISS_MSG, filePath);
+    ZSS_LOG_SKIP_PERMISS_MSG, filePath);
   return 0;
 }
 
@@ -869,14 +869,14 @@ static int validateFilePermissions(const char *filePath) {
 static int validateFilePermissions(const char *filePath) {
   if (!filePath) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
-      LOG_COMP_PATH_UNDEF_MSG);
+      ZSS_LOG_PATH_UNDEF_MSG);
     return 8;
   }
   int filePathLen = strlen(filePath);
   int lastSlashPos = lastIndexOf(filePath, filePathLen, '/');
   if (lastSlashPos == filePathLen-1) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
-      LOG_COMP_PATH_DIR_MSG);
+      ZSS_LOG_PATH_DIR_MSG);
     return 8;
   }
   char *fileDirPath = safeMalloc31(filePathLen, "fileDirPath");
@@ -927,7 +927,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_INFO,
-        LOG_COMP_NO_JWT_AGENT_MSG);
+        ZSS_LOG_NO_JWT_AGENT_MSG);
     return 0;
   }
 
@@ -936,7 +936,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_INFO,
-        LOG_COMP_NO_JWT_CONFIG_MSG);
+        ZSS_LOG_NO_JWT_CONFIG_MSG);
     return 0;
   }
 
@@ -944,7 +944,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_INFO,
-        LOG_COMP_NO_JWT_DISABLED_MSG);
+        ZSS_LOG_NO_JWT_DISABLED_MSG);
     return 0;
   }
 
@@ -955,7 +955,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_SEVERE,
-        LOG_COMP_JWT_CONFIG_MISSING_MSG);
+        ZSS_LOG_JWT_CONFIG_MISSING_MSG);
     return 1;
   }
 
@@ -970,19 +970,19 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_SEVERE,
-        LOG_COMP_JWT_KEYSTORE_UNKN_MSG, keystoreType);
+        ZSS_LOG_JWT_KEYSTORE_UNKN_MSG, keystoreType);
     return 1;
   } else if (keystoreName == NULL) {
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_SEVERE,
-        LOG_COMP_JWT_KEYSTORE_NAME_MSG);
+        ZSS_LOG_JWT_KEYSTORE_NAME_MSG);
     return 1;
   } else {
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_INFO,
-        LOG_COMP_JWT_TOKEN_FALLBK_MSG,
+        ZSS_LOG_JWT_TOKEN_FALLBK_MSG,
         keystoreName,
         keyId,
         fallback? "with" : "without");
@@ -998,7 +998,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
       &initTokenRc, &p11rc, &p11Rsn);
   if (contextInitRc != 0) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
-        LOG_COMP_NO_LOAD_JWT_MSG,
+        ZSS_LOG_NO_LOAD_JWT_MSG,
         keyId,
         keystoreName,
         initTokenRc, p11rc, p11Rsn);
@@ -1010,7 +1010,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
 
 int main(int argc, char **argv){
   if (argc == 1) { 
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, LOG_COMP_PATH_TO_SERVER_MSG);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PATH_TO_SERVER_MSG);
     return 8;
   }
 
@@ -1018,7 +1018,7 @@ int main(int argc, char **argv){
 #ifndef METTLE
   int sigignoreRC = sigignore(SIGPIPE);
   if (sigignoreRC == -1) {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, LOG_COMP_SIG_IGNORE_MSG, sigignoreRC, errno);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_SIG_IGNORE_MSG, sigignoreRC, errno);
   }
 #endif
 
@@ -1046,7 +1046,7 @@ int main(int argc, char **argv){
       serverConfigFile = argv[1];
     }
   }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, LOG_COMP_SERVER_CONFIG_MSG, serverConfigFile);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_SERVER_CONFIG_MSG, serverConfigFile);
   int invalid = validateFilePermissions(serverConfigFile);
   if (invalid) {
     return invalid;
@@ -1073,11 +1073,11 @@ int main(int argc, char **argv){
     InetAddr *inetAddress = NULL;
     int requiredTLSFlag = 0;
     if (!validateAddress(address, &inetAddress, &requiredTLSFlag)) {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, LOG_COMP_SERVER_STARTUP_MSG, address);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_SERVER_STARTUP_MSG, address);
       return 8;
     }
 
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, LOG_COMP_ZSS_SETTINGS_MSG, address, port);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port);
     server = makeHttpServer2(base,inetAddress,port,requiredTLSFlag,&returnCode,&reasonCode);
     if (server){
       if (0 != initializeJwtKeystoreIfConfigured(mvdSettings, server)) {
@@ -1109,9 +1109,9 @@ int main(int argc, char **argv){
       mainHttpLoop(server);
 
     } else{
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, LOG_COMP_ZSS_STARTUP_MSG, returnCode, reasonCode);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_ZSS_STARTUP_MSG, returnCode, reasonCode);
       if (returnCode==EADDRINUSE) {
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, LOG_COMP_PORT_OCCUP_MSG, port);
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PORT_OCCUP_MSG, port);
       }
     }
   }
