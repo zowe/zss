@@ -487,24 +487,24 @@ static int serveDiscoveryData(HttpService *service, HttpResponse *response){
   if (!strcmp(firstLevelName,"zosDiscovery")){
     if (!strcmp(secondLevelName,"simple")){
       if (thirdLevelName == NULL) {
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_THIRD_NGIVEN_MSG);
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "zosDiscovery third level name not given\n");
       } else if (!strcmp(thirdLevelName,"subsystems")){
         serveSubsystemData(service, request, response, SOFTWARE_TYPE_ALL_SIMPLE,
                            NULL, fourthLevelName);
       } else{
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_THIRD_NKNOWN_MSG, thirdLevelName);
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "zosDiscovery third level name not known %s\n", thirdLevelName);
       }
 
     } else if (!strcmp(secondLevelName,"system")){
       serveSystemData(service,request,response,thirdLevelName);
 
     } else if (!secondLevelName){
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_SECND_NGIVEN_MSG);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "zosDiscovery second level name not given\n");
     } else{
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_SECND_NKNOWN_MSG, secondLevelName);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "zosDiscovery second level name not known %s\n", secondLevelName);
     }
   } else{
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_FIRST_NKNOWN_MSG, firstLevelName);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "zosDiscovery first level name not known %s\n", firstLevelName);
   }
   return 0;
 }

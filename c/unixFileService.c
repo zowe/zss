@@ -367,7 +367,7 @@ static int checkIfFileIsBusy(HttpResponse *response, char *encodedFileName, Unix
                   &reasonCode);
 
   if (*file == NULL) {
-    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_CLOSE_MSG,
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_OPEN_MSG,
           returnCode, reasonCode);
     respondWithJsonError(response, "Could not open file. Requested resource is busy. Please try again later.",
           403, "Forbidden");

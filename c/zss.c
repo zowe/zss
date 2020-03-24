@@ -364,7 +364,7 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
     if (jsonIsObject(mvdSettings)) {
       mvdSettingsJsonObject = jsonAsObject(mvdSettings);
     } else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_FILE_EXPECTED_TOP_MSG, filename);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_FILE_EXPECTED_TOP_MSG, filename);
     }
     JsonObject *logLevels = jsonObjectGetObject(mvdSettingsJsonObject, "logLevels");
     if (logLevels) {
@@ -379,7 +379,7 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
     }
     dumpJson(mvdSettings);
   } else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PARS_ZSS_SETTING_MSG, filename, jsonErrorBuffer);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PARS_ZSS_SETTING_MSG, filename, jsonErrorBuffer);
   }
   return mvdSettingsJsonObject;
 }
@@ -469,7 +469,7 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh, char *pluginIdentif
         zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PLUGIN_ID_NFOUND_MSG, path);
       }
     } else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_FILE_EXPECTED_TOP_MSG, path);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_FILE_EXPECTED_TOP_MSG, path);
     }
   } else {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PARS_FILE_MSG, path, errorBuffer);
@@ -665,7 +665,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
                 zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PLUGIN_IDLOC_NFOUND_MSG, path);
               }
             } else {
-              zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_FILE_EXPECTED_TOP_MSG, path);
+              zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_FILE_EXPECTED_TOP_MSG, path);
             }
           } else {
             zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PARS_GENERIC_MSG, errorBuffer);
@@ -926,7 +926,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
   if (agentSettings == NULL) {
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
-        ZOWE_LOG_INFO,
+        ZOWE_LOG_WARNING,
         ZSS_LOG_NO_JWT_AGENT_MSG);
     return 0;
   }
@@ -935,7 +935,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
   if (jwtSettings == NULL) {
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
-        ZOWE_LOG_INFO,
+        ZOWE_LOG_WARNING,
         ZSS_LOG_NO_JWT_CONFIG_MSG);
     return 0;
   }
@@ -997,7 +997,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
       CKO_PUBLIC_KEY,
       &initTokenRc, &p11rc, &p11Rsn);
   if (contextInitRc != 0) {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
         ZSS_LOG_NO_LOAD_JWT_MSG,
         keyId,
         keystoreName,
@@ -1073,7 +1073,7 @@ int main(int argc, char **argv){
     InetAddr *inetAddress = NULL;
     int requiredTLSFlag = 0;
     if (!validateAddress(address, &inetAddress, &requiredTLSFlag)) {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_SERVER_STARTUP_MSG, address);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_SERVER_STARTUP_MSG, address);
       return 8;
     }
 
@@ -1109,7 +1109,7 @@ int main(int argc, char **argv){
       mainHttpLoop(server);
 
     } else{
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_ZSS_STARTUP_MSG, returnCode, reasonCode);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_ZSS_STARTUP_MSG, returnCode, reasonCode);
       if (returnCode==EADDRINUSE) {
         zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PORT_OCCUP_MSG, port);
       }
