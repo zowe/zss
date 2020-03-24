@@ -1066,7 +1066,7 @@ static void respondToProfileGET(ClassMgmtCommonParms *commonParms,
   if (strlen(commonParms->className) > 0) {
     respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_NON_STRD_GET);
+           ZSS_LOG_NON_STRD_GET_MSG);
     return;
   }
 
@@ -1074,7 +1074,7 @@ static void respondToProfileGET(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_NOT_IMPLEMENTED,
                      "specific profile info retrieval not implemented");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_PROF_REQ_GET);
+           ZSS_LOG_PROF_REQ_GET_MSG);
     return;
   }
 
@@ -1138,7 +1138,7 @@ static void respondToProfilePOST(ClassMgmtCommonParms *commonParms,
   if (strlen(commonParms->className) > 0) {
     respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_NON_STRD_POST);
+           ZSS_LOG_NON_STRD_POST_MSG);
     return;
   }
 
@@ -1146,7 +1146,7 @@ static void respondToProfilePOST(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "profile name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_PROF_REQ_POST);
+           ZSS_LOG_PROF_REQ_POST_MSG);
     return;
   }
 
@@ -1209,7 +1209,7 @@ static void respondToProfileDELETE(ClassMgmtCommonParms *commonParms,
   if (strlen(commonParms->className) > 0) {
     respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_NON_STRD_DEL);
+           ZSS_LOG_NON_STRD_DEL_MSG);
     return;
   }
 
@@ -1217,7 +1217,7 @@ static void respondToProfileDELETE(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "profile name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_PROF_REQ_DEL);
+           ZSS_LOG_PROF_REQ_DEL_MSG);
     return;
   }
 
@@ -1288,7 +1288,7 @@ static void respondToProfileAccessListPUT(ClassMgmtCommonParms *commonParms,
   if (strlen(commonParms->className) > 0) {
     respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_NON_STRD_USER_PP);
+           ZSS_LOG_NON_STRD_USER_PP_MSG);
     return;
   }
 
@@ -1296,7 +1296,7 @@ static void respondToProfileAccessListPUT(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "profile name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_PROF_REQ_USER_PP);
+           ZSS_LOG_PROF_REQ_USER_PP_MSG);
     return;
   }
 
@@ -1304,14 +1304,14 @@ static void respondToProfileAccessListPUT(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "user ID required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_USER_REQ_USER_PP);
+           ZSS_LOG_USER_REQ_USER_PP_MSG);
     return;
   }
 
   if (commonParms->requestBody == NULL) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Body missing");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_BODY_NPROV_USER_PP);
+           ZSS_LOG_BODY_NPROV_USER_PP_MSG);
     return;
   }
 
@@ -1329,7 +1329,7 @@ static void respondToProfileAccessListPUT(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "accessType has bad type");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_BAD_TYPE_USER_PP);
+           ZSS_LOG_BAD_TYPE_USER_PP_MSG);
     return;
   }
 
@@ -1339,7 +1339,7 @@ static void respondToProfileAccessListPUT(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "unknown access type, use [READ, UPDATE, ALTER]");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_UNK_TYPE_USER_PP,
+           ZSS_LOG_UNK_TYPE_USER_PP_MSG,
            accessType);
     return;
   }
@@ -1398,7 +1398,7 @@ static void respondToProfileAccessListGET(ClassMgmtCommonParms *commonParms,
   if (strlen(commonParms->className) > 0) {
     respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_NON_STRD_ACCESS_GET);
+           ZSS_LOG_NON_STRD_ACCESS_GET_MSG);
     return;
   }
 
@@ -1406,7 +1406,7 @@ static void respondToProfileAccessListGET(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_NOT_IMPLEMENTED,
                      "specific user access status retrieval not implemented");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_ACCESS_LIST_BULK);
+           ZSS_LOG_ACCESS_LIST_BULK_MSG);
     return;
   }
 
@@ -1426,7 +1426,7 @@ static void respondToProfileAccessListGET(ClassMgmtCommonParms *commonParms,
       respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
                        "out of memory");
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-             ZSS_LOG_ACCESS_LIST_BUFR,
+             ZSS_LOG_ACCESS_LIST_BUFR_MSG,
              resultBufferSize);
       return;
     }
@@ -1461,7 +1461,7 @@ static void respondToProfileAccessListGET(ClassMgmtCommonParms *commonParms,
         respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
                          "access list size our of range");
         zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-               ZSS_LOG_ACCESS_LIST_OORG,
+               ZSS_LOG_ACCESS_LIST_OORG_MSG,
                entriesExtracted);
         return;
       }
@@ -1505,7 +1505,7 @@ static void respondToProfileAccessListDELETE(ClassMgmtCommonParms *commonParms,
   if (strlen(commonParms->className) > 0) {
     respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_NON_STRD_ACCESS_DEL);
+           ZSS_LOG_NON_STRD_ACCESS_DEL_MSG);
     return;
   }
 
@@ -1513,7 +1513,7 @@ static void respondToProfileAccessListDELETE(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "profile name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_PROF_REQ_ACCESS_DEL);
+           ZSS_LOG_PROF_REQ_ACCESS_DEL_MSG);
     return;
   }
 
@@ -1521,7 +1521,7 @@ static void respondToProfileAccessListDELETE(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "access list entry name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_ACCESS_REQ_ACCESS_DEL);
+           ZSS_LOG_ACCESS_REQ_ACCESS_DEL_MSG);
     return;
   }
 
@@ -1606,7 +1606,7 @@ static int serveClassManagement(HttpService *service,
 
   if (isClassMgmtQueryStringValid(request->parsedFile) == false) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_CLASS_MGMT_QRY_DEL);
+           ZSS_LOG_CLASS_MGMT_QRY_DEL_MSG);
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Incorrect query");
     return 0;
   }
@@ -2182,14 +2182,14 @@ static void respondToGroupPOST(GroupMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "profile name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_GROUP_REQ_PROF_POST);
+           ZSS_LOG_GROUP_REQ_PROF_POST_MSG);
     return;
   }
 
   if (commonParms->requestBody == NULL) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Body missing");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_BODY_REQ_GRP_POST);
+           ZSS_LOG_BODY_REQ_GRP_POST_MSG);
     return;
   }
 
@@ -2198,7 +2198,7 @@ static void respondToGroupPOST(GroupMgmtCommonParms *commonParms,
   if (superiorGroupParm == NULL) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "superiorGroup missing");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_SPRR_REQ_GRP_POST);
+           ZSS_LOG_SPRR_REQ_GRP_POST_MSG);
     return;
   }
 
@@ -2207,7 +2207,7 @@ static void respondToGroupPOST(GroupMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "superior group has bad type");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_BSPR_PROV_GRP_POST);
+           ZSS_LOG_BSPR_PROV_GRP_POST_MSG);
     return;
   }
 
@@ -2339,7 +2339,7 @@ static void respondToGroupAccessListPUT(GroupMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "group name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_GROUP_REQ_USER_PP);
+           ZSS_LOG_GROUP_REQ_USER_PP_MSG);
     return;
   }
 
@@ -2347,14 +2347,14 @@ static void respondToGroupAccessListPUT(GroupMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "user ID required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_USER_REQ_USER_PP);
+           ZSS_LOG_USER_REQ_USER_PP_MSG);
     return;
   }
 
   if (commonParms->requestBody == NULL) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Body missing");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_BODY_NPROV_USER_PP);
+           ZSS_LOG_BODY_NPROV_USER_PP_MSG);
     return;
   }
 
@@ -2363,7 +2363,7 @@ static void respondToGroupAccessListPUT(GroupMgmtCommonParms *commonParms,
   if (accessTypeParm == NULL) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "accessType missing");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_ACCESS_REQ_USER_PP);
+           ZSS_LOG_ACCESS_REQ_USER_PP_MSG);
     return;
   }
 
@@ -2380,7 +2380,7 @@ static void respondToGroupAccessListPUT(GroupMgmtCommonParms *commonParms,
       translateGroupAccessType(accessTypeString);
   if (accessType == ZIS_GROUP_ADMIN_ACESS_TYPE_UNKNOWN) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
-                     ZSS_LOG_UNK_TYPE_UCCJ);
+                     ZSS_LOG_UNK_TYPE_UCCJ_MSG);
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "unknown access type (%d( provided for user POST/PUT, leaving...\n",
            accessType);
@@ -2589,7 +2589,7 @@ static void respondToGroupAccessListGET(GroupMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_NOT_IMPLEMENTED,
                      "specific user access status retrieval not implemented");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_ACCESS_LIST_BULK);
+           ZSS_LOG_ACCESS_LIST_BULK_MSG);
     return;
   }
 
@@ -2609,7 +2609,7 @@ static void respondToGroupAccessListGET(GroupMgmtCommonParms *commonParms,
       respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
                        "out of memory");
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-             ZSS_LOG_ACCESS_LIST_BUFR,
+             ZSS_LOG_ACCESS_LIST_BUFR_MSG,
              resultBufferSize);
       return;
     }
@@ -2643,14 +2643,14 @@ static void respondToGroupAccessListGET(GroupMgmtCommonParms *commonParms,
         respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
                          "access list size our of range");
         zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-               ZSS_LOG_ACCESS_LIST_OORG,
+               ZSS_LOG_ACCESS_LIST_OORG_MSG,
                entriesExtracted);
         return;
       }
 
       resultBufferCapacity = entriesExtracted;
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG,
-             ZSS_LOG_LIST_REALLOC,
+             ZSS_LOG_LIST_REALLOC_MSG,
              resultBufferCapacity);
 
     } else {
@@ -2688,7 +2688,7 @@ static void respondToGroupAccessListDELETE(GroupMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "group name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_GROUP_REQ_LIST_DEL);
+           ZSS_LOG_GROUP_REQ_LIST_DEL_MSG);
     return;
   }
 
@@ -2696,7 +2696,7 @@ static void respondToGroupAccessListDELETE(GroupMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "access list entry name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_ACCESS_REQ_ACCESS_DEL);
+           ZSS_LOG_ACCESS_REQ_ACCESS_DEL_MSG);
     return;
   }
 
@@ -2779,7 +2779,7 @@ static int serveGroupManagement(HttpService *service,
 
   if (isGroupMgmtQueryStringValid(request->parsedFile) == false) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_GROUP_MGMT_QRY_DEL);
+           ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG);
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Incorrect query");
     return 0;
   }
@@ -2975,7 +2975,7 @@ static ZISGroupAccessEntry *getAccessListByGroupOrFail(
         respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
                          "access list size our of range");
         zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-               ZSS_LOG_ACCESS_LIST_OORG,
+               ZSS_LOG_ACCESS_LIST_OORG_MSG,
                entriesExtracted);
         *entryCount = 0;
         return NULL;
@@ -2983,7 +2983,7 @@ static ZISGroupAccessEntry *getAccessListByGroupOrFail(
 
       resultBufferCapacity = entriesExtracted;
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG,
-             ZSS_LOG_LIST_REALLOC,
+             ZSS_LOG_LIST_REALLOC_MSG,
              resultBufferCapacity);
 
     } else if (zisRC != RC_ZIS_SRVC_OK) {

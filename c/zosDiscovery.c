@@ -487,24 +487,24 @@ static int serveDiscoveryData(HttpService *service, HttpResponse *response){
   if (!strcmp(firstLevelName,"zosDiscovery")){
     if (!strcmp(secondLevelName,"simple")){
       if (thirdLevelName == NULL) {
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_THIRD_NGIVEN);
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_THIRD_NGIVEN_MSG);
       } else if (!strcmp(thirdLevelName,"subsystems")){
         serveSubsystemData(service, request, response, SOFTWARE_TYPE_ALL_SIMPLE,
                            NULL, fourthLevelName);
       } else{
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_THIRD_NKNOWN, thirdLevelName);
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_THIRD_NKNOWN_MSG, thirdLevelName);
       }
 
     } else if (!strcmp(secondLevelName,"system")){
       serveSystemData(service,request,response,thirdLevelName);
 
     } else if (!secondLevelName){
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_SECND_NGIVEN);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_SECND_NGIVEN_MSG);
     } else{
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_SECND_NKNOWN, secondLevelName);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_SECND_NKNOWN_MSG, secondLevelName);
     }
   } else{
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_FIRST_NKNOWN, firstLevelName);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_DISC_FIRST_NKNOWN_MSG, firstLevelName);
   }
   return 0;
 }
