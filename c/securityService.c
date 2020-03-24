@@ -2263,7 +2263,7 @@ static void respondToGroupDELETE(GroupMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "profile name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_PROF_REQ_DEL);
+           ZSS_LOG_PROF_REQ_DEL_MSG);
     return;
   }
 
@@ -2372,7 +2372,7 @@ static void respondToGroupAccessListPUT(GroupMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "accessType has bad type");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_BAD_TYPE_USER_PP);
+           ZSS_LOG_BAD_TYPE_USER_PP_MSG);
     return;
   }
 
