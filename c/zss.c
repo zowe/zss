@@ -910,8 +910,8 @@ static int validateFilePermissions(const char *filePath) {
         "fallback": true,
         "key": {
           "storeType": "pkcs11",     //optional, since only one type is supported
-          "name": "ZOWE.ZSS.APIMLQA",
-          "keyId": "jwtsecret"       //optional
+          "key": "ZOWE.ZSS.APIMLQA",
+          "label": "jwtsecret"
         }
       }
     }
@@ -961,12 +961,9 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
     return 1;
   }
 
-  const char *const keystoreType = jsonObjectGetString(jwtKeyConfig, "type");
-  const char *const keystoreName = jsonObjectGetString(jwtKeyConfig, "name");
-  const char *const keyId =
-      jsonObjectHasKey(jwtKeyConfig, "keyId")?
-          jsonObjectGetString(jwtKeyConfig, "keyId")
-          : "jwtsecret";
+  const char *const keystoreType = jsonObjectGetString(jwtKeyConfig, "type"); //TODO probably remove this, will likely remain unused for a while
+  const char *const keystoreToken = jsonObjectGetString(jwtKeyConfig, "token");
+  const char *const tokenLabel = jsonObjectGetString(jwtKeyConfig, "label");
 
   if (keystoreType != NULL && strcmp(keystoreType, "pkcs11") != 0) {
     zowelog(NULL,
@@ -974,20 +971,26 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
         ZOWE_LOG_SEVERE,
         "Invalid JWT configuration: unknown keystore type %s\n", keystoreType);
     return 1;
-  } else if (keystoreName == NULL) {
+  } else if (keystoreToken == NULL) {
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_SEVERE,
-        "Invalid JWT configuration: keystore name missing\n");
+        "Invalid JWT configuration: keystore token missing\n");
+    return 1;
+  } else if(tokenLabel == NULL){
+    zowelog(NULL,
+        LOG_COMP_ID_MVD_SERVER,
+        ZOWE_LOG_SEVERE,
+        "Invalid JWT configuration: token label missing\n");
     return 1;
   } else {
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_INFO,
-        "Will use JWT using PKCS#11 token '%s', key id '%s',"
+        "Will use JWT using PKCS#11 token '%s', label '%s',"
         " %s fallback to legacy tokens\n",
-        keystoreName,
-        keyId,
+        keystoreToken,
+        tokenLabel,
         fallback? "with" : "without");
   }
 
@@ -995,16 +998,16 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
   int initTokenRc, p11rc, p11Rsn;
   const int contextInitRc = httpServerInitJwtContext(httpServer,
       fallback,
-      keystoreName,
-      keyId,
+      keystoreToken,
+      tokenLabel,
       CKO_PUBLIC_KEY,
       &initTokenRc, &p11rc, &p11Rsn);
   if (contextInitRc != 0) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
         "Server startup problem: could not load the JWT key %s from token %s:"
           " rc %d, p11rc %d, p11Rsn %d\n",
-        keyId,
-        keystoreName,
+        tokenLabel,
+        keystoreToken,
         initTokenRc, p11rc, p11Rsn);
     return 1;
   }
