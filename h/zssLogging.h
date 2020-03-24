@@ -126,7 +126,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_OPEN_DIR_FAIL_MSG_ID
 #define ZSS_LOG_OPEN_DIR_FAIL_MSG_ID         ZSS_LOG_MSG_PRFX"1012W"
 #endif
-#define ZSS_LOG_OPEN_DIR_FAIL_MSG_TEXT       "Couldn't open directory '%s' returnCode=%d reasonCode=0x%x\n"
+#define ZSS_LOG_OPEN_DIR_FAIL_MSG_TEXT       "Could not open directory '%s' returnCode=%d reasonCode=0x%x\n"
 #define ZSS_LOG_OPEN_DIR_FAIL_MSG            ZSS_LOG_OPEN_DIR_FAIL_MSG_ID" "ZSS_LOG_OPEN_DIR_FAIL_MSG_TEXT
 
 #ifndef ZSS_LOG_ZSS_START_VER_MSG_ID
@@ -156,7 +156,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_CANT_STAT_CONFIG_MSG_ID
 #define ZSS_LOG_CANT_STAT_CONFIG_MSG_ID      ZSS_LOG_MSG_PRFX"1017E"
 #endif
-#define ZSS_LOG_CANT_STAT_CONFIG_MSG_TEXT    "Couldnt stat config path=%s. return=%d, reason=%d\n"
+#define ZSS_LOG_CANT_STAT_CONFIG_MSG_TEXT    "Could not stat config path=%s. return=%d, reason=%d\n"
 #define ZSS_LOG_CANT_STAT_CONFIG_MSG         ZSS_LOG_CANT_STAT_CONFIG_MSG_ID" "ZSS_LOG_CANT_STAT_CONFIG_MSG_TEXT
 
 #ifndef ZSS_LOG_CONFIG_OPEN_PERMISS_MSG_ID
