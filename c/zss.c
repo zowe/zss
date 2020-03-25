@@ -909,9 +909,8 @@ static int validateFilePermissions(const char *filePath) {
         "enabled": true,
         "fallback": true,
         "key": {
-          "storeType": "pkcs11",     //optional, since only one type is supported
           "key": "ZOWE.ZSS.APIMLQA",
-          "label": "jwtsecret"
+          "label": "KEY_RS256"
         }
       }
     }
@@ -961,17 +960,10 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
     return 1;
   }
 
-  const char *const keystoreType = jsonObjectGetString(jwtKeyConfig, "type"); //TODO probably remove this, will likely remain unused for a while
   const char *const keystoreToken = jsonObjectGetString(jwtKeyConfig, "token");
   const char *const tokenLabel = jsonObjectGetString(jwtKeyConfig, "label");
 
-  if (keystoreType != NULL && strcmp(keystoreType, "pkcs11") != 0) {
-    zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
-        ZOWE_LOG_SEVERE,
-        "Invalid JWT configuration: unknown keystore type %s\n", keystoreType);
-    return 1;
-  } else if (keystoreToken == NULL) {
+  if (keystoreToken == NULL) {
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_SEVERE,
