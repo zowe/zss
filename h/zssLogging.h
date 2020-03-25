@@ -285,7 +285,7 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_INSTALL_MSG_ID               ZSS_LOG_MSG_PRFX"1039I"
 #endif
 #define ZSS_LOG_INSTALL_MSG_TEXT             "Installing '%s' service\n"
-#define ZSS_LOG_INSTALL_MSG                  ZSS_LOG_INSTALL_DS_CONT_MSG_ID" "ZSS_LOG_INSTALL_DS_CONT_MSG_TEXT
+#define ZSS_LOG_INSTALL_MSG                  ZSS_LOG_INSTALL_MSG_ID" "ZSS_LOG_INSTALL_MSG_TEXT
 
 /* MVD Server (Discovery) */
 
@@ -336,7 +336,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_PROF_REQ_MSG_ID
 #define ZSS_LOG_PROF_REQ_MSG_ID              ZSS_LOG_MSG_PRFX"1402W"
 #endif
-#define ZSS_LOG_PROF_REQ_MSG_TEXT            "Profile name required for '%s' '%s\n"
+#define ZSS_LOG_PROF_REQ_MSG_TEXT            "Profile name required for '%s' '%s'\n"
 #define ZSS_LOG_PROF_REQ_MSG                 ZSS_LOG_PROF_REQ_MSG_ID" "ZSS_LOG_PROF_REQ_MSG_TEXT
 
 #ifndef ZSS_LOG_USER_REQ_USER_PP_MSG_ID
