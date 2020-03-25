@@ -183,7 +183,7 @@ static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response
 }
 
 void installDatasetContentsService(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_DS_CONT_MSG);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset contents");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
   HttpService *httpService = makeGeneratedService("datasetContents", "/datasetContents/**");
@@ -195,7 +195,7 @@ void installDatasetContentsService(HttpServer *server) {
 }
 
 void installVSAMDatasetContentsService(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_VSAM_CONT_MSG);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "VSAM dataset contents");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
   HttpService *httpService = makeGeneratedService("VSAMdatasetContents", "/VSAMdatasetContents/**");
@@ -212,7 +212,7 @@ void installVSAMDatasetContentsService(HttpServer *server) {
 }
 
 void installDatasetMetadataService(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_DS_MTADTA_MSG);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset metadata");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
 

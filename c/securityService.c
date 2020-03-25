@@ -1066,7 +1066,7 @@ static void respondToProfileGET(ClassMgmtCommonParms *commonParms,
   if (strlen(commonParms->className) > 0) {
     respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_NON_STRD_GET_MSG);
+           ZSS_LOG_NON_STRD_MSG, "profiles", "GET");
     return;
   }
 
@@ -1138,7 +1138,7 @@ static void respondToProfilePOST(ClassMgmtCommonParms *commonParms,
   if (strlen(commonParms->className) > 0) {
     respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_NON_STRD_POST_MSG);
+           ZSS_LOG_NON_STRD_MSG, "profiles", "POST");
     return;
   }
 
@@ -1146,7 +1146,7 @@ static void respondToProfilePOST(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "profile name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_PROF_REQ_POST_MSG);
+           ZSS_LOG_PROF_REQ_MSG, "profile", "POST");
     return;
   }
 
@@ -1209,7 +1209,7 @@ static void respondToProfileDELETE(ClassMgmtCommonParms *commonParms,
   if (strlen(commonParms->className) > 0) {
     respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_NON_STRD_DEL_MSG);
+           ZSS_LOG_NON_STRD_MSG, "profiles", "DELETE");
     return;
   }
 
@@ -1217,7 +1217,7 @@ static void respondToProfileDELETE(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "profile name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_PROF_REQ_DEL_MSG);
+           ZSS_LOG_PROF_REQ_MSG, "profile", "DELETE");
     return;
   }
 
@@ -1288,7 +1288,7 @@ static void respondToProfileAccessListPUT(ClassMgmtCommonParms *commonParms,
   if (strlen(commonParms->className) > 0) {
     respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_NON_STRD_USER_PP_MSG);
+           ZSS_LOG_NON_STRD_MSG, "user", "POST/PUT");
     return;
   }
 
@@ -1296,7 +1296,7 @@ static void respondToProfileAccessListPUT(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "profile name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_PROF_REQ_USER_PP_MSG);
+           ZSS_LOG_PROF_REQ_MSG, "user", "POST/PUT");
     return;
   }
 
@@ -1398,7 +1398,7 @@ static void respondToProfileAccessListGET(ClassMgmtCommonParms *commonParms,
   if (strlen(commonParms->className) > 0) {
     respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_NON_STRD_ACCESS_GET_MSG);
+           ZSS_LOG_NON_STRD_MSG, "access list", "GET");
     return;
   }
 
@@ -1505,7 +1505,7 @@ static void respondToProfileAccessListDELETE(ClassMgmtCommonParms *commonParms,
   if (strlen(commonParms->className) > 0) {
     respondWithError(response, HTTP_STATUS_FORBIDDEN, "forbidden");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_NON_STRD_ACCESS_DEL_MSG);
+           ZSS_LOG_NON_STRD_MSG, "access list", "DELETE");
     return;
   }
 
@@ -1513,7 +1513,7 @@ static void respondToProfileAccessListDELETE(ClassMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "profile name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_PROF_REQ_ACCESS_DEL_MSG);
+           ZSS_LOG_PROF_REQ_MSG, "access list", "DELETE");
     return;
   }
 
@@ -2182,7 +2182,7 @@ static void respondToGroupPOST(GroupMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "profile name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_GROUP_REQ_PROF_POST_MSG);
+           ZSS_LOG_GROUP_REQ_MSG, "profile", "POST");
     return;
   }
 
@@ -2263,7 +2263,7 @@ static void respondToGroupDELETE(GroupMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "profile name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_PROF_REQ_DEL_MSG);
+           ZSS_LOG_PROF_REQ_MSG, "profile", "DELETE");
     return;
   }
 
@@ -2339,7 +2339,7 @@ static void respondToGroupAccessListPUT(GroupMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "group name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_GROUP_REQ_USER_PP_MSG);
+           ZSS_LOG_GROUP_REQ_MSG, "user", "POST/PUT");
     return;
   }
 
@@ -2688,7 +2688,7 @@ static void respondToGroupAccessListDELETE(GroupMgmtCommonParms *commonParms,
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "group name required");
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           ZSS_LOG_GROUP_REQ_LIST_DEL_MSG);
+           ZSS_LOG_GROUP_REQ_MSG, "access list", "DELETE");
     return;
   }
 

@@ -146,8 +146,8 @@ static void freeValueSessionsByFileID(void *value) {
   UploadSession *s = value;
   status = fileClose(s->file, &returnCode, &reasonCode);
   if (status == -1) {
-    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_CLOSE_MSG,
-          returnCode, reasonCode);
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
+          "close", returnCode, reasonCode);
   }
   safeFree((char*)s, sizeof(UploadSession));
 }
@@ -169,8 +169,8 @@ static void timeOutDestroyer(void *userData, void *value) {
   UploadSession *s = value;
   status = fileClose(s->file, &returnCode, &reasonCode);
   if (status == -1) {
-    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_CLOSE_MSG,
-          returnCode, reasonCode);
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
+          "close", returnCode, reasonCode);
   }
   safeFree((char*)s, sizeof(UploadSession));
 }
@@ -255,16 +255,16 @@ static int handleNewFileCase(HttpResponse *response, char *encodedFileName, int 
                                &reasonCode);
 
   if (newFile == NULL) {
-    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_CREATE_MSG,
-           returnCode, reasonCode);
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
+           "create", returnCode, reasonCode);
     respondWithJsonError(response, "Could not create new file.", 500, "Internal Server Error");
     return -1;
   }
 
   int status = fileClose(newFile, &returnCode, &reasonCode);
   if (status != 0) {
-    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_CLOSE_MSG,
-           returnCode, reasonCode);
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
+           "close", returnCode, reasonCode);
     respondWithJsonError(response, "Could not close file.", 500, "Internal Server Error");
     return -1;
   }
@@ -367,8 +367,8 @@ static int checkIfFileIsBusy(HttpResponse *response, char *encodedFileName, Unix
                   &reasonCode);
 
   if (*file == NULL) {
-    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_OPEN_MSG,
-          returnCode, reasonCode);
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
+          "open", returnCode, reasonCode);
     respondWithJsonError(response, "Could not open file. Requested resource is busy. Please try again later.",
           403, "Forbidden");
     return -1;
