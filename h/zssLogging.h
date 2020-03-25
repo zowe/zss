@@ -281,12 +281,6 @@ bool isLogLevelValid(int level);
 
 /* MVD Server (Datasets) */
 
-#ifndef ZSS_LOG_DS_NAME_HLQ_MSG_ID
-#define ZSS_LOG_DS_NAME_HLQ_MSG_ID           ZSS_LOG_MSG_PRFX"1038I"
-#endif
-#define ZSS_LOG_DS_NAME_HLQ_MSG_TEXT         "L1=%s\n"
-#define ZSS_LOG_DS_NAME_HLQ_MSG              ZSS_LOG_DS_NAME_HLQ_MSG_ID" "ZSS_LOG_DS_NAME_HLQ_MSG_TEXT
-
 #ifndef ZSS_LOG_INSTALL_MSG_ID
 #define ZSS_LOG_INSTALL_MSG_ID               ZSS_LOG_MSG_PRFX"1039I"
 #endif
