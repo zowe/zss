@@ -126,7 +126,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_OPEN_DIR_FAIL_MSG_ID
 #define ZSS_LOG_OPEN_DIR_FAIL_MSG_ID         ZSS_LOG_MSG_PRFX"1012W"
 #endif
-#define ZSS_LOG_OPEN_DIR_FAIL_MSG_TEXT       "Could not open directory '%s' returnCode = '%d' reasonCode = '0x%x'\n"
+#define ZSS_LOG_OPEN_DIR_FAIL_MSG_TEXT       "Could not open directory '%s': Return = '%d', reason = '0x%x'\n"
 #define ZSS_LOG_OPEN_DIR_FAIL_MSG            ZSS_LOG_OPEN_DIR_FAIL_MSG_ID" "ZSS_LOG_OPEN_DIR_FAIL_MSG_TEXT
 
 #ifndef ZSS_LOG_ZSS_START_VER_MSG_ID
@@ -156,7 +156,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_CANT_STAT_CONFIG_MSG_ID
 #define ZSS_LOG_CANT_STAT_CONFIG_MSG_ID      ZSS_LOG_MSG_PRFX"1017E"
 #endif
-#define ZSS_LOG_CANT_STAT_CONFIG_MSG_TEXT    "Could not get file info on config path = '%s'. return = '%d', reason = '%d'\n"
+#define ZSS_LOG_CANT_STAT_CONFIG_MSG_TEXT    "Could not get file info on config path = '%s': Return = '%d', reason = '%d'\n"
 #define ZSS_LOG_CANT_STAT_CONFIG_MSG         ZSS_LOG_CANT_STAT_CONFIG_MSG_ID" "ZSS_LOG_CANT_STAT_CONFIG_MSG_TEXT
 
 #ifndef ZSS_LOG_CONFIG_OPEN_PERMISS_MSG_ID
@@ -270,7 +270,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_ZSS_STARTUP_MSG_ID
 #define ZSS_LOG_ZSS_STARTUP_MSG_ID           ZSS_LOG_MSG_PRFX"1036W"
 #endif
-#define ZSS_LOG_ZSS_STARTUP_MSG_TEXT         "Server startup problem: ret = '%d' reason = '0x%x'\n"
+#define ZSS_LOG_ZSS_STARTUP_MSG_TEXT         "Server startup problem: Return = '%d', reason = '0x%x'\n"
 #define ZSS_LOG_ZSS_STARTUP_MSG              ZSS_LOG_ZSS_STARTUP_MSG_ID" "ZSS_LOG_ZSS_STARTUP_MSG_TEXT
 
 #ifndef ZSS_LOG_PORT_OCCUP_MSG_ID
@@ -304,13 +304,13 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_UNABLE_MSG_ID
 #define ZSS_LOG_UNABLE_MSG_ID                ZSS_LOG_MSG_PRFX"1200W"
 #endif
-#define ZSS_LOG_UNABLE_MSG_TEXT              "Could not %s file: Ret = '%d', Res = '%d'\n"
+#define ZSS_LOG_UNABLE_MSG_TEXT              "Could not %s file: Return = '%d', reason = '%d'\n"
 #define ZSS_LOG_UNABLE_MSG                   ZSS_LOG_UNABLE_MSG_ID" "ZSS_LOG_UNABLE_MSG_TEXT
 
 #ifndef ZSS_LOG_UNABLE_METADATA_MSG_ID
 #define ZSS_LOG_UNABLE_METADATA_MSG_ID       ZSS_LOG_MSG_PRFX"1201W"
 #endif
-#define ZSS_LOG_UNABLE_METADATA_MSG_TEXT     "Could not get metadata for file: Ret = '%d', Res = '%d'\n"
+#define ZSS_LOG_UNABLE_METADATA_MSG_TEXT     "Could not get metadata for file: Return = '%d', reason = '%d'\n"
 #define ZSS_LOG_UNABLE_METADATA_MSG          ZSS_LOG_UNABLE_METADATA_MSG_ID" "ZSS_LOG_UNABLE_METADATA_MSG_TEXT
 
 #ifndef ZSS_LOG_TTYPE_NOT_SET_MSG_ID
