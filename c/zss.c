@@ -370,11 +370,11 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
     if (logLevels) {
       TraceDefinition *traceDef = traceDefs;
       while (traceDef->name != 0) {
-    int traceLevel = jsonObjectGetNumber(logLevels, (char*) traceDef->name);
-    if (traceLevel > 0) {
-      traceDef->function(traceLevel);
-    }
-    ++traceDef;
+        int traceLevel = jsonObjectGetNumber(logLevels, (char*) traceDef->name);
+        if (traceLevel > 0) {
+          traceDef->function(traceLevel);
+        }
+        ++traceDef;
       }
     }
     dumpJson(mvdSettings);
@@ -559,6 +559,7 @@ static void installZosPasswordService(HttpServer *server) {
   httpService->runInSubtask = TRUE;
   httpService->serviceFunction = resetPassword;
   registerHttpService(server, httpService);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
 }
 
 static void installLogoutService(HttpServer *server) {

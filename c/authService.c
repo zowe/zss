@@ -38,6 +38,15 @@
 #define SAF_CLASS "ZOWE"
 #define JSON_ERROR_BUFFER_SIZE 1024
 
+#define PASSWORD_RESET_RC_OK                0
+#define PASSWORD_RESET_RC_WRONG_PASSWORD    111
+#define PASSWORD_RESET_RC_WRONG_USER        143
+#define PASSWORD_RESET_RC_TOO_MANY_ATTEMPTS 163
+#define PASSWORD_RESET_RC_NO_NEW_PASSSWORD  168
+#define PASSWORD_RESET_RC_WRONG_FORMAT      169
+
+#define RESPONSE_MESSAGE_LENGTH             100
+
 /*
  * A handler performing the SAF_AUTH check: checks if the user has the
  * specified access to the specified entity in the specified class
@@ -174,6 +183,19 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
   return 0;
 }
 
+void respondWithJsonStatus(HttpResponse *response, const char *status, int statusCode, const char *statusMessage) {
+    jsonPrinter *out = respondWithJsonPrinter(response);
+    setResponseStatus(response,statusCode,(char *)statusMessage);
+    setDefaultJSONRESTHeaders(response);
+    writeHeader(response);
+
+    jsonStart(out);
+    jsonAddString(out, "status", (char *)status);
+    jsonEnd(out);
+
+    finishResponse(response);
+}
+
 int resetPassword(HttpService *service, HttpResponse *response) {
   int returnCode = 0, reasonCode = 0;
   HttpRequest *request = response->request;
@@ -185,6 +207,11 @@ int resetPassword(HttpService *service, HttpResponse *response) {
     char errBuf[JSON_ERROR_BUFFER_SIZE];
     char responseString[RESPONSE_MESSAGE_LENGTH];
 
+    if (nativeBody == NULL) {
+      respondWithJsonStatus(response, "No body found", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+      return HTTP_SERVICE_FAILED;
+    }
+
     Json *body = jsonParseUnterminatedString(request->slh, nativeBody, inLen, errBuf, JSON_ERROR_BUFFER_SIZE);
     JsonObject *inputMessage = jsonAsObject(body);
     Json *username = jsonObjectGetPropertyValue(inputMessage,"username");
@@ -193,14 +220,20 @@ int resetPassword(HttpService *service, HttpResponse *response) {
     int usernameLength = 0;
     int passwordLength = 0;
     int newPasswordLength = 0;
-    if(username != NULL) {
-      usernameLength = strlen(jsonAsString(username));
+    if (username != NULL) {
+      if (jsonAsString(username) != NULL) {
+        usernameLength = strlen(jsonAsString(username));
+      }
     }
-    if(password != NULL) {
-      passwordLength = strlen(jsonAsString(password));
+    if (password != NULL) {
+      if (jsonAsString(password) != NULL) {
+        passwordLength = strlen(jsonAsString(password));
+      }
     }
-    if(newPassword != NULL) {
-      newPasswordLength = strlen(jsonAsString(newPassword));
+    if (newPassword != NULL) {
+      if (jsonAsString(newPassword) != NULL) {
+        newPasswordLength = strlen(jsonAsString(newPassword));
+      }
     }
     if (usernameLength == 0) {
       respondWithJsonStatus(response, "No username provided",
@@ -216,36 +249,32 @@ int resetPassword(HttpService *service, HttpResponse *response) {
       return HTTP_SERVICE_FAILED;
     } else {
       resetZosUserPassword(jsonAsString(username),  jsonAsString(password), jsonAsString(newPassword), &returnCode, &reasonCode);
-      switch (returnCode) {
-        case PASSWORD_RESET_OK:
-          respondWithJsonStatus(response, "Password Successfully Reset", HTTP_STATUS_OK, "OK");
-          return HTTP_SERVICE_SUCCESS;
-        case PASSWORD_RESET_WRONG_PASSWORD:
-          respondWithJsonStatus(response, "The current password is incorrect. Please try again.",
-                                HTTP_STATUS_UNAUTHORIZED, "Unauthorized");
-          return HTTP_SERVICE_FAILED;
-        case PASSWORD_RESET_WRONG_USER:
-          respondWithJsonStatus(response, "The username entered is not found. Please try again.",
-                                HTTP_STATUS_UNAUTHORIZED, "Unauthorized");
-          return HTTP_SERVICE_FAILED;
-        case PASSWORD_RESET_NO_NEW_PASSSWORD:
-          respondWithJsonStatus(response, "No new password for expired password provided",
-                                HTTP_STATUS_BAD_REQUEST, "Bad Request");
-          return HTTP_SERVICE_FAILED;
-        case PASSWORD_RESET_WRONG_FORMAT:
-          respondWithJsonStatus(response, "The new password format is incorrect. Please try again.",
-                                HTTP_STATUS_BAD_REQUEST, "Bad Request");
-          return HTTP_SERVICE_FAILED;
-        case PASSWORD_RESET_TOO_MANY_ATTEMPTS:
-          respondWithJsonStatus(response,
-                                "An incorrect password has been entered too many times and the account has been locked. Please contact your administrator for further instructions.",
-                                HTTP_STATUS_TOO_MANY_REQUESTS, "Bad Request");
-          return HTTP_SERVICE_FAILED;
-        default:
-          sprintf(responseString, "Password reset FAILED with return code: %d reason code: %d\n", returnCode, reasonCode);
-          respondWithJsonStatus(response, responseString, HTTP_STATUS_BAD_REQUEST, "Bad Request");
-          return HTTP_SERVICE_FAILED;
+
+      if (returnCode == PASSWORD_RESET_RC_OK) {
+        respondWithJsonStatus(response, "Password Successfully Reset", HTTP_STATUS_OK, "OK");
+        return HTTP_SERVICE_SUCCESS;
+      } else if (returnCode == PASSWORD_RESET_RC_WRONG_PASSWORD) {
+        respondWithJsonStatus(response, "The current password is incorrect. Please try again.",
+                              HTTP_STATUS_UNAUTHORIZED, "Unauthorized");
+      } else if (returnCode == PASSWORD_RESET_RC_WRONG_USER) {
+        respondWithJsonStatus(response, "The username entered is not found. Please try again.",
+                              HTTP_STATUS_UNAUTHORIZED, "Unauthorized");
+      } else if (returnCode == PASSWORD_RESET_RC_NO_NEW_PASSSWORD) {
+        respondWithJsonStatus(response, "No new password for expired password provided",
+                               HTTP_STATUS_BAD_REQUEST, "Bad Request");
+      } else if (returnCode == PASSWORD_RESET_RC_WRONG_FORMAT) {
+        respondWithJsonStatus(response, "The new password format is incorrect. Please try again.",
+                              HTTP_STATUS_BAD_REQUEST, "Bad Request");
+      } else if (returnCode == PASSWORD_RESET_RC_TOO_MANY_ATTEMPTS) {
+        respondWithJsonStatus(response,
+                              "An incorrect password has been entered too many times and the account has been locked. Please contact your administrator for further instructions.",
+                              HTTP_STATUS_TOO_MANY_REQUESTS, "Bad Request");
+      } else {
+        snprintf(responseString, RESPONSE_MESSAGE_LENGTH, "Password reset FAILED with return code: %d reason code: %d", returnCode, reasonCode);
+        respondWithJsonStatus(response, responseString, HTTP_STATUS_BAD_REQUEST, "Bad Request");
       }
+
+      return HTTP_SERVICE_FAILED;
     }
   } else {
     respondWithJsonStatus(response, "Method Not Allowed",
@@ -253,6 +282,7 @@ int resetPassword(HttpService *service, HttpResponse *response) {
     return HTTP_SERVICE_FAILED;
   }
 }
+
 
 
 /*
