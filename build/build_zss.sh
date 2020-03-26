@@ -93,7 +93,6 @@ c89 \
   ${COMMON}/c/logging.c \
   ${COMMON}/c/nametoken.c \
   ${COMMON}/c/zos.c \
-  ${COMMON}/c/impersonation.c \
   ${COMMON}/c/pdsutil.c \
   ${COMMON}/c/qsam.c \
   ${COMMON}/c/radmin.c \

@@ -23,7 +23,6 @@
 #include "socketmgmt.h"
 #include "httpserver.h"
 #include "json.h"
-#include "logging.h"
 
 #include "radmin.h"
 #include "omvsService.h"
