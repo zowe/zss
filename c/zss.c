@@ -364,7 +364,7 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
     if (jsonIsObject(mvdSettings)) {
       mvdSettingsJsonObject = jsonAsObject(mvdSettings);
     } else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_FILE_EXPECTED_TOP_MSG, filename);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_FILE_EXPECTED_TOP_MSG, filename);
     }
     JsonObject *logLevels = jsonObjectGetObject(mvdSettingsJsonObject, "logLevels");
     if (logLevels) {
@@ -379,7 +379,7 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
     }
     dumpJson(mvdSettings);
   } else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PARS_ZSS_SETTING_MSG, filename, jsonErrorBuffer);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PARS_ZSS_SETTING_MSG, filename, jsonErrorBuffer);
   }
   return mvdSettingsJsonObject;
 }
@@ -469,10 +469,10 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh, char *pluginIdentif
         zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PLUGIN_ID_NFOUND_MSG, path);
       }
     } else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_FILE_EXPECTED_TOP_MSG, path);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_FILE_EXPECTED_TOP_MSG, path);
     }
   } else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PARS_FILE_MSG, path, errorBuffer);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PARS_FILE_MSG, path, errorBuffer);
   }
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s end result is %s\n", __FUNCTION__, pluginDefinition ? "not null" : "null");
   return pluginDefinition;
@@ -665,7 +665,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
                 zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PLUGIN_IDLOC_NFOUND_MSG, path);
               }
             } else {
-              zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_FILE_EXPECTED_TOP_MSG, path);
+              zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_FILE_EXPECTED_TOP_MSG, path);
             }
           } else {
             zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PARS_GENERIC_MSG, errorBuffer);
