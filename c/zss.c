@@ -463,10 +463,10 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh, char *pluginIdentif
         if (0 == strcmp(pluginIdentifier, identifier)) {
           pluginDefinition = pluginDefinitionJsonObject;
         } else {
-          zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_EXPEC_PLUGIN_ID_MSG, pluginIdentifier, identifier);
+          zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_EXPEC_PLUGIN_ID_MSG, pluginIdentifier, identifier);
         }
       } else {
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PLUGIN_ID_NFOUND_MSG, path);
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PLUGIN_ID_NFOUND_MSG, path);
       }
     } else {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_FILE_EXPECTED_TOP_MSG, path);
@@ -508,7 +508,7 @@ static void installWebPluginFilesServices(WebPlugin* plugin, HttpServer *server)
       httpService->serviceFunction = serveWebContent;
       registerHttpService(server, httpService);
     } else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_WEB_CONT_NFOUND_MSG, plugin->identifier);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_WEB_CONT_NFOUND_MSG, plugin->identifier);
     }
   } else if (WEB_PLUGIN_TYPE_LIBRARY == plugin->pluginType) {
     char *libraryVersion = jsonObjectGetString(pluginDefintion, "libraryVersion");
@@ -535,7 +535,7 @@ static void installWebPluginFilesServices(WebPlugin* plugin, HttpServer *server)
       httpService->serviceFunction = serveLibraryContent;
       registerHttpService(server, httpService);
     } else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_LIBR_VER_NFOUND_MSG, plugin->identifier);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_LIBR_VER_NFOUND_MSG, plugin->identifier);
     }
   }
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
