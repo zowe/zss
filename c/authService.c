@@ -196,7 +196,7 @@ void respondWithJsonStatus(HttpResponse *response, const char *status, int statu
     finishResponse(response);
 }
 
-int resetPassword(HttpService *service, HttpResponse *response) {
+static int resetPassword(HttpService *service, HttpResponse *response) {
   int returnCode = 0, reasonCode = 0;
   HttpRequest *request = response->request;
   
@@ -283,7 +283,16 @@ int resetPassword(HttpService *service, HttpResponse *response) {
   }
 }
 
+void installZosPasswordService(HttpServer *server) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
+  HttpService *httpService = makeGeneratedService("password service", "/password/**");
+  httpService->authType = SERVICE_AUTH_NONE;
+  httpService->runInSubtask = TRUE;
+  httpService->serviceFunction = resetPassword;
+  registerHttpService(server, httpService);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+}
 
 /*
   This program and the accompanying materials are

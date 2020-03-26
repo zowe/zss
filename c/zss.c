@@ -551,17 +551,6 @@ static void installLoginService(HttpServer *server) {
   registerHttpService(server, httpService);
 }
 
-static void installZosPasswordService(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
-
-  HttpService *httpService = makeGeneratedService("password service", "/password/**");
-  httpService->authType = SERVICE_AUTH_NONE;
-  httpService->runInSubtask = TRUE;
-  httpService->serviceFunction = resetPassword;
-  registerHttpService(server, httpService);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
-}
-
 static void installLogoutService(HttpServer *server) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
