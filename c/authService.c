@@ -211,8 +211,14 @@ static int resetPassword(HttpService *service, HttpResponse *response) {
       respondWithJsonStatus(response, "No body found", HTTP_STATUS_BAD_REQUEST, "Bad Request");
       return HTTP_SERVICE_FAILED;
     }
-
+    
     Json *body = jsonParseUnterminatedString(request->slh, nativeBody, inLen, errBuf, JSON_ERROR_BUFFER_SIZE);
+    
+    if (body == NULL) {
+      respondWithJsonStatus(response, "No body found", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+      return HTTP_SERVICE_FAILED;
+    }
+    
     JsonObject *inputMessage = jsonAsObject(body);
     Json *username = jsonObjectGetPropertyValue(inputMessage,"username");
     Json *password = jsonObjectGetPropertyValue(inputMessage,"password");
