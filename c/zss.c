@@ -910,7 +910,7 @@ static int validateFilePermissions(const char *filePath) {
         "fallback": true,
         "key": {
           "type": "pkcs11",     //optional, since only one type is supported
-          "key": "ZOWE.ZSS.APIMLQA",
+          "token": "ZOWE.ZSS.APIMLQA",
           "label": "KEY_RS256"
         }
       }
