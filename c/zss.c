@@ -907,9 +907,9 @@ static int validateFilePermissions(const char *filePath) {
         "enabled": true,
         "fallback": true,
         "key": {
-          "storeType": "pkcs11",     //optional, since only one type is supported
-          "name": "ZOWE.ZSS.APIMLQA",
-          "keyId": "jwtsecret"       //optional
+          "type": "pkcs11",     //optional, since only one type is supported
+          "token": "ZOWE.ZSS.APIMLQA",
+          "label": "KEY_RS256"
         }
       }
     }
@@ -960,11 +960,8 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
   }
 
   const char *const keystoreType = jsonObjectGetString(jwtKeyConfig, "type");
-  const char *const keystoreName = jsonObjectGetString(jwtKeyConfig, "name");
-  const char *const keyId =
-      jsonObjectHasKey(jwtKeyConfig, "keyId")?
-          jsonObjectGetString(jwtKeyConfig, "keyId")
-          : "jwtsecret";
+  const char *const keystoreToken = jsonObjectGetString(jwtKeyConfig, "token");
+  const char *const tokenLabel = jsonObjectGetString(jwtKeyConfig, "label");
 
   if (keystoreType != NULL && strcmp(keystoreType, "pkcs11") != 0) {
     zowelog(NULL,
@@ -972,19 +969,25 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
         ZOWE_LOG_SEVERE,
         ZSS_LOG_JWT_KEYSTORE_UNKN_MSG, keystoreType);
     return 1;
-  } else if (keystoreName == NULL) {
+  } else if (keystoreToken == NULL) {
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_SEVERE,
         ZSS_LOG_JWT_KEYSTORE_NAME_MSG);
+    return 1;
+  } else if(tokenLabel == NULL){
+    zowelog(NULL,
+        LOG_COMP_ID_MVD_SERVER,
+        ZOWE_LOG_SEVERE,
+        "Invalid JWT configuration: token label missing\n");
     return 1;
   } else {
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_INFO,
         ZSS_LOG_JWT_TOKEN_FALLBK_MSG,
-        keystoreName,
-        keyId,
+        keystoreToken,
+        tokenLabel,
         fallback? "with" : "without");
   }
 
@@ -992,15 +995,15 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
   int initTokenRc, p11rc, p11Rsn;
   const int contextInitRc = httpServerInitJwtContext(httpServer,
       fallback,
-      keystoreName,
-      keyId,
+      keystoreToken,
+      tokenLabel,
       CKO_PUBLIC_KEY,
       &initTokenRc, &p11rc, &p11Rsn);
   if (contextInitRc != 0) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
         ZSS_LOG_NO_LOAD_JWT_MSG,
-        keyId,
-        keystoreName,
+        tokenLabel,
+        keystoreToken,
         initTokenRc, p11rc, p11Rsn);
     return 1;
   }
