@@ -38,12 +38,12 @@
 #define SAF_CLASS "ZOWE"
 #define JSON_ERROR_BUFFER_SIZE 1024
 
-#define PASSWORD_RESET_RC_OK                0
-#define PASSWORD_RESET_RC_WRONG_PASSWORD    111
-#define PASSWORD_RESET_RC_WRONG_USER        143
-#define PASSWORD_RESET_RC_TOO_MANY_ATTEMPTS 163
-#define PASSWORD_RESET_RC_NO_NEW_PASSSWORD  168
-#define PASSWORD_RESET_RC_WRONG_FORMAT      169
+#define SAF_PASSWORD_RESET_RC_OK                0
+#define SAF_PASSWORD_RESET_RC_WRONG_PASSWORD    111
+#define SAF_PASSWORD_RESET_RC_WRONG_USER        143
+#define SAF_PASSWORD_RESET_RC_TOO_MANY_ATTEMPTS 163
+#define SAF_PASSWORD_RESET_RC_NO_NEW_PASSSWORD  168
+#define SAF_PASSWORD_RESET_RC_WRONG_FORMAT      169
 
 #define RESPONSE_MESSAGE_LENGTH             100
 
@@ -256,22 +256,22 @@ static int resetPassword(HttpService *service, HttpResponse *response) {
     } else {
       resetZosUserPassword(jsonAsString(username),  jsonAsString(password), jsonAsString(newPassword), &returnCode, &reasonCode);
 
-      if (returnCode == PASSWORD_RESET_RC_OK) {
+      if (returnCode == SAF_PASSWORD_RESET_RC_OK) {
         respondWithJsonStatus(response, "Password Successfully Reset", HTTP_STATUS_OK, "OK");
         return HTTP_SERVICE_SUCCESS;
-      } else if (returnCode == PASSWORD_RESET_RC_WRONG_PASSWORD) {
+      } else if (returnCode == SAF_PASSWORD_RESET_RC_WRONG_PASSWORD) {
         respondWithJsonStatus(response, "The current password is incorrect. Please try again.",
                               HTTP_STATUS_UNAUTHORIZED, "Unauthorized");
-      } else if (returnCode == PASSWORD_RESET_RC_WRONG_USER) {
+      } else if (returnCode == SAF_PASSWORD_RESET_RC_WRONG_USER) {
         respondWithJsonStatus(response, "The username entered is not found. Please try again.",
                               HTTP_STATUS_UNAUTHORIZED, "Unauthorized");
-      } else if (returnCode == PASSWORD_RESET_RC_NO_NEW_PASSSWORD) {
+      } else if (returnCode == SAF_PASSWORD_RESET_RC_NO_NEW_PASSSWORD) {
         respondWithJsonStatus(response, "No new password for expired password provided",
                                HTTP_STATUS_BAD_REQUEST, "Bad Request");
-      } else if (returnCode == PASSWORD_RESET_RC_WRONG_FORMAT) {
+      } else if (returnCode == SAF_PASSWORD_RESET_RC_WRONG_FORMAT) {
         respondWithJsonStatus(response, "The new password format is incorrect. Please try again.",
                               HTTP_STATUS_BAD_REQUEST, "Bad Request");
-      } else if (returnCode == PASSWORD_RESET_RC_TOO_MANY_ATTEMPTS) {
+      } else if (returnCode == SAF_PASSWORD_RESET_RC_TOO_MANY_ATTEMPTS) {
         respondWithJsonStatus(response,
                               "An incorrect password has been entered too many times and the account has been locked. Please contact your administrator for further instructions.",
                               HTTP_STATUS_TOO_MANY_REQUESTS, "Bad Request");
