@@ -370,11 +370,11 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
     if (logLevels) {
       TraceDefinition *traceDef = traceDefs;
       while (traceDef->name != 0) {
-	int traceLevel = jsonObjectGetNumber(logLevels, (char*) traceDef->name);
-	if (traceLevel > 0) {
-	  traceDef->function(traceLevel);
-	}
-	++traceDef;
+    int traceLevel = jsonObjectGetNumber(logLevels, (char*) traceDef->name);
+    if (traceLevel > 0) {
+      traceDef->function(traceLevel);
+    }
+    ++traceDef;
       }
     }
     dumpJson(mvdSettings);
@@ -548,6 +548,16 @@ static void installLoginService(HttpServer *server) {
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = serveLoginWithSessionToken;
   httpService->authExtractionFunction = extractAuthorizationFromJson;
+  registerHttpService(server, httpService);
+}
+
+static void installZosPasswordService(HttpServer *server) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+
+  HttpService *httpService = makeGeneratedService("password service", "/password/**");
+  httpService->authType = SERVICE_AUTH_NONE;
+  httpService->runInSubtask = TRUE;
+  httpService->serviceFunction = resetPassword;
   registerHttpService(server, httpService);
 }
 
@@ -786,13 +796,13 @@ static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envCon
       JsonArray *ipAddresses = jsonObjectGetArray(agentHttp, "ipAddresses");
       if (ipAddresses) {
         if (jsonArrayGetCount(ipAddresses) > 0) {
-	  Json *firstAddressItem = jsonArrayGetItem(ipAddresses, 0);
-	  if (jsonIsString(firstAddressItem)) {
-	    if (!(*address)) {
-        *address = jsonAsString(firstAddressItem);
-      }
-	  }
-	}
+          Json *firstAddressItem = jsonArrayGetItem(ipAddresses, 0);
+          if (jsonIsString(firstAddressItem)) {
+            if (!(*address)) {
+              *address = jsonAsString(firstAddressItem);
+            }
+          }
+        }
       }
     }
   }
@@ -1105,6 +1115,7 @@ int main(int argc, char **argv){
       installSecurityManagementServices(server);
       installOMVSService(server);
       installServerStatusService(server, MVD_SETTINGS, productVersion);
+      installZosPasswordService(server);
 #endif
       installLoginService(server);
       installLogoutService(server);

@@ -26,7 +26,17 @@
 #include "httpserver.h"
 #include "dataservice.h"
 
+#define PASSWORD_RESET_OK                0
+#define PASSWORD_RESET_WRONG_PASSWORD    111
+#define PASSWORD_RESET_WRONG_USER        143
+#define PASSWORD_RESET_TOO_MANY_ATTEMPTS 163
+#define PASSWORD_RESET_NO_NEW_PASSSWORD  168
+#define PASSWORD_RESET_WRONG_FORMAT      169
+
+#define RESPONSE_MESSAGE_LENGTH          100
+
 int installAuthCheckService(HttpServer *server);
+int resetPassword(HttpService *service, HttpResponse *response);
 
 #endif
 
