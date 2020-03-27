@@ -245,43 +245,44 @@ static int resetPassword(HttpService *service, HttpResponse *response) {
       respondWithJsonStatus(response, "No username provided",
                             HTTP_STATUS_BAD_REQUEST, "Bad Request");
       return HTTP_SERVICE_FAILED;
-    } else if (passwordLength == 0) {
+    }
+    if (passwordLength == 0) {
       respondWithJsonStatus(response, "No password provided",
                             HTTP_STATUS_BAD_REQUEST, "Bad Request");
       return HTTP_SERVICE_FAILED;
-    } else if (newPasswordLength == 0) {
+    }
+    if (newPasswordLength == 0) {
       respondWithJsonStatus(response, "No new password provided",
                             HTTP_STATUS_BAD_REQUEST, "Bad Request");
       return HTTP_SERVICE_FAILED;
-    } else {
-      resetZosUserPassword(jsonAsString(username),  jsonAsString(password), jsonAsString(newPassword), &returnCode, &reasonCode);
-
-      if (returnCode == SAF_PASSWORD_RESET_RC_OK) {
-        respondWithJsonStatus(response, "Password Successfully Reset", HTTP_STATUS_OK, "OK");
-        return HTTP_SERVICE_SUCCESS;
-      } else if (returnCode == SAF_PASSWORD_RESET_RC_WRONG_PASSWORD) {
-        respondWithJsonStatus(response, "The current password is incorrect. Please try again.",
-                              HTTP_STATUS_UNAUTHORIZED, "Unauthorized");
-      } else if (returnCode == SAF_PASSWORD_RESET_RC_WRONG_USER) {
-        respondWithJsonStatus(response, "The username entered is not found. Please try again.",
-                              HTTP_STATUS_UNAUTHORIZED, "Unauthorized");
-      } else if (returnCode == SAF_PASSWORD_RESET_RC_NO_NEW_PASSSWORD) {
-        respondWithJsonStatus(response, "No new password for expired password provided",
-                               HTTP_STATUS_BAD_REQUEST, "Bad Request");
-      } else if (returnCode == SAF_PASSWORD_RESET_RC_WRONG_FORMAT) {
-        respondWithJsonStatus(response, "The new password format is incorrect. Please try again.",
-                              HTTP_STATUS_BAD_REQUEST, "Bad Request");
-      } else if (returnCode == SAF_PASSWORD_RESET_RC_TOO_MANY_ATTEMPTS) {
-        respondWithJsonStatus(response,
-                              "An incorrect password has been entered too many times and the account has been locked. Please contact your administrator for further instructions.",
-                              HTTP_STATUS_TOO_MANY_REQUESTS, "Bad Request");
-      } else {
-        snprintf(responseString, RESPONSE_MESSAGE_LENGTH, "Password reset FAILED with return code: %d reason code: %d", returnCode, reasonCode);
-        respondWithJsonStatus(response, responseString, HTTP_STATUS_BAD_REQUEST, "Bad Request");
-      }
-
-      return HTTP_SERVICE_FAILED;
     }
+    resetZosUserPassword(jsonAsString(username),  jsonAsString(password), jsonAsString(newPassword), &returnCode, &reasonCode);
+
+    if (returnCode == SAF_PASSWORD_RESET_RC_OK) {
+      respondWithJsonStatus(response, "Password Successfully Reset", HTTP_STATUS_OK, "OK");
+      return HTTP_SERVICE_SUCCESS;
+    } else if (returnCode == SAF_PASSWORD_RESET_RC_WRONG_PASSWORD) {
+      respondWithJsonStatus(response, "The current password is incorrect. Please try again.",
+                            HTTP_STATUS_UNAUTHORIZED, "Unauthorized");
+    } else if (returnCode == SAF_PASSWORD_RESET_RC_WRONG_USER) {
+      respondWithJsonStatus(response, "The username entered is not found. Please try again.",
+                            HTTP_STATUS_UNAUTHORIZED, "Unauthorized");
+    } else if (returnCode == SAF_PASSWORD_RESET_RC_NO_NEW_PASSSWORD) {
+      respondWithJsonStatus(response, "No new password for expired password provided",
+                            HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    } else if (returnCode == SAF_PASSWORD_RESET_RC_WRONG_FORMAT) {
+      respondWithJsonStatus(response, "The new password format is incorrect. Please try again.",
+                            HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    } else if (returnCode == SAF_PASSWORD_RESET_RC_TOO_MANY_ATTEMPTS) {
+      respondWithJsonStatus(response,
+                            "An incorrect password has been entered too many times and the account has been locked. Please contact your administrator for further instructions.",
+                            HTTP_STATUS_TOO_MANY_REQUESTS, "Bad Request");
+    } else {
+      snprintf(responseString, RESPONSE_MESSAGE_LENGTH, "Password reset FAILED with return code: %d reason code: %d", returnCode, reasonCode);
+      respondWithJsonStatus(response, responseString, HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    }
+
+    return HTTP_SERVICE_FAILED;
   } else {
     respondWithJsonStatus(response, "Method Not Allowed",
                           HTTP_STATUS_METHOD_NOT_FOUND, "Method Not Allowed");
