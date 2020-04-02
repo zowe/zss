@@ -34,8 +34,14 @@ static bool startsWith(const char *pre, const char *str) {
 }
 
 static void splitEnvKeyValue(char buf[], char* array[]) {
-  array[0] = strtok (buf, "=");
-  array[1] = strtok (NULL, "=");
+  char *bufCpy;
+  if(buf != NULL){
+    int bufferLen = strlen(buf);
+    bufCpy = safeMalloc(bufferLen + 1, "buffer copy");
+    memcpy(bufCpy, buf, bufferLen);
+    array[0] = strtok (bufCpy, "=");
+    array[1] = strtok (NULL, "=");
+  }
 }
 
 static char* returnJSONRow(const char* key, const char* val) {
