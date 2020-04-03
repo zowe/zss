@@ -133,7 +133,26 @@ JsonObject *readEnvSettings(const char *prefix) {
 
 /*int main(int argc, char *argv[])
 {
-    JsonObject *envSettings=envVarsToObject("ZWED");
+    JsonObject *envSettings = envVarsToObject("ZWED");
+    JsonObject *envSettingsDup = envVarsToObject("ZWED");
+    JsonProperty *currentPropOrig = jsonObjectGetFirstProperty(envSettings);
+    JsonProperty *currentPropDup = jsonObjectGetFirstProperty(envSettingsDup);
+    //this loop tests whether the length of each JsonObject is the same
+    while (currentPropOrig != NULL) {
+      if (currentPropDup == NULL) {
+        printf("EXTERN CHAR **ENVRION TEST FAILED\n");
+        break;
+      }
+      if ((jsonObjectGetNextProperty(currentPropOrig) == NULL
+            && jsonObjectGetNextProperty(currentPropDup) != NULL)
+            || (jsonObjectGetNextProperty(currentPropOrig) != NULL
+            && jsonObjectGetNextProperty(currentPropDup) == NULL)) {
+        printf("EXTERN CHAR **ENVRION TEST FAILED\n");
+        break;
+      }
+      currentPropDup = jsonObjectGetNextProperty(currentPropDup);
+      currentPropOrig = jsonObjectGetNextProperty(currentPropOrig);
+    }
     printf("Port: %d\n", jsonObjectGetNumber(envSettings, "ZWED_AGENT_PORT"));
     printf("Plugin Dir: %s\n", jsonObjectGetString(envSettings, "ZWED_PLUGIN_PATH"));
     printf("TRUE TEST: %s\n", jsonObjectGetBoolean(envSettings, "ZWED_BOOLEAN_TRUE_TEST")? "true":"false");
