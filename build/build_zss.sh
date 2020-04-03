@@ -30,6 +30,7 @@ echo "Version: $major.$minor.$micro"
 echo "Date stamp: $date_stamp"
 
 c89 \
+  -c -O2 \
   -DPRODUCT_MAJOR_VERSION="$major" \
   -DPRODUCT_MINOR_VERSION="$minor" \
   -DPRODUCT_REVISION="$micro" \
@@ -40,6 +41,27 @@ c89 \
   -DHTTPSERVER_BPX_IMPERSONATION=1 \
   -DAPF_AUTHORIZED=0 \
   -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
+  -Wc,agg,exp,list\(\),so\(\),off,xref \
+  -I ${COMMON}/h \
+  -I ${COMMON}/jwt/jwt \
+  -I ${COMMON}/jwt/rscrypto \
+  -I ${ZSS}/h \
+  ${COMMON}/c/charsets.c \
+  ${COMMON}/c/collections.c \
+  ${COMMON}/c/json.c \
+
+c89 \
+  -DPRODUCT_MAJOR_VERSION="$major" \
+  -DPRODUCT_MINOR_VERSION="$minor" \
+  -DPRODUCT_REVISION="$micro" \
+  -DPRODUCT_VERSION_DATE_STAMP="$date_stamp" \
+  -D_XOPEN_SOURCE=600 \
+  -DNOIBMHTTP=1 \
+  -D_OPEN_THREADS=1 \
+  -DHTTPSERVER_BPX_IMPERSONATION=1 \
+  -DAPF_AUTHORIZED=0 \
+  -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
+  -Wc,agg,exp,list\(\),so\(\),off,xref \
   -Wl,ac=1 \
   -I ${COMMON}/h \
   -I ${COMMON}/jwt/jwt \
@@ -48,9 +70,9 @@ c89 \
   -o ${ZSS}/bin/zssServer \
   ${COMMON}/c/alloc.c \
   ${COMMON}/c/bpxskt.c \
-  ${COMMON}/c/charsets.c \
+  charsets.o \
   ${COMMON}/c/cmutils.c \
-  ${COMMON}/c/collections.c \
+  collections.o \
   ${COMMON}/c/crossmemory.c \
   ${COMMON}/c/crypto.c \
   ${COMMON}/c/dataservice.c \
@@ -65,13 +87,12 @@ c89 \
   ${COMMON}/c/idcams.c \
   ${COMMON}/c/impersonation.c \
   ${COMMON}/c/jcsi.c \
-  ${COMMON}/c/json.c \
+  json.o \
   ${COMMON}/jwt/jwt/jwt.c \
   ${COMMON}/c/le.c \
   ${COMMON}/c/logging.c \
   ${COMMON}/c/nametoken.c \
   ${COMMON}/c/zos.c \
-  ${COMMON}/c/impersonation.c \
   ${COMMON}/c/pdsutil.c \
   ${COMMON}/c/qsam.c \
   ${COMMON}/c/radmin.c \

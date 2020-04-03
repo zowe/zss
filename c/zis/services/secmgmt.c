@@ -294,31 +294,24 @@ int zisGenresProfilesServiceFunctionRACF(CrossMemoryServerGlobalArea *globalArea
     };
 
     RadminStatus radminStatus;
-    char classNullTerm[ZIS_SECURITY_CLASS_MAX_LENGTH + 1] = {0};
-    memcpy(classNullTerm, localParmList.class.value,
-           localParmList.class.length);
     char profileNameBuffer[ZIS_SECURITY_PROFILE_MAX_LENGTH + 1] = {0};
     memcpy(profileNameBuffer, localParmList.startProfile.value,
            localParmList.startProfile.length);
     const char *startProfileNullTerm = localParmList.startProfile.length > 0 ?
                                        profileNameBuffer : NULL;
 
-    if (localParmList.class.length == 0) {
-      CrossMemoryServerConfigParm userClassParm = {0};
-      int getParmRC = cmsGetConfigParm(&globalArea->serverName,
-                                       ZIS_PARMLIB_PARM_SECMGMT_USER_CLASS,
-                                       &userClassParm);
-      if (getParmRC != RC_CMS_OK) {
-        localParmList.internalServiceRC = getParmRC;
-        status = RC_ZIS_GRPRFSRV_USER_CLASS_NOT_READ;
-        break;
-      }
-      if (userClassParm.valueLength > ZIS_SECURITY_CLASS_MAX_LENGTH) {
-        status = RC_ZIS_GRPRFSRV_CLASS_TOO_LONG;
-        break;
-      }
-      memcpy(classNullTerm, userClassParm.charValueNullTerm,
-             userClassParm.valueLength);
+    CrossMemoryServerConfigParm userClassParm = {0};
+    int getParmRC = cmsGetConfigParm(&globalArea->serverName,
+                                     ZIS_PARMLIB_PARM_SECMGMT_USER_CLASS,
+                                     &userClassParm);
+    if (getParmRC != RC_CMS_OK) {
+      localParmList.internalServiceRC = getParmRC;
+      status = RC_ZIS_GRPRFSRV_USER_CLASS_NOT_READ;
+      break;
+    }
+    if (userClassParm.valueLength > ZIS_SECURITY_CLASS_MAX_LENGTH) {
+      status = RC_ZIS_GRPRFSRV_CLASS_TOO_LONG;
+      break;
     }
 
     size_t tmpResultBufferSize =
@@ -346,7 +339,7 @@ int zisGenresProfilesServiceFunctionRACF(CrossMemoryServerGlobalArea *globalArea
 
     radminExtractRC = radminExtractBasicGenresProfileInfo(
         authInfo,
-        classNullTerm,
+        userClassParm.charValueNullTerm,
         startProfileNullTerm,
         localParmList.profilesToExtract,
         tmpResultBuffer,
@@ -492,29 +485,22 @@ int zisGenresAccessListServiceFunctionRACF(CrossMemoryServerGlobalArea *globalAr
     size_t entriesExtracted = 0;
 
     RadminStatus radminStatus;
-    char classNullTerm[ZIS_SECURITY_CLASS_MAX_LENGTH + 1] = {0};
-    memcpy(classNullTerm, localParmList.class.value,
-           localParmList.class.length);
     char profileNullTerm[ZIS_SECURITY_PROFILE_MAX_LENGTH + 1] = {0};
     memcpy(profileNullTerm, localParmList.profile.value,
            localParmList.profile.length);
 
-    if (localParmList.class.length == 0) {
-      CrossMemoryServerConfigParm userClassParm = {0};
-      int getParmRC = cmsGetConfigParm(&globalArea->serverName,
-                                       ZIS_PARMLIB_PARM_SECMGMT_USER_CLASS,
-                                       &userClassParm);
-      if (getParmRC != RC_CMS_OK) {
-        localParmList.internalServiceRC = getParmRC;
-        status = RC_ZIS_ACSLSRV_USER_CLASS_NOT_READ;
-        break;
-      }
-      if (userClassParm.valueLength > ZIS_SECURITY_CLASS_MAX_LENGTH) {
-        status = RC_ZIS_ACSLSRV_CLASS_TOO_LONG;
-        break;
-      }
-      memcpy(classNullTerm, userClassParm.charValueNullTerm,
-             userClassParm.valueLength);
+    CrossMemoryServerConfigParm userClassParm = {0};
+    int getParmRC = cmsGetConfigParm(&globalArea->serverName,
+                                     ZIS_PARMLIB_PARM_SECMGMT_USER_CLASS,
+                                     &userClassParm);
+    if (getParmRC != RC_CMS_OK) {
+      localParmList.internalServiceRC = getParmRC;
+      status = RC_ZIS_ACSLSRV_USER_CLASS_NOT_READ;
+      break;
+    }
+    if (userClassParm.valueLength > ZIS_SECURITY_CLASS_MAX_LENGTH) {
+      status = RC_ZIS_ACSLSRV_CLASS_TOO_LONG;
+      break;
     }
 
     size_t tmpResultBufferSize =
@@ -538,7 +524,7 @@ int zisGenresAccessListServiceFunctionRACF(CrossMemoryServerGlobalArea *globalAr
 
     int radminExtractRC = radminExtractGenresAccessList(
         authInfo,
-        classNullTerm,
+        userClassParm.charValueNullTerm,
         profileNullTerm,
         tmpResultBuffer,
         localParmList.resultBufferCapacity,

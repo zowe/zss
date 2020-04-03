@@ -68,6 +68,11 @@ See details in the ZSS Cross Memory Server installation guide
 #define ZIS_PARM_COLD_START                   "COLD"
 #define ZIS_PARM_DEBUG_MODE                   "DEBUG"
 
+#define ZIS_PARM_PCSS_STACK_POOL_SIZE         CMS_PROD_ID".PCSS_STACK_POOL_SIZE"
+#define ZIS_PCSS_STACK_POOL_DEFAULT_SIZSE     1024
+#define ZIS_PARM_PCSS_RECOVERY_POOL_SIZE      CMS_PROD_ID".PCSS_RECOVERY_POOL_SIZE"
+#define ZIS_PCSS_RECOVERY_POOL_DEFAULT_SIZSE  8192
+
 #define ZIS_PARM_CHECKAUTH                    CMS_PROD_ID".CHECKAUTH"
   #define ZIS_PARM_CHECKAUTH_VALUE_ON           "YES"
 
@@ -1234,6 +1239,38 @@ static int getCMSConfigFlags(const ZISParmSet *zisParms) {
   return flags;
 }
 
+static void updateCMServerSettings(ZISContext *context,
+                                   CrossMemoryServer *server) {
+  unsigned stackPoolSize = ZIS_PCSS_STACK_POOL_DEFAULT_SIZSE;
+  const char *stackPoolSizeStr =
+      zisGetParmValue(context->parms, ZIS_PARM_PCSS_STACK_POOL_SIZE);
+  if (stackPoolSizeStr) {
+    int rc = sscanf(stackPoolSizeStr, "%u", &stackPoolSize);
+    if (rc != 1) {
+      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+              ZIS_LOG_BAD_CONFIG_PARM_MSG" - \'%s\'",
+              ZIS_PARM_PCSS_STACK_POOL_SIZE, stackPoolSizeStr);
+      stackPoolSize = ZIS_PCSS_STACK_POOL_DEFAULT_SIZSE;
+    }
+  }
+
+  unsigned recoveryPoolSize = ZIS_PCSS_RECOVERY_POOL_DEFAULT_SIZSE;
+  const char *recoveryPoolSizeStr =
+      zisGetParmValue(context->parms, ZIS_PARM_PCSS_RECOVERY_POOL_SIZE);
+  if (recoveryPoolSizeStr) {
+    int rc = sscanf(recoveryPoolSizeStr, "%u", &recoveryPoolSize);
+    if (rc != 1) {
+      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+              ZIS_LOG_BAD_CONFIG_PARM_MSG" - \'%s\'",
+              ZIS_PARM_PCSS_RECOVERY_POOL_SIZE, recoveryPoolSizeStr);
+      recoveryPoolSize = ZIS_PCSS_RECOVERY_POOL_DEFAULT_SIZSE;
+    }
+  }
+
+  cmsSetPoolParameters(server, stackPoolSize, recoveryPoolSize);
+
+}
+
 static CrossMemoryServerName getCMServerName(const ZISParmSet *zisParms) {
 
   CrossMemoryServerName serverName;
@@ -1278,6 +1315,8 @@ static int initCoreServer(ZISContext *context) {
             ZIS_LOG_CXMS_NOT_CREATED_MSG, makeServerRSN);
     return RC_ZIS_ERROR;
   }
+
+  updateCMServerSettings(context, cmServer);
 
   context->cmServer = cmServer;
 

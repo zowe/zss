@@ -27,7 +27,7 @@
 
 #define ZIS_LOG_DUMP_MSG_ID                     ZIS_MSG_PRFX"0099I" /* TODO will it be picked up? */
 
-/* keep this in synch with the default messages IDs from crossmemory.h */
+/* keep this in sync with the default messages IDs from crossmemory.h and zssLogging.h */
 #define ZIS_LOG_STARTUP_MSG_ID                  ZIS_MSG_PRFX"0001I"
  #ifdef CROSS_MEMORY_SERVER_DEBUG
   #define ZIS_LOG_STARTUP_MSG_TEXT              "ZSS Cross-Memory Server starting in debug mode, version is "ZIS_VERSION"\n"
@@ -103,6 +103,10 @@
 #define ZIS_LOG_PLUGIN_VER_MISMATCH_MSG_ID      ZIS_MSG_PRFX"0018W"
 #define ZIS_LOG_PLUGIN_VER_MISMATCH_MSG_TEXT    "Plug-in '%-16.16s' version %u doesn't match anchor version %u, LPA module discarded"
 #define ZIS_LOG_PLUGIN_VER_MISMATCH_MSG         ZIS_LOG_PLUGIN_VER_MISMATCH_MSG_ID" "ZIS_LOG_PLUGIN_VER_MISMATCH_MSG_TEXT
+
+#define ZIS_LOG_BAD_CONFIG_PARM_MSG_ID          ZIS_MSG_PRFX"0019W"
+#define ZIS_LOG_BAD_CONFIG_PARM_MSG_TEXT        "Parameter \'%s\' has an invalid value"
+#define ZIS_LOG_BAD_CONFIG_PARM_MSG             ZIS_LOG_BAD_CONFIG_PARM_MSG_ID" "ZIS_LOG_BAD_CONFIG_PARM_MSG_TEXT
 
 /* ZIS AUX messages */
 

@@ -27,6 +27,7 @@
 #include "dataservice.h"
 
 int installAuthCheckService(HttpServer *server);
+void installZosPasswordService(HttpServer *server);
 
 #endif
 
