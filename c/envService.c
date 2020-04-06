@@ -33,7 +33,7 @@ static bool startsWith(const char *pre, const char *str) {
     return lenstr < lenpre ? false : memcmp(pre, str, lenpre) == 0;
 }
 
-static void splitEnvKeyValue(char buf[], char* array[]) {
+static char* splitEnvKeyValue(char buf[], char* array[]) {
   char *bufCpy;
   if(buf != NULL){
     int bufferLen = strlen(buf);
@@ -42,6 +42,7 @@ static void splitEnvKeyValue(char buf[], char* array[]) {
     array[0] = strtok (bufCpy, "=");
     array[1] = strtok (NULL, "=");
   }
+  return bufCpy;
 }
 
 static char* returnJSONRow(const char* key, const char* val) {
@@ -88,7 +89,7 @@ static JsonObject *envVarsToObject(const char *prefix) {
   while(environ[i] != NULL)
   {
     if(startsWith(prefix, environ[i])) {
-      splitEnvKeyValue(environ[i], array);
+      char* buffer = splitEnvKeyValue(environ[i], array);
       if(array[1]!=NULL) {
         j++;
         foo = returnJSONRow(array[0], array[1]);
@@ -100,6 +101,7 @@ static JsonObject *envVarsToObject(const char *prefix) {
           free(foo);
         }
       }
+      free(buffer);
     }
     i++;
   }
