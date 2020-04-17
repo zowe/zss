@@ -263,11 +263,11 @@ static int resetPassword(HttpService *service, HttpResponse *response) {
         respondWithJsonStatus(response, "Password Successfully Reset", HTTP_STATUS_OK, "OK");
         return HTTP_SERVICE_SUCCESS;
       case SAF_PASSWORD_RESET_RC_WRONG_PASSWORD:
-        respondWithJsonStatus(response, "The current password is incorrect. Please try again.",
+        respondWithJsonStatus(response, "Username or password is incorrect. Please try again.",
                               HTTP_STATUS_UNAUTHORIZED, "Unauthorized");
         return HTTP_SERVICE_FAILED;
       case SAF_PASSWORD_RESET_RC_WRONG_USER:
-        respondWithJsonStatus(response, "The username entered is not found. Please try again.",
+        respondWithJsonStatus(response, "Username or password is incorrect. Please try again.",
                               HTTP_STATUS_UNAUTHORIZED, "Unauthorized");
         return HTTP_SERVICE_FAILED;
       case SAF_PASSWORD_RESET_RC_NO_NEW_PASSSWORD:
