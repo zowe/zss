@@ -280,7 +280,7 @@ static int resetPassword(HttpService *service, HttpResponse *response) {
         return HTTP_SERVICE_FAILED;
       case SAF_PASSWORD_RESET_RC_TOO_MANY_ATTEMPTS:
         respondWithJsonStatus(response,
-                              "An incorrect password has been entered too many times and the account has been locked. Please contact your administrator for further instructions.",
+                              "Incorrect password or account is locked. Please contact your administrator.",
                               HTTP_STATUS_TOO_MANY_REQUESTS, "Bad Request");
         return HTTP_SERVICE_FAILED;
       default:
