@@ -123,8 +123,9 @@ c89 \
   ${ZSS}/c/zosDiscovery.c \
   ${ZSS}/c/securityService.c \
   ${ZSS}/c/zis/client.c \
-  ${ZSS}/c/serverStatusService.c
-
+  ${ZSS}/c/serverStatusService.c \
+  ${ZSS}/c/rasService.c
+  
 extattr +p ${ZSS}/bin/zssServer
 
 echo "Build successfull"

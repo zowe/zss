@@ -72,6 +72,7 @@
 #include "omvsService.h"
 #include "datasetService.h"
 #include "serverStatusService.h"
+#include "rasService.h"
 
 #include "jwt.h"
 
@@ -657,6 +658,24 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
                       webPluginListHead = pluginListElt;
                       webPluginListTail = pluginListElt;
                     }
+                    if (server->loggingIdsByName != NULL) {
+                      if (plugin->dataServiceCount > 0) {
+                        for (int i = 0; i < plugin->dataServiceCount; i++) {
+                          size_t keyLength = strlen(plugin->dataServices[i]->identifier);
+                          char key[keyLength+1];
+                          memset(&key, 0, sizeof(key));
+                          strncpy(key, plugin->dataServices[i]->identifier, keyLength);
+                          for (int j = 0; j < keyLength; j++) {
+                            if (key[j] == '/') {
+                              key[j] = ':';
+                            }
+                          }
+                          htPut(server->loggingIdsByName,
+                                key,
+                                &(plugin->dataServices[i]->loggingIdentifier));
+                        }
+                      }
+                    }
                   } else {
                     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PLUGIN_ID_NULL_MSG, identifier);
                   }
@@ -1011,6 +1030,37 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
   return 0;
 }
 
+/* djb2 */
+static int hashPluginID(void *key) {
+
+  char *str = (char*)key;
+
+  unsigned long hash = 5381;
+  int c;
+
+  while (c = *str++) {
+    hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+  }
+
+  return hash;
+}
+
+static int comparePluginID(void *key1, void *key2) {
+
+  if (!strcmp(key1, key2)) {
+    return true;
+  }
+
+  return false;
+}
+
+#define PLUGIN_ID_HT_BACKBONE_SIZE 29
+
+static void initializePluginIDHashTable(HttpServer *server) {
+
+  server->loggingIdsByName = htCreate(PLUGIN_ID_HT_BACKBONE_SIZE, hashPluginID, comparePluginID, NULL, NULL);
+}
+
 int main(int argc, char **argv){
   if (argc == 1) { 
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PATH_TO_SERVER_MSG);
@@ -1087,6 +1137,7 @@ int main(int argc, char **argv){
         return 8;
       }
       server->defaultProductURLPrefix = PRODUCT;
+      initializePluginIDHashTable(server);
       loadWebServerConfig(server, mvdSettings, envSettings);
       readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile);
       installUnixFileContentsService(server);
@@ -1106,6 +1157,7 @@ int main(int argc, char **argv){
       installOMVSService(server);
       installServerStatusService(server, MVD_SETTINGS, productVersion);
       installZosPasswordService(server);
+      installRASService(server);
 #endif
       installLoginService(server);
       installLogoutService(server);
