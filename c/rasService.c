@@ -132,22 +132,37 @@ static int serveRASData(HttpService *service, HttpResponse *response) {
     return 0;
   }
 
-  HttpRequestParam *componentParam = getCheckedParam(request, "component");
-  if (componentParam == NULL) {
+  uint64 componentID = 0;
+
+  HttpRequestParam *componentNameParam = getCheckedParam(request, "componentName");
+  HttpRequestParam *componentIDParam = getCheckedParam(request, "componentID");
+
+  if (componentIDParam == NULL && componentNameParam == NULL) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "component not provided");
     return 0;
   }
 
-  if (!isLoggingComponentValid(componentParam->stringValue)) {
-    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "not a valid 4-byte hex component ID");
+  if (componentIDParam != NULL && componentNameParam != NULL) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "too many arguments provided");
     return 0;
   }
 
-  uint64 componentID = 0;
-  int sscanfRC = sscanf(componentParam->stringValue, "%llX", &componentID);
-  if (sscanfRC != 1) {
-    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "component ID parsing error");
-    return 0;
+  if (componentIDParam != NULL) {
+    if (!isLoggingComponentValid(componentIDParam->stringValue)) {
+      respondWithError(response, HTTP_STATUS_BAD_REQUEST, "not a valid 4-byte hex component ID");
+      return 0;
+    }
+
+    int sscanfRC = sscanf(componentIDParam->stringValue, "%llX", &componentID);
+    if (sscanfRC != 1) {
+      respondWithError(response, HTTP_STATUS_BAD_REQUEST, "component ID parsing error");
+      return 0;
+    }
+  }
+
+  if (componentNameParam != NULL) {
+    uint64 *p = htGet(service->server->loggingIdsByName, componentNameParam->stringValue);
+    componentID = *p;
   }
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s: componentID=0x%016llX\n", __FUNCTION__, componentID);
@@ -177,6 +192,7 @@ static int serveRASData(HttpService *service, HttpResponse *response) {
       logSetLevel(NULL, componentID, logLevel);
     }
 
+    setResponseStatus(response, HTTP_STATUS_OK, "OK");
     setContentType(response, "text/plain");
     addIntHeader(response, "Content-Length", 0);
     addStringHeader(response, "Server", "jdmfws");
@@ -229,9 +245,10 @@ int installRASService(HttpServer *server) {
   httpService->runInSubtask = FALSE;
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->paramSpecList =
-          makeStringParamSpec("component", SERVICE_ARG_OPTIONAL,
+          makeStringParamSpec("componentID", SERVICE_ARG_OPTIONAL,
                               makeIntParamSpec("level", SERVICE_ARG_OPTIONAL, 0, 0, 0, 0,
-                                               NULL));
+                                              makeStringParamSpec("componentName", SERVICE_ARG_OPTIONAL,
+                                                                  NULL)));
   registerHttpService(server, httpService);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   return 0;
