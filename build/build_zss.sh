@@ -93,7 +93,6 @@ c89 \
   ${COMMON}/c/logging.c \
   ${COMMON}/c/nametoken.c \
   ${COMMON}/c/zos.c \
-  ${COMMON}/c/impersonation.c \
   ${COMMON}/c/pdsutil.c \
   ${COMMON}/c/qsam.c \
   ${COMMON}/c/radmin.c \
@@ -124,8 +123,9 @@ c89 \
   ${ZSS}/c/zosDiscovery.c \
   ${ZSS}/c/securityService.c \
   ${ZSS}/c/zis/client.c \
-  ${ZSS}/c/serverStatusService.c
-
+  ${ZSS}/c/serverStatusService.c \
+  ${ZSS}/c/rasService.c
+  
 extattr +p ${ZSS}/bin/zssServer
 
 echo "Build successfull"

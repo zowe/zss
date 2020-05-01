@@ -27,7 +27,7 @@
 
 #define ZIS_LOG_DUMP_MSG_ID                     ZIS_MSG_PRFX"0099I" /* TODO will it be picked up? */
 
-/* keep this in synch with the default messages IDs from crossmemory.h */
+/* keep this in sync with the default messages IDs from crossmemory.h and zssLogging.h */
 #define ZIS_LOG_STARTUP_MSG_ID                  ZIS_MSG_PRFX"0001I"
  #ifdef CROSS_MEMORY_SERVER_DEBUG
   #define ZIS_LOG_STARTUP_MSG_TEXT              "ZSS Cross-Memory Server starting in debug mode, version is "ZIS_VERSION"\n"
