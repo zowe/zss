@@ -953,7 +953,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
   JsonObject *const jwtSettings = jsonObjectGetObject(agentSettings, "jwt");
   char *envTokenName = jsonObjectGetString(envSettings, "ZWED_agent_jwt_token_name");
   char *envTokenLabel = jsonObjectGetString(envSettings, "ZWED_agent_jwt_token_label");
-  int envFallback = jsonObjectGetBoolean(envSettings, "ZWED_agent_jwt_fallback") ?
+  int envFallback = (jsonObjectGetBoolean(envSettings, "ZWED_agent_jwt_fallback") != NULL) ?
                         jsonObjectGetBoolean(envSettings, "ZWED_agent_jwt_fallback") : TRUE;
   bool envIsSet = (envTokenName != NULL
                       && envTokenLabel != NULL);
