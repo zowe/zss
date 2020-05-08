@@ -951,6 +951,39 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
   }
 
   JsonObject *const jwtSettings = jsonObjectGetObject(agentSettings, "jwt");
+  char *envTokenName = jsonObjectGetString(envSettings, "ZWED_agent_jwt_token_name");
+  char *envTokenLabel = jsonObjectGetString(envSettings, "ZWED_agent_jwt_token_label");
+  int envFallback = jsonObjectGetBoolean(envSettings, "ZWED_agent_jwt_fallback") ?
+                        jsonObjectGetBoolean(envSettings, "ZWED_agent_jwt_fallback") : TRUE;
+  bool envIsSet = (envTokenName != NULL
+                      && envTokenLabel != NULL);
+
+  if(envIsSet){
+    int initTokenRc, p11rc, p11Rsn;
+    const int contextInitRc = httpServerInitJwtContext(httpServer,
+        envFallback,
+        envTokenName,
+        envTokenLabel,
+        CKO_PUBLIC_KEY,
+        &initTokenRc, &p11rc, &p11Rsn);
+    if (contextInitRc != 0) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+          ZSS_LOG_NO_LOAD_JWT_MSG,
+          envTokenName,
+          envTokenLabel,
+          initTokenRc, p11rc, p11Rsn);
+      return 1;
+    }
+    zowelog(NULL,
+      LOG_COMP_ID_MVD_SERVER,
+      ZOWE_LOG_INFO,
+      ZSS_LOG_JWT_TOKEN_FALLBK_MSG,
+      envTokenName,
+      envTokenLabel,
+      envFallback ? "with" : "without");
+    return 0;
+  }
+
   if (jwtSettings == NULL) {
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
@@ -971,33 +1004,6 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
 
   JsonObject *const jwtKeyConfig = jsonObjectGetObject(jwtSettings, "key");
   if (jwtKeyConfig == NULL) {
-    char *envTokenName = jsonObjectGetString(envSettings, "ZWED_agent_jwt_token_name");
-    char *envTokenLabel = jsonObjectGetString(envSettings, "ZWED_agent_jwt_token_label");
-    if(envTokenName && envTokenLabel){
-      int initTokenRc, p11rc, p11Rsn;
-      const int contextInitRc = httpServerInitJwtContext(httpServer,
-          fallback,
-          envTokenName,
-          envTokenLabel,
-          CKO_PUBLIC_KEY,
-          &initTokenRc, &p11rc, &p11Rsn);
-      if (contextInitRc != 0) {
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
-            ZSS_LOG_NO_LOAD_JWT_MSG,
-            envTokenName,
-            envTokenLabel,
-            initTokenRc, p11rc, p11Rsn);
-        return 1;
-      }
-      zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
-        ZOWE_LOG_INFO,
-        ZSS_LOG_JWT_TOKEN_FALLBK_MSG,
-        envTokenName,
-        envTokenLabel,
-        fallback? "with" : "without");
-      return 0;
-    }
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_SEVERE,
