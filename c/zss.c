@@ -940,7 +940,7 @@ static int validateFilePermissions(const char *filePath) {
   Otherwise we would just use session tokens.
  */
 int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
-                                      HttpServer *const httpServer) {
+                                      HttpServer *const httpServer, JsonObject *const envSettings) {
   JsonObject *const agentSettings = jsonObjectGetObject(serverConfig, "agent");
   if (agentSettings == NULL) {
     zowelog(NULL,
@@ -951,6 +951,39 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
   }
 
   JsonObject *const jwtSettings = jsonObjectGetObject(agentSettings, "jwt");
+  char *envTokenName = jsonObjectGetString(envSettings, "ZWED_agent_jwt_token_name");
+  char *envTokenLabel = jsonObjectGetString(envSettings, "ZWED_agent_jwt_token_label");
+  int envFallback = (jsonObjectGetBoolean(envSettings, "ZWED_agent_jwt_fallback") != NULL) ?
+                        jsonObjectGetBoolean(envSettings, "ZWED_agent_jwt_fallback") : TRUE;
+  bool envIsSet = (envTokenName != NULL
+                      && envTokenLabel != NULL);
+
+  if(envIsSet){
+    int initTokenRc, p11rc, p11Rsn;
+    const int contextInitRc = httpServerInitJwtContext(httpServer,
+        envFallback,
+        envTokenName,
+        envTokenLabel,
+        CKO_PUBLIC_KEY,
+        &initTokenRc, &p11rc, &p11Rsn);
+    if (contextInitRc != 0) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
+          ZSS_LOG_NO_LOAD_JWT_MSG,
+          envTokenName,
+          envTokenLabel,
+          initTokenRc, p11rc, p11Rsn);
+      return 1;
+    }
+    zowelog(NULL,
+      LOG_COMP_ID_MVD_SERVER,
+      ZOWE_LOG_INFO,
+      ZSS_LOG_JWT_TOKEN_FALLBK_MSG,
+      envTokenName,
+      envTokenLabel,
+      envFallback ? "with" : "without");
+    return 0;
+  }
+
   if (jwtSettings == NULL) {
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
@@ -1133,7 +1166,7 @@ int main(int argc, char **argv){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port);
     server = makeHttpServer2(base,inetAddress,port,requiredTLSFlag,&returnCode,&reasonCode);
     if (server){
-      if (0 != initializeJwtKeystoreIfConfigured(mvdSettings, server)) {
+      if (0 != initializeJwtKeystoreIfConfigured(mvdSettings, server, envSettings)) {
         return 8;
       }
       server->defaultProductURLPrefix = PRODUCT;
