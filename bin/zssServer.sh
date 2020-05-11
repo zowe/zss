@@ -7,6 +7,9 @@
 #
 # Copyright Contributors to the Zowe Project.
 ## launch the Zowe Secure Services Server
+
+export _BPXK_AUTOCVT=ON
+
 if [ -e "../bin/app-server.sh" ]
 then
   in_app_server=true
