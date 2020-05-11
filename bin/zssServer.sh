@@ -9,9 +9,30 @@
 
 ## launch the Zowe Secure Services Server
 
-ZSS_SCRIPT_DIR=$(cd `dirname $0` && pwd)
+if [ -e app-server.sh ]
+then
+  in_app_server=true
+else
+  in_app_server=false
+fi
 
-. ${ZSS_SCRIPT_DIR}/../../app-server/share/zlux-app-server/bin/convert-env.sh
+if $in_app_server
+then
+  ZSS_FILE=zssServer
+  ZSS_COMPONENT=${ROOT_DIR}/components/zss/bin
+
+  if test -f "$ZSS_FILE"; then
+    ZSS_SCRIPT_DIR=$(cd `dirname $0` && pwd)
+  elif [ -d "$ZSS_COMPONENT" ]; then
+    ZSS_SCRIPT_DIR=$ZSS_COMPONENT
+  fi
+
+  ./convert-env.sh
+else
+  ZSS_SCRIPT_DIR=$(cd `dirname $0` && pwd)
+  . ${ZSS_SCRIPT_DIR}/../../app-server/share/zlux-app-server/bin/convert-env.sh
+fi
+
 
 if [ -e "$ZSS_CONFIG_FILE" ]
 then
@@ -25,6 +46,15 @@ then
 elif [ -d "$INSTANCE_DIR" ]
 then
   CONFIG_FILE="${INSTANCE_DIR}/workspace/app-server/serverConfig/server.json"
+elif $in_app_server
+then
+  CONFIG_FILE="../defaults/serverConfig/server.json"
+elif [ -d "$ROOT_DIR" ]
+then
+# This conditional and the else conditional are here for backup purposes, INSTANCE_DIR and WORKSPACE_DIR are defined
+# in the initialization of the app-server if they are not defined but in the case of zss development they might not be defined
+# and will use the default server configuration
+    CONFIG_FILE="${ROOT_DIR}/components/app-server/share/zlux-app-server/defaults/serverConfig/server.json"
 else  
     echo "No config file specified, using default"
     CONFIG_FILE="${ZSS_SCRIPT_DIR}/../../app-server/share/zlux-app-server/defaults/serverConfig/server.json"
