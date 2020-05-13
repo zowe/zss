@@ -37,7 +37,7 @@ static char* splitEnvKeyValue(char buf[], char* array[]) {
   char *bufCpy;
   if(buf != NULL){
     int bufferLen = strlen(buf);
-    bufCpy = safeMalloc(bufferLen + 1, "buffer copy");
+    bufCpy = (char*) safeMalloc(bufferLen + 1, "buffer copy");
     memcpy(bufCpy, buf, bufferLen);
     array[0] = strtok (bufCpy, "=");
     array[1] = strtok (NULL, "=");
