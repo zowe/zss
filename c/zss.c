@@ -98,7 +98,10 @@ static int traceLevel = 0;
 
 static int stringEndsWith(char *s, char *suffix);
 static void dumpJson(Json *json);
-static JsonObject *readPluginDefinition(ShortLivedHeap *slh, char *pluginIdentifier, char *pluginLocation);
+static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
+                                        char *pluginIdentifier,
+                                        char *pluginLocation,
+                                        char *relativeTo);
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
                                                   const char *serverConfigFile);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
@@ -445,7 +448,10 @@ static InternalAPIMap *makeInternalAPIMap(void) {
   return map;
 }
 
-static JsonObject *readPluginDefinition(ShortLivedHeap *slh, char *pluginIdentifier, char *pluginLocation) {
+static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
+                                        char *pluginIdentifier,
+                                        char *pluginLocation,
+                                        char *relativeTo) {
   JsonObject *pluginDefinition = NULL;
   char path[1024];
   char errorBuffer[512];
@@ -453,7 +459,16 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh, char *pluginIdentif
   int needsSlash = (pluginLocation[pluginLocationLen - 1] != '/');
   
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s begin identifier %s location %s\n", __FUNCTION__, pluginIdentifier, pluginLocation);
-  sprintf(path, "%s%s%s", pluginLocation, needsSlash ? "/" : "", "pluginDefinition.json");
+  if (relativeTo == NULL || (pluginLocation[0] == '/')) {
+    sprintf(path, "%s%s%s", pluginLocation, needsSlash ? "/" : "", "pluginDefinition.json");
+  } else {
+    int relativeLength = strlen(relativeTo);
+    int relativeNeedsSlash = (relativeTo[relativeLength - 1] != '/');
+    sprintf(path, "%s%s%s%s%s",
+            relativeTo, relativeNeedsSlash ? "/" : "",
+            pluginLocation, needsSlash ? "/" : "",
+            "pluginDefinition.json");
+  }
   Json *pluginDefinitionJson = jsonParseFile(slh, path, errorBuffer, sizeof (errorBuffer));
   if (pluginDefinitionJson) {
     dumpJson(pluginDefinitionJson);
@@ -639,9 +654,18 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
             if (jsonObject) {
               char *identifier = jsonObjectGetString(jsonObject, "identifier");
               char *pluginLocation = jsonObjectGetString(jsonObject, "pluginLocation");
+              char *relativeTo = jsonObjectGetString(jsonObject, "relativeTo");
+              if (relativeTo != NULL && relativeTo[0] == '$') {
+#ifdef METTLE
+                printf("relativeTo env var plugin resolution unimplemented in metal\n");
+#else
+                char *varValue = getenv(relativeTo+1);
+                if (varValue != NULL) { relativeTo = varValue; }
+#endif
+              }
               int pluginLogLevel = checkLoggingVerbosity(serverConfigFile, identifier, slh);
               if (identifier && pluginLocation) {
-                JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, pluginLocation);
+                JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, pluginLocation, relativeTo);
                 if (pluginDefinition) {
                   WebPlugin *plugin = makeWebPlugin(pluginLocation, pluginDefinition, internalAPIMap,
                                                     &idMultiplier, pluginLogLevel);
