@@ -5,6 +5,7 @@
 #include "crossmemory.h"
 #include "resmgr.h"
 #include "zis/parm.h"
+#include "zis/version.h"
 
 #include "aux-manager.h"
 #include "aux-utils.h"
@@ -17,7 +18,10 @@
 #error Non-metal C code is not supported
 #endif
 
-#define ZISAUX_VERSION "1.9.0"
+#define ZISAUX_MAJOR_VERSION        ZIS_MAJOR_VERSION
+#define ZISAUX_MINOR_VERSION        ZIS_MINOR_VERSION
+#define ZISAUX_REVISION             ZIS_REVISION
+#define ZISAUX_VERSION_DATE_STAMP   ZIS_VERSION_DATE_STAMP
 
 typedef struct ZISAUXContext_tag {
 

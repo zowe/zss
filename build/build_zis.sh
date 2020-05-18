@@ -23,7 +23,17 @@ echo "**************************************************************************
 echo "Building ZIS..."
 
 mkdir -p "${WORKING_DIR}/tmp-zis" && cd "$_"
+
+IFS='.' read -r major minor micro < "${ZSS}/version.txt"
+date_stamp=$(date +%Y%m%d)
+echo "Version: $major.$minor.$micro"
+echo "Date stamp: $date_stamp"
+
 xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
+  -DZIS_MAJOR_VERSION="$major" \
+  -DZIS_MINOR_VERSION="$minor" \
+  -DZIS_REVISION="$micro" \
+  -DZIS_VERSION_DATE_STAMP="$date_stamp" \
   -DRADMIN_XMEM_MODE \
   -DRCVR_CPOOL_STATES \
   -qreserved_reg=r12 \
