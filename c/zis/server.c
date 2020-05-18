@@ -1038,8 +1038,16 @@ static void initLoggin() {
 }
 
 static void printStartMessage() {
-  wtoPrintf(ZIS_LOG_STARTUP_MSG);
-  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZIS_LOG_STARTUP_MSG);
+  wtoPrintf(ZIS_LOG_STARTUP_MSG,
+            ZIS_MAJOR_VERSION,
+            ZIS_MINOR_VERSION,
+            ZIS_REVISION,
+            ZIS_VERSION_DATE_STAMP);
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZIS_LOG_STARTUP_MSG,
+          ZIS_MAJOR_VERSION,
+          ZIS_MINOR_VERSION,
+          ZIS_REVISION,
+          ZIS_VERSION_DATE_STAMP);
 }
 
 static void printStopMessage(int status) {
