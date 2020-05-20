@@ -45,6 +45,15 @@
 //*         WILL REFRESH THE PROFILES AFTER ANY PROFILE              */
 //*         OPERATION IN THE CLASS FROM ZWES.SECMGMT.CLASS.          */
 //*         THE DEFAULT VALUE IS NO.                                 */
+//*     DEV_MODE - DEVELOPMENT MODE. IF SET TO YES, ENABLES ALL THE  */
+//*         DEVELOPMENT MODES LISTED BELOW.                          */
+//*     DEV_MODE.LPA - LPA DEVELOPMENT MODE. IF SET TO YES, IT       */
+//*         FORCES THE SERVER TO REMOVE ALL THE MODULES FROM LPA     */
+//*         UPON TERMINATION AND REFRESH ALL THE MODULES IN LPA      */
+//*         AT START UP. THIS MODE MUST NEVER BE USED IN PRODUCTION  */
+//*         AS IT MAY AFFECT THE CALLERS OF THE CROSS-MEMORY SERVER. */
+//*         USE THIS MODE TO DECREASE THE MEMORY FOOTPRINT DURING    */
+//*         DEVELOPMENT.                                             */
 //*                                                                  */
 //********************************************************************/
 
