@@ -30,9 +30,9 @@
 /* keep this in sync with the default messages IDs from crossmemory.h and zssLogging.h */
 #define ZIS_LOG_STARTUP_MSG_ID                  ZIS_MSG_PRFX"0001I"
  #ifdef CROSS_MEMORY_SERVER_DEBUG
-  #define ZIS_LOG_STARTUP_MSG_TEXT              "ZSS Cross-Memory Server starting in debug mode, version is "ZIS_VERSION"\n"
+  #define ZIS_LOG_STARTUP_MSG_TEXT              "ZSS Cross-Memory Server starting in debug mode, version is %d.%d.%d+%d\n"
  #else
-  #define ZIS_LOG_STARTUP_MSG_TEXT              "ZSS Cross-Memory Server starting, version is "ZIS_VERSION"\n"
+  #define ZIS_LOG_STARTUP_MSG_TEXT              "ZSS Cross-Memory Server starting, version is %d.%d.%d+%d\n"
  #endif
 #define ZIS_LOG_STARTUP_MSG                     ZIS_LOG_STARTUP_MSG_ID" "ZIS_LOG_STARTUP_MSG_TEXT
 
@@ -111,7 +111,7 @@
 /* ZIS AUX messages */
 
 #define ZISAUX_LOG_STARTUP_MSG_ID               ZIS_MSG_PRFX"0050I"
-#define ZISAUX_LOG_STARTUP_MSG_TEXT             "ZIS AUX Server starting, version is %s"
+#define ZISAUX_LOG_STARTUP_MSG_TEXT             "ZIS AUX Server starting, version is %d.%d.%d+%d"
 #define ZISAUX_LOG_STARTUP_MSG                  ZISAUX_LOG_STARTUP_MSG_ID" "ZISAUX_LOG_STARTUP_MSG_TEXT
 
 #define ZISAUX_LOG_TERM_OK_MSG_ID               ZIS_MSG_PRFX"0051I"
