@@ -1119,10 +1119,23 @@ static void initializePluginIDHashTable(HttpServer *server) {
   server->loggingIdsByName = htCreate(PLUGIN_ID_HT_BACKBONE_SIZE, hashPluginID, comparePluginID, NULL, NULL);
 }
 
+#define ZSS_STATUS_OK     0
+#define ZSS_STATUS_ERROR  8
+
 int main(int argc, char **argv){
+
+  int zssStatus = ZSS_STATUS_OK;
+
+  STCBase *base = (STCBase*) safeMalloc31(sizeof(STCBase), "stcbase");
+  memset(base, 0x00, sizeof(STCBase));
+  stcBaseInit(base); /* inits RLEAnchor, workQueue, socketSet, logContext */
+  initVersionComponents();
+  initLoggingComponents();
+
   if (argc == 1) { 
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PATH_TO_SERVER_MSG);
-    return 8;
+    zssStatus = ZSS_STATUS_ERROR;
+    goto out_term_stcbase;
   }
 
   /* TODO consider moving this to stcBaseInit */
@@ -1132,12 +1145,6 @@ int main(int argc, char **argv){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_SIG_IGNORE_MSG, sigignoreRC, errno);
   }
 #endif
-
-  STCBase *base = (STCBase*) safeMalloc31(sizeof(STCBase), "stcbase");
-  memset(base, 0x00, sizeof(STCBase));
-  stcBaseInit(base); /* inits RLEAnchor, workQueue, socketSet, logContext */
-  initVersionComponents();
-  initLoggingComponents();
 
   const char *serverConfigFile;
   int returnCode = 0;
@@ -1160,7 +1167,8 @@ int main(int argc, char **argv){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_SERVER_CONFIG_MSG, serverConfigFile);
   int invalid = validateFilePermissions(serverConfigFile);
   if (invalid) {
-    return invalid;
+    zssStatus = ZSS_STATUS_ERROR;
+    goto out_term_stcbase;
   } 
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
   JsonObject *envSettings = readEnvSettings("ZWED");
@@ -1185,14 +1193,16 @@ int main(int argc, char **argv){
     int requiredTLSFlag = 0;
     if (!validateAddress(address, &inetAddress, &requiredTLSFlag)) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_SERVER_STARTUP_MSG, address);
-      return 8;
+      zssStatus = ZSS_STATUS_ERROR;
+      goto out_term_stcbase;
     }
 
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port);
     server = makeHttpServer2(base,inetAddress,port,requiredTLSFlag,&returnCode,&reasonCode);
     if (server){
       if (0 != initializeJwtKeystoreIfConfigured(mvdSettings, server, envSettings)) {
-        return 8;
+        zssStatus = ZSS_STATUS_ERROR;
+        goto out_term_stcbase;
       }
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
@@ -1230,11 +1240,12 @@ int main(int argc, char **argv){
     }
   }
 
+out_term_stcbase:
   stcBaseTerm(base);
   safeFree31((char *)base, sizeof(STCBase));
   base = NULL;
 
-  return 0;
+  return zssStatus;
 }
 
 
