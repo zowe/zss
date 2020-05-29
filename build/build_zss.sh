@@ -22,6 +22,8 @@ COMMON="../../deps/zowe-common-c"
 echo "********************************************************************************"
 echo "Building ZSS..."
 
+rm -f ${ZSS}/bin/zssServer
+
 mkdir -p "${WORKING_DIR}/tmp-zss" && cd "$_"
 
 IFS='.' read -r major minor micro < "${ZSS}/version.txt"
@@ -31,7 +33,7 @@ echo "Date stamp: $date_stamp"
 
 export _C89_ACCEPTABLE_RC=0
 
-c89 \
+if ! c89 \
   -c -O2 \
   -DPRODUCT_MAJOR_VERSION="$major" \
   -DPRODUCT_MINOR_VERSION="$minor" \
@@ -50,9 +52,13 @@ c89 \
   -I ${ZSS}/h \
   ${COMMON}/c/charsets.c \
   ${COMMON}/c/collections.c \
-  ${COMMON}/c/json.c \
+  ${COMMON}/c/json.c ;
+then
+  echo "Build failed"
+  exit 8
+fi
 
-c89 \
+if c89 \
   -DPRODUCT_MAJOR_VERSION="$major" \
   -DPRODUCT_MINOR_VERSION="$minor" \
   -DPRODUCT_REVISION="$micro" \
@@ -126,8 +132,14 @@ c89 \
   ${ZSS}/c/securityService.c \
   ${ZSS}/c/zis/client.c \
   ${ZSS}/c/serverStatusService.c \
-  ${ZSS}/c/rasService.c
-  
-extattr +p ${ZSS}/bin/zssServer
-
-echo "Build successfull"
+  ${ZSS}/c/rasService.c ;
+then
+  extattr +p ${ZSS}/bin/zssServer
+  echo "Build successfull"
+  exit 0
+else
+  # remove zssServer in case the linker had RC=4 and produced the binary
+  rm -f ${ZSS}/bin/zssServer
+  echo "Build failed"
+  exit 8
+fi
