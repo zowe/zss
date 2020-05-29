@@ -29,6 +29,8 @@ date_stamp=$(date +%Y%m%d)
 echo "Version: $major.$minor.$micro"
 echo "Date stamp: $date_stamp"
 
+export _C89_ACCEPTABLE_RC=0
+
 c89 \
   -c -O2 \
   -DPRODUCT_MAJOR_VERSION="$major" \
@@ -62,7 +64,7 @@ c89 \
   -DAPF_AUTHORIZED=0 \
   -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
   -Wc,agg,exp,list\(\),so\(\),off,xref \
-  -Wl,ac=1 \
+  -Wl,ac=1,dll \
   -I ${COMMON}/h \
   -I ${COMMON}/jwt/jwt \
   -I ${COMMON}/jwt/rscrypto \
