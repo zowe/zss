@@ -60,8 +60,11 @@ static void initLogging(void) {
 }
 
 static void printStartMessage(void) {
-  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
-          ZISAUX_LOG_STARTUP_MSG, ZISAUX_VERSION);
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZISAUX_LOG_STARTUP_MSG,
+          ZISAUX_MAJOR_VERSION,
+          ZISAUX_MINOR_VERSION,
+          ZISAUX_REVISION,
+          ZISAUX_VERSION_DATE_STAMP);
 }
 
 static void printStopMessage(void) {
