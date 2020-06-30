@@ -21,10 +21,10 @@
 # - ZOWE_ZLUX_TELNET_PORT
 # - ZOWE_ZLUX_SECURITY_TYPE
 
-OSNAME=$(uname -I)
-if [[ "${OSNAME}" == "z/OS" ]]; then
+OSNAME=$(uname)
+if [[ "${OSNAME}" == "OS/390" ]]; then
   cd ${ROOT_DIR}/components/zss/bin
   ./zssServer.sh
 else
-  echo "Zowe ZSS server is unsupported on ${OSNAME}. Supported systems: z/OS"
+  echo "Zowe ZSS server is unsupported on ${OSNAME}. Supported systems: OS/390"
 fi
