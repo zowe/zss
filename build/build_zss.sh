@@ -22,6 +22,8 @@ COMMON="../../deps/zowe-common-c"
 echo "********************************************************************************"
 echo "Building ZSS..."
 
+rm -f ${ZSS}/bin/zssServer
+
 mkdir -p "${WORKING_DIR}/tmp-zss" && cd "$_"
 
 IFS='.' read -r major minor micro < "${ZSS}/version.txt"
@@ -29,7 +31,9 @@ date_stamp=$(date +%Y%m%d)
 echo "Version: $major.$minor.$micro"
 echo "Date stamp: $date_stamp"
 
-c89 \
+export _C89_ACCEPTABLE_RC=0
+
+if ! c89 \
   -c -O2 \
   -DPRODUCT_MAJOR_VERSION="$major" \
   -DPRODUCT_MINOR_VERSION="$minor" \
@@ -48,9 +52,13 @@ c89 \
   -I ${ZSS}/h \
   ${COMMON}/c/charsets.c \
   ${COMMON}/c/collections.c \
-  ${COMMON}/c/json.c \
+  ${COMMON}/c/json.c ;
+then
+  echo "Build failed"
+  exit 8
+fi
 
-c89 \
+if c89 \
   -DPRODUCT_MAJOR_VERSION="$major" \
   -DPRODUCT_MINOR_VERSION="$minor" \
   -DPRODUCT_REVISION="$micro" \
@@ -62,7 +70,7 @@ c89 \
   -DAPF_AUTHORIZED=0 \
   -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
   -Wc,agg,exp,list\(\),so\(\),off,xref \
-  -Wl,ac=1 \
+  -Wl,ac=1,dll \
   -I ${COMMON}/h \
   -I ${COMMON}/jwt/jwt \
   -I ${COMMON}/jwt/rscrypto \
@@ -124,8 +132,14 @@ c89 \
   ${ZSS}/c/securityService.c \
   ${ZSS}/c/zis/client.c \
   ${ZSS}/c/serverStatusService.c \
-  ${ZSS}/c/rasService.c
-  
-extattr +p ${ZSS}/bin/zssServer
-
-echo "Build successfull"
+  ${ZSS}/c/rasService.c ;
+then
+  extattr +p ${ZSS}/bin/zssServer
+  echo "Build successfull"
+  exit 0
+else
+  # remove zssServer in case the linker had RC=4 and produced the binary
+  rm -f ${ZSS}/bin/zssServer
+  echo "Build failed"
+  exit 8
+fi
