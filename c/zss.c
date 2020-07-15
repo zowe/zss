@@ -1126,7 +1126,7 @@ int main(int argc, char **argv){
   if (argc == 1) { 
     printf("Usage: zssServer <path to server.json file>\n");
     return 8;
-
+  }
   int zssStatus = ZSS_STATUS_OK;
 
   STCBase *base = (STCBase*) safeMalloc31(sizeof(STCBase), "stcbase");

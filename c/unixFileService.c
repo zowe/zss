@@ -952,34 +952,6 @@ static int serveUnixFileChangeOwner (HttpService *service, HttpResponse *respons
   return 0;
 }
 
-static int serveUnixFileChangeOwner (HttpService *service, HttpResponse *response) {
-  HttpRequest *request = response->request;
-  char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
-  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
-  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
-
-  char *userId    = getQueryParam(response->request, "user");
-  char *groupId   = getQueryParam(response->request, "group");
-  char *pattern   = getQueryParam(response->request, "pattern");
-  char *recursive = getQueryParam(response->request, "recursive");
-
-  if (!strcmp(request->method, methodPOST)) {
-    directoryChangeOwnerAndRespond (response, routeFileName,
-                          userId, groupId, recursive, pattern);
-  }
-  else {
-    jsonPrinter *out = respondWithJsonPrinter(response);
-
-    setResponseStatus(response, 405, "Method Not Allowed");
-    setDefaultJSONRESTHeaders(response);
-    addStringHeader(response, "Allow", "POST");
-    writeHeader(response);
-    finishResponse(response);
-  }
-  return 0;
-}
-
-
 static int serveUnixFileChangeTag (HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
@@ -997,7 +969,7 @@ static int serveUnixFileChangeTag (HttpService *service, HttpResponse *response)
   }
   else if (!strcmp(request->method, methodDELETE)) {
       char type[10];
-      strncpy (type, "delete", 10);
+      strncpy (type, "delete", sizeof(type)-1);
       directoryChangeDeleteTagAndRespond (response, routeFileName,
                                   type, codepage, recursive, pattern);
     }
