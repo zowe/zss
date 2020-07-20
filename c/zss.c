@@ -1215,7 +1215,6 @@ int main(int argc, char **argv){
       installUnixFileTouchService(server);
       installUnixFileMetadataService(server);
       installUnixFileChangeOwnerService(server);
-      installUnixFileTableOfContentsService(server);
       installUnixFileChangeModeService(server);
       installUnixFileTableOfContentsService(server); /* This needs to be registered last */
 #ifdef __ZOWE_OS_ZOS

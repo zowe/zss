@@ -905,7 +905,7 @@ static int serveUnixFileChangeMode(HttpService *service, HttpResponse *response)
   char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
  
   char *recursive = getQueryParam(response->request, "recursive");
-  char *mode      = getQueryParam(response->request, "mode");
+  char *mode = getQueryParam(response->request, "mode");
   char *pattern = getQueryParam(response->request, "pattern");
 
   if (!strcmp(request->method, methodPOST)) {
