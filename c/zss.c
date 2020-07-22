@@ -1177,7 +1177,6 @@ int main(int argc, char **argv){
   JsonObject *envSettings = readEnvSettings("ZWED");
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
 
-
   if (mvdSettings) {
     /* Hmm - most of these aren't used, at least here. */
     checkAndSetVariable(mvdSettings, "productDir", productDir, COMMON_PATH_MAX);
@@ -1219,9 +1218,12 @@ int main(int argc, char **argv){
       installUnixFileTouchService(server);
       installUnixFileMetadataService(server);
       installUnixFileChangeOwnerService(server);
+#ifdef __ZOWE_OS_ZOS
       installUnixFileChangeTagService(server);
-      installUnixFileTableOfContentsService(server); /* MUST be last in list */
-	#ifdef __ZOWE_OS_ZOS
+#endif
+      installUnixFileChangeModeService(server);
+      installUnixFileTableOfContentsService(server); /* This needs to be registered last */
+#ifdef __ZOWE_OS_ZOS
       installVSAMDatasetContentsService(server);
       installDatasetMetadataService(server);
       installDatasetContentsService(server);
