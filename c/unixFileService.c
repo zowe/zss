@@ -984,6 +984,12 @@ static int serveUnixFileChangeOwner (HttpService *service, HttpResponse *respons
 static int serveUnixFileChangeTag (HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
+
+  if (routeFileFrag == NULL) {
+   respondWithError(response, HTTP_STATUS_BAD_REQUEST, "File name not provided");
+   return 0;
+  }
+
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
   char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
 
@@ -992,24 +998,22 @@ static int serveUnixFileChangeTag (HttpService *service, HttpResponse *response)
   char *pattern   = getQueryParam(response->request, "pattern");
   char *type      = getQueryParam(response->request, "type");
 
+  if (recursive == NULL || type == NULL) {
+   respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Required parameter not provided");
+   return 0;
+  }
+
   if (!strcmp(request->method, methodPOST)) {
-    directoryChangeTagAndRespond (response, routeFileName,
-                                  type, codepage, recursive, pattern);
+    directoryChangeTagAndRespond(response, routeFileName, type, codepage, recursive, pattern);
   }
   else if (!strcmp(request->method, methodDELETE)) {
-      char type[10];
-      strncpy (type, "delete", sizeof(type)-1);
+      char type[8] = {"delete"};
       directoryChangeDeleteTagAndRespond (response, routeFileName,
                                   type, codepage, recursive, pattern);
-    }
+  }
   else {
-    jsonPrinter *out = respondWithJsonPrinter(response);
-
-    setResponseStatus(response, 405, "Method Not Allowed");
-    setDefaultJSONRESTHeaders(response);
-    addStringHeader(response, "Allow", "POST");
-    writeHeader(response);
-    finishResponse(response);
+    respondWithError(response,HTTP_STATUS_METHOD_NOT_FOUND,"Method Not Allowed");
+    return 0;
   }
   return 0;
 }
