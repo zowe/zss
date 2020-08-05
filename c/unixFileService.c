@@ -1032,6 +1032,26 @@ static int serveUnixFileChangeTag(HttpService *service, HttpResponse *response) 
   return 0;
 }
 
+static int serveUnixFolderDownloadMode(HttpService *service, HttpResponse *response) {
+  HttpRequest *request = response->request;
+  char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
+
+  if (routeFileFrag == NULL || strlen(routeFileFrag) == 0) {
+    respondWithJsonError(response, "Required absolute path of the resource is not provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    return 0;
+  }
+  char *encodedRouteFolder = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *routeFolderName = cleanURLParamValue(response->slh, encodedRouteFolder);
+
+  if (!strcmp(request->method, methodGET)) {
+    createArchiveFromUnixDirectoryAndRespond(response, routeFolderName);
+  }
+  else {
+    respondWithJsonError(response, "Method Not Allowed", HTTP_STATUS_METHOD_NOT_FOUND, "Bad Request");
+    return 0;
+  }
+  return 0;
+}
 
 static int serveTableOfContents(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
@@ -1072,6 +1092,10 @@ static int serveTableOfContents(HttpService *service, HttpResponse *response) {
 
     jsonStartObject(out, NULL);
     jsonAddString(out, "chmod", "/unixfile/chmod/{absPath}");
+    jsonEndObject(out);
+
+    jsonStartObject(out, NULL);
+    jsonAddString(out, "folderdownload", "/unixfile/folderdownload/{absPath}");
     jsonEndObject(out);
 
     jsonEndArray(out);
@@ -1204,6 +1228,17 @@ void installUnixFileTableOfContentsService(HttpServer *server) {
   httpService->serviceFunction = serveTableOfContents;
   registerHttpService(server, httpService);
 }
+
+void installUnixFolderToFileConvertAndDownloadService(HttpServer *server) {
+  HttpService *httpService = makeGeneratedService("UnixFolderDownload",
+      "/unixfile/folderdownload/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->serviceFunction = serveUnixFolderDownloadMode;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
+  registerHttpService(server, httpService);
+}
+
 
 
 /*
