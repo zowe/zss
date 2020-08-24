@@ -110,6 +110,11 @@ int respondWithServerRoutes(HttpResponse *response) {
   jsonAddString(out, "rel", "environment");
   jsonAddString(out, "type", "GET");
   jsonEndObject(out);
+  jsonStartObject(out, NULL);
+  jsonAddString(out, "href", "/server/agent/services");
+  jsonAddString(out, "rel", "services");
+  jsonAddString(out, "type", "GET");
+  jsonEndObject(out);
   jsonEndArray(out);
   jsonEnd(out);
   finishResponse(response);
@@ -231,6 +236,28 @@ int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *con
   return 0;
 }
 
+static int respondWithServices(HttpResponse *response, HttpServer *server) {
+  jsonPrinter *out = respondWithJsonPrinter(response);
+  HttpService *service = server->config->serviceList;
+  setResponseStatus(response, 200, "OK");
+  setDefaultJSONRESTHeaders(response);
+  writeHeader(response);
+  jsonStart(out);
+  jsonStartArray(out, "services");
+  while (service) {
+    jsonStartObject(out, NULL);
+    jsonAddString(out, "name", service->name);
+    jsonAddString(out, "urlMask", service->urlMask);
+    jsonAddString(out, "type", service->serviceType == SERVICE_TYPE_WEB_SOCKET ? "WebSocket" : "REST");
+    jsonEndObject(out);
+    service = service->next;
+  }
+  jsonEndArray(out);
+  jsonEnd(out);
+  finishResponse(response);
+  return 0;
+}
+
 static int serveStatus(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
   ServerAgentContext *context = service->userPointer;
@@ -261,6 +288,8 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
         return respondWithLogLevels(response, context);
       } else if (!strcmp(l1, "environment")) {
         return respondWithServerEnvironment(response, context);
+      } else if (!strcmp(l1, "services")) {
+        return respondWithServices(response, service->server);
       } else {
         respondWithJsonError(response, "Invalid path", 400, "Bad Request");
         return -1;
