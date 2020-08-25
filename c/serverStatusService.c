@@ -264,6 +264,12 @@ static int respondWithServices(HttpResponse *response, HttpServer *server) {
   return 0;
 }
 
+static bool statusEndPointRequireRBAC(const char *endpoint) {
+  return !strcmp(endpoint, "config") ||
+         !strcmp(endpoint, "log") ||
+         !strcmp(endpoint, "logLevels");
+}
+
 static int serveStatus(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
   ServerAgentContext *context = service->userPointer;
@@ -273,7 +279,7 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
   int rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
-    if (!rbacParm && (!strcmp(l1, "config") || !strcmp(l1, "log") || !strcmp(l1, "logLevels"))) {
+    if (!rbacParm && statusEndPointRequireRBAC(l1)) {
       respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Set dataserviceAuthentication.rbac to true in server configuration");
       return -1;
     }
