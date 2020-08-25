@@ -83,28 +83,30 @@ int respondWithServerConfig(HttpResponse *response, JsonObject* config) {
   return 0;
 }
 
-int respondWithServerRoutes(HttpResponse *response) {
+int respondWithServerRoutes(HttpResponse *response, bool rbacEnabled) {
   jsonPrinter *out = respondWithJsonPrinter(response);
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(out);
   jsonStartArray(out, "links");
-  jsonStartObject(out, NULL);
-  jsonAddString(out, "href", "/server/agent/config");
-  jsonAddString(out, "rel", "config");
-  jsonAddString(out, "type", "GET");
-  jsonEndObject(out);
-  jsonStartObject(out, NULL);
-  jsonAddString(out, "href", "/server/agent/log");
-  jsonAddString(out, "rel", "log");
-  jsonAddString(out, "type", "GET");
-  jsonEndObject(out);
-  jsonStartObject(out, NULL);
-  jsonAddString(out, "href", "/server/agent/logLevels");
-  jsonAddString(out, "rel", "logLevels");
-  jsonAddString(out, "type", "GET");
-  jsonEndObject(out);
+  if (rbacEnabled) {
+    jsonStartObject(out, NULL);
+    jsonAddString(out, "href", "/server/agent/config");
+    jsonAddString(out, "rel", "config");
+    jsonAddString(out, "type", "GET");
+    jsonEndObject(out);
+    jsonStartObject(out, NULL);
+    jsonAddString(out, "href", "/server/agent/log");
+    jsonAddString(out, "rel", "log");
+    jsonAddString(out, "type", "GET");
+    jsonEndObject(out);
+    jsonStartObject(out, NULL);
+    jsonAddString(out, "href", "/server/agent/logLevels");
+    jsonAddString(out, "rel", "logLevels");
+    jsonAddString(out, "type", "GET");
+    jsonEndObject(out);
+  }
   jsonStartObject(out, NULL);
   jsonAddString(out, "href", "/server/agent/environment");
   jsonAddString(out, "rel", "environment");
@@ -139,7 +141,7 @@ int respondWithLogLevels(HttpResponse *response, ServerAgentContext *context) {
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 256
 #endif
-int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *context) {
+int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *context, bool rbacEnabled) {
   /*Information about parameters for smf_unc: https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.erbb700/smfp.htm#smfp*/
   extern char **environ;
   struct utsname unameRet;
@@ -185,16 +187,18 @@ int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *con
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(out);
-  if (ctime_r(&ltime, tstamp) != NULL) {
-    if (tstamp[strlen(tstamp) - 1] != '\0') {
-      tstamp[strlen(tstamp) - 1] = '\0';
+  if (rbacEnabled) {
+    if (ctime_r(&ltime, tstamp) != NULL) {
+      if (tstamp[strlen(tstamp) - 1] != '\0') {
+        tstamp[strlen(tstamp) - 1] = '\0';
+      }
+      jsonAddString(out, "timestamp", tstamp);
     }
-    jsonAddString(out, "timestamp", tstamp);
-  }
-  if (getenv("ZSS_LOG_FILE") != NULL) {
-    jsonAddString(out, "logDirectory", getenv("ZSS_LOG_FILE"));
-  } else {
-    jsonAddString(out, "logDirectory", "ZSS_LOG_FILE not defined in environment variables");
+    if (getenv("ZSS_LOG_FILE") != NULL) {
+      jsonAddString(out, "logDirectory", getenv("ZSS_LOG_FILE"));
+    } else {
+      jsonAddString(out, "logDirectory", "ZSS_LOG_FILE not defined in environment variables");
+    }
   }
   jsonAddString(out, "agentName", "zss");
   jsonAddString(out, "agentVersion", context->productVersion);
@@ -202,35 +206,37 @@ int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *con
   jsonAddString(out, "osRelease", unameRet.release);
   jsonAddString(out, "osVersion", unameRet.version);
   jsonAddString(out, "hardwareIdentifier", unameRet.machine);
-  jsonAddString(out, "hostname", hostnameBuffer);
-  jsonAddString(out, "nodename", unameRet.nodename);
-  jsonStartObject(out, "userEnvironment");
-  char *envVar = *environ;
-  for (int i = 1; envVar; i++) {
-    char *equalSign = strchr(envVar, '=');
-    if (equalSign == NULL) {
-      break;
+  if (rbacEnabled) {
+    jsonAddString(out, "hostname", hostnameBuffer);
+    jsonAddString(out, "nodename", unameRet.nodename);
+    jsonStartObject(out, "userEnvironment");
+    char *envVar = *environ;
+    for (int i = 1; envVar; i++) {
+      char *equalSign = strchr(envVar, '=');
+      if (equalSign == NULL) {
+        break;
+      }
+      int nameLen = strlen(envVar) - strlen(equalSign);
+      int nameBufferLen = nameLen + 1;
+      char *name = safeMalloc(nameBufferLen, "env_var name");
+      if (name == NULL) {
+        break;
+      }
+      memcpy(name, envVar, nameLen);
+      name[nameLen] = '\0';
+      jsonAddString(out, name, equalSign+1);
+      safeFree(name, nameBufferLen);
+      envVar = *(environ+i);
     }
-    int nameLen = strlen(envVar) - strlen(equalSign);
-    int nameBufferLen = nameLen + 1;
-    char *name = safeMalloc(nameBufferLen, "env_var name");
-    if (name == NULL) {
-      break;
-    }
-    memcpy(name, envVar, nameLen);
-    name[nameLen] = '\0';
-    jsonAddString(out, name, equalSign+1);
-    safeFree(name, nameBufferLen);
-    envVar = *(environ+i);
+    jsonEndObject(out);
+    jsonAddInt(out, "demandPagingRate", demandPaging);
+    jsonAddInt(out, "stdCP_CPU_Util", cpuUtil);
+    jsonAddInt(out, "stdCP_MVS_SRM_CPU_Util", mvsSrm);
+    jsonAddInt(out, "ZAAP_CPU_Util", zaapUtil);
+    jsonAddInt(out, "ZIIP_CPU_Util", ziipUtil);
+    jsonAddInt(out, "PID", getpid());
+    jsonAddInt(out, "PPID", getppid());
   }
-  jsonEndObject(out);
-  jsonAddInt(out, "demandPagingRate", demandPaging);
-  jsonAddInt(out, "stdCP_CPU_Util", cpuUtil);
-  jsonAddInt(out, "stdCP_MVS_SRM_CPU_Util", mvsSrm);
-  jsonAddInt(out, "ZAAP_CPU_Util", zaapUtil);
-  jsonAddInt(out, "ZIIP_CPU_Util", ziipUtil);
-  jsonAddInt(out, "PID", getpid());
-  jsonAddInt(out, "PPID", getppid());
   jsonEnd(out);
   finishResponse(response);
   return 0;
@@ -265,48 +271,47 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
   //sensitive URL that only RBAC authorized users should be able to access
   JsonObject *dataserviceAuth = jsonObjectGetObject(context->serverConfig, "dataserviceAuthentication");
   int rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
-  if (!rbacParm) {
-     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Set dataserviceAuthentication.rbac to true in server configuration");
-     return -1;
-  } else {
-    if (!strcmp(request->method, methodGET)) {
-      char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
-      if (!strcmp(l1, "")) {
-        return respondWithServerRoutes(response);
-      } else if (!strcmp(l1, "config")) {
-        return respondWithServerConfig(response, context->serverConfig);
-      } else if (!strcmp(l1, "log")) {
-        char* logDir = getenv("ZSS_LOG_FILE");
-        if (strne(logDir, "")) {
-          respondWithUnixFile2(NULL, response, logDir, 0, 0, false);
-          return 0;
-        } else {
-           respondWithError(response, HTTP_STATUS_NOT_FOUND, "Log not found");
-           return -1;
-        }
-      } else if (!strcmp(l1, "logLevels")) {
-        return respondWithLogLevels(response, context);
-      } else if (!strcmp(l1, "environment")) {
-        return respondWithServerEnvironment(response, context);
-      } else if (!strcmp(l1, "services")) {
-        return respondWithServices(response, service->server);
-      } else {
-        respondWithJsonError(response, "Invalid path", 400, "Bad Request");
-        return -1;
-      }
-    } else {
-      jsonPrinter *out = respondWithJsonPrinter(response);
-      setContentType(response, "text/json");
-      setResponseStatus(response, 405, "Method Not Allowed");
-      addStringHeader(response, "Server", "jdmfws");
-      addStringHeader(response, "Transfer-Encoding", "chunked");
-      addStringHeader(response, "Allow", "GET");
-      writeHeader(response);
-      jsonStart(out);
-      jsonEnd(out);
-      finishResponse(response);
+  if (!strcmp(request->method, methodGET)) {
+    char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
+    if (!rbacParm && (!strcmp(l1, "config") || !strcmp(l1, "log") || !strcmp(l1, "logLevels"))) {
+      respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Set dataserviceAuthentication.rbac to true in server configuration");
       return -1;
     }
+    if (!strcmp(l1, "")) {
+      return respondWithServerRoutes(response, rbacParm);
+    } else if (!strcmp(l1, "config")) {
+      return respondWithServerConfig(response, context->serverConfig);
+    } else if (!strcmp(l1, "log")) {
+      char* logDir = getenv("ZSS_LOG_FILE");
+      if (strne(logDir, "")) {
+        respondWithUnixFile2(NULL, response, logDir, 0, 0, false);
+        return 0;
+      } else {
+         respondWithError(response, HTTP_STATUS_NOT_FOUND, "Log not found");
+         return -1;
+      }
+    } else if (!strcmp(l1, "logLevels")) {
+      return respondWithLogLevels(response, context);
+    } else if (!strcmp(l1, "environment")) {
+      return respondWithServerEnvironment(response, context, rbacParm);
+    } else if (!strcmp(l1, "services")) {
+      return respondWithServices(response, service->server);
+    } else {
+      respondWithJsonError(response, "Invalid path", 400, "Bad Request");
+      return -1;
+    }
+  } else {
+    jsonPrinter *out = respondWithJsonPrinter(response);
+    setContentType(response, "text/json");
+    setResponseStatus(response, 405, "Method Not Allowed");
+    addStringHeader(response, "Server", "jdmfws");
+    addStringHeader(response, "Transfer-Encoding", "chunked");
+    addStringHeader(response, "Allow", "GET");
+    writeHeader(response);
+    jsonStart(out);
+    jsonEnd(out);
+    finishResponse(response);
+    return -1;
   }
   return 0;
 }
