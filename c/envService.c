@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "alloc.h"
 #include "json.h"
 
 extern char **environ;
@@ -33,9 +34,16 @@ static bool startsWith(const char *pre, const char *str) {
     return lenstr < lenpre ? false : memcmp(pre, str, lenpre) == 0;
 }
 
-static void splitEnvKeyValue(char buf[], char* array[]) {
-  array[0] = strtok (buf, "=");
-  array[1] = strtok (NULL, "=");
+static char* splitEnvKeyValue(char buf[], char* array[]) {
+  char *bufCpy;
+  if(buf != NULL){
+    int bufferLen = strlen(buf);
+    bufCpy = (char*) safeMalloc(bufferLen + 1, "buffer copy");
+    memcpy(bufCpy, buf, bufferLen);
+    array[0] = strtok (bufCpy, "=");
+    array[1] = strtok (NULL, "=");
+  }
+  return bufCpy;
 }
 
 static char* returnJSONRow(const char* key, const char* val) {
@@ -82,7 +90,7 @@ static JsonObject *envVarsToObject(const char *prefix) {
   while(environ[i] != NULL)
   {
     if(startsWith(prefix, environ[i])) {
-      splitEnvKeyValue(environ[i], array);
+      char* buffer = splitEnvKeyValue(environ[i], array);
       if(array[1]!=NULL) {
         j++;
         foo = returnJSONRow(array[0], array[1]);
@@ -94,6 +102,7 @@ static JsonObject *envVarsToObject(const char *prefix) {
           free(foo);
         }
       }
+      free(buffer);
     }
     i++;
   }
@@ -127,7 +136,26 @@ JsonObject *readEnvSettings(const char *prefix) {
 
 /*int main(int argc, char *argv[])
 {
-    JsonObject *envSettings=envVarsToObject("ZWED");
+    JsonObject *envSettings = envVarsToObject("ZWED");
+    JsonObject *envSettingsDup = envVarsToObject("ZWED");
+    JsonProperty *currentPropOrig = jsonObjectGetFirstProperty(envSettings);
+    JsonProperty *currentPropDup = jsonObjectGetFirstProperty(envSettingsDup);
+    //this loop tests whether the length of each JsonObject is the same
+    while (currentPropOrig != NULL) {
+      if (currentPropDup == NULL) {
+        printf("EXTERN CHAR **ENVRION TEST FAILED\n");
+        break;
+      }
+      if ((jsonObjectGetNextProperty(currentPropOrig) == NULL
+            && jsonObjectGetNextProperty(currentPropDup) != NULL)
+            || (jsonObjectGetNextProperty(currentPropOrig) != NULL
+            && jsonObjectGetNextProperty(currentPropDup) == NULL)) {
+        printf("EXTERN CHAR **ENVRION TEST FAILED\n");
+        break;
+      }
+      currentPropDup = jsonObjectGetNextProperty(currentPropDup);
+      currentPropOrig = jsonObjectGetNextProperty(currentPropOrig);
+    }
     printf("Port: %d\n", jsonObjectGetNumber(envSettings, "ZWED_AGENT_PORT"));
     printf("Plugin Dir: %s\n", jsonObjectGetString(envSettings, "ZWED_PLUGIN_PATH"));
     printf("TRUE TEST: %s\n", jsonObjectGetBoolean(envSettings, "ZWED_BOOLEAN_TRUE_TEST")? "true":"false");

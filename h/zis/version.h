@@ -13,7 +13,21 @@
 #ifndef ZIS_VERSION_H_
 #define ZIS_VERSION_H_
 
-#define ZIS_VERSION "1.9.0"
+#ifndef ZIS_MAJOR_VERSION
+#define ZIS_MAJOR_VERSION 0
+#endif
+
+#ifndef ZIS_MINOR_VERSION
+#define ZIS_MINOR_VERSION 0
+#endif
+
+#ifndef ZIS_REVISION
+#define ZIS_REVISION 0
+#endif
+
+#ifndef ZIS_VERSION_DATE_STAMP
+#define ZIS_VERSION_DATE_STAMP 0
+#endif
 
 #endif /* ZIS_VERSION_H_ */
 

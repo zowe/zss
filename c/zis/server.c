@@ -76,7 +76,16 @@ See details in the ZSS Cross Memory Server installation guide
 #define ZIS_PARM_CHECKAUTH                    CMS_PROD_ID".CHECKAUTH"
   #define ZIS_PARM_CHECKAUTH_VALUE_ON           "YES"
 
+#define ZIS_PARM_DEV_MODE                     CMS_PROD_ID".DEV_MODE"
+#define ZIS_PARM_DEV_MODE_LPA                 CMS_PROD_ID".DEV_MODE.LPA"
+  #define ZIS_PARM_DEV_MODE_ON                  "YES"
+
 #define ZIS_PARMLIB_PARM_SERVER_NAME          CMS_PROD_ID".NAME"
+
+/* Check this for backward compatibility with the compile-time dev mode. */
+#ifndef ZIS_LPA_DEV_MODE
+#define ZIS_LPA_DEV_MODE 0
+#endif
 
 static int zisRouteService(struct CrossMemoryServerGlobalArea_tag *globalArea,
                            struct CrossMemoryService_tag *service,
@@ -322,12 +331,16 @@ static int cleanPluginAnchor(ZISPluginAnchor *anchor) {
   return RC_ZIS_OK;
 }
 
+static int removePluginFromLPAIfNeeded(ZISContext *context,
+                                       ZISPluginAnchor *anchor);
+
 static void cleanPlugins(ZISContext *context) {
 
   ZISServerAnchor *serverAnchor = context->zisAnchor;
   ZISPluginAnchor *currPlugin = serverAnchor->firstPlugin;
   while (currPlugin != NULL) {
     cleanPluginAnchor(currPlugin);
+    removePluginFromLPAIfNeeded(context, currPlugin);
     currPlugin = currPlugin->next;
   }
 
@@ -567,7 +580,13 @@ static int installServices(ZISContext *context, ZISPlugin *plugin,
   return RC_ZIS_OK;
 }
 
-static int relocatePluginToLPAIfNeeded(ZISPlugin **pluginAddr,
+static bool isLPADevMode(const ZISContext *context) {
+  int devFlags = CMS_SERVER_FLAG_DEV_MODE_LPA | CMS_SERVER_FLAG_DEV_MODE;
+  return (context->cmsFlags & devFlags) || ZIS_LPA_DEV_MODE;
+}
+
+static int relocatePluginToLPAIfNeeded(ZISContext *context,
+                                       ZISPlugin **pluginAddr,
                                        ZISPluginAnchor *anchor,
                                        EightCharString moduleName) {
 
@@ -577,6 +596,8 @@ static int relocatePluginToLPAIfNeeded(ZISPlugin **pluginAddr,
 
   if (lpaPresent) {
 
+    bool lpaDiscarded = false;
+
     if (anchor->pluginVersion != plugin->pluginVersion) {
 
       zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
@@ -585,10 +606,14 @@ static int relocatePluginToLPAIfNeeded(ZISPlugin **pluginAddr,
       zowedump(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
                (char *)&anchor->moduleInfo, sizeof(LPMEA));
 
-#ifdef ZIS_LPA_DEV_MODE
+      lpaDiscarded = true;
+    }
+
+    if (isLPADevMode(context)) {
 
       zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
-              " Plugin LPA dev mode enabled, issuing CSVDYLPA DELETE\n");
+              " Plugin LPA dev mode enabled, issuing CSVDYLPA DELETE of "
+              "\'%8.8s\'\n", anchor->moduleInfo.inputInfo.name);
 
       int lpaRSN = 0;
       int lpaRC = lpaDelete(&anchor->moduleInfo, &lpaRSN);
@@ -597,12 +622,14 @@ static int relocatePluginToLPAIfNeeded(ZISPlugin **pluginAddr,
                 "DELETE", anchor->moduleInfo.inputInfo.name, lpaRC, lpaRSN);
         return RC_ZIS_ERROR;
       }
-#endif
+
+      lpaDiscarded = true;
+    }
+
+    if (lpaDiscarded) {
       memset(&anchor->moduleInfo, 0, sizeof(anchor->moduleInfo));
       anchor->flags &= ~ZIS_PLUGIN_ANCHOR_FLAG_LPA;
       lpaPresent = false;
-    }  else {
-      lpaPresent = true;
     }
 
   }
@@ -632,6 +659,37 @@ static int relocatePluginToLPAIfNeeded(ZISPlugin **pluginAddr,
         (ZISPluginDescriptorFunction *)((int)ep & 0xFFFFFFFE);
 
     *pluginAddr = getPluginDescriptor();
+
+  }
+
+  return RC_ZIS_OK;
+}
+
+static int removePluginFromLPAIfNeeded(ZISContext *context,
+                                       ZISPluginAnchor *anchor) {
+
+  bool lpaPresent = anchor->flags & ZIS_PLUGIN_ANCHOR_FLAG_LPA ? true : false;
+
+  if (lpaPresent) {
+
+    if (isLPADevMode(context)) {
+
+      zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
+              " Plugin LPA dev mode enabled, issuing CSVDYLPA DELETE of "
+              "\'%8.8s\'\n", anchor->moduleInfo.inputInfo.name);
+
+      int lpaRSN = 0;
+      int lpaRC = lpaDelete(&anchor->moduleInfo, &lpaRSN);
+      if (lpaRC != 0) {
+        zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE, ZIS_LOG_LPA_FAILURE_MSG,
+                "DELETE", anchor->moduleInfo.inputInfo.name, lpaRC, lpaRSN);
+        return RC_ZIS_ERROR;
+      }
+
+      memset(&anchor->moduleInfo, 0, sizeof(anchor->moduleInfo));
+      anchor->flags &= ~ZIS_PLUGIN_ANCHOR_FLAG_LPA;
+      lpaPresent = false;
+    }
 
   }
 
@@ -696,7 +754,8 @@ static int installPlugin(ZISContext *context, ZISPlugin *plugin,
     context->zisAnchor->firstPlugin = anchor;
   }
 
-  int relocateRC = relocatePluginToLPAIfNeeded(&plugin, anchor, moduleName);
+  int relocateRC = relocatePluginToLPAIfNeeded(context, &plugin, anchor,
+                                               moduleName);
   if (relocateRC != RC_ZIS_OK) {
     return relocateRC;
   }
@@ -1038,8 +1097,16 @@ static void initLoggin() {
 }
 
 static void printStartMessage() {
-  wtoPrintf(ZIS_LOG_STARTUP_MSG);
-  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZIS_LOG_STARTUP_MSG);
+  wtoPrintf(ZIS_LOG_STARTUP_MSG,
+            ZIS_MAJOR_VERSION,
+            ZIS_MINOR_VERSION,
+            ZIS_REVISION,
+            ZIS_VERSION_DATE_STAMP);
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZIS_LOG_STARTUP_MSG,
+          ZIS_MAJOR_VERSION,
+          ZIS_MINOR_VERSION,
+          ZIS_REVISION,
+          ZIS_VERSION_DATE_STAMP);
 }
 
 static void printStopMessage(int status) {
@@ -1099,6 +1166,7 @@ static int cleanupServer(CrossMemoryServerGlobalArea *ga, void *userData) {
   ZISContext *context = userData;
 
   terminatePlugins(context);
+  cleanPlugins(context);
 
 #ifdef ZIS_DEV_MODE
   destroyServiceTable(context);
@@ -1236,6 +1304,16 @@ static int getCMSConfigFlags(const ZISParmSet *zisParms) {
     flags |= CMS_SERVER_FLAG_CHECKAUTH;
   }
 
+  const char *devMode = zisGetParmValue(zisParms, ZIS_PARM_DEV_MODE);
+  if (devMode && !strcmp(devMode, ZIS_PARM_DEV_MODE_ON)) {
+    flags |= CMS_SERVER_FLAG_DEV_MODE;
+  }
+
+  const char *lpaDevMode = zisGetParmValue(zisParms, ZIS_PARM_DEV_MODE_LPA);
+  if (lpaDevMode && !strcmp(lpaDevMode, ZIS_PARM_DEV_MODE_ON)) {
+    flags |= CMS_SERVER_FLAG_DEV_MODE_LPA;
+  }
+
   return flags;
 }
 
@@ -1300,11 +1378,11 @@ static CrossMemoryServerName getCMServerName(const ZISParmSet *zisParms) {
 static int initCoreServer(ZISContext *context) {
 
   CrossMemoryServerName serverName = getCMServerName(context->parms);
-  unsigned int cmsFlags = getCMSConfigFlags(context->parms);
+  context->cmsFlags = getCMSConfigFlags(context->parms);
   int makeServerRSN = 0;
   CrossMemoryServer *cmServer = makeCrossMemoryServer2(context->stcBase,
                                                        &serverName,
-                                                       cmsFlags,
+                                                       context->cmsFlags,
                                                        initServer,
                                                        cleanupServer,
                                                        handleModifyCommands,

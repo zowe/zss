@@ -18,6 +18,7 @@
 #define CLIENT_TRACE_LEVEL_FINER    4
 #define CLIENT_TRACE_LEVEL_FINEST   5
 
+int installRASService(HttpServer *server);
 
 /*
   This program and the accompanying materials are
