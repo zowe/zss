@@ -1123,7 +1123,6 @@ static void initializePluginIDHashTable(HttpServer *server) {
 #define ZSS_STATUS_ERROR  8
 
 int main(int argc, char **argv){
-
   int zssStatus = ZSS_STATUS_OK;
 
   STCBase *base = (STCBase*) safeMalloc31(sizeof(STCBase), "stcbase");
@@ -1215,6 +1214,9 @@ int main(int argc, char **argv){
       installUnixFileTouchService(server);
       installUnixFileMetadataService(server);
       installUnixFileChangeOwnerService(server);
+#ifdef __ZOWE_OS_ZOS
+      installUnixFileChangeTagService(server);
+#endif
       installUnixFileChangeModeService(server);
       installUnixFileTableOfContentsService(server); /* This needs to be registered last */
 #ifdef __ZOWE_OS_ZOS
