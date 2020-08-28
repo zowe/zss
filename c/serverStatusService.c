@@ -153,7 +153,10 @@ int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *con
   int subtype = 0x00000009; //SMF record subtype
   int bufferlen = 716800; // Yes the SMF buffer is actually 700Kb roughly
   int cpuUtil = 0, demandPaging = 0, options = 0, mvsSrm = 0, zaapUtil = 0, ziipUtil = 0;
-  uname(&unameRet);
+  if (__osname(&unameRet) < 0) {
+    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Falied to retrieve operating system info");
+    return -1;
+  }
   gethostname(hostnameBuffer, sizeof(hostnameBuffer));
   buffer = (char *)safeMalloc(bufferlen, "buffer");
   if (buffer == NULL) {
