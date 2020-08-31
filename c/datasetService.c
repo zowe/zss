@@ -45,7 +45,7 @@
 
 #ifdef __ZOWE_OS_ZOS
 static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
   if (!strcmp(request->method, methodGET)) {
     if (service->userPointer == NULL){
@@ -81,12 +81,12 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
     finishResponse(response);
   }
 
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   return 0;
 }
 
 static int serveDatasetContents(HttpService *service, HttpResponse *response){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
 
   if (!strcmp(request->method, methodGET)) {
@@ -138,7 +138,7 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
 }
 
 static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
   serveVSAMCache *cache = (serveVSAMCache *)service->userPointer;
   if (!strcmp(request->method, methodGET)) {

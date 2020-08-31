@@ -231,7 +231,7 @@ static void initLogMessagePrefix(LogMessagePrefix *prefix) {
 #define PREFIXED_LINE_MAX_COUNT         1000
 #define PREFIXED_LINE_MAX_MSG_LENGTH    4096
 
-void auxutilPrintWithPrefix(LoggingContext *context, LoggingComponent *component,
+void auxutilPrintWithPrefix(LoggingContext *context, LoggingComponent *component, char* path, int line, int level, uint64 compID,
                      void *data, char *formatString, va_list argList) {
 
   char messageBuffer[PREFIXED_LINE_MAX_MSG_LENGTH];

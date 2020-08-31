@@ -108,7 +108,7 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
 static InternalAPIMap *makeInternalAPIMap(void);
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   WebPluginListElt *webPluginListElt = (WebPluginListElt*)service->userPointer;
   jsonPrinter *printer = respondWithJsonPrinter(response);
   HttpRequestParam *typeParam = getCheckedParam(response->request, "type");
@@ -145,34 +145,34 @@ static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   }
   jsonEnd(printer);
   finishResponse(response);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   return 0;
 }
 
 static int serveWebContent(HttpService *service, HttpResponse *response){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   char *targetDirectory = (char*) service->userPointer;
   HttpRequest *request = response->request;
   char *fileFrag = stringListPrint(request->parsedFile, 4 /* skip PRODUCT/plugins/baseURI/web */, 1000, "/", 0);
   char *filename = stringConcatenate(response->slh, targetDirectory, fileFrag);
   respondWithUnixFileContentsWithAutocvtMode(NULL, response, filename, FALSE, 0);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   return 0;
 }
 
 static int serveLibraryContent(HttpService *service, HttpResponse *response){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   char *targetDirectory = (char*) service->userPointer;
   HttpRequest *request = response->request;
   char *fileFrag = stringListPrint(request->parsedFile, 3 /* skip lib/identifier/libraryVersion */, 1000, "/", 0);
   char *filename = stringConcatenate(response->slh, targetDirectory, fileFrag);
   respondWithUnixFileContentsWithAutocvtMode(NULL, response, filename, FALSE, 0);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   return 0;
 }
 
 static int extractAuthorizationFromJson(HttpService *service, HttpRequest *request){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   /* should check content type */
   char *inPtr = request->contentBody;
   char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
@@ -206,7 +206,7 @@ static int extractAuthorizationFromJson(HttpService *service, HttpRequest *reque
 
 static
 int serveMainPage(HttpService *service, HttpResponse *response) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
   char mainPage[2048];
   snprintf(mainPage, 2048, "/%s/plugins/com.rs.mvd/web/index.html", PRODUCT);
@@ -214,7 +214,7 @@ int serveMainPage(HttpService *service, HttpResponse *response) {
   addStringHeader(response, "Location", mainPage);
   addStringHeader(response, "Server", "jdmfws");
   writeHeader(response);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   return 0;
 }
 
@@ -323,7 +323,7 @@ static int setMVDTrace(int toWhat) {
   int was = traceLevel;
   if (isLogLevelValid(toWhat)) {
     traceLevel = toWhat;
-    logSetLevel(NULL, LOG_COMP_ID_MVD_SERVER, toWhat);
+    logSetLevel(NULL, LOG_COMP_ID_ZSS, toWhat);
   } else {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_ALWAYS, ZSS_LOG_INC_LOG_LEVEL_MSG, toWhat);
   }
@@ -401,7 +401,7 @@ static int stringEndsWith(char *s, char *suffix) {
 }
 
 static void writeJsonMethod(struct jsonPrinter_tag *unusedPrinter, char *text, int len) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "%.*s", len, text);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG, "%.*s", len, text);
 }
 
 static void dumpJson(Json *json) {
@@ -409,7 +409,7 @@ static void dumpJson(Json *json) {
   jsonEnablePrettyPrint(printer);
   jsonPrint(printer, json);
   freeJsonPrinter(printer);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "\n");
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG, "\n");
 }
 
 typedef struct {
@@ -490,12 +490,12 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
   } else {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PARS_FILE_MSG, path, errorBuffer);
   }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s end result is %s\n", __FUNCTION__, pluginDefinition ? "not null" : "null");
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "%s end result is %s\n", __FUNCTION__, pluginDefinition ? "not null" : "null");
   return pluginDefinition;
 }
 
 static void installWebPluginFilesServices(WebPlugin* plugin, HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   int i = 0;
   JsonObject *pluginDefintion = plugin->pluginDefinition;
   int pluginLocationLen = strlen(plugin->pluginLocation);
@@ -514,9 +514,9 @@ static void installWebPluginFilesServices(WebPlugin* plugin, HttpServer *server)
       char *targetDirectory = SLHAlloc(server->slh, pluginLocationLen + webDirectoryLen + pluginLocationNeedsSlash + 1);
       sprintf(targetDirectory, "%s%s%s", plugin->pluginLocation, pluginLocationNeedsSlash ? "/" : "", webDirectory);
 
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s\n", uriMask);
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s\n", identifier);
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s\n", targetDirectory);
+      zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "%s\n", uriMask);
+      zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "%s\n", identifier);
+      zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "%s\n", targetDirectory);
 
       HttpService *httpService = makeGeneratedService(identifier, uriMask);
       httpService->userPointer = targetDirectory;
@@ -541,9 +541,9 @@ static void installWebPluginFilesServices(WebPlugin* plugin, HttpServer *server)
       char *targetDirectory = SLHAlloc(server->slh, pluginLocationLen + pluginLocationNeedsSlash + 1);
       sprintf(targetDirectory, "%s%s", plugin->pluginLocation, pluginLocationNeedsSlash ? "/" : "");
 
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s\n", uriMask);
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s\n", identifier);
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s\n", targetDirectory);
+      zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "%s\n", uriMask);
+      zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "%s\n", identifier);
+      zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_INFO, "%s\n", targetDirectory);
 
       HttpService *httpService = makeGeneratedService(identifier, uriMask);
       httpService->userPointer = targetDirectory;
@@ -554,11 +554,11 @@ static void installWebPluginFilesServices(WebPlugin* plugin, HttpServer *server)
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_LIBR_VER_NFOUND_MSG, plugin->identifier);
     }
   }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
 }
 
 static void installLoginService(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
   HttpService *httpService = makeGeneratedService("com.rs.mvd.login", "/login/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -568,7 +568,7 @@ static void installLoginService(HttpServer *server) {
 }
 
 static void installLogoutService(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
   HttpService *httpService = makeGeneratedService("com.rs.mvd.logout", "/logout/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -577,15 +577,15 @@ static void installLogoutService(HttpServer *server) {
 }
 
 static void installWebPluginDefintionsService(WebPluginListElt *webPlugins, HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "installing plugin definitions service\n");
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG, "installing plugin definitions service\n");
   HttpService *httpService = makeGeneratedService("plugin definitions service", "/plugins");
   httpService->serviceFunction = servePluginDefinitions;
   httpService->userPointer = webPlugins;
   httpService->paramSpecList = makeStringParamSpec("type", SERVICE_ARG_OPTIONAL, NULL);
   httpService->authType = SERVICE_AUTH_NONE;
   registerHttpService(server, httpService);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
 }
 
 static int checkLoggingVerbosity(const char *serverConfigFile, char *pluginIdentifier, ShortLivedHeap *slh) {
@@ -635,7 +635,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
   WebPluginListElt *webPluginListTail = NULL;
 
   unsigned int idMultiplier = 1; /* multiplier for the dynamic logging id */
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s begin dirname %s\n", __FUNCTION__, dirname);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "%s begin dirname %s\n", __FUNCTION__, dirname);
   if (directory) {
     while ((entriesRead = directoryRead(directory, directoryDataBuffer, DIR_BUFFER_SIZE, &returnCode, &reasonCode)) > 0) {
       char *entryStart = directoryDataBuffer;
@@ -644,7 +644,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
         char *name = entryStart + 4;
         int isJsonFile = stringEndsWith(name, jsonExt);
         if (isJsonFile) {
-          zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "found JSON file %s\n", name);
+          zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG, "found JSON file %s\n", name);
           memset(path, 0, sizeof(path));
           sprintf(path, "%s%s%s", dirname, needsSlash ? "/" : "", name);
           Json *json = jsonParseFile(slh, path, errorBuffer, sizeof (errorBuffer));
@@ -726,7 +726,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
   if (webPluginListHead) {
     installWebPluginDefintionsService(webPluginListHead, server);
   }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s end result %d\n", __FUNCTION__, pluginDefinitionCount);
+  zowelog(NULL, LOG_COMP_ID_ZSS, ZOWE_LOG_DEBUG2, "%s end result %d\n", __FUNCTION__, pluginDefinitionCount);
   return webPluginListHead;
 }
 
@@ -774,14 +774,18 @@ void checkAndSetVariableWithEnvOverride(JsonObject *mvdSettings,
   }
 }
 
+
+
+
 static void initLoggingComponents(void) {
+  logConfigureDestination2(NULL, LOG_DEST_PRINTF_STDOUT, "printf(stdout)", NULL, zssFormatter, standardDumperFunction);
   logConfigureComponent(NULL, LOG_COMP_ID_SECURITY, "ZSS Security API", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_DISCOVERY, "Zowe Discovery", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_RESTDATASET, "Zowe Dataset REST", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_RESTFILE, "Zowe UNIX REST", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_UNIXFILE, "ZSS UNIX REST", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_DATASERVICE, "ZSS dataservices", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
-  logConfigureComponent(NULL, LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+  logConfigureComponent(NULL, LOG_COMP_ID_ZSS, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_START_VER_MSG, productVersion);
 }
@@ -1019,7 +1023,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
 
   if (!jsonObjectGetBoolean(jwtSettings, "enabled")) {
     zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
+        LOG_COMP_ID_ZSS,
         ZOWE_LOG_INFO,
         ZSS_LOG_NO_JWT_DISABLED_MSG);
     return 0;
@@ -1030,7 +1034,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
   JsonObject *const jwtKeyConfig = jsonObjectGetObject(jwtSettings, "key");
   if (jwtKeyConfig == NULL) {
     zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
+        LOG_COMP_ID_ZSS,
         ZOWE_LOG_SEVERE,
         ZSS_LOG_JWT_CONFIG_MISSING_MSG);
     return 1;
@@ -1042,7 +1046,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
 
   if (keystoreType != NULL && strcmp(keystoreType, "pkcs11") != 0) {
     zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
+        LOG_COMP_ID_ZSS,
         ZOWE_LOG_SEVERE,
         ZSS_LOG_JWT_KEYSTORE_UNKN_MSG, keystoreType);
     return 1;
@@ -1054,13 +1058,13 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
     return 1;
   } else if(tokenLabel == NULL){
     zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
+        LOG_COMP_ID_ZSS,
         ZOWE_LOG_SEVERE,
         "Invalid JWT configuration: token label missing\n");
     return 1;
   } else {
     zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
+        LOG_COMP_ID_ZSS,
         ZOWE_LOG_INFO,
         ZSS_LOG_JWT_TOKEN_FALLBK_MSG,
         keystoreToken,
