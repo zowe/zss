@@ -38,9 +38,67 @@
 #define LOG_COMP_ID_SECURITY      0x008F000300030000
 #define LOG_COMP_ID_UNIXFILE      0x008F000300040000
 #define LOG_COMP_ID_DATASERVICE   0x008F000300050000
+#define LOG_COMP_ID_ZSS           0x008F000300060000
+
+#define LOG_COMP_TEXT_ALLOC         "alloc"
+#define LOG_COMP_TEXT_UTILS         "utils"
+#define LOG_COMP_TEXT_COLLECTIONS   "collections"
+#define LOG_COMP_TEXT_SERIALIZATION "serialization"
+#define LOG_COMP_TEXT_ZLPARSER      "zlparser"
+#define LOG_COMP_TEXT_ZLCOMPILER    "zlcompiler"
+#define LOG_COMP_TEXT_ZLRUNTIME     "zlruntime"
+#define LOG_COMP_TEXT_STCBASE       "stcbase"
+#define LOG_COMP_TEXT_HTTPSERVER    "httpserver"
+#define LOG_COMP_TEXT_DISCOVERY     "discovery"
+#define LOG_COMP_TEXT_DATASERVICE   "dataservice"
+#define LOG_COMP_TEXT_CMS           "cms"
+#define LOG_COMP_TEXT_LPA           "lpa"
+#define LOG_COMP_TEXT_RESTDATASET   "restdataset"
+#define LOG_COMP_TEXT_RESTFILE      "restfile"
+
+#define LOG_COMP_ID_TEXT_ZSS        "zss"
+#define LOG_COMP_ID_TEXT_CTDS       "ctds"
+#define LOG_COMP_ID_TEXT_SECURITY   "security"
+#define LOG_COMP_ID_TEXT_UNIXFILE   "unixfile"
+
+#define LOG_PREFIX_ZCC "_zcc"
+#define LOG_PREFIX_ZIS "_zis"
+#define LOG_PREFIX_ZSS "_zss"
+
+#define LOG_LEVEL_SEVERE "SEVERE"
+#define LOG_LEVEL_WARN "WARN"
+#define LOG_LEVEL_INFO "INFO"
+#define LOG_LEVEL_DEBUG "DEBUG"
+#define LOG_LEVEL_TRACE "TRACE"
+
+#define LOG_LEVEL_ID_SEVERE      0
+#define LOG_LEVEL_ID_WARN        1
+#define LOG_LEVEL_ID_INFO        2
+#define LOG_LEVEL_ID_DEBUG       3
+#define LOG_LEVEL_ID_DEBUG2      4
+#define LOG_LEVEL_ID_TRACE       5
+
+#define PREFIXED_LINE_MAX_COUNT         1000
+#define PREFIXED_LINE_MAX_MSG_LENGTH    4096
+#define LOG_MSG_PREFIX_SIZE             1000
+#define LOCATION_PREFIX_PADDING         7
+#define LOCATION_SUFFIX_PADDING         5
+#define USER_SIZE                       7     //Will this always be 7?
+#define THREAD_SIZE                     10
+#define LOG_LEVEL_MAX_SIZE              16
+#define PREFIX_SUFFIX_SIZE              128
+
+#define LOG_DEFAULT_COMPONENT_COUNT 128
+#define LOG_VENDOR_HT_BACKBONE_SIZE 127
+
+typedef struct LogMessagePrefix_tag {
+  char text[LOG_MSG_PREFIX_SIZE];
+} LogMessagePrefix;
 
 bool isLogLevelValid(int level);
-
+extern LoggingContext *zoweLoggingContext;
+LoggingContext *getZoweLoggingContext();
+void zssFormatter(LoggingContext *context, LoggingComponent *component, void *data, char *formatString, va_list argList);
 /* default message IDs */
 
 /* 0000 - 0999 are messages reserved for for crossmemory (see crossmemory.h) */

@@ -775,6 +775,9 @@ void checkAndSetVariableWithEnvOverride(JsonObject *mvdSettings,
 }
 
 static void initLoggingComponents(void) {
+  logConfigureDestination(getZoweLoggingContext(),LOG_DEST_PRINTF_STDOUT,"printf(stdout)",NULL,zssFormatter);
+  logConfigureComponent(getZoweLoggingContext(), LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+  logConfigureComponent(getZoweLoggingContext(), LOG_PROD_TEST, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_SECURITY, "ZSS Security API", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_DISCOVERY, "Zowe Discovery", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_RESTDATASET, "Zowe Dataset REST", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
@@ -783,7 +786,9 @@ static void initLoggingComponents(void) {
   logConfigureComponent(NULL, LOG_COMP_DATASERVICE, "ZSS dataservices", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_START_VER_MSG, productVersion);
+  zowelog(getZoweLoggingContext(), LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_START_VER_MSG, productVersion);
+  zowelog(getZoweLoggingContext(), LOG_PROD_TEST, ZOWE_LOG_INFO, "AYLMAO");
+
 }
 
 static void initVersionComponents(void){
