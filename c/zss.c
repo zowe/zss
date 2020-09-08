@@ -1209,7 +1209,9 @@ int main(int argc, char **argv){
       initializePluginIDHashTable(server);
       loadWebServerConfig(server, mvdSettings, envSettings);
       readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile);
+      printf("Install Hello World");
       installHelloWorldService(server);
+      printf("After Hello World");
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
       installUnixFileCopyService(server);
