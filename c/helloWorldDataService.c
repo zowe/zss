@@ -134,7 +134,7 @@ void installHelloWorldService(HttpServer *server)
   httpService->authType = SERVICE_AUTH_NONE;
   httpService->serviceFunction = serveHelloWorldDataService;
   httpService->runInSubtask = TRUE;
-  httpService->doImpersonation = TRUE;
+  httpService->doImpersonation = FALSE;
 
   HelloServiceData *serviceData = (HelloServiceData*)safeMalloc(sizeof(HelloServiceData), "HelloServiceData");
   httpService->userPointer = serviceData;
