@@ -127,6 +127,8 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
 
 void installHelloWorldService(HttpServer *server)
 {
+  zowelog(NULL, 0, ZOWE_LOG_WARNING, "Install helloWorldDataService\n");
+
   HttpService *httpService = makeGeneratedService("HelloWorldService", "/hello/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = serveHelloWorldDataService;
