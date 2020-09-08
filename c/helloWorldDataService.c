@@ -45,6 +45,7 @@ typedef struct HelloServiceData_t {
 
 static int serveHelloWorldDataService(HttpService *service, HttpResponse *response)
 {
+  printf("Serve Hello World Data Service");
   HttpRequest *request = response->request;
   char *routeFragment = stringListPrint(request->parsedFile, 1, 1000, "/", 0);
   char *route = stringConcatenate(response->slh, "/", routeFragment);
@@ -127,7 +128,7 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
 
 void installHelloWorldService(HttpServer *server)
 {
-  zowelog(NULL, 0, ZOWE_LOG_WARNING, "Install helloWorldDataService\n");
+  printf("Hello World Installed \n");
 
   HttpService *httpService = makeGeneratedService("HelloWorldService", "/hello/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
