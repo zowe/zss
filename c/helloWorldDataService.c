@@ -131,13 +131,15 @@ void installHelloWorldService(HttpServer *server)
   printf("Hello World Installed \n");
 
   HttpService *httpService = makeGeneratedService("HelloWorldService", "/hello/**");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authType = SERVICE_AUTH_NONE;
   httpService->serviceFunction = serveHelloWorldDataService;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
 
   HelloServiceData *serviceData = (HelloServiceData*)safeMalloc(sizeof(HelloServiceData), "HelloServiceData");
   httpService->userPointer = serviceData;
+
+  registerHttpService(server, httpService);
 }
 
 /*
