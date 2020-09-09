@@ -66,7 +66,7 @@ typedef struct HelloServiceData_t {
   uint64 loggingId;
 } HelloServiceData;
 
-char* cert() {
+R_datalib_parm_list_64 cert() {
   FILE *fileptr;
   char *buffer;
   long filelen;
@@ -108,8 +108,8 @@ char* cert() {
   );
   printf("RC: %d, SAF: %d, RACF: %d. Reason: %d\n", rc, example.return_code, example.RACF_return_code, example.RACF_reason_code);
   printf("Application Id: %s \n", example.application_id);
-  printf("RACF User id: %s\n", example.RACF_userid);
-  return example.RACF_userid;
+  printf("RACF User id: %s\n", example.RACF_userid); // Why I am missing one character?
+  return example;
 }
 
 static int serveHelloWorldDataService(HttpService *service, HttpResponse *response)
@@ -138,13 +138,15 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
     jsonStart(p);
     {
       // Show strange first letter.
-      jsonAddString(p, "RACF_userid", cert());
+      jsonAddString(p, "RACF_userid", cert().RACF_userid);
     }
     jsonEnd(p);
   }
   else if (!strcmp(request->method, methodPOST))
   {
+    printf("POST Method");
     char *inPtr = request->contentBody;
+    printf("Data: %s", inPtr);
     char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
     int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
     char errBuf[1024];
