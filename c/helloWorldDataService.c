@@ -136,7 +136,7 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
     jsonStart(p);
     {
       // Show strange first letter.
-      jsonAddString(p, "RACF_userid", examplel.RACF_userid);
+      jsonAddString(p, "RACF_userid", example.RACF_userid);
     }
     jsonEnd(p);
   }
