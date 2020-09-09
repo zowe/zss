@@ -118,6 +118,8 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
   HttpRequest *request = response->request;
   char *routeFragment = stringListPrint(request->parsedFile, 1, 1000, "/", 0);
   char *route = stringConcatenate(response->slh, "/", routeFragment);
+  char *recursive = getQueryParam(response->request, "recursive");
+  printf("Recursive: %s", recursive);
   
   HelloServiceData *serviceData = service->userPointer;
   serviceData->timesVisited++;
@@ -135,6 +137,7 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
     
     jsonStart(p);
     {
+      // Show strange first letter.
       jsonAddString(p, "RACF_userid", cert());
     }
     jsonEnd(p);
