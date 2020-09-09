@@ -66,7 +66,7 @@ typedef struct HelloServiceData_t {
   uint64 loggingId;
 } HelloServiceData;
 
-R_datalib_parm_list_64 cert() {
+struct R_datalib_parm_list_64 cert() {
   FILE *fileptr;
   char *buffer;
   long filelen;
@@ -138,7 +138,8 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
     jsonStart(p);
     {
       // Show strange first letter.
-      jsonAddString(p, "RACF_userid", cert().RACF_userid);
+      struct R_datalib_parm_list_64 res = cert();
+      jsonAddString(p, "RACF_userid", res.RACF_userid);
     }
     jsonEnd(p);
   }
