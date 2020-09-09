@@ -38,14 +38,83 @@
 #include "dataservice.h"
 #include "http.h"
 
+#pragma linkage(IRRSIM00, OS)
+
+typedef _Packed struct _R_datalib_parm_list_64 { 
+   double workarea[128]; 
+    int saf_rc_ALET, return_code;
+    int racf_rc_ALET, RACF_return_code;
+    int racf_rsn_ALET, RACF_reason_code;
+    int fc_ALET;
+    short function_code;
+    int  option_word;
+    char RACF_userid_len; 
+    char RACF_userid[8];
+    int certificate_len;
+    char certificate[4096];
+    short application_id_len;
+    char application_id[246];
+    short distinguished_name_len;
+    char distinguished_name[246];
+    short registry_name_len;
+    char registry_name[255];
+    
+} R_datalib_parm_list_64;
+
 typedef struct HelloServiceData_t {
   int timesVisited;
   uint64 loggingId;
 } HelloServiceData;
 
+int cert() {
+  FILE *fileptr;
+  char *buffer;
+  long filelen;
+
+  fileptr = fopen("/a/apimtst/cert.der", "rb");  // Open the file in binary mode
+  fseek(fileptr, 0, SEEK_END);          // Jump to the end of the file
+  filelen = ftell(fileptr);             // Get the current byte offset in the file
+  rewind(fileptr);                      // Jump back to the beginning of the file
+
+  buffer = (char *)malloc(filelen * sizeof(char)); // Enough memory for the file
+  fread(buffer, filelen, 1, fileptr); // Read in the entire file
+  fclose(fileptr); // Close the file
+
+  R_datalib_parm_list_64 example;
+  memset(&example, 0, sizeof(R_datalib_parm_list_64));
+
+  example.certificate_len = filelen;
+  memcpy(example.certificate, buffer, filelen);
+
+  example.function_code = 0x0006;
+  int rc; 
+
+  rc = IRRSIM00(
+      &example.workarea, // WORKAREA 
+      &example.saf_rc_ALET  , // ALET 
+      &example.return_code, 
+      &example.racf_rc_ALET, 
+      &example.RACF_return_code,
+      &example.racf_rsn_ALET,
+      &example.RACF_reason_code,
+      &example.fc_ALET,
+      &example.function_code,
+      &example.option_word,
+      &example.RACF_userid_len,
+      &example.certificate_len,
+      &example.application_id_len,
+      &example.distinguished_name_len,
+      &example.registry_name_len
+  );
+  printf("RC: %d, SAF: %d, RACF: %d. Reason: %d\n", rc, example.return_code, example.RACF_return_code, example.RACF_reason_code);
+  printf("Application Id: %s \n", example.application_id);
+  printf("RACF User id: %s\n", example.RACF_userid);
+}
+
 static int serveHelloWorldDataService(HttpService *service, HttpResponse *response)
 {
   printf("Serve Hello World Data Service");
+  cert();
   HttpRequest *request = response->request;
   char *routeFragment = stringListPrint(request->parsedFile, 1, 1000, "/", 0);
   char *route = stringConcatenate(response->slh, "/", routeFragment);
