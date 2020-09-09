@@ -61,19 +61,20 @@ typedef _Packed struct _R_datalib_parm_list_64 {
     
 } R_datalib_parm_list_64;
 
+// Verify CURL sends the data properly
+// Verify that if it is sent in a valid fashion that it will be received valid. 
 static int serveHelloWorldDataService(HttpService *service, HttpResponse *response)
 {
-  printf("Serve Hello World Data Service");
   HttpRequest *request = response->request;
   char *routeFragment = stringListPrint(request->parsedFile, 1, 1000, "/", 0);
   char *route = stringConcatenate(response->slh, "/", routeFragment);
     
   if (!strcmp(request->method, methodPOST))
   {
-    printf("POST Method");
     char *inPtr = request->contentBody;
     char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
     int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
+    printf("Length of content body: %d", inLen);
     
     R_datalib_parm_list_64 example;
     memset(&example, 0, sizeof(R_datalib_parm_list_64));
@@ -102,8 +103,6 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
         &example.registry_name_len
     );
     printf("RC: %d, SAF: %d, RACF: %d. Reason: %d\n", rc, example.return_code, example.RACF_return_code, example.RACF_reason_code);
-    printf("Application Id: %s \n", example.application_id);
-    printf("RACF User id: %s\n", example.RACF_userid);
       
     jsonPrinter *p = respondWithJsonPrinter(response);
     
