@@ -72,15 +72,13 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
   if (!strcmp(request->method, methodPOST))
   {
     char *inPtr = request->contentBody;
-    char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
-    int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
-    printf("Length of content body: %d", inLen);
+    printf("Length of content body: %d", request->contentLength);
     
     R_datalib_parm_list_64 example;
     memset(&example, 0, sizeof(R_datalib_parm_list_64));
 
-    example.certificate_len = inLen;
-    memcpy(example.certificate, inPtr, inLen);
+    example.certificate_len = request->contentLength;
+    memcpy(example.certificate, inPtr, request->contentLength);
 
     example.function_code = 0x0006;
     int rc; 
