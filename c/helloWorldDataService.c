@@ -67,10 +67,7 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
   HttpRequest *request = response->request;
   char *routeFragment = stringListPrint(request->parsedFile, 1, 1000, "/", 0);
   char *route = stringConcatenate(response->slh, "/", routeFragment);
-  
-  zowelog(NULL, serviceData->loggingId, ZOWE_LOG_WARNING,
-          "Inside serveHelloWorldDataService\n");
-  
+    
   if (!strcmp(request->method, methodPOST))
   {
     printf("POST Method");
@@ -87,14 +84,14 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
     }
     
     Json *pathToCert = jsonObjectGetPropertyValue(inputMessage, "pathToCert");
-    if (timesVisited == NULL) {
+    if (pathToCert == NULL) {
       respondWithJsonError(response, "pathToCert is missing from request body", 400, "Bad Request");
       return 0;
     }
     
     // Probably JSON as array?
-    char *pathToCert = jsonAsString(pathToCert);
-    printf("Path: %s", pathToCert);
+    char *pathToCertText = jsonAsString(pathToCert);
+    printf("Path: %s", pathToCertText);
     
     FILE *fileptr;
     char *buffer;
@@ -181,9 +178,6 @@ void installHelloWorldService(HttpServer *server)
   httpService->serviceFunction = serveHelloWorldDataService;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = FALSE;
-
-  HelloServiceData *serviceData = (HelloServiceData*)safeMalloc(sizeof(HelloServiceData), "HelloServiceData");
-  httpService->userPointer = serviceData;
 
   registerHttpService(server, httpService);
 }
