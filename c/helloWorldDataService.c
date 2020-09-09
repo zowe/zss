@@ -61,28 +61,41 @@ typedef _Packed struct _R_datalib_parm_list_64 {
     
 } R_datalib_parm_list_64;
 
-typedef struct HelloServiceData_t {
-  int timesVisited;
-  uint64 loggingId;
-} HelloServiceData;
-
 static int serveHelloWorldDataService(HttpService *service, HttpResponse *response)
 {
   printf("Serve Hello World Data Service");
   HttpRequest *request = response->request;
   char *routeFragment = stringListPrint(request->parsedFile, 1, 1000, "/", 0);
   char *route = stringConcatenate(response->slh, "/", routeFragment);
-  char *recursive = getQueryParam(response->request, "recursive");
-  printf("Recursive: %s", recursive);
   
-  HelloServiceData *serviceData = service->userPointer;
-  serviceData->timesVisited++;
-
   zowelog(NULL, serviceData->loggingId, ZOWE_LOG_WARNING,
           "Inside serveHelloWorldDataService\n");
   
-  if (!strcmp(request->method, methodGET)) 
+  if (!strcmp(request->method, methodPOST))
   {
+    printf("POST Method");
+    char *inPtr = request->contentBody;
+    char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
+    int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
+    char errBuf[1024];
+    Json *body = jsonParseUnterminatedString(request->slh, nativeBody, inLen, errBuf, sizeof(errBuf));
+    
+    JsonObject *inputMessage = jsonAsObject(body);
+    if (inputMessage == NULL) {
+      respondWithJsonError(response, "Request body has no JSON object", 400, "Bad Request");
+      return 0;
+    }
+    
+    Json *pathToCert = jsonObjectGetPropertyValue(inputMessage, "pathToCert");
+    if (timesVisited == NULL) {
+      respondWithJsonError(response, "pathToCert is missing from request body", 400, "Bad Request");
+      return 0;
+    }
+    
+    // Probably JSON as array?
+    char *pathToCert = jsonAsString(pathToCert);
+    printf("Path: %s", pathToCert);
+    
     FILE *fileptr;
     char *buffer;
     long filelen;
@@ -125,54 +138,16 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
     printf("RC: %d, SAF: %d, RACF: %d. Reason: %d\n", rc, example.return_code, example.RACF_return_code, example.RACF_reason_code);
     printf("Application Id: %s \n", example.application_id);
     printf("RACF User id: %s\n", example.RACF_userid);
-
+      
     jsonPrinter *p = respondWithJsonPrinter(response);
     
     setResponseStatus(response, 200, "OK");
     setDefaultJSONRESTHeaders(response);
     writeHeader(response);
-  
-
+    
     jsonStart(p);
     {
-      // Show strange first letter.
       jsonAddString(p, "RACF_userid", example.RACF_userid);
-    }
-    jsonEnd(p);
-  }
-  else if (!strcmp(request->method, methodPOST))
-  {
-    printf("POST Method");
-    char *inPtr = request->contentBody;
-    printf("Data: %s", inPtr);
-    char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
-    int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
-    char errBuf[1024];
-    Json *body = jsonParseUnterminatedString(request->slh, nativeBody, inLen, errBuf, sizeof(errBuf));
-    
-    JsonObject *inputMessage = jsonAsObject(body);
-    if (inputMessage == NULL) {
-      respondWithJsonError(response, "Request body has no JSON object", 400, "Bad Request");
-      return 0;
-    }
-    
-    Json *timesVisited = jsonObjectGetPropertyValue(inputMessage, "timesVisited");
-    if (timesVisited == NULL) {
-      respondWithJsonError(response, "timesVisited is missing from request body", 400, "Bad Request");
-      return 0;
-    }
-    
-    serviceData->timesVisited = jsonAsNumber(timesVisited);
-    
-    jsonPrinter *p = respondWithJsonPrinter(response);
-    
-    setResponseStatus(response, 200, "OK");
-    setDefaultJSONRESTHeaders(response);
-    writeHeader(response);
-    
-    jsonStart(p);
-    {
-      jsonAddInt(p, "timesVisited", serviceData->timesVisited);
     }
     jsonEnd(p);
   }
