@@ -981,6 +981,57 @@ static int serveUnixFileChangeOwner (HttpService *service, HttpResponse *respons
   return 0;
 }
 
+static int serveUnixFileChangeTag(HttpService *service, HttpResponse *response) {
+  HttpRequest *request = response->request;
+  char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
+
+  if (routeFileFrag == NULL) {
+   respondWithJsonError(response, "Allocation error", HTTP_STATUS_INTERNAL_SERVER_ERROR, "Allocation error");
+   return 0;
+  }
+
+  if (strlen(routeFileFrag) == 0) {
+   respondWithJsonError(response, "Required absolute path of the resource is not provided",
+        HTTP_STATUS_BAD_REQUEST, "Bad Request");
+   return 0;
+  }
+
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  if (encodedRouteFileName == NULL) {
+   respondWithJsonError(response, "Allocation error", HTTP_STATUS_INTERNAL_SERVER_ERROR, "Allocation error");
+   return 0;
+  }
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
+  if (routeFileName == NULL) {
+   respondWithJsonError(response, "Allocation error", HTTP_STATUS_INTERNAL_SERVER_ERROR, "Allocation error");
+   return 0;
+  }
+
+  char *codepage  = getQueryParam(response->request, "codeset");
+  char *recursive = getQueryParam(response->request, "recursive");
+  char *pattern   = getQueryParam(response->request, "pattern");
+  char *type      = getQueryParam(response->request, "type");
+
+  if (recursive == NULL || type == NULL) {
+   respondWithJsonError(response, "Required parameter not provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+   return 0;
+  }
+
+  if (!strcmp(request->method, methodPOST)) {
+    directoryChangeTagAndRespond(response, routeFileName, type, codepage, recursive, pattern);
+  }
+  else if (!strcmp(request->method, methodDELETE)) {
+      char type[8] = {"delete"};
+      directoryChangeDeleteTagAndRespond (response, routeFileName,
+                                  type, codepage, recursive, pattern);
+  }
+  else {
+    respondWithJsonError(response, "Method Not Allowed", HTTP_STATUS_METHOD_NOT_FOUND, "Bad Request");
+    return 0;
+  }
+  return 0;
+}
+
 
 static int serveTableOfContents(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
@@ -1121,6 +1172,16 @@ void installUnixFileChangeOwnerService(HttpServer *server) {
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveUnixFileChangeOwner;
+  registerHttpService(server, httpService);
+}
+
+void installUnixFileChangeTagService(HttpServer *server) {
+  HttpService *httpService = makeGeneratedService("UnixFileChtag",
+      "/unixfile/chtag/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->serviceFunction = serveUnixFileChangeTag;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
   registerHttpService(server, httpService);
 }
 
