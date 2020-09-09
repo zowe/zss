@@ -66,7 +66,7 @@ typedef struct HelloServiceData_t {
   uint64 loggingId;
 } HelloServiceData;
 
-int cert() {
+char* cert() {
   FILE *fileptr;
   char *buffer;
   long filelen;
@@ -109,12 +109,12 @@ int cert() {
   printf("RC: %d, SAF: %d, RACF: %d. Reason: %d\n", rc, example.return_code, example.RACF_return_code, example.RACF_reason_code);
   printf("Application Id: %s \n", example.application_id);
   printf("RACF User id: %s\n", example.RACF_userid);
+  return example.RACF_userid;
 }
 
 static int serveHelloWorldDataService(HttpService *service, HttpResponse *response)
 {
   printf("Serve Hello World Data Service");
-  cert();
   HttpRequest *request = response->request;
   char *routeFragment = stringListPrint(request->parsedFile, 1, 1000, "/", 0);
   char *route = stringConcatenate(response->slh, "/", routeFragment);
@@ -135,8 +135,7 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
     
     jsonStart(p);
     {
-      jsonAddString(p, "message", "Hello World!");
-      jsonAddInt(p, "timesVisited", serviceData->timesVisited);
+      jsonAddString(p, "RACF_userid", cert());
     }
     jsonEnd(p);
   }
