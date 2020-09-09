@@ -74,43 +74,12 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
     char *inPtr = request->contentBody;
     char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
     int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
-    char errBuf[1024];
-    Json *body = jsonParseUnterminatedString(request->slh, nativeBody, inLen, errBuf, sizeof(errBuf));
     
-    JsonObject *inputMessage = jsonAsObject(body);
-    if (inputMessage == NULL) {
-      respondWithJsonError(response, "Request body has no JSON object", 400, "Bad Request");
-      return 0;
-    }
-    
-    Json *pathToCert = jsonObjectGetPropertyValue(inputMessage, "pathToCert");
-    if (pathToCert == NULL) {
-      respondWithJsonError(response, "pathToCert is missing from request body", 400, "Bad Request");
-      return 0;
-    }
-    
-    // Probably JSON as array?
-    char *pathToCertText = jsonAsString(pathToCert);
-    printf("Path: %s", pathToCertText);
-    
-    FILE *fileptr;
-    char *buffer;
-    long filelen;
-
-    fileptr = fopen("/a/apimtst/cert.der", "rb");  // Open the file in binary mode
-    fseek(fileptr, 0, SEEK_END);          // Jump to the end of the file
-    filelen = ftell(fileptr);             // Get the current byte offset in the file
-    rewind(fileptr);                      // Jump back to the beginning of the file
-
-    buffer = (char *)malloc(filelen * sizeof(char)); // Enough memory for the file
-    fread(buffer, filelen, 1, fileptr); // Read in the entire file
-    fclose(fileptr); // Close the file
-
     R_datalib_parm_list_64 example;
     memset(&example, 0, sizeof(R_datalib_parm_list_64));
 
-    example.certificate_len = filelen;
-    memcpy(example.certificate, buffer, filelen);
+    example.certificate_len = inLen;
+    memcpy(example.certificate, inPtr, inLen);
 
     example.function_code = 0x0006;
     int rc; 
