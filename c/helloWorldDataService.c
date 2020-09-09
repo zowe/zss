@@ -66,52 +66,6 @@ typedef struct HelloServiceData_t {
   uint64 loggingId;
 } HelloServiceData;
 
-struct R_datalib_parm_list_64 cert() {
-  FILE *fileptr;
-  char *buffer;
-  long filelen;
-
-  fileptr = fopen("/a/apimtst/cert.der", "rb");  // Open the file in binary mode
-  fseek(fileptr, 0, SEEK_END);          // Jump to the end of the file
-  filelen = ftell(fileptr);             // Get the current byte offset in the file
-  rewind(fileptr);                      // Jump back to the beginning of the file
-
-  buffer = (char *)malloc(filelen * sizeof(char)); // Enough memory for the file
-  fread(buffer, filelen, 1, fileptr); // Read in the entire file
-  fclose(fileptr); // Close the file
-
-  R_datalib_parm_list_64 example;
-  memset(&example, 0, sizeof(R_datalib_parm_list_64));
-
-  example.certificate_len = filelen;
-  memcpy(example.certificate, buffer, filelen);
-
-  example.function_code = 0x0006;
-  int rc; 
-
-  rc = IRRSIM00(
-      &example.workarea, // WORKAREA 
-      &example.saf_rc_ALET  , // ALET 
-      &example.return_code, 
-      &example.racf_rc_ALET, 
-      &example.RACF_return_code,
-      &example.racf_rsn_ALET,
-      &example.RACF_reason_code,
-      &example.fc_ALET,
-      &example.function_code,
-      &example.option_word,
-      &example.RACF_userid_len,
-      &example.certificate_len,
-      &example.application_id_len,
-      &example.distinguished_name_len,
-      &example.registry_name_len
-  );
-  printf("RC: %d, SAF: %d, RACF: %d. Reason: %d\n", rc, example.return_code, example.RACF_return_code, example.RACF_reason_code);
-  printf("Application Id: %s \n", example.application_id);
-  printf("RACF User id: %s\n", example.RACF_userid); // Why I am missing one character?
-  return example;
-}
-
 static int serveHelloWorldDataService(HttpService *service, HttpResponse *response)
 {
   printf("Serve Hello World Data Service");
@@ -129,17 +83,60 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
   
   if (!strcmp(request->method, methodGET)) 
   {
+    FILE *fileptr;
+    char *buffer;
+    long filelen;
+
+    fileptr = fopen("/a/apimtst/cert.der", "rb");  // Open the file in binary mode
+    fseek(fileptr, 0, SEEK_END);          // Jump to the end of the file
+    filelen = ftell(fileptr);             // Get the current byte offset in the file
+    rewind(fileptr);                      // Jump back to the beginning of the file
+
+    buffer = (char *)malloc(filelen * sizeof(char)); // Enough memory for the file
+    fread(buffer, filelen, 1, fileptr); // Read in the entire file
+    fclose(fileptr); // Close the file
+
+    R_datalib_parm_list_64 example;
+    memset(&example, 0, sizeof(R_datalib_parm_list_64));
+
+    example.certificate_len = filelen;
+    memcpy(example.certificate, buffer, filelen);
+
+    example.function_code = 0x0006;
+    int rc; 
+
+    rc = IRRSIM00(
+        &example.workarea, // WORKAREA 
+        &example.saf_rc_ALET  , // ALET 
+        &example.return_code, 
+        &example.racf_rc_ALET, 
+        &example.RACF_return_code,
+        &example.racf_rsn_ALET,
+        &example.RACF_reason_code,
+        &example.fc_ALET,
+        &example.function_code,
+        &example.option_word,
+        &example.RACF_userid_len,
+        &example.certificate_len,
+        &example.application_id_len,
+        &example.distinguished_name_len,
+        &example.registry_name_len
+    );
+    printf("RC: %d, SAF: %d, RACF: %d. Reason: %d\n", rc, example.return_code, example.RACF_return_code, example.RACF_reason_code);
+    printf("Application Id: %s \n", example.application_id);
+    printf("RACF User id: %s\n", example.RACF_userid);
+
     jsonPrinter *p = respondWithJsonPrinter(response);
     
     setResponseStatus(response, 200, "OK");
     setDefaultJSONRESTHeaders(response);
     writeHeader(response);
-    
+  
+
     jsonStart(p);
     {
       // Show strange first letter.
-      struct R_datalib_parm_list_64 res = cert();
-      jsonAddString(p, "RACF_userid", res.RACF_userid);
+      jsonAddString(p, "RACF_userid", examplel.RACF_userid);
     }
     jsonEnd(p);
   }
