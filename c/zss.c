@@ -73,7 +73,7 @@
 #include "datasetService.h"
 #include "serverStatusService.h"
 #include "rasService.h"
-#include "helloWorldDataService.h"
+#include "userMappingService.h"
 
 #include "jwt.h"
 
@@ -1209,9 +1209,7 @@ int main(int argc, char **argv){
       initializePluginIDHashTable(server);
       loadWebServerConfig(server, mvdSettings, envSettings);
       readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile);
-      printf("Install Hello World\n");
-      installHelloWorldService(server);
-      printf("After Hello World\n");
+      installUserMapService(server);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
       installUnixFileCopyService(server);

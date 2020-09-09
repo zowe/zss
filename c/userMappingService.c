@@ -63,7 +63,7 @@ typedef _Packed struct _R_datalib_parm_list_64 {
 
 // Verify CURL sends the data properly
 // Verify that if it is sent in a valid fashion that it will be received valid. 
-static int serveHelloWorldDataService(HttpService *service, HttpResponse *response)
+static int serveMappingService(HttpService *service, HttpResponse *response)
 {
   HttpRequest *request = response->request;
   char *routeFragment = stringListPrint(request->parsedFile, 1, 1000, "/", 0);
@@ -137,13 +137,11 @@ static int serveHelloWorldDataService(HttpService *service, HttpResponse *respon
   return 0;
 }
 
-void installHelloWorldService(HttpServer *server)
+void installUserMapService(HttpServer *server)
 {
-  printf("Hello World Installed \n");
-
-  HttpService *httpService = makeGeneratedService("HelloWorldService", "/hello/**");
+  HttpService *httpService = makeGeneratedService("UserMappingService", "/usermap/**");
   httpService->authType = SERVICE_AUTH_NONE;
-  httpService->serviceFunction = serveHelloWorldDataService;
+  httpService->serviceFunction = serveMappingService;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = FALSE;
 

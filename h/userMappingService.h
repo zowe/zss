@@ -10,12 +10,12 @@
   Copyright Contributors to the Zowe Project.
 */
 
-#ifndef __HELLO_WORLD_SERVICE_H__
-#define __HELLO_WORLD_SERVICE_H__
+#ifndef __USERMAP_SERVICE_H__
+#define __USERMAP_SERVICE_H__
 
-void installHelloWorldService(HttpServer *server);
+void installUserMapService(HttpServer *server);
 
-#endif /* __HELLO_WORLD_SERVICE_H__ */
+#endif /* __USERMAP_SERVICE_H__ */
 
 
 /*
