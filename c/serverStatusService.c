@@ -210,7 +210,8 @@ int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *con
   }
   jsonAddString(out, "agentName", "zss");
   jsonAddString(out, "agentVersion", context->productVersion);
-  jsonAddString(out, "arch", unameRet.sysname);
+  jsonAddString(out, "arch", "s390x");
+  jsonAddString(out, "os", "zos");
   jsonAddString(out, "osRelease", unameRet.release);
   jsonAddString(out, "osVersion", unameRet.version);
   jsonAddString(out, "hardwareIdentifier", unameRet.machine);
