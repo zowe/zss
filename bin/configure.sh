@@ -38,7 +38,7 @@ services:
     like USS, MVS, authentication, and security management.
     catalogUiTileId: zss
     instanceBaseUrls:
-      - https://${ZOWE_EXPLORER_HOST}:${ZOWE_ZSS_SERVER_PORT}/
+      - http://${ZOWE_EXPLORER_HOST}:${ZOWE_ZSS_SERVER_PORT}/
     homePageRelativeUrl:
     routedServices:
       - gatewayUrl: api/v1
