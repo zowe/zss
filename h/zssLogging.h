@@ -95,10 +95,15 @@ typedef struct LogMessagePrefix_tag {
   char text[LOG_MSG_PREFIX_SIZE];
 } LogMessagePrefix;
 
+typedef struct fileAndLine_tag{ 
+  char *fileName; 
+  int lineNnumber; 
+} fileAndLine;
+
 bool isLogLevelValid(int level);
 extern LoggingContext *zoweLoggingContext;
 LoggingContext *getZoweLoggingContext();
-void zssFormatter(LoggingContext *context, LoggingComponent *component, void *data, char *formatString, va_list argList);
+void zssFormatter(LoggingContext *context, LoggingComponent *component, void *data, int level,  uint64 compID, void *userData, char *formatString, va_list argList);
 /* default message IDs */
 
 /* 0000 - 0999 are messages reserved for for crossmemory (see crossmemory.h) */

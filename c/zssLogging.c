@@ -227,20 +227,14 @@ static void initZssLogMessagePrefix(LogMessagePrefix *prefix, LoggingComponent *
 }
 
 
-void zssFormatter(LoggingContext *context, LoggingComponent *component, void *data, char *formatString, va_list argList) {
+void zssFormatter(LoggingContext *context, LoggingComponent *component, void *data, int level,  uint64 compID, void *userData, char *formatString, va_list argList) {
   char messageBuffer[PREFIXED_LINE_MAX_MSG_LENGTH];
   size_t messageLength = vsnprintf(messageBuffer, sizeof(messageBuffer), formatString, argList);
-
   if (messageLength > sizeof(messageBuffer) - 1) {
     messageLength = sizeof(messageBuffer) - 1;
   }
-
+  fileAndLine *test = (struct fileAndLine_tag*)userData;
   LogMessagePrefix prefix = {0};
-  LoggingInfo *info = (struct LoggingInfo_tag*)data;
-  char *path = info->path;
-  int level = info->level;
-  int line = info->line;
-  uint64 compID = info->compID;
   char *nextLine = messageBuffer;
   char *lastLine = messageBuffer + messageLength;
   for (int lineIdx = 0; lineIdx < PREFIXED_LINE_MAX_COUNT; lineIdx++) {
@@ -251,7 +245,7 @@ void zssFormatter(LoggingContext *context, LoggingComponent *component, void *da
     size_t nextLineLength = endOfLine ? (endOfLine - nextLine) : (lastLine - nextLine);
     memset(prefix.text, ' ', sizeof(prefix.text));
     if (lineIdx == 0) {
-      initZssLogMessagePrefix(&prefix, component, path, line, level, compID);
+      initZssLogMessagePrefix(&prefix, component, test->fileName, test->lineNnumber, level, compID);
     }
     printf("%.*s%.*s\n", sizeof(prefix.text), prefix.text, nextLineLength, nextLine);
     nextLine += (nextLineLength + 1);
