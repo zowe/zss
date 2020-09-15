@@ -28,7 +28,7 @@ __UNTAGGED_READ_MODE=V6 $NODE_BIN initInstance.js
 
 APP_WORKSPACE_DIR=${INSTANCE_DIR}/workspace/app-server
 
-# Add static definition for zss. TODO: Needs routedServices + apiInfo
+# Add static definition for zss. TODO: Needs documentation
 cat <<EOF >${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml
 #
 services:
