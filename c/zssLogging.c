@@ -49,42 +49,6 @@ bool isLogLevelValid(int level) {
   return TRUE;
 }
 
-LoggingContext *zoweLoggingContext = NULL;
-
-static LoggingComponentTable *makeComponentTable(int componentCount) {
-  int tableSize = sizeof(LoggingComponentTable) + componentCount * sizeof(LoggingComponent);
-  LoggingComponentTable *table = (LoggingComponentTable *)safeMalloc(tableSize, "LoggingComponentTable");
-  memset(table, 0, tableSize);
-  memcpy(table->eyecatcher, "RSLOGCTB", sizeof(table->eyecatcher));
-  table->componentCount = componentCount;
-  return table;
-}
-
-static LoggingZoweAnchor *makeZoweAnchor() {
-  LoggingZoweAnchor *anchor = (LoggingZoweAnchor *)safeMalloc(sizeof(LoggingZoweAnchor), "LoggingZoweAnchor");
-  memset(anchor, 0, sizeof(LoggingZoweAnchor));
-  memcpy(anchor->eyecatcher, "RSLOGRSA", sizeof(anchor->eyecatcher));
-  memcpy(anchor->topLevelComponentTable.eyecatcher, "RSLOGCTB", sizeof(anchor->topLevelComponentTable.eyecatcher));
-  anchor->topLevelComponentTable.componentCount = 1;
-  anchor->topLevelComponent.subcomponents = makeComponentTable(LOG_DEFAULT_COMPONENT_COUNT);
-  return anchor;
-}
-
-static LoggingContext *makeZoweLoggingContext() {
-	LoggingContext *zoweContext = (LoggingContext *)safeMalloc(sizeof(LoggingContext),"LoggingContext");
-	memcpy(zoweContext->eyecatcher, "ZOWECNTX", sizeof(zoweContext->eyecatcher));
-	zoweContext->vendorTable = htCreate(LOG_VENDOR_HT_BACKBONE_SIZE, NULL, NULL, NULL, NULL);
-	zoweContext->zoweAnchor = makeZoweAnchor();
-	return zoweContext;
-}
-
-LoggingContext *getZoweLoggingContext() {
-	if (zoweLoggingContext == NULL) {
-		zoweLoggingContext = makeZoweLoggingContext();
-	}
-	return zoweLoggingContext;
-}
-
 static void getLocationData(char *path, int line, char **locationInfo, uint64 compID, LoggingComponent *component) {
 
   char prefix[PREFIX_SUFFIX_SIZE];
