@@ -28,14 +28,17 @@ __UNTAGGED_READ_MODE=V6 $NODE_BIN initInstance.js
 
 APP_WORKSPACE_DIR=${INSTANCE_DIR}/workspace/app-server
 
+date_stamp=$(date +%Y%m%d)
+version_num=`grep "version" ${INSTANCE_DIR}/workspace/manifest.json |  head -1 | sed -e 's/"//g' | sed -e 's/.*: *//g' | sed -e 's/,.*//g'`
+version="${version_num}+${date_stamp}"
+
 # Add static definition for zss. TODO: Needs documentation
 cat <<EOF >${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml
 #
 services:
   - serviceId: zss
     title: Zowe System Services (ZSS)
-    description: Zowe System Services is used for enabling low-level microservices and other privileged mainframe services, 
-    like USS, MVS, authentication, and security management.
+    description: Zowe System Services is used for enabling low-level microservices and other privileged mainframe services, like USS, MVS, authentication, and security management.
     catalogUiTileId: zss
     instanceBaseUrls:
       - http://${ZOWE_EXPLORER_HOST}:${ZOWE_ZSS_SERVER_PORT}/
@@ -46,14 +49,13 @@ services:
     apiInfo:
       - apiId: org.zowe.zss
         gatewayUrl: api/v1
-        version: 1.15.0+20200901
+        version: ${version}
         # swaggerUrl: TODO
         # documentationUrl: TODO
 catalogUiTiles:
   zss:
     title: Zowe System Services (ZSS)
-    description:  Zowe System Services is used for enabling low-level microservices and other privileged mainframe services, 
-    like USS, MVS, authentication, and security management.
+    description:  Zowe System Services is used for enabling low-level microservices and other privileged mainframe services, like USS, MVS, authentication, and security management.
 EOF
 iconv -f IBM-1047 -t IBM-850 ${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml > $STATIC_DEF_CONFIG_DIR/zss.yml
 rm ${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml
