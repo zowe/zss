@@ -131,9 +131,16 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
 void setValidResponseCode(HttpResponse *response, int rc, int return_code, int RACF_return_code, int RACF_reason_code) {
   if(rc == 0 && example.return_code == 0 && example.RACF_return_code == 0 && example.RACF_reason_code == 0) {
     setResponseStatus(response, 200, "OK");
-  } else if () {
+  } else if ((rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 4)
+  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 40)
+  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 44) ) {
     setResponseStatus(response, 400, "Bad request");
-  } else if () {
+  } else if ((rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 16)
+  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 20)
+  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 24)
+  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 28)
+  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 32)
+  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 48)) {
     setResponseStatus(response, 401, "Unauthorized");
   } else {
     setResponseStatus(response, 500, "Internal server error");
