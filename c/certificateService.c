@@ -146,9 +146,9 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
   return 0;
 }
 
-void installUserMapService(HttpServer *server)
+void installCertificateService(HttpServer *server)
 {
-  HttpService *httpService = makeGeneratedService("UserMappingService", "/usermap/**");
+  HttpService *httpService = makeGeneratedService("CertificateService", "/certificate/**");
   httpService->authType = SERVICE_AUTH_NONE;
   httpService->serviceFunction = serveMappingService;
   httpService->runInSubtask = TRUE;

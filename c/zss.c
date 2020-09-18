@@ -1209,7 +1209,7 @@ int main(int argc, char **argv){
       initializePluginIDHashTable(server);
       loadWebServerConfig(server, mvdSettings, envSettings);
       readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile);
-      installUserMapService(server);
+      installCertificateService(server);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
       installUnixFileCopyService(server);

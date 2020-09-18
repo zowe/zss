@@ -13,7 +13,7 @@
 #ifndef __USERMAP_SERVICE_H__
 #define __USERMAP_SERVICE_H__
 
-void installUserMapService(HttpServer *server);
+void installCertificateService(HttpServer *server);
 
 #endif /* __USERMAP_SERVICE_H__ */
 
