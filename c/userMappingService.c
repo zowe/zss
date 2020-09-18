@@ -72,7 +72,11 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
   if (!strcmp(request->method, methodPOST))
   {
     char *inPtr = request->contentBody;
-    printf("Length of content body: %d", request->contentLength);
+    if(request->contentLength >= 4096) {
+      setResponseStatus(response, 400, "Bad request");
+      writeHeader(response);
+      finishResponse(response);
+    }
     
     R_datalib_parm_list_64 example;
     memset(&example, 0, sizeof(R_datalib_parm_list_64));
@@ -100,17 +104,24 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         &example.distinguished_name_len,
         &example.registry_name_len
     );
-    printf("RC: %d, SAF: %d, RACF: %d. Reason: %d\n", rc, example.return_code, example.RACF_return_code, example.RACF_reason_code);
       
     jsonPrinter *p = respondWithJsonPrinter(response);
     
-    setResponseStatus(response, 200, "OK");
+    if(rc == 0 && example.return_code == 0 && example.RACF_return_code == 0 && example.RACF_reason_code == 0) {
+      setResponseStatus(response, 200, "OK");
+    } else {
+      setResponseStatus(response, 401, "Unauthorized");
+    }
     setDefaultJSONRESTHeaders(response);
     writeHeader(response);
     
     jsonStart(p);
     {
-      jsonAddString(p, "RACF_userid", example.RACF_userid);
+      jsonAddString(p, "userid", example.RACF_userid);
+      jsonAddInt(p, "rc", rc);
+      jsonAddInt(p, "saf_rc", example.return_code);
+      jsonAddInt(p, "racf_rc", example.RACF_return_code);
+      jsonAddInt(p, "reason_code", example.RACF_reason_code);
     }
     jsonEnd(p);
   }
