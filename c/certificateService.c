@@ -61,8 +61,6 @@ typedef _Packed struct _R_datalib_parm_list_64 {
     
 } R_datalib_parm_list_64;
 
-// Verify CURL sends the data properly
-// Verify that if it is sent in a valid fashion that it will be received valid. 
 static int serveMappingService(HttpService *service, HttpResponse *response)
 {
   HttpRequest *request = response->request;
@@ -74,7 +72,6 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
     char *inPtr = request->contentBody;
     if(request->contentLength >= 4096) {
       setResponseStatus(response, 400, "Bad request");
-      writeHeader(response);
       finishResponse(response);
     }
     
@@ -107,11 +104,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
       
     jsonPrinter *p = respondWithJsonPrinter(response);
     
-    if(rc == 0 && example.return_code == 0 && example.RACF_return_code == 0 && example.RACF_reason_code == 0) {
-      setResponseStatus(response, 200, "OK");
-    } else {
-      setResponseStatus(response, 401, "Unauthorized");
-    }
+    setValidResponseCode(response, rc, example.return_code, example.RACF_return_code, example.RACF_reason_code);
     setDefaultJSONRESTHeaders(response);
     writeHeader(response);
     
@@ -127,6 +120,27 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
   }
   else 
   {
+     handleInvalidMethod(response);
+  }
+  
+  finishResponse(response);
+    
+  return 0;
+}
+
+void setValidResponseCode(HttpResponse *response, int rc, int return_code, int RACF_return_code, int RACF_reason_code) {
+  if(rc == 0 && example.return_code == 0 && example.RACF_return_code == 0 && example.RACF_reason_code == 0) {
+    setResponseStatus(response, 200, "OK");
+  } else if () {
+    setResponseStatus(response, 400, "Bad request");
+  } else if () {
+    setResponseStatus(response, 401, "Unauthorized");
+  } else {
+    setResponseStatus(response, 500, "Internal server error");
+  }
+}
+
+void handleInvalidMethod(HttpResponse *response) {
     jsonPrinter *p = respondWithJsonPrinter(response);
       
     setResponseStatus(response, 405, "Method Not Allowed");
@@ -136,14 +150,9 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
     
     jsonStart(p);
     {
-      jsonAddString(p, "error", "Only GET requests are supported");
+      jsonAddString(p, "error", "Only POST requests are supported");
     }
-    jsonEnd(p); 
-  }
-  
-  finishResponse(response);
-    
-  return 0;
+    jsonEnd(p);
 }
 
 void installCertificateService(HttpServer *server)
@@ -156,14 +165,3 @@ void installCertificateService(HttpServer *server)
 
   registerHttpService(server, httpService);
 }
-
-/*
-  This program and the accompanying materials are
-  made available under the terms of the Eclipse Public License v2.0 which accompanies
-  this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
-  
-  SPDX-License-Identifier: EPL-2.0
-  
-  Copyright Contributors to the Zowe Project.
-*/
-
