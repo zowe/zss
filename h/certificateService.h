@@ -10,12 +10,15 @@
   Copyright Contributors to the Zowe Project.
 */
 
-#ifndef __USERMAP_SERVICE_H__
-#define __USERMAP_SERVICE_H__
+#ifndef __CERT_SERVICE_H__
+#define __CERT_SERVICE_H__
 
 void installCertificateService(HttpServer *server);
+void setValidResponseCode(HttpResponse *response, int rc, int return_code, int RACF_return_code, int RACF_reason_code);
+void handleInvalidMethod(HttpResponse *response);
+void installCertificateService(HttpServer *server)
 
-#endif /* __USERMAP_SERVICE_H__ */
+#endif /* __CERT_SERVICE_H__ */
 
 
 /*

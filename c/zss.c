@@ -73,7 +73,7 @@
 #include "datasetService.h"
 #include "serverStatusService.h"
 #include "rasService.h"
-#include "userMappingService.h"
+#include "certificateService.h"
 
 #include "jwt.h"
 

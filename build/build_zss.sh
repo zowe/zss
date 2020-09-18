@@ -125,7 +125,7 @@ if c89 \
   ${ZSS}/c/serviceUtils.c \
   ${ZSS}/c/authService.c \
   ${ZSS}/c/omvsService.c \
-  ${ZSS}/c/userMappingService.c \
+  ${ZSS}/c/certificateService.c \
   ${ZSS}/c/unixFileService.c \
   ${ZSS}/c/datasetService.c \
   ${ZSS}/c/envService.c \
