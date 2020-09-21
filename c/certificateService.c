@@ -62,18 +62,18 @@ typedef _Packed struct _R_datalib_parm_list_64 {
 } R_datalib_parm_list_64;
 
 void setValidResponseCode(HttpResponse *response, int rc, int return_code, int RACF_return_code, int RACF_reason_code) {
-  if(rc == 0 && example.return_code == 0 && example.RACF_return_code == 0 && example.RACF_reason_code == 0) {
+  if(rc == 0 && return_code == 0 && RACF_return_code == 0 && RACF_reason_code == 0) {
     setResponseStatus(response, 200, "OK");
-  } else if ((rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 4)
-  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 40)
-  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 44) ) {
+  } else if ((rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 4)
+  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 40)
+  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 44) ) {
     setResponseStatus(response, 400, "Bad request");
-  } else if ((rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 16)
-  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 20)
-  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 24)
-  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 28)
-  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 32)
-  || (rc != 0 && example.return_code == 8 && example.RACF_return_code == 8 && example.RACF_reason_code == 48)) {
+  } else if ((rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 16)
+  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 20)
+  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 24)
+  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 28)
+  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 32)
+  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 48)) {
     setResponseStatus(response, 401, "Unauthorized");
   } else {
     setResponseStatus(response, 500, "Internal server error");
