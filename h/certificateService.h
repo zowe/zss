@@ -13,10 +13,9 @@
 #ifndef __CERT_SERVICE_H__
 #define __CERT_SERVICE_H__
 
+#include "httpserver.h"
+
 void installCertificateService(HttpServer *server);
-void setValidResponseCode(HttpResponse *response, int rc, int return_code, int RACF_return_code, int RACF_reason_code);
-void handleInvalidMethod(HttpResponse *response);
-void installCertificateService(HttpServer *server)
 
 #endif /* __CERT_SERVICE_H__ */
 
