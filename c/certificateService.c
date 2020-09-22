@@ -15,27 +15,16 @@
 #include <metal/stdio.h>
 #include <metal/stdlib.h>
 #include <metal/string.h>
-#include <metal/stdarg.h>  
 #include "metalio.h"
-#include "qsam.h"
 #else
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>  
-#include <pthread.h>
 #endif
 
-#include "zowetypes.h"
-#include "alloc.h"
-#include "utils.h"
-#include "charsets.h"
-#include "bpxnet.h"
-#include "socketmgmt.h"
 #include "httpserver.h"
 #include "json.h"
 #include "logging.h"
-#include "dataservice.h"
 #include "http.h"
 
 #pragma linkage(IRRSIM00, OS)
