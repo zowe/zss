@@ -24,7 +24,6 @@
 
 #include "httpserver.h"
 #include "json.h"
-#include "logging.h"
 #include "http.h"
 
 #pragma linkage(IRRSIM00, OS)
