@@ -92,7 +92,8 @@ static void setValidResponseCode(HttpResponse *response, int rc, int returnCode,
                  ) {
         setResponseStatus(response, 401, "Unauthorized");
         return;
-      } 
+      }
+    } 
   } 
 
   setResponseStatus(response, 500, "Internal server error");
