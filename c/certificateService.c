@@ -53,7 +53,7 @@ typedef _Packed struct _RUsermapParamList {
     char useridLengthRacf; 
     char useridRacf[8];
     int certificateLength;
-    char *certificate;
+    char certificate[4096];
     short applicationIdLength;
     char applicationId[246];
     short distinguishedNameLength;
