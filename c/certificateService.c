@@ -125,7 +125,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
     memset(&userMapCertificateStructure, 0, sizeof(RUsermapParamList));
     
     userMapCertificateStructure.certificateLength = request->contentLength;
-    memset(userMapCertificateStructure.certificate, 0, request->contentLength + 1)
+    memset(userMapCertificateStructure.certificate, 0, request->contentLength + 1);
     memcpy(userMapCertificateStructure.certificate, request->contentBody, request->contentLength);
 
     userMapCertificateStructure.functionCode = MAP_CERTIFICATE_TO_USERNAME;
