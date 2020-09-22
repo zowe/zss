@@ -98,8 +98,6 @@ static void handleInvalidMethod(HttpResponse *response) {
 static int serveMappingService(HttpService *service, HttpResponse *response)
 {
   HttpRequest *request = response->request;
-  char *routeFragment = stringListPrint(request->parsedFile, 1, 1000, "/", 0);
-  char *route = stringConcatenate(response->slh, "/", routeFragment);
     
   if (!strcmp(request->method, methodPOST))
   {
