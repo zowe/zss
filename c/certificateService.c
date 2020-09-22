@@ -61,7 +61,7 @@ typedef _Packed struct _R_datalib_parm_list_64 {
     
 } R_datalib_parm_list_64;
 
-void setValidResponseCode(HttpResponse *response, int rc, int return_code, int RACF_return_code, int RACF_reason_code) {
+static void setValidResponseCode(HttpResponse *response, int rc, int return_code, int RACF_return_code, int RACF_reason_code) {
   if(rc == 0 && return_code == 0 && RACF_return_code == 0 && RACF_reason_code == 0) {
     setResponseStatus(response, 200, "OK");
   } else if ((rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 4)
@@ -80,7 +80,7 @@ void setValidResponseCode(HttpResponse *response, int rc, int return_code, int R
   }
 }
 
-void handleInvalidMethod(HttpResponse *response) {
+static void handleInvalidMethod(HttpResponse *response) {
     jsonPrinter *p = respondWithJsonPrinter(response);
       
     setResponseStatus(response, 405, "Method Not Allowed");
