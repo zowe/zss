@@ -103,7 +103,6 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
     
   if (!strcmp(request->method, methodPOST))
   {
-    char *inPtr = request->contentBody;
     if(request->contentLength >= 4096) {
       setResponseStatus(response, 400, "Bad request");
       finishResponse(response);
@@ -113,7 +112,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
     memset(&userMapCertificateStructure, 0, sizeof(RUsermapParamList));
 
     userMapCertificateStructure.certificateLength = request->contentLength;
-    memcpy(userMapCertificateStructure.certificate, inPtr, request->contentLength);
+    memcpy(userMapCertificateStructure.certificate, request->contentBody, request->contentLength);
 
     userMapCertificateStructure.functionCode = MAP_CERTIFICATE_TO_USERNAME;
     int rc; 
