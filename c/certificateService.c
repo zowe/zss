@@ -53,7 +53,7 @@ typedef _Packed struct _RUsermapParamList {
     char useridLengthRacf; 
     char useridRacf[8];
     int certificateLength;
-    char certificate[4096];
+    char *certificate;
     short applicationIdLength;
     char applicationId[246];
     short distinguishedNameLength;
@@ -103,11 +103,6 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
     
   if (!strcmp(request->method, methodPOST))
   {
-    if(request->contentLength >= 4096) {
-      setResponseStatus(response, 400, "Bad request");
-      finishResponse(response);
-    }
-    
     RUsermapParamList userMapCertificateStructure;
     memset(&userMapCertificateStructure, 0, sizeof(RUsermapParamList));
 
