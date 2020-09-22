@@ -164,7 +164,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
 
 void installCertificateService(HttpServer *server)
 {
-  HttpService *httpService = makeGeneratedService("CertificateService", "/certificate/**");
+  HttpService *httpService = makeGeneratedService("CertificateService", "/certificate/x509/**");
   httpService->authType = SERVICE_AUTH_NONE;
   httpService->serviceFunction = serveMappingService;
   httpService->runInSubtask = TRUE;
