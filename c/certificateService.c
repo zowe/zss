@@ -41,6 +41,17 @@
 #pragma linkage(IRRSIM00, OS)
 
 #define MAP_CERTIFICATE_TO_USERNAME 0x0006
+#define SUCCESS_RC 0
+#define SAF_FAILURE_RC 8
+#define RACF_FAILURE_RC 8
+
+// Reason codes representing potential errors within R_Usermap macro
+#define PARAMETER_LIST_ERROR_RC 4
+#define NO_MAPPING_TO_USERID_RC 16
+#define NOT_AUTHORIZED_RC 20
+#define CERTIFICATE_NOT_VALID_RC 28
+#define NOTRUST_CERTIFICATE_RC 32
+#define NO_IDENTITY_FILTER_RC 48
 
 typedef _Packed struct _RUsermapParamList { 
    double workarea[128]; 
@@ -53,7 +64,7 @@ typedef _Packed struct _RUsermapParamList {
     char useridLengthRacf; 
     char useridRacf[8];
     int certificateLength;
-    char certificate[4096];
+    char *certificate;
     short applicationIdLength;
     char applicationId[246];
     short distinguishedNameLength;
@@ -64,22 +75,28 @@ typedef _Packed struct _RUsermapParamList {
 } RUsermapParamList;
 
 static void setValidResponseCode(HttpResponse *response, int rc, int returnCode, int returnCodeRacf, int reasonCodeRacf) {
-  if(rc == 0 && returnCode == 0 && returnCodeRacf == 0 && reasonCodeRacf == 0) {
+  if (rc == SUCCESS_RC && returnCode == SUCCESS_RC && returnCodeRacf == SUCCESS_RC && reasonCodeRacf == SUCCESS_RC) {
     setResponseStatus(response, 200, "OK");
-  } else if ((rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 4)
-  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 40)
-  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 44) ) {
-    setResponseStatus(response, 400, "Bad request");
-  } else if ((rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 16)
-  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 20)
-  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 24)
-  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 28)
-  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 32)
-  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 48)) {
-    setResponseStatus(response, 401, "Unauthorized");
-  } else {
-    setResponseStatus(response, 500, "Internal server error");
-  }
+    return;
+  } else if(rc != SUCCESS_RC) {
+    if(returnCode == SAF_FAILURE_RC && returnCodeRacf == RACF_FAILURE_RC) {
+      if(reasonCodeRacf == PARAMETER_LIST_ERROR_RC) {
+        setResponseStatus(response, 400, "Bad request");
+        return;
+      } else if (
+                 reasonCodeRacf == NO_MAPPING_TO_USERID_RC || 
+                 reasonCodeRacf == NOT_AUTHORIZED_RC || 
+                 reasonCodeRacf == CERTIFICATE_NOT_VALID_RC || 
+                 reasonCodeRacf == NOTRUST_CERTIFICATE_RC || 
+                 reasonCodeRacf == NO_IDENTITY_FILTER_RC
+                 ) {
+        setResponseStatus(response, 401, "Unauthorized");
+        return;
+      } 
+  } 
+
+  setResponseStatus(response, 500, "Internal server error");
+  return;
 }
 
 static void handleInvalidMethod(HttpResponse *response) {
@@ -105,8 +122,9 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
   {
     RUsermapParamList userMapCertificateStructure;
     memset(&userMapCertificateStructure, 0, sizeof(RUsermapParamList));
-
+    
     userMapCertificateStructure.certificateLength = request->contentLength;
+    userMapCertificateStructure.certificate = new char[request->contentLength + 1];
     memcpy(userMapCertificateStructure.certificate, request->contentBody, request->contentLength);
 
     userMapCertificateStructure.functionCode = MAP_CERTIFICATE_TO_USERNAME;
