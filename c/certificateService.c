@@ -109,46 +109,46 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
       finishResponse(response);
     }
     
-    R_datalib_parm_list_64 example;
-    memset(&example, 0, sizeof(R_datalib_parm_list_64));
+    R_datalib_parm_list_64 userMapCertificateStructure;
+    memset(&userMapCertificateStructure, 0, sizeof(R_datalib_parm_list_64));
 
-    example.certificate_len = request->contentLength;
-    memcpy(example.certificate, inPtr, request->contentLength);
+    userMapCertificateStructure.certificate_len = request->contentLength;
+    memcpy(userMapCertificateStructure.certificate, inPtr, request->contentLength);
 
-    example.function_code = 0x0006;
+    userMapCertificateStructure.function_code = 0x0006;
     int rc; 
 
     rc = IRRSIM00(
-        &example.workarea, // WORKAREA 
-        &example.saf_rc_ALET  , // ALET 
-        &example.return_code, 
-        &example.racf_rc_ALET, 
-        &example.RACF_return_code,
-        &example.racf_rsn_ALET,
-        &example.RACF_reason_code,
-        &example.fc_ALET,
-        &example.function_code,
-        &example.option_word,
-        &example.RACF_userid_len,
-        &example.certificate_len,
-        &example.application_id_len,
-        &example.distinguished_name_len,
-        &example.registry_name_len
+        &userMapCertificateStructure.workarea, // WORKAREA 
+        &userMapCertificateStructure.saf_rc_ALET  , // ALET 
+        &userMapCertificateStructure.return_code, 
+        &userMapCertificateStructure.racf_rc_ALET, 
+        &userMapCertificateStructure.RACF_return_code,
+        &userMapCertificateStructure.racf_rsn_ALET,
+        &userMapCertificateStructure.RACF_reason_code,
+        &userMapCertificateStructure.fc_ALET,
+        &userMapCertificateStructure.function_code,
+        &userMapCertificateStructure.option_word,
+        &userMapCertificateStructure.RACF_userid_len,
+        &userMapCertificateStructure.certificate_len,
+        &userMapCertificateStructure.application_id_len,
+        &userMapCertificateStructure.distinguished_name_len,
+        &userMapCertificateStructure.registry_name_len
     );
       
     jsonPrinter *p = respondWithJsonPrinter(response);
     
-    setValidResponseCode(response, rc, example.return_code, example.RACF_return_code, example.RACF_reason_code);
+    setValidResponseCode(response, rc, userMapCertificateStructure.return_code, userMapCertificateStructure.RACF_return_code, userMapCertificateStructure.RACF_reason_code);
     setDefaultJSONRESTHeaders(response);
     writeHeader(response);
     
     jsonStart(p);
     {
-      jsonAddString(p, "userid", example.RACF_userid);
+      jsonAddString(p, "userid", userMapCertificateStructure.RACF_userid);
       jsonAddInt(p, "rc", rc);
-      jsonAddInt(p, "saf_rc", example.return_code);
-      jsonAddInt(p, "racf_rc", example.RACF_return_code);
-      jsonAddInt(p, "reason_code", example.RACF_reason_code);
+      jsonAddInt(p, "saf_rc", userMapCertificateStructure.return_code);
+      jsonAddInt(p, "racf_rc", userMapCertificateStructure.RACF_return_code);
+      jsonAddInt(p, "reason_code", userMapCertificateStructure.RACF_reason_code);
     }
     jsonEnd(p);
   }
