@@ -40,6 +40,8 @@
 
 #pragma linkage(IRRSIM00, OS)
 
+#define MAP_CERTIFICATE_TO_USERNAME 0x0006
+
 typedef _Packed struct _RUsermapParamList { 
    double workarea[128]; 
     int safRcAlet, returnCode;
@@ -113,7 +115,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
     userMapCertificateStructure.certificateLength = request->contentLength;
     memcpy(userMapCertificateStructure.certificate, inPtr, request->contentLength);
 
-    userMapCertificateStructure.functionCode = 0x0006;
+    userMapCertificateStructure.functionCode = MAP_CERTIFICATE_TO_USERNAME;
     int rc; 
 
     rc = IRRSIM00(
