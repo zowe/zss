@@ -40,40 +40,40 @@
 
 #pragma linkage(IRRSIM00, OS)
 
-typedef _Packed struct _R_datalib_parm_list_64 { 
+typedef _Packed struct _RUsermapParamList { 
    double workarea[128]; 
-    int saf_rc_ALET, return_code;
-    int racf_rc_ALET, RACF_return_code;
-    int racf_rsn_ALET, RACF_reason_code;
-    int fc_ALET;
-    short function_code;
-    int  option_word;
-    char RACF_userid_len; 
-    char RACF_userid[8];
-    int certificate_len;
+    int safRcAlet, returnCode;
+    int racfRcAlet, returnCodeRacf;
+    int racfReasonAlet, reasonCodeRacf;
+    int fcAlet;
+    short functionCode;
+    int  optionWord;
+    char useridLengthRacf; 
+    char useridRacf[8];
+    int certificateLength;
     char certificate[4096];
-    short application_id_len;
-    char application_id[246];
-    short distinguished_name_len;
-    char distinguished_name[246];
-    short registry_name_len;
-    char registry_name[255];
+    short applicationIdLength;
+    char applicationId[246];
+    short distinguishedNameLength;
+    char distinguishedName[246];
+    short registryNameLength;
+    char registryName[255];
     
-} R_datalib_parm_list_64;
+} RUsermapParamList;
 
-static void setValidResponseCode(HttpResponse *response, int rc, int return_code, int RACF_return_code, int RACF_reason_code) {
-  if(rc == 0 && return_code == 0 && RACF_return_code == 0 && RACF_reason_code == 0) {
+static void setValidResponseCode(HttpResponse *response, int rc, int returnCode, int returnCodeRacf, int reasonCodeRacf) {
+  if(rc == 0 && returnCode == 0 && returnCodeRacf == 0 && reasonCodeRacf == 0) {
     setResponseStatus(response, 200, "OK");
-  } else if ((rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 4)
-  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 40)
-  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 44) ) {
+  } else if ((rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 4)
+  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 40)
+  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 44) ) {
     setResponseStatus(response, 400, "Bad request");
-  } else if ((rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 16)
-  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 20)
-  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 24)
-  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 28)
-  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 32)
-  || (rc != 0 && return_code == 8 && RACF_return_code == 8 && RACF_reason_code == 48)) {
+  } else if ((rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 16)
+  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 20)
+  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 24)
+  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 28)
+  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 32)
+  || (rc != 0 && returnCode == 8 && returnCodeRacf == 8 && reasonCodeRacf == 48)) {
     setResponseStatus(response, 401, "Unauthorized");
   } else {
     setResponseStatus(response, 500, "Internal server error");
@@ -109,46 +109,46 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
       finishResponse(response);
     }
     
-    R_datalib_parm_list_64 userMapCertificateStructure;
-    memset(&userMapCertificateStructure, 0, sizeof(R_datalib_parm_list_64));
+    RUsermapParamList userMapCertificateStructure;
+    memset(&userMapCertificateStructure, 0, sizeof(RUsermapParamList));
 
-    userMapCertificateStructure.certificate_len = request->contentLength;
+    userMapCertificateStructure.certificateLength = request->contentLength;
     memcpy(userMapCertificateStructure.certificate, inPtr, request->contentLength);
 
-    userMapCertificateStructure.function_code = 0x0006;
+    userMapCertificateStructure.functionCode = 0x0006;
     int rc; 
 
     rc = IRRSIM00(
         &userMapCertificateStructure.workarea, // WORKAREA 
-        &userMapCertificateStructure.saf_rc_ALET  , // ALET 
-        &userMapCertificateStructure.return_code, 
-        &userMapCertificateStructure.racf_rc_ALET, 
-        &userMapCertificateStructure.RACF_return_code,
-        &userMapCertificateStructure.racf_rsn_ALET,
-        &userMapCertificateStructure.RACF_reason_code,
-        &userMapCertificateStructure.fc_ALET,
-        &userMapCertificateStructure.function_code,
-        &userMapCertificateStructure.option_word,
-        &userMapCertificateStructure.RACF_userid_len,
-        &userMapCertificateStructure.certificate_len,
-        &userMapCertificateStructure.application_id_len,
-        &userMapCertificateStructure.distinguished_name_len,
-        &userMapCertificateStructure.registry_name_len
+        &userMapCertificateStructure.safRcAlet  , // ALET 
+        &userMapCertificateStructure.returnCode, 
+        &userMapCertificateStructure.racfRcAlet, 
+        &userMapCertificateStructure.returnCodeRacf,
+        &userMapCertificateStructure.racfReasonAlet,
+        &userMapCertificateStructure.reasonCodeRacf,
+        &userMapCertificateStructure.fcAlet,
+        &userMapCertificateStructure.functionCode,
+        &userMapCertificateStructure.optionWord,
+        &userMapCertificateStructure.useridLengthRacf,
+        &userMapCertificateStructure.certificateLength,
+        &userMapCertificateStructure.applicationIdLength,
+        &userMapCertificateStructure.distinguishedNameLength,
+        &userMapCertificateStructure.registryNameLength
     );
       
     jsonPrinter *p = respondWithJsonPrinter(response);
     
-    setValidResponseCode(response, rc, userMapCertificateStructure.return_code, userMapCertificateStructure.RACF_return_code, userMapCertificateStructure.RACF_reason_code);
+    setValidResponseCode(response, rc, userMapCertificateStructure.returnCode, userMapCertificateStructure.returnCodeRacf, userMapCertificateStructure.reasonCodeRacf);
     setDefaultJSONRESTHeaders(response);
     writeHeader(response);
     
     jsonStart(p);
     {
-      jsonAddString(p, "userid", userMapCertificateStructure.RACF_userid);
+      jsonAddString(p, "userid", userMapCertificateStructure.useridRacf);
       jsonAddInt(p, "rc", rc);
-      jsonAddInt(p, "saf_rc", userMapCertificateStructure.return_code);
-      jsonAddInt(p, "racf_rc", userMapCertificateStructure.RACF_return_code);
-      jsonAddInt(p, "reason_code", userMapCertificateStructure.RACF_reason_code);
+      jsonAddInt(p, "saf_rc", userMapCertificateStructure.returnCode);
+      jsonAddInt(p, "racf_rc", userMapCertificateStructure.returnCodeRacf);
+      jsonAddInt(p, "reason_code", userMapCertificateStructure.reasonCodeRacf);
     }
     jsonEnd(p);
   }
