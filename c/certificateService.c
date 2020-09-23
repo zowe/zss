@@ -138,10 +138,10 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
     jsonStart(p);
     {
       jsonAddString(p, "userid", userMapCertificateStructure.useridRacf);
-      jsonAddInt(p, "rc", rc);
-      jsonAddInt(p, "saf_rc", userMapCertificateStructure.returnCode);
-      jsonAddInt(p, "racf_rc", userMapCertificateStructure.returnCodeRacf);
-      jsonAddInt(p, "reason_code", userMapCertificateStructure.reasonCodeRacf);
+      jsonAddInt(p, "returnCode", rc);
+      jsonAddInt(p, "safReturnCode", userMapCertificateStructure.returnCode);
+      jsonAddInt(p, "racfReturnCode", userMapCertificateStructure.returnCodeRacf);
+      jsonAddInt(p, "racfReasonCode", userMapCertificateStructure.reasonCodeRacf);
     }
     jsonEnd(p);
 
