@@ -53,13 +53,6 @@ typedef _Packed struct _RUsermapParamList {
     char useridRacf[8];
     int certificateLength;
     char *certificate;
-    short applicationIdLength;
-    char applicationId[246];
-    short distinguishedNameLength;
-    char distinguishedName[246];
-    short registryNameLength;
-    char registryName[255];
-    
 } RUsermapParamList;
 
 static void setValidResponseCode(HttpResponse *response, int rc, int returnCode, int returnCodeRacf, int reasonCodeRacf) {
@@ -133,10 +126,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         &userMapCertificateStructure.functionCode,
         &userMapCertificateStructure.optionWord,
         &userMapCertificateStructure.useridLengthRacf,
-        &userMapCertificateStructure.certificateLength,
-        &userMapCertificateStructure.applicationIdLength,
-        &userMapCertificateStructure.distinguishedNameLength,
-        &userMapCertificateStructure.registryNameLength
+        &userMapCertificateStructure.certificateLength
     );
       
     jsonPrinter *p = respondWithJsonPrinter(response);
