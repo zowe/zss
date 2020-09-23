@@ -88,7 +88,7 @@ static void setValidResponseCode(HttpResponse *response, int rc, int returnCode,
   return;
 }
 
-static void handleInvalidMethod(HttpResponse *response) {
+static void respondWithInvalidMethod(HttpResponse *response) {
     jsonPrinter *p = respondWithJsonPrinter(response);
       
     setResponseStatus(response, 405, "Method Not Allowed");
@@ -159,7 +159,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
   }
   else 
   {
-     handleInvalidMethod(response);
+     respondWithInvalidMethod(response);
   }
     
   return 0;
