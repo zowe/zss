@@ -93,7 +93,7 @@ static void handleInvalidMethod(HttpResponse *response) {
       
     setResponseStatus(response, 405, "Method Not Allowed");
     setDefaultJSONRESTHeaders(response);
-    addStringHeader(response, "Allow", "GET");
+    addStringHeader(response, "Allow", "POST");
     writeHeader(response);
     
     jsonStart(p);
@@ -101,6 +101,8 @@ static void handleInvalidMethod(HttpResponse *response) {
       jsonAddString(p, "error", "Only POST requests are supported");
     }
     jsonEnd(p);
+
+    finishResponse(response);
 }
 
 static int serveMappingService(HttpService *service, HttpResponse *response)
@@ -152,13 +154,13 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
       jsonAddInt(p, "reason_code", userMapCertificateStructure.reasonCodeRacf);
     }
     jsonEnd(p);
+
+    finishResponse(response);
   }
   else 
   {
      handleInvalidMethod(response);
   }
-  
-  finishResponse(response);
     
   return 0;
 }
