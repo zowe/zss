@@ -36,7 +36,7 @@ currentJsonConfigPath=$DESTINATION/serverConfig/server.json
 if [ ! -f "$currentJsonConfigPath" ]; then
   mkdir -p $DESTINATION/serverConfig
   cp ../defaults/serverConfig/server.json $DESTINATION/serverConfig/server.json
-  PRODUCT_DIR=$PWD../defaults
+  PRODUCT_DIR=$(cd `$PWD/../defaults` && pwd)
   SITE_DIR=$DESTINATION/site
   SITE_PLUGIN_STORAGE=$SITE_DIR/ZLUX/pluginStorage
   INSTANCE_PLUGIN_STORAGE=$DESTINATION/ZLUX/pluginStorage
@@ -45,12 +45,13 @@ if [ ! -f "$currentJsonConfigPath" ]; then
   USERS_DIR=$DESTINATION/users
   PLUGINS_DIR=$DESTINATION/plugins
 
-  sed 's@"productDir":"../defaults"@"productDir":"$PRODUCT_DIR"@g' $currentJsonConfigPath
-  sed 's@"siteDir":"../deploy/site"@"siteDir":"$SITE_DIR"@g' $currentJsonConfigPath
-  sed 's@"instanceDir":"../deploy/instance"@"instanceDIR":"$DESTINATION"@g' $currentJsonConfigPath
-  sed 's@"groupsDir":"../deploy/instance/groups"@"groupsDir":"$GROUPS_DIR"@g' $currentJsonConfigPath
-  sed 's@"usersDir":"../deploy/instance/users"@"usersDir":"$USERS_DIR"@g' $currentJsonConfigPath
-  sed 's@"pluginsDir":"../defaults/plugins"@"pluginsDir":"$PLUGINS_DIR"@g' $currentJsonConfigPath
+  sed 's@"productDir":"../defaults"@"productDir":"'${PRODUCT_DIR}'"@g' $currentJsonConfigPath > ${currentJsonConfigPath}.zwetmp1
+  sed 's@"siteDir":"../deploy/site"@"siteDir":"'${SITE_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}.zwetmp2
+  sed 's@"instanceDir":"../deploy/instance"@"instanceDIR":"'${DESTINATION}'"@g' ${currentJsonConfigPath}.zwetmp2 > ${currentJsonConfigPath}.zwetmp1
+  sed 's@"groupsDir":"../deploy/instance/groups"@"groupsDir":"'${GROUPS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}.zwetmp2
+  sed 's@"usersDir":"../deploy/instance/users"@"usersDir":"'${USERS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp2 > ${currentJsonConfigPath}.zwetmp1
+  sed 's@"pluginsDir":"../defaults/plugins"@"pluginsDir":"'${PLUGINS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}
+  rm ${currentJsonConfigPath}.zwetmp1 ${currentJsonConfigPath}.zwetmp2
 
   mkdir -p $SITE_PLUGIN_STORAGE
   mkdir -p $INSTANCE_PLUGIN_STORAGE
