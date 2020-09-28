@@ -9,5 +9,8 @@ All notable changes to the ZSS package will be documented in this file.
 ### New features and enhancements
 - ZSS no longer requires NodeJS for its configure.sh script
 
+## `1.12.0`
+
+### New features and enhancements
 - Added scripts to allow ZSS to be its own component in the zowe install packaging
 
