@@ -55,6 +55,7 @@ if [ ! -f "$currentJsonConfigPath" ]; then
   mkdir -p $SITE_PLUGIN_STORAGE
   mkdir -p $INSTANCE_PLUGIN_STORAGE
   mkdir -m 700 -p $INSTANCE_CONFIG
+  chmod 700 $INSTANCE_CONFIG
   mkdir -p $GROUPS_DIR
   mkdir -p $USERS_DIR
   mkdir -p $PLUGINS_DIR
