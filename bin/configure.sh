@@ -11,20 +11,57 @@
 # Required variables on shell:
 # - ROOT_DIR
 # - WORKSPACE_DIR
-# - NODE_HOME
-if [ -n "$NODE_HOME" ]
-then
-  NODE_BIN=${NODE_HOME}/bin/node
-else
-  NODE_BIN=node
-fi
 
 cd ${ROOT_DIR}/components/app-server/share/zlux-app-server/bin
 . ./convert-env.sh
 
 cd ${ROOT_DIR}/components/app-server/share/zlux-app-server/lib
-export NODE_PATH=../..:../../zlux-server-framework/node_modules:$NODE_PATH
-__UNTAGGED_READ_MODE=V6 $NODE_BIN initInstance.js
+
+if [ -n "$INSTANCE_DIR" ]
+then
+  INSTANCE_LOCATION=$INSTANCE_DIR
+else
+  INSTANCE_LOCATION=$HOME/.zowe
+fi
+if [ -n "$WORKSPACE_DIR" ]
+then
+  WORKSPACE_LOCATION=$WORKSPACE_DIR
+else
+  WORKSPACE_LOCATION=$INSTANCE_LOCATION/workspace
+fi
+DESTINATION=$WORKSPACE_LOCATION/app-server
+
+currentJsonConfigPath=$DESTINATION/serverConfig/server.json
+
+if [ ! -f "$currentJsonConfigPath" ]; then
+  mkdir -p $DESTINATION/serverConfig
+  cp ../defaults/serverConfig/server.json $DESTINATION/serverConfig/server.json
+  PRODUCT_DIR=$(cd `$PWD/../defaults` && pwd)
+  SITE_DIR=$DESTINATION/site
+  SITE_PLUGIN_STORAGE=$SITE_DIR/ZLUX/pluginStorage
+  INSTANCE_PLUGIN_STORAGE=$DESTINATION/ZLUX/pluginStorage
+  INSTANCE_CONFIG=$DESTINATION/serverConfig
+  GROUPS_DIR=$DESTINATION/groups
+  USERS_DIR=$DESTINATION/users
+  PLUGINS_DIR=$DESTINATION/plugins
+
+  sed 's@"productDir":"../defaults"@"productDir":"'${PRODUCT_DIR}'"@g' $currentJsonConfigPath > ${currentJsonConfigPath}.zwetmp1
+  sed 's@"siteDir":"../deploy/site"@"siteDir":"'${SITE_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}.zwetmp2
+  sed 's@"instanceDir":"../deploy/instance"@"instanceDIR":"'${DESTINATION}'"@g' ${currentJsonConfigPath}.zwetmp2 > ${currentJsonConfigPath}.zwetmp1
+  sed 's@"groupsDir":"../deploy/instance/groups"@"groupsDir":"'${GROUPS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}.zwetmp2
+  sed 's@"usersDir":"../deploy/instance/users"@"usersDir":"'${USERS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp2 > ${currentJsonConfigPath}.zwetmp1
+  sed 's@"pluginsDir":"../defaults/plugins"@"pluginsDir":"'${PLUGINS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}
+  rm ${currentJsonConfigPath}.zwetmp1 ${currentJsonConfigPath}.zwetmp2
+
+  mkdir -p $SITE_PLUGIN_STORAGE
+  mkdir -p $INSTANCE_PLUGIN_STORAGE
+  mkdir -m 700 -p $INSTANCE_CONFIG
+  chmod 700 $INSTANCE_CONFIG
+  chmod 700 $INSTANCE_CONFIG/server.json
+  mkdir -p $GROUPS_DIR
+  mkdir -p $USERS_DIR
+  mkdir -p $PLUGINS_DIR
+fi
 
 APP_WORKSPACE_DIR=${INSTANCE_DIR}/workspace/app-server
 
