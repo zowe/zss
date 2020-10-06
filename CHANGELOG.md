@@ -9,6 +9,8 @@ All notable changes to the ZSS package will be documented in this file.
 ### New features and enhancements
 - ZSS no longer requires NodeJS for its configure.sh script
 
+- Bugfix: ZSS startup would issue warnings about failure to write yml files for APIML in the case APIML was not also being used
+
 ## `1.12.0`
 
 ### New features and enhancements
