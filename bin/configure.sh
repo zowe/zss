@@ -47,7 +47,7 @@ if [ ! -f "$currentJsonConfigPath" ]; then
 
   sed 's@"productDir":"../defaults"@"productDir":"'${PRODUCT_DIR}'"@g' $currentJsonConfigPath > ${currentJsonConfigPath}.zwetmp1
   sed 's@"siteDir":"../deploy/site"@"siteDir":"'${SITE_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}.zwetmp2
-  sed 's@"instanceDir":"../deploy/instance"@"instanceDIR":"'${DESTINATION}'"@g' ${currentJsonConfigPath}.zwetmp2 > ${currentJsonConfigPath}.zwetmp1
+  sed 's@"instanceDir":"../deploy/instance"@"instanceDir":"'${DESTINATION}'"@g' ${currentJsonConfigPath}.zwetmp2 > ${currentJsonConfigPath}.zwetmp1
   sed 's@"groupsDir":"../deploy/instance/groups"@"groupsDir":"'${GROUPS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}.zwetmp2
   sed 's@"usersDir":"../deploy/instance/users"@"usersDir":"'${USERS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp2 > ${currentJsonConfigPath}.zwetmp1
   sed 's@"pluginsDir":"../defaults/plugins"@"pluginsDir":"'${PLUGINS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}
@@ -64,6 +64,9 @@ if [ ! -f "$currentJsonConfigPath" ]; then
 fi
 
 APP_WORKSPACE_DIR=${INSTANCE_DIR}/workspace/app-server
+
+if [ -n "${STATIC_DEF_CONFIG_DIR}" ]
+then
 
 version=`grep "version" ${INSTANCE_DIR}/workspace/manifest.json |  head -1 | sed -e 's/"//g' | sed -e 's/.*: *//g' | sed -e 's/,.*//g'`
 
@@ -95,3 +98,4 @@ EOF
 iconv -f IBM-1047 -t IBM-850 ${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml > $STATIC_DEF_CONFIG_DIR/zss.yml
 rm ${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml
 chmod 770 $STATIC_DEF_CONFIG_DIR/zss.yml
+fi
