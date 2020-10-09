@@ -31,4 +31,3 @@ void installServerStatusService(HttpServer *server, JsonObject* serverSettings, 
   
   Copyright Contributors to the Zowe Project.
 */
-

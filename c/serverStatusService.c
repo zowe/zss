@@ -49,11 +49,6 @@ static inline bool strne(const char *a, const char *b) {
   return a != NULL && b != NULL && strcmp(a, b) != 0;
 }
 
-typedef int EXSMFI(int *reqType, int *recType, int *subType,
-                   char* buffer, int *bufferLen, int *cpuUtil,
-                   int *dpRate, int *options, int *mvs, int *zaap, int *ziip);
-EXSMFI *smfFunc;
-
 void installServerStatusService(HttpServer *server, JsonObject *serverSettings, char* productVer) {
   HttpService *httpService = makeGeneratedService("Server_Status_Service", "/server/agent/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
@@ -148,13 +143,6 @@ int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *con
   extern char **environ;
   struct utsname unameRet;
   char hostnameBuffer[HOST_NAME_MAX];
-  char *buffer;
-  int rc = 0;
-  int reqtype = 0x00000005; //fullword. request type
-  int rectype = 0x0000004F; //SMF record type, only type 79 is supported
-  int subtype = 0x00000009; //SMF record subtype
-  int bufferlen = 716800; // Yes the SMF buffer is actually 700Kb roughly
-  int cpuUtil = 0, demandPaging = 0, options = 0, mvsSrm = 0, zaapUtil = 0, ziipUtil = 0;
   if (__osname(&unameRet) < 0) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG,
             "Falied to retrieve operating system info, errno=%d - %s",
@@ -163,30 +151,6 @@ int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *con
     return -1;
   }
   gethostname(hostnameBuffer, sizeof(hostnameBuffer));
-  buffer = (char *)safeMalloc(bufferlen, "buffer");
-  if (buffer == NULL) {
-    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to allocate resources");
-    return -1;
-  }
-  memset(buffer, 0, bufferlen);
-  smfFunc = (EXSMFI *)fetch("ERBSMFI");
-  rc = (*smfFunc)(&reqtype,
-               &rectype,
-               &subtype,
-               buffer,
-               &bufferlen,
-               &cpuUtil,
-               &demandPaging,
-               &options,
-               &mvsSrm,
-               &zaapUtil,
-               &ziipUtil);
-  safeFree(buffer, bufferlen);
-  if (rc > 0) {
-    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Unable to fetch from RMF data interface service");
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_FAIL_RMF_FETCH_MSG, rc);
-    return -1;
-  }
   time_t ltime;
   char tstamp[50];
   time(&ltime);
@@ -210,7 +174,8 @@ int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *con
   }
   jsonAddString(out, "agentName", "zss");
   jsonAddString(out, "agentVersion", context->productVersion);
-  jsonAddString(out, "arch", unameRet.sysname);
+  jsonAddString(out, "arch", "s390x");
+  jsonAddString(out, "os", "zos");
   jsonAddString(out, "osRelease", unameRet.release);
   jsonAddString(out, "osVersion", unameRet.version);
   jsonAddString(out, "hardwareIdentifier", unameRet.machine);
@@ -237,11 +202,6 @@ int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *con
       envVar = *(environ+i);
     }
     jsonEndObject(out);
-    jsonAddInt(out, "demandPagingRate", demandPaging);
-    jsonAddInt(out, "stdCP_CPU_Util", cpuUtil);
-    jsonAddInt(out, "stdCP_MVS_SRM_CPU_Util", mvsSrm);
-    jsonAddInt(out, "ZAAP_CPU_Util", zaapUtil);
-    jsonAddInt(out, "ZIIP_CPU_Util", ziipUtil);
     jsonAddInt(out, "PID", getpid());
     jsonAddInt(out, "PPID", getppid());
   }
@@ -350,4 +310,3 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
   
   Copyright Contributors to the Zowe Project.
 */
-
