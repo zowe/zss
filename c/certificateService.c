@@ -51,8 +51,14 @@ typedef _Packed struct _RUsermapParamList {
     int  optionWord;
     char useridLengthRacf; 
     char useridRacf[8];
+    short applicationIdLength;
+    char applicationId[246];
+    short distinguishedNameLength;
+    char distinguishedName[246];
+    short registryNameLength;
+    char registryName[255];
     int certificateLength;
-    char *certificate;
+    char certificate[4096];
 } RUsermapParamList;
 
 static void setValidResponseCode(HttpResponse *response, int rc, int returnCode, int returnCodeRacf, int reasonCodeRacf) {
@@ -98,6 +104,22 @@ static void respondWithInvalidMethod(HttpResponse *response) {
     finishResponse(response);
 }
 
+static void respondWithBadRequest(HttpResponse *response) {
+    jsonPrinter *p = respondWithJsonPrinter(response);
+      
+    setResponseStatus(response, 400, "Bad Request");
+    setDefaultJSONRESTHeaders(response);
+    writeHeader(response);
+    
+    jsonStart(p);
+    {
+      jsonAddString(p, "error", "The length of the certificate is longer than 4096 bytes");
+    }
+    jsonEnd(p);
+
+    finishResponse(response);
+}
+
 static int serveMappingService(HttpService *service, HttpResponse *response)
 {
   HttpRequest *request = response->request;
@@ -106,6 +128,11 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
   {
     RUsermapParamList userMapCertificateStructure;
     memset(&userMapCertificateStructure, 0, sizeof(RUsermapParamList));
+
+    if(request->contentLength > 4096 || request->contentLength < 0) {
+      respondWithBadRequest(response);
+      return;
+    }
     
     userMapCertificateStructure.certificateLength = request->contentLength;
     memset(userMapCertificateStructure.certificate, 0, request->contentLength + 1);
@@ -126,7 +153,10 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         &userMapCertificateStructure.functionCode,
         &userMapCertificateStructure.optionWord,
         &userMapCertificateStructure.useridLengthRacf,
-        &userMapCertificateStructure.certificateLength
+        &userMapCertificateStructure.certificateLength,
+        &userMapCertificateStructure.applicationIdLength,
+        &userMapCertificateStructure.distinguishedNameLength,
+        &userMapCertificateStructure.registryNameLength
     );
       
     jsonPrinter *p = respondWithJsonPrinter(response);
