@@ -12,7 +12,7 @@ set -e
 ################################################################################
 
 
-export _C89_LSYSLIB="CEE.SCEELKED:SYS1.CSSLIB:CSF.SCSFMOD0"
+export _C89_LSYSLIB="CEE.SCEELKED:SYS1.CSSLIB:PP.CSF.ZOS203.SCSFMOD0"
 
 WORKING_DIR=$(dirname "$0")
 ZSS="../.."
@@ -84,6 +84,7 @@ if c89 \
   ${COMMON}/c/crossmemory.c \
   ${COMMON}/c/crypto.c \
   ${COMMON}/c/dataservice.c \
+  ${COMMON}/c/isgenq.c \
   ${COMMON}/c/datasetjson.c \
   ${COMMON}/c/discovery.c \
   ${COMMON}/c/dynalloc.c \

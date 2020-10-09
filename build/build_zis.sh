@@ -12,7 +12,7 @@ set -e
 ################################################################################
 
 
-export _LD_SYSLIB="//'SYS1.CSSLIB'://'CEE.SCEELKEX'://'CEE.SCEELKED'://'CEE.SCEERUN'://'CEE.SCEERUN2'://'CSF.SCSFMOD0'"
+export _LD_SYSLIB="//'SYS1.CSSLIB'://'CEE.SCEELKEX'://'CEE.SCEELKED'://'CEE.SCEERUN'://'CEE.SCEERUN2'://'PP.CSF.ZOS203.SCSFMOD0'"
 
 WORKING_DIR=$(dirname "$0")
 ZSS="../.."
