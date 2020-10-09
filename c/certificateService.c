@@ -131,7 +131,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
 
     if(request->contentLength > 4096 || request->contentLength < 0) {
       respondWithBadRequest(response);
-      return;
+      return 0;
     }
     
     userMapCertificateStructure.certificateLength = request->contentLength;
