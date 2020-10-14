@@ -22,6 +22,7 @@
 #include <string.h>
 #endif
 
+#include "certificateService.h"
 #include "httpserver.h"
 #include "json.h"
 #include "http.h"
