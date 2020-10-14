@@ -30,6 +30,10 @@
 
 #define MAP_CERTIFICATE_TO_USERNAME 0x0006
 #define SUCCESS_RC 0
+#define SUCCESS_RC_SAF 0
+#define SUCCESS_RC_RACF 0
+#define SUCCESS_REASON_CODE_RACF 0
+
 #define SAF_FAILURE_RC 8
 #define RACF_FAILURE_RC 8
 
@@ -42,7 +46,7 @@
 #define NO_IDENTITY_FILTER_RC 48
 
 typedef _Packed struct _RUsermapParamList {
-   double workarea[128];
+    double workarea[1024];
     int safRcAlet, returnCode;
     int racfRcAlet, returnCodeRacf;
     int racfReasonAlet, reasonCodeRacf;
@@ -62,7 +66,7 @@ typedef _Packed struct _RUsermapParamList {
 } RUsermapParamList;
 
 static void setValidResponseCode(HttpResponse *response, int rc, int returnCode, int returnCodeRacf, int reasonCodeRacf) {
-  if (rc == SUCCESS_RC && returnCode == SUCCESS_RC && returnCodeRacf == SUCCESS_RC && reasonCodeRacf == SUCCESS_RC) {
+  if (rc == SUCCESS_RC && returnCode == SUCCESS_RC_SAF && returnCodeRacf == SUCCESS_RC_RACF && reasonCodeRacf == SUCCESS_REASON_CODE_RACF) {
     setResponseStatus(response, 200, "OK");
     return;
   } else if(rc != SUCCESS_RC) {
@@ -129,13 +133,13 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
     RUsermapParamList userMapCertificateStructure;
     memset(&userMapCertificateStructure, 0, sizeof(RUsermapParamList));
 
-    if(request->contentLength > 4096 || request->contentLength < 0) {
+    if(request->contentLength > sizeof(userMapCertificateStructure.certificate) || request->contentLength < 0) {
       respondWithBadRequest(response);
       return 0;
     }
 
     userMapCertificateStructure.certificateLength = request->contentLength;
-    memset(userMapCertificateStructure.certificate, 0, request->contentLength + 1);
+    memset(userMapCertificateStructure.certificate, 0, request->contentLength);
     memcpy(userMapCertificateStructure.certificate, request->contentBody, request->contentLength);
 
     userMapCertificateStructure.functionCode = MAP_CERTIFICATE_TO_USERNAME;
