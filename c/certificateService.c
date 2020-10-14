@@ -46,7 +46,7 @@
 #define NO_IDENTITY_FILTER_RC 48
 
 typedef _Packed struct _RUsermapParamList {
-    double workarea[1024];
+    char workarea[1024];
     int safRcAlet, returnCode;
     int racfRcAlet, returnCodeRacf;
     int racfReasonAlet, reasonCodeRacf;
