@@ -305,6 +305,13 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_FAIL_RMF_FETCH_MSG_TEXT      "Failed to fetch RMF data: RC='%d'\n"
 #define ZSS_LOG_FAIL_RMF_FETCH_MSG           ZSS_LOG_FAIL_RMF_FETCH_MSG_ID" "ZSS_LOG_FAIL_RMF_FETCH_MSG_TEXT
 
+/* MVD Server (TLS) */
+#ifndef ZSS_LOG_TLS_INIT_MSG_ID
+#define ZSS_LOG_TLS_INIT_MSG_ID              ZSS_LOG_MSG_PRFX"1060W"
+#endif
+#define ZSS_LOG_TLS_INIT_MSG_TEXT            "Failed to init TLS environment, rc=%d(%s)\n"
+#define ZSS_LOG_TLS_INIT_MSG                 ZSS_LOG_TLS_INIT_MSG_ID" "ZSS_LOG_TLS_INIT_MSG_TEXT
+
 /* Unixfile */
 
 #ifndef ZSS_LOG_UNABLE_MSG_ID
