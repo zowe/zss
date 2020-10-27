@@ -665,6 +665,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
               }
               int pluginLogLevel = checkLoggingVerbosity(serverConfigFile, identifier, slh);
               if (identifier && pluginLocation) {
+                zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "Plugin ID '%s' is being loaded.\n", identifier); /* debug */
                 JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, pluginLocation, relativeTo);
                 if (pluginDefinition) {
                   WebPlugin *plugin = makeWebPlugin(pluginLocation, pluginDefinition, internalAPIMap,

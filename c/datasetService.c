@@ -159,9 +159,9 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Releasing enqueue on: %s\n", filename);
     fflush(stdout);
-    /*
-    releaseEnqueue(response, filename);  /* to be coded */
-     */
+    
+    // releaseEnqueue(response, filename);  /* to be coded */
+    
   }
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
@@ -248,7 +248,7 @@ void installDatasetEnqueueService(HttpServer *server) {
 
   HttpService *httpService = makeGeneratedService("datasetEnqueue", "/datasetEnqueue/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
-  httpService->runInSubtask = FALSE;  /* run in server's core */
+  httpService->runInSubtask = TRUE;  
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveDatasetEnqueue;
   registerHttpService(server, httpService);
