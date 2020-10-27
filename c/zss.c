@@ -924,7 +924,7 @@ static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envCon
 #define AGENT_HTTPS_PREFIX       "ZWED_agent_https_"
 #define ENV_AGENT_HTTPS_KEY(key) AGENT_HTTPS_PREFIX key
 
-static void readAgentHttpsSettings(ShortLivedHeap *slh,
+static bool readAgentHttpsSettings(ShortLivedHeap *slh,
                                    JsonObject *serverConfig,
                                    JsonObject *envConfig,
                                    char **outAddress,
@@ -970,15 +970,16 @@ static void readAgentHttpsSettings(ShortLivedHeap *slh,
       }
     }
   }
-  if (!port) {
-    port = jsonObjectGetNumber(serverConfig, "zssPort");
-  }
   if (!address) {
     address = "127.0.0.1";
   }
-  *outPort = port;
-  *outAddress = address;
-  *outSettings = settings;
+  bool httpsSettingsFound = port && settings->keyring;
+  if (httpsSettingsFound) {
+    *outPort = port;
+    *outAddress = address;
+    *outSettings = settings;
+  }
+  return httpsSettingsFound;
 }
 
 static int validateAddress(char *address, InetAddr **inetAddress, int *requiredTLSFlag) {
@@ -1353,7 +1354,10 @@ int main(int argc, char **argv){
     int port = 0;
     char *address = NULL;
     TlsSettings *tlsSettings = NULL;
-    readAgentHttpsSettings(slh, mvdSettings, envSettings, &address, &port, &tlsSettings);
+    bool httpsSettingsFound = readAgentHttpsSettings(slh, mvdSettings, envSettings, &address, &port, &tlsSettings);
+    if (!httpsSettingsFound) {
+      readAgentAddressAndPort(mvdSettings, envSettings, &address, &port);
+    }
     InetAddr *inetAddress = NULL;
     int requiredTLSFlag = 0;
     if (!validateAddress(address, &inetAddress, &requiredTLSFlag)) {
@@ -1363,14 +1367,18 @@ int main(int argc, char **argv){
     }
 
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port);
-    TlsEnvironment *env = NULL;
-    int rc = tlsInit(&env, tlsSettings);
-    if (rc != 0) {
-      zssStatus = ZSS_STATUS_ERROR;
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_TLS_INIT_MSG, rc, tlsStrError(rc));
-      goto out_term_stcbase;
+    if (httpsSettingsFound) {
+      TlsEnvironment *env = NULL;
+      int rc = tlsInit(&env, tlsSettings);
+      if (rc != 0) {
+        zssStatus = ZSS_STATUS_ERROR;
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_TLS_INIT_MSG, rc, tlsStrError(rc));
+        goto out_term_stcbase;
+      }
+      server = makeSecureHttpServer(base, inetAddress, port, env, requiredTLSFlag, &returnCode, &reasonCode);
+    } else {
+      server = makeHttpServer2(base, inetAddress, port, requiredTLSFlag, &returnCode, &reasonCode);
     }
-    server = makeSecureHttpServer(base, inetAddress, port, env, requiredTLSFlag, &returnCode, &reasonCode);
     if (server){
       if (0 != initializeJwtKeystoreIfConfigured(mvdSettings, server, envSettings)) {
         zssStatus = ZSS_STATUS_ERROR;
