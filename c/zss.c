@@ -73,6 +73,7 @@
 #include "datasetService.h"
 #include "serverStatusService.h"
 #include "rasService.h"
+#include "certificateService.h"
 
 #include "jwt.h"
 
@@ -1207,6 +1208,7 @@ int main(int argc, char **argv){
       initializePluginIDHashTable(server);
       loadWebServerConfig(server, mvdSettings, envSettings);
       readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile);
+      installCertificateService(server);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
       installUnixFileCopyService(server);
