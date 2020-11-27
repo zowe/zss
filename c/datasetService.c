@@ -44,7 +44,7 @@
 #include "datasetService.h"
 
 #ifdef __ZOWE_OS_ZOS
-static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
+static int serveDatasetMetadata(HttpService *service, HttpResponse *response, ...) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
   if (!strcmp(request->method, methodGET)) {
@@ -85,7 +85,7 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
   return 0;
 }
 
-static int serveDatasetContents(HttpService *service, HttpResponse *response){
+static int serveDatasetContents(HttpService *service, HttpResponse *response, ...){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
 
@@ -139,8 +139,15 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
 
 /* new for ENQ */
 
-static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
+static int serveDatasetEnqueue(HttpService *service, HttpResponse *response, ...){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+#include <stdarg.h>
+  va_list   intArgumentPointer;
+  va_start( intArgumentPointer, response );  /* name of last fixed parameter */
+  char *sem_table_pointer = va_arg( intArgumentPointer, char * ); /* fetch first variadic parameter */
+  va_end( intArgumentPointer );
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s\n", __FUNCTION__);
+
   HttpRequest *request = response->request;
 
   if (!strcmp(request->method, methodGET)) {
@@ -150,7 +157,7 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Taking enqueue on: %s\n", filename);
     fflush(stdout);
-    respondWithEnqueue(response, filename, TRUE);
+    respondWithEnqueue(response, filename, TRUE, sem_table_pointer);
   }
   else if (!strcmp(request->method, methodDELETE)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
@@ -161,6 +168,7 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
     fflush(stdout);
     
     // releaseEnqueue(response, filename);  /* to be coded */
+    respondWithDequeue(response, filename, TRUE, sem_table_pointer);
     
   }
   else {
@@ -184,7 +192,7 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
 }
 /* end of new for ENQ */
 
-static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response){
+static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response, ...){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
   serveVSAMCache *cache = (serveVSAMCache *)service->userPointer;
@@ -253,6 +261,18 @@ void installDatasetEnqueueService(HttpServer *server) {
   httpService->serviceFunction = serveDatasetEnqueue;
   registerHttpService(server, httpService);
 }
+
+// void installDatasetDequeueService(HttpServer *server) {
+//   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset dequeue");
+//   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+
+//   HttpService *httpService = makeGeneratedService("datasetDequeue", "/datasetDequeue/**");
+//   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+//   httpService->runInSubtask = TRUE;  
+//   httpService->doImpersonation = TRUE;
+//   httpService->serviceFunction = serveDatasetDequeue;
+//   registerHttpService(server, httpService);
+// }
 
 void installVSAMDatasetContentsService(HttpServer *server) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "VSAM dataset contents");

@@ -37,7 +37,7 @@
  */
 
 static int parseOMVSSegment(RadminAPIStatus status, const RadminCommandOutput *result, void *userData);
-static int serveOMVSSegment(HttpService *service, HttpResponse *response);
+static int serveOMVSSegment(HttpService *service, HttpResponse *response, ...);
 static int issueRACFCommand(char *command, OMVSSegment *omvs);
 
 /* The max character count in a RACF
@@ -62,7 +62,7 @@ int installOMVSService(HttpServer *server)
   return 0;
 }
 
-static int serveOMVSSegment(HttpService *service, HttpResponse *response)
+static int serveOMVSSegment(HttpService *service, HttpResponse *response, ...)
 {
   HttpRequest *request = response->request;
   jsonPrinter *p = respondWithJsonPrinter(response);

@@ -672,7 +672,7 @@ static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, ch
   }
 }
 
-static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
+static int serveUnixFileContents(HttpService *service, HttpResponse *response, ...) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
@@ -735,7 +735,7 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
   return 0;
 }
 
-static int serveUnixFileCopy(HttpService *service, HttpResponse *response) {
+static int serveUnixFileCopy(HttpService *service, HttpResponse *response, ...) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
@@ -783,7 +783,7 @@ static int serveUnixFileCopy(HttpService *service, HttpResponse *response) {
   return 0;
 }
 
-static int serveUnixFileRename(HttpService *service, HttpResponse *response) {
+static int serveUnixFileRename(HttpService *service, HttpResponse *response, ...) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
@@ -831,7 +831,7 @@ static int serveUnixFileRename(HttpService *service, HttpResponse *response) {
   return 0;
 }
 
-static int serveUnixFileMakeDirectory(HttpService *service, HttpResponse *response) {
+static int serveUnixFileMakeDirectory(HttpService *service, HttpResponse *response, ...) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
@@ -868,7 +868,7 @@ static int serveUnixFileMakeDirectory(HttpService *service, HttpResponse *respon
   return 0;
 }
 
-static int serveUnixFileTouch(HttpService *service, HttpResponse *response) {
+static int serveUnixFileTouch(HttpService *service, HttpResponse *response, ...) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
@@ -898,7 +898,7 @@ static int serveUnixFileTouch(HttpService *service, HttpResponse *response) {
   }
 }
 
-static int serveUnixFileChangeMode(HttpService *service, HttpResponse *response) {
+static int serveUnixFileChangeMode(HttpService *service, HttpResponse *response, ...) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
@@ -929,7 +929,7 @@ static int serveUnixFileChangeMode(HttpService *service, HttpResponse *response)
   return 0;
 }
 
-static int serveUnixFileMetadata(HttpService *service, HttpResponse *response) {
+static int serveUnixFileMetadata(HttpService *service, HttpResponse *response, ...) {
   HttpRequest *request = response->request;
   char *fileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *fileName = stringConcatenate(response->slh, "/", fileFrag);
@@ -954,7 +954,7 @@ static int serveUnixFileMetadata(HttpService *service, HttpResponse *response) {
   return 0;
 }
 
-static int serveUnixFileChangeOwner (HttpService *service, HttpResponse *response) {
+static int serveUnixFileChangeOwner (HttpService *service, HttpResponse *response, ...) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
@@ -981,7 +981,7 @@ static int serveUnixFileChangeOwner (HttpService *service, HttpResponse *respons
   return 0;
 }
 
-static int serveUnixFileChangeTag(HttpService *service, HttpResponse *response) {
+static int serveUnixFileChangeTag(HttpService *service, HttpResponse *response, ...) {
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
 
@@ -1033,7 +1033,7 @@ static int serveUnixFileChangeTag(HttpService *service, HttpResponse *response) 
 }
 
 
-static int serveTableOfContents(HttpService *service, HttpResponse *response) {
+static int serveTableOfContents(HttpService *service, HttpResponse *response, ...) {
   HttpRequest *request = response->request;
 
   if (!strcmp(request->method, methodGET)) {

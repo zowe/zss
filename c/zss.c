@@ -107,7 +107,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLived
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static InternalAPIMap *makeInternalAPIMap(void);
 
-static int servePluginDefinitions(HttpService *service, HttpResponse *response){
+static int servePluginDefinitions(HttpService *service, HttpResponse *response, ...){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   WebPluginListElt *webPluginListElt = (WebPluginListElt*)service->userPointer;
   jsonPrinter *printer = respondWithJsonPrinter(response);
@@ -149,7 +149,7 @@ static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   return 0;
 }
 
-static int serveWebContent(HttpService *service, HttpResponse *response){
+static int serveWebContent(HttpService *service, HttpResponse *response, ...){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   char *targetDirectory = (char*) service->userPointer;
   HttpRequest *request = response->request;
@@ -160,7 +160,7 @@ static int serveWebContent(HttpService *service, HttpResponse *response){
   return 0;
 }
 
-static int serveLibraryContent(HttpService *service, HttpResponse *response){
+static int serveLibraryContent(HttpService *service, HttpResponse *response, ...){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   char *targetDirectory = (char*) service->userPointer;
   HttpRequest *request = response->request;
@@ -218,7 +218,7 @@ int serveMainPage(HttpService *service, HttpResponse *response) {
   return 0;
 }
 
-int serveLoginWithSessionToken(HttpService *service, HttpResponse *response) {
+int serveLoginWithSessionToken(HttpService *service, HttpResponse *response, ...) {
   jsonPrinter *p = respondWithJsonPrinter(response);
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "serveLoginWithSessionToken: start. response=0x%p; cookie=0x%p\n", response, response->sessionCookie);
@@ -241,7 +241,7 @@ int serveLoginWithSessionToken(HttpService *service, HttpResponse *response) {
   return HTTP_SERVICE_SUCCESS;
 }
 
-int serveLogoutByRemovingSessionToken(HttpService *service, HttpResponse *response) {
+int serveLogoutByRemovingSessionToken(HttpService *service, HttpResponse *response, ...) {
   jsonPrinter *p = respondWithJsonPrinter(response);
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "serveLogoutByRemovingSessionToken: start. response=0x%p; cookie=0x%p\n", response, response->sessionCookie);
