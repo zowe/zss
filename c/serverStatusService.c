@@ -42,7 +42,7 @@
 
 #ifdef __ZOWE_OS_ZOS
 
-static int serveStatus(HttpService *service, HttpResponse *response, ...);
+static int serveStatus(HttpService *service, HttpResponse *response);
 
 static inline bool strne(const char *a, const char *b) { 
   return a != NULL && b != NULL && strcmp(a, b) != 0;
@@ -231,7 +231,7 @@ int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *con
   return 0;
 }
 
-static int serveStatus(HttpService *service, HttpResponse *response, ...) {
+static int serveStatus(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
   ServerAgentContext *context = service->userPointer;
   //This service is conditional on RBAC being enabled because it is a 

@@ -64,7 +64,7 @@
  *    }
  */
 
-static int serveAuthCheck(HttpService *service, HttpResponse *response, ...);
+static int serveAuthCheck(HttpService *service, HttpResponse *response);
 
 int installAuthCheckService(HttpServer *server) {
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "begin %s\n",
@@ -155,7 +155,7 @@ static void respond(HttpResponse *res, int rc, const ZISAuthServiceStatus
   finishResponse(res);
 }
 
-static int serveAuthCheck(HttpService *service, HttpResponse *res, ...) {
+static int serveAuthCheck(HttpService *service, HttpResponse *res) {
   HttpRequest *req = res->request;
   char *entity, *accessStr;
   int access = 0;
@@ -196,7 +196,7 @@ void respondWithJsonStatus(HttpResponse *response, const char *status, int statu
     finishResponse(response);
 }
 
-static int resetPassword(HttpService *service, HttpResponse *response, ...) {
+static int resetPassword(HttpService *service, HttpResponse *response) {
   int returnCode = 0, reasonCode = 0;
   HttpRequest *request = response->request;
   

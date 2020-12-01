@@ -44,7 +44,7 @@
 #include "datasetService.h"
 
 #ifdef __ZOWE_OS_ZOS
-static int serveDatasetMetadata(HttpService *service, HttpResponse *response, ...) {
+static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
   if (!strcmp(request->method, methodGET)) {
@@ -85,7 +85,7 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response, ..
   return 0;
 }
 
-static int serveDatasetContents(HttpService *service, HttpResponse *response, ...){
+static int serveDatasetContents(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
 
@@ -99,13 +99,36 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response, ..
     respondWithDataset(response, filename, TRUE);
   }
   else if (!strcmp(request->method, methodPOST)){
+    /* this section is WIP to allow saving of members when another user
+       has the directory open */
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
-    char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
-    char *filename = stringConcatenate(response->slh, filenamep1, "'");
+    // char *datasetName = cleanURLParamValue(response->slh, l1);
+    // /* update uses USS filename convention to refer to MVS dataset */
+    char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);     /* prepend  //'  to DSN*/
+    // char *filenamep1 = stringConcatenate(response->slh, "~/", datasetName);      /* prepend  ~/  to filename */
+    char *filename = stringConcatenate(response->slh, filenamep1, "'");             /* append   '    to DSN */
+
+    /* append PID to filename */
+    pid_t pid = getpid();
+    char pid_string[10];
+    sprintf(pid_string, "-%d", pid);  
+    // char *filename = stringConcatenate(response->slh, filenamep1, pid_string); 
+
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Updating if exists: %s\n", filename);
+    // zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "filename is %s\n", filename);
+    // zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Updating if exists: %s\n", datasetName);
     fflush(stdout);
-    updateDataset(response, filename, TRUE);
+    // updateDataset(response, filename, TRUE);
+    updateDataset(response, filename, TRUE);     /* save data temporarily in a USS file */
+    
+    /* copy USS file to dataset */
+    char command[1024];
+
+    // sprintf(command, "tsocmd exec \'daviesj.test.clist\(cpfi2ds\)\' \'%s %s\'\n", filename, datasetName, );  /* create command  */
+    // system(command);
+    
+    // deleteDatasetOrMember(response, filename);   /* delete the USS file */
 
   }
   else if (!strcmp(request->method, methodDELETE)) {
@@ -139,13 +162,9 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response, ..
 
 /* new for ENQ */
 
-static int serveDatasetEnqueue(HttpService *service, HttpResponse *response, ...){
+static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
-#include <stdarg.h>
-  va_list   intArgumentPointer;
-  va_start( intArgumentPointer, response );  /* name of last fixed parameter */
-  char *sem_table_pointer = va_arg( intArgumentPointer, char * ); /* fetch first variadic parameter */
-  va_end( intArgumentPointer );
+
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s\n", __FUNCTION__);
 
   HttpRequest *request = response->request;
@@ -157,7 +176,7 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response, ...
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Taking enqueue on: %s\n", filename);
     fflush(stdout);
-    respondWithEnqueue(response, filename, TRUE, sem_table_pointer);
+    respondWithEnqueue(response, filename, TRUE);
   }
   else if (!strcmp(request->method, methodDELETE)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
@@ -168,7 +187,7 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response, ...
     fflush(stdout);
     
     // releaseEnqueue(response, filename);  /* to be coded */
-    respondWithDequeue(response, filename, TRUE, sem_table_pointer);
+    respondWithDequeue(response, filename, TRUE);
     
   }
   else {
@@ -192,7 +211,7 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response, ...
 }
 /* end of new for ENQ */
 
-static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response, ...){
+static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
   serveVSAMCache *cache = (serveVSAMCache *)service->userPointer;

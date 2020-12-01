@@ -438,7 +438,7 @@ static int serveSystemData(HttpService *service,
   return 0;
 }
 
-static int serveDiscoveryData(HttpService *service, HttpResponse *response, ...){
+static int serveDiscoveryData(HttpService *service, HttpResponse *response){
   /* 
      1) get second level identifier 
      2) make jsonPrinter with stdout (if possible)

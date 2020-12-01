@@ -335,7 +335,7 @@ static void respondWithUserProfiles(HttpResponse *response,
  * parse the data. This is left to the caller to do once receiving
  * the entirety of the data.
  */
-static int serveUserProfile(HttpService *service, HttpResponse *response, ...) {
+static int serveUserProfile(HttpService *service, HttpResponse *response) {
 
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s begin\n", __FUNCTION__);
 
@@ -1598,7 +1598,7 @@ static void extractClassMgmtCommonParms(HttpService *service,
 }
 
 static int serveClassManagement(HttpService *service,
-                                HttpResponse *response, ...) {
+                                HttpResponse *response) {
 
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s begin\n", __FUNCTION__);
 
@@ -2771,7 +2771,7 @@ static void extractGroupMgmtCommonParms(HttpService *service,
 }
 
 static int serveGroupManagement(HttpService *service,
-                                HttpResponse *response, ...) {
+                                HttpResponse *response) {
 
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s begin\n", __FUNCTION__);
 
@@ -3265,7 +3265,7 @@ static const ZISGroupAccessEntry *findAccessListEntryByUserID(
 }
 
 static int serveAccessInfo(HttpService *service,
-                           HttpResponse *response, ...) {
+                           HttpResponse *response) {
 
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s begin\n", __FUNCTION__);
 

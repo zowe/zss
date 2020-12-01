@@ -115,7 +115,7 @@ static int translateLogLevelToClientTraceLevel(int logLevel) {
   return traceLevel;
 }
 
-static int serveRASData(HttpService *service, HttpResponse *response, ...) {
+static int serveRASData(HttpService *service, HttpResponse *response) {
   char *method = response->request->method;
   HttpRequest *request = response->request;
 
