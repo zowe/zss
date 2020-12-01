@@ -12,7 +12,7 @@ set -e
 ################################################################################
 
 
-export _C89_LSYSLIB="CEE.SCEELKED:SYS1.CSSLIB:PP.CSF.ZOS203.SCSFMOD0"
+export _C89_LSYSLIB="CEE.SCEELKED:SYS1.CSSLIB:CSF.SCSFMOD0"
 
 WORKING_DIR=$(dirname "$0")
 ZSS="../.."
