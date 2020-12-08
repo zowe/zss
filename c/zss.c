@@ -1124,27 +1124,6 @@ static void initializePluginIDHashTable(HttpServer *server) {
 #define ZSS_STATUS_OK     0
 #define ZSS_STATUS_ERROR  8
 
-/* new */
-
-    typedef struct lockEntry {
-    char lockDsn [44];
-    char lockMemberName [8];
-    ENQToken lockToken;
-    struct lockEntry *next;
-  };
-
-static int acquireDatasetEnq(char *dsn, char *member, ENQToken *lockToken){
-
-  struct  lockEntry *firstLockEntry ;
-  struct  lockEntry *lastLockEntry  ;
-  zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_INFO,
-      "ZSS1264I %s begin\n", __FUNCTION__);
-      firstLockEntry = (struct lockEntry*) safeMalloc(sizeof(struct lockEntry), "firstLockEntry");
-  return 1234;
-}
-int releaseDatasetEnq(char *dsn, char *member, ENQToken *lockToken){}
-/* end of new */
-
 int main(int argc, char **argv){
   int zssStatus = ZSS_STATUS_OK;
 

@@ -103,32 +103,12 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
        has the directory open */
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
-    // char *datasetName = cleanURLParamValue(response->slh, l1);
-    // /* update uses USS filename convention to refer to MVS dataset */
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);     /* prepend  //'  to DSN*/
-    // char *filenamep1 = stringConcatenate(response->slh, "~/", datasetName);      /* prepend  ~/  to filename */
     char *filename = stringConcatenate(response->slh, filenamep1, "'");             /* append   '    to DSN */
 
-    /* append PID to filename */
-    pid_t pid = getpid();
-    char pid_string[10];
-    sprintf(pid_string, "-%d", pid);  
-    // char *filename = stringConcatenate(response->slh, filenamep1, pid_string); 
-
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Updating if exists: %s\n", filename);
-    // zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "filename is %s\n", filename);
-    // zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Updating if exists: %s\n", datasetName);
     fflush(stdout);
-    // updateDataset(response, filename, TRUE);
-    updateDataset(response, filename, TRUE);     /* save data temporarily in a USS file */
-    
-    /* copy USS file to dataset */
-    char command[1024];
-
-    // sprintf(command, "tsocmd exec \'daviesj.test.clist\(cpfi2ds\)\' \'%s %s\'\n", filename, datasetName, );  /* create command  */
-    // system(command);
-    
-    // deleteDatasetOrMember(response, filename);   /* delete the USS file */
+    updateDataset(response, filename, TRUE);   
 
   }
   else if (!strcmp(request->method, methodDELETE)) {
@@ -186,7 +166,6 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Releasing enqueue on: %s\n", filename);
     fflush(stdout);
     
-    // releaseEnqueue(response, filename);  /* to be coded */
     respondWithDequeue(response, filename, TRUE);
     
   }
@@ -280,18 +259,6 @@ void installDatasetEnqueueService(HttpServer *server) {
   httpService->serviceFunction = serveDatasetEnqueue;
   registerHttpService(server, httpService);
 }
-
-// void installDatasetDequeueService(HttpServer *server) {
-//   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset dequeue");
-//   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
-
-//   HttpService *httpService = makeGeneratedService("datasetDequeue", "/datasetDequeue/**");
-//   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
-//   httpService->runInSubtask = TRUE;  
-//   httpService->doImpersonation = TRUE;
-//   httpService->serviceFunction = serveDatasetDequeue;
-//   registerHttpService(server, httpService);
-// }
 
 void installVSAMDatasetContentsService(HttpServer *server) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "VSAM dataset contents");
