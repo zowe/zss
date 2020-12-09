@@ -10,7 +10,7 @@
  * Copyright Contributors to the Zowe Project.
  */
 
-node("ibm-jenkins-slave-nvm") {
+node("zowe-jenkins-agent") {
 
     def lib = library("jenkins-library").org.zowe.jenkins_shared_library
     def pipeline = lib.pipelines.generic.GenericPipeline.new(this)
