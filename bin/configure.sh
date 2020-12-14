@@ -36,7 +36,7 @@ currentJsonConfigPath=$DESTINATION/serverConfig/server.json
 if [ ! -f "$currentJsonConfigPath" ]; then
   mkdir -p $DESTINATION/serverConfig
   cp ../defaults/serverConfig/server.json $DESTINATION/serverConfig/server.json
-  PRODUCT_DIR=$(cd `$PWD/../defaults` && pwd)
+  PRODUCT_DIR=$(cd "$PWD/../defaults" && pwd)
   SITE_DIR=$DESTINATION/site
   SITE_PLUGIN_STORAGE=$SITE_DIR/ZLUX/pluginStorage
   INSTANCE_PLUGIN_STORAGE=$DESTINATION/ZLUX/pluginStorage
