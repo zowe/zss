@@ -380,7 +380,6 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
     } else {
       printf ("error parsing JSON: %s\n", errorBuf);
     }
-    safeFree(response, strlen(response)+1);
   } while (0);
   printf ("http response status %d\n", session->response->statusCode);
   int statusCode = session->response->statusCode;
