@@ -122,6 +122,7 @@ static char *extractToken(const char *cookie) {
 static char *receiveResponse(HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut) {
   bool success = false;
   char *responseEbcdic = NULL;
+  ShortLivedHeap *slh = session->slh;
   while (!success) {
     int status = httpClientSessionReceiveNative(httpClientContext, session, 1024);
     if (status != 0) {
@@ -135,9 +136,9 @@ static char *receiveResponse(HttpClientContext *httpClientContext, HttpClientSes
   }
   if (success) {
     int contentLength = session->response->contentLength;
-    responseEbcdic = safeMalloc(contentLength + 1, "response");
+    responseEbcdic = SLHAlloc(slh, contentLength + 1);
+    memset(responseEbcdic, '\0', contentLength + 1);
     memcpy(responseEbcdic, session->response->body, contentLength);
-    responseEbcdic[contentLength] = '\0';
     const char *trTable = getTranslationTable("iso88591_to_ibm1047");
     for (int i = 0; i < contentLength; i++) {
       responseEbcdic[i] = trTable[responseEbcdic[i]];
@@ -207,7 +208,6 @@ static void apimlLogin(ApimlStorage *storage, const char *username, const char *
       printf ("error receiving response: %d\n", status);
       break;
     }
-    safeFree(response, strlen(response) + 1);
     statusCode = session->response->statusCode;
     if (statusCode != HTTP_STATUS_OK && statusCode != HTTP_STATUS_NO_CONTENT) {
       status = STORAGE_STATUS_INVALID_CREDENTIALS;
@@ -305,7 +305,6 @@ static void createOrChange(ApimlStorage *storage, int op, const char *key, const
       printf ("error receiving response: %d\n", status);
       break;
     }
-    safeFree(response, strlen(response) + 1);
   } while (0);
   safeFree(body, bodyLen + 1);
   printf ("http response status %d\n", session->response->statusCode);
@@ -367,7 +366,7 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
       break;
     }
     char errorBuf[1024];
-    ShortLivedHeap *slh = makeShortLivedHeap(65536, 100);
+    ShortLivedHeap *slh = session->slh;
     Json *json = jsonParseString(slh, response, errorBuf, sizeof(errorBuf));
     if (json) {
       JsonObject *keyValue = jsonAsObject(json);
@@ -382,7 +381,6 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
       printf ("error parsing JSON: %s\n", errorBuf);
     }
     safeFree(response, strlen(response)+1);
-    SLHFree(slh);
   } while (0);
   printf ("http response status %d\n", session->response->statusCode);
   int statusCode = session->response->statusCode;
@@ -443,7 +441,6 @@ static void apimlStorageRemove(ApimlStorage *storage, const char *key, int *stat
       printf ("error receiving response: %d\n", status);
       break;
     }
-    safeFree(response, strlen(response) + 1);
   } while (0);
   printf ("http response status %d\n", session->response->statusCode);
   int statusCode = session->response->statusCode;
