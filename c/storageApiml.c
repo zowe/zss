@@ -37,6 +37,7 @@
 #define STORAGE_STATUS_LOGIN_ERROR          (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 1)
 #define STORAGE_STATUS_INVALID_CREDENTIALS  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 2)
 #define STORAGE_STATUS_RESPONSE_ERROR       (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 3)
+#define STORAGE_STATUS_JSON_RESPONSE_ERROR  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 4)
 
 typedef struct ApimlStorage_tag {
   char *token;
@@ -149,6 +150,25 @@ static char *receiveResponse(HttpClientContext *httpClientContext, HttpClientSes
     *statusOut = STORAGE_STATUS_RESPONSE_ERROR;
   }
   return responseEbcdic;
+}
+
+static Json *receiveJsonResponse(HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut) {
+  int status = 0;
+  char *response = receiveResponse(httpClientContext, session, &status);
+  if (status != STORAGE_STATUS_OK) {
+    *statusOut = status;
+    return NULL;
+  }
+  char errorBuf[1024];
+  ShortLivedHeap *slh = session->slh;
+  Json *json = jsonParseString(slh, response, errorBuf, sizeof(errorBuf));
+  if (!json) {
+    printf ("error parsing JSON response: %s\n", errorBuf);
+    *statusOut = STORAGE_STATUS_JSON_RESPONSE_ERROR;
+    return NULL;
+  }
+  *statusOut = STORAGE_STATUS_OK;
+  return json;
 }
 
 static void apimlLogin(ApimlStorage *storage, const char *username, const char *password, int *statusOut) {
@@ -360,25 +380,18 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
       printf("error sending request: %d\n", status);
       break;
     }
-    char *response = receiveResponse(httpClientContext, session, &status);
+    Json *jsonResponse = receiveJsonResponse(httpClientContext, session, &status);
     if (status) {
       printf ("error receiving response: %d\n", status);
       break;
     }
-    char errorBuf[1024];
-    ShortLivedHeap *slh = session->slh;
-    Json *json = jsonParseString(slh, response, errorBuf, sizeof(errorBuf));
-    if (json) {
-      JsonObject *keyValue = jsonAsObject(json);
-      if (keyValue) {
-        char *val = jsonObjectGetString(keyValue, "value");
-        if (val) {
-          value = safeMalloc(strlen(val) + 1, "value");
-          strcpy(value, val);
-        }
+    JsonObject *keyValue = jsonAsObject(jsonResponse);
+    if (keyValue) {
+      char *val = jsonObjectGetString(keyValue, "value");
+      if (val) {
+        value = safeMalloc(strlen(val) + 1, "value");
+        strcpy(value, val);
       }
-    } else {
-      printf ("error parsing JSON: %s\n", errorBuf);
     }
   } while (0);
   printf ("http response status %d\n", session->response->statusCode);
@@ -471,7 +484,8 @@ static const char *MESSAGES[] = {
   [STORAGE_STATUS_HTTP_ERROR] = "HTTP error",
   [STORAGE_STATUS_LOGIN_ERROR] = "Login failed",
   [STORAGE_STATUS_INVALID_CREDENTIALS] = "Invalid credentials",
-  [STORAGE_STATUS_RESPONSE_ERROR] = "Error receiving response"
+  [STORAGE_STATUS_RESPONSE_ERROR] = "Error receiving response",
+  [STORAGE_STATUS_JSON_RESPONSE_ERROR] = "Error parsing JSON response",
 };
 
 #define MESSAGE_COUNT sizeof(MESSAGES)/sizeof(MESSAGES[0])
