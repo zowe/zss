@@ -2,9 +2,9 @@
   This program and the accompanying materials are
   made available under the terms of the Eclipse Public License v2.0 which accompanies
   this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
-  
+
   SPDX-License-Identifier: EPL-2.0
-  
+
   Copyright Contributors to the Zowe Project.
 */
 
@@ -49,7 +49,7 @@ typedef struct JsonMemoryPrinter_tag JsonMemoryPrinter;
 
 struct JsonMemoryPrinter_tag {
   char *buffer;
-  int size;   
+  int size;
   int capacity;
   jsonPrinter *jsonPrinter;
 };
@@ -116,7 +116,7 @@ static char *extractToken(const char *cookie) {
   }
   char *token = safeMalloc(end - place + 1, "token");
   memcpy(token, place, end - place);
-  return token;  
+  return token;
 }
 
 static char *receiveResponse(HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut) {
@@ -261,7 +261,7 @@ static void createOrChange(ApimlStorage *storage, int op, const char *key, const
   jsonAddString(p, "key", (char*)key);
   jsonAddString(p, "value", (char*)value);
   jsonEnd(p);
-  
+
   char *path = CACHING_SERVICE_URI;
   char buffer[2048];
   char *body = jsonMemoryPrinterGetOutput(printer);
@@ -336,7 +336,7 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
   char *value = NULL;
   char path[2048] = {0};
   snprintf (path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, key);  char buffer[2048];
-  
+
   do {
     status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
     if (status) {
@@ -508,7 +508,7 @@ Storage *makeApimlStorage(ApimlStorageSettings *settings) {
   clientSettings->host = settings->host;
   clientSettings->port = settings->port;
   clientSettings->recvTimeoutSeconds = 10;
-  
+
   TlsEnvironment *tlsEnv = NULL;
   int status = tlsInit(&tlsEnv, settings->tlsSettings);
   if (status) {
@@ -518,7 +518,7 @@ Storage *makeApimlStorage(ApimlStorageSettings *settings) {
     safeFree((char*)clientSettings, sizeof(*clientSettings));
     return NULL;
   }
-  
+
   LoggingContext *loggingContext = makeLoggingContext();
   if (!loggingContext) {
     safeFree((char*)storage, sizeof(*storage));
@@ -528,14 +528,14 @@ Storage *makeApimlStorage(ApimlStorageSettings *settings) {
     return NULL;
   }
   logConfigureComponent(loggingContext, LOG_COMP_HTTPCLIENT, "HTTP Client", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
-  
+
   apimlStorage->clientSettings = clientSettings;
   apimlStorage->tlsEnv = tlsEnv;
   apimlStorage->loggingContext = loggingContext;
   apimlStorage->token = settings->token;
-  
+
   storage->userData = apimlStorage;
-  storage->set = (StorageSet) apimlStorageSetString; 
+  storage->set = (StorageSet) apimlStorageSetString;
   storage->get = (StorageGet) apimlStorageGetString;
   storage->remove = (StorageRemove) apimlStorageRemove;
   storage->strStatus = (StorageGetStrStatus) apimlStorageGetStrStatus;
@@ -603,7 +603,7 @@ int main(int argc, char *argv[]) {
   char *label = argv[5];
   char *user = argv[6];
   char *password = argv[7];
-  
+
   TlsSettings tlsSettings = {
     .keyring = keyring,
     .stash = stash,
@@ -641,8 +641,8 @@ int main(int argc, char *argv[]) {
   This program and the accompanying materials are
   made available under the terms of the Eclipse Public License v2.0 which accompanies
   this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
-  
+
   SPDX-License-Identifier: EPL-2.0
-  
+
   Copyright Contributors to the Zowe Project.
 */
