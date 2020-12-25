@@ -27,6 +27,7 @@
 #include "collections.h"
 #include "json.h"
 #include "tls.h"
+#include "charsets.h"
 #include "httpclient.h"
 #include "storage.h"
 #include "storageApiml.h"
@@ -120,9 +121,8 @@ static char *extractToken(const char *cookie) {
   return token;
 }
 
-static char *receiveResponse(HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut) {
+static void receiveResponse(HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut) {
   bool success = false;
-  char *responseEbcdic = NULL;
   ShortLivedHeap *slh = session->slh;
   while (!success) {
     int status = httpClientSessionReceiveNative(httpClientContext, session, 1024);
@@ -137,7 +137,7 @@ static char *receiveResponse(HttpClientContext *httpClientContext, HttpClientSes
   }
   if (success) {
     int contentLength = session->response->contentLength;
-    responseEbcdic = SLHAlloc(slh, contentLength + 1);
+    char *responseEbcdic = SLHAlloc(slh, contentLength + 1);
     memset(responseEbcdic, '\0', contentLength + 1);
     memcpy(responseEbcdic, session->response->body, contentLength);
     const char *trTable = getTranslationTable("iso88591_to_ibm1047");
@@ -149,19 +149,20 @@ static char *receiveResponse(HttpClientContext *httpClientContext, HttpClientSes
   } else {
     *statusOut = STORAGE_STATUS_RESPONSE_ERROR;
   }
-  return responseEbcdic;
 }
 
 static Json *receiveJsonResponse(HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut) {
   int status = 0;
-  char *response = receiveResponse(httpClientContext, session, &status);
+  receiveResponse(httpClientContext, session, &status);
   if (status != STORAGE_STATUS_OK) {
     *statusOut = status;
     return NULL;
   }
   char errorBuf[1024];
   ShortLivedHeap *slh = session->slh;
-  Json *json = jsonParseString(slh, response, errorBuf, sizeof(errorBuf));
+  char *response = session->response->body;
+  int contentLength = session->response->contentLength;
+  Json *json = jsonParseUnterminatedUtf8String(slh, CCSID_IBM1047, response, contentLength, errorBuf, sizeof(errorBuf));
   if (!json) {
     printf ("error parsing JSON response: %s\n", errorBuf);
     *statusOut = STORAGE_STATUS_JSON_RESPONSE_ERROR;
@@ -223,7 +224,7 @@ static void apimlLogin(ApimlStorage *storage, const char *username, const char *
       break;
     }
     safeFree(body, bodyLen + 1);
-    char *response = receiveResponse(httpClientContext, session, &status);
+    receiveResponse(httpClientContext, session, &status);
     if (status) {
       printf ("error receiving response: %d\n", status);
       break;
@@ -320,7 +321,7 @@ static void createOrChange(ApimlStorage *storage, int op, const char *key, const
       printf("error sending request: %d\n", status);
       break;
     }
-    char *response = receiveResponse(httpClientContext, session, &status);
+    receiveResponse(httpClientContext, session, &status);
     if (status) {
       printf ("error receiving response: %d\n", status);
       break;
@@ -448,7 +449,7 @@ static void apimlStorageRemove(ApimlStorage *storage, const char *key, int *stat
       printf("error sending request: %d\n", status);
       break;
     }
-    char *response = receiveResponse(httpClientContext, session, &status);
+    receiveResponse(httpClientContext, session, &status);
     if (status) {
       printf ("error receiving response: %d\n", status);
       break;
