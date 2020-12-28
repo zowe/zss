@@ -45,7 +45,6 @@ typedef struct ApimlStorage_tag {
   char *token;
   HttpClientSettings *clientSettings;
   TlsEnvironment *tlsEnv;
-  LoggingContext *loggingContext;
 } ApimlStorage;
 
 typedef struct JsonMemoryPrinter_tag JsonMemoryPrinter;
@@ -216,7 +215,7 @@ static void apimlLogin(ApimlStorage *storage, const char *username, const char *
   HttpClientSettings *clientSettings = storage->clientSettings;
   HttpClientContext *httpClientContext = NULL;
   HttpClientSession *session = NULL;
-  LoggingContext *loggingContext = storage->loggingContext;
+  LoggingContext *loggingContext = makeLoggingContext();
   char *token = NULL;
   char *path = "/api/v1/apicatalog/auth/login";
   char *body = apimlCreateLoginRequestBody(username, password);
@@ -298,7 +297,7 @@ static void createOrChange(ApimlStorage *storage, int op, const char *key, const
   HttpClientSettings *clientSettings = storage->clientSettings;
   HttpClientContext *httpClientContext = NULL;
   HttpClientSession *session = NULL;
-  LoggingContext *loggingContext = storage->loggingContext;
+  LoggingContext *loggingContext = makeLoggingContext();
   char *path = CACHING_SERVICE_URI;
   char *body = apimlCreateCachingServiceRequestBody(key, value);
   int bodyLen = strlen(body);
@@ -360,7 +359,7 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
   HttpClientSettings *clientSettings = storage->clientSettings;
   HttpClientContext *httpClientContext = NULL;
   HttpClientSession *session = NULL;
-  LoggingContext *loggingContext = storage->loggingContext;
+  LoggingContext *loggingContext = makeLoggingContext();
   char *token = NULL;
   char *value = NULL;
   char path[2048] = {0};
@@ -429,7 +428,7 @@ static void apimlStorageRemove(ApimlStorage *storage, const char *key, int *stat
   HttpClientSettings *clientSettings = storage->clientSettings;
   HttpClientContext *httpClientContext = NULL;
   HttpClientSession *session = NULL;
-  LoggingContext *loggingContext = storage->loggingContext;
+  LoggingContext *loggingContext = makeLoggingContext();
   char *token = NULL;
   char path[2048] = {0};
   snprintf(path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, key);
@@ -541,19 +540,8 @@ Storage *makeApimlStorage(ApimlStorageSettings *settings) {
     return NULL;
   }
 
-  LoggingContext *loggingContext = makeLoggingContext();
-  if (!loggingContext) {
-    safeFree((char*)storage, sizeof(*storage));
-    safeFree((char*)apimlStorage, sizeof(*apimlStorage));
-    safeFree((char*)clientSettings, sizeof(*clientSettings));
-    tlsDestroy(tlsEnv);
-    return NULL;
-  }
-  logConfigureComponent(loggingContext, LOG_COMP_HTTPCLIENT, "HTTP Client", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
-
   apimlStorage->clientSettings = clientSettings;
   apimlStorage->tlsEnv = tlsEnv;
-  apimlStorage->loggingContext = loggingContext;
   apimlStorage->token = settings->token;
 
   storage->userData = apimlStorage;
@@ -626,6 +614,7 @@ int main(int argc, char *argv[]) {
   char *user = argv[6];
   char *password = argv[7];
 
+  LoggingContext *context = makeLoggingContext();
   TlsSettings tlsSettings = {
     .keyring = keyring,
     .stash = stash,
