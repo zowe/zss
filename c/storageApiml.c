@@ -647,6 +647,8 @@ int main(int argc, char *argv[]) {
   char *password = argv[7];
 
   LoggingContext *context = makeLoggingContext();
+  logConfigureStandardDestinations(context);
+  logConfigureComponent(context, LOG_COMP_ID_APIML_STORAGE, "APIML Storage",  LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_DEBUG);
   TlsSettings tlsSettings = {
     .keyring = keyring,
     .stash = stash,
