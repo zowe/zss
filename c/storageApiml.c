@@ -58,6 +58,14 @@ struct JsonMemoryPrinter_tag {
 
 #define INITIAL_CAPACITY 512
 
+static char *duplicateString(const char *str) {
+  char *duplicate = safeMalloc(strlen(str) + 1, "duplicate string");
+  if (duplicate) {
+    strcpy(duplicate, str);
+  }
+  return duplicate;
+}
+
 static void printerGrowBuffer(JsonMemoryPrinter *printer) {
   int newCapacity = printer->capacity * 2;
   char *newBuffer = safeMalloc(newCapacity, "JsonMemoryPrinter Buffer");
@@ -136,7 +144,7 @@ static char *extractTokenFromCookie(const char *cookie) {
   if (!end) {
     return NULL;
   }
-  char *token = safeMalloc(end - place + 1, "token");
+  char *token = safeMalloc(end - place + 1, "APIML token");
   memcpy(token, place, end - place);
   return token;
 }
@@ -427,8 +435,7 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
     if (keyValue) {
       char *val = jsonObjectGetString(keyValue, "value");
       if (val) {
-        value = safeMalloc(strlen(val) + 1, "value");
-        strcpy(value, val);
+        value = duplicateString(val);
       }
     }
   } while (0);
