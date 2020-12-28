@@ -105,7 +105,7 @@ char *jsonMemoryPrinterGetOutput(JsonMemoryPrinter *printer) {
   return output;
 }
 
-static char *extractToken(const char *cookie) {
+static char *extractTokenFromCookie(const char *cookie) {
   const char *name = "apimlAuthenticationToken=";
   int len = strlen(name);
   char *place = strstr(cookie, name);
@@ -118,6 +118,24 @@ static char *extractToken(const char *cookie) {
   }
   char *token = safeMalloc(end - place + 1, "token");
   memcpy(token, place, end - place);
+  return token;
+}
+
+static char *extractTokenFromHeaders(HttpHeader *headers) {
+  char *token = NULL;
+  while (headers) {
+    if (0 == strcmp(headers->nativeName, "set-cookie")) {
+      printf("header '%s' -> '%s'\n", headers->nativeName, headers->nativeValue);
+      token = extractTokenFromCookie(headers->nativeValue);
+      if (token) {
+        printf("token found '%s'\n", token);
+        break;
+      } else {
+        printf("oops, token not found\n");
+      }
+    }
+    headers = headers->next;
+  }
   return token;
 }
 
@@ -232,31 +250,17 @@ static void apimlLogin(ApimlStorage *storage, const char *username, const char *
     statusCode = session->response->statusCode;
     if (statusCode != HTTP_STATUS_OK && statusCode != HTTP_STATUS_NO_CONTENT) {
       status = STORAGE_STATUS_INVALID_CREDENTIALS;
+      break;
+    }
+    token = extractTokenFromHeaders(session->response->headers);
+    if (token) {
+      *statusOut = STORAGE_STATUS_OK;
+      storage->token = token;
+    } else {
+      *statusOut = STORAGE_STATUS_LOGIN_ERROR;
     }
   } while (0);
-  if (status == STORAGE_STATUS_OK) {
-    HttpHeader *header = session->response->headers;
-    while (header) {
-      if (0 == strcmp(header->nativeName, "set-cookie")) {
-        printf("header '%s' -> '%s'\n", header->nativeName, header->nativeValue);
-        token = extractToken(header->nativeValue);
-        if (token) {
-          printf("token found '%s'\n", token);
-          break;
-        } else {
-          printf("oops, token not found\n");
-        }
-      }
-      header = header->next;
-    }
-  }
   printf("login status: %d, http status: %d\n", status, statusCode);
-  if (token) {
-    *statusOut = STORAGE_STATUS_OK;
-    storage->token = token;
-  } else {
-    *statusOut = STORAGE_STATUS_LOGIN_ERROR;
-  }
   if (session) {
     httpClientSessionDestroy(session);
   }
@@ -291,7 +295,6 @@ static void createOrChange(ApimlStorage *storage, int op, const char *key, const
 
 
   const char *trTable = getTranslationTable("ibm1047_to_iso88591");
-  fflush (stdout);
   for (int i = 0; i < bodyLen; i++) {
     body[i] = trTable[body[i]];
   }
@@ -326,17 +329,18 @@ static void createOrChange(ApimlStorage *storage, int op, const char *key, const
       printf ("error receiving response: %d\n", status);
       break;
     }
+    int statusCode = session->response->statusCode;
+    if (statusCode >= 200 && statusCode < 300) {
+      *statusOut = STORAGE_STATUS_OK;
+    } else if (statusCode == 404) {
+      *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
+    } else {
+      *statusOut = STORAGE_STATUS_HTTP_ERROR;
+    }
   } while (0);
   safeFree(body, bodyLen + 1);
   printf ("http response status %d\n", session->response->statusCode);
-  int statusCode = session->response->statusCode;
-  if (statusCode >= 200 && statusCode < 300) {
-    *statusOut = STORAGE_STATUS_OK;
-  } else if (statusCode == 404) {
-    *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
-  } else {
-  *statusOut = STORAGE_STATUS_HTTP_ERROR;
-  }
+
   if (session) {
     httpClientSessionDestroy(session);
   }
@@ -394,16 +398,15 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
         strcpy(value, val);
       }
     }
+    int statusCode = session->response->statusCode;
+    if (statusCode >= 200 && statusCode < 300) {
+      *statusOut = STORAGE_STATUS_OK;
+    } else if (statusCode == 404) {
+      *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
+    } else {
+      *statusOut = STORAGE_STATUS_HTTP_ERROR;
+    }
   } while (0);
-  printf ("http response status %d\n", session->response->statusCode);
-  int statusCode = session->response->statusCode;
-  if (statusCode >= 200 && statusCode < 300) {
-    *statusOut = STORAGE_STATUS_OK;
-  } else if (statusCode == 404) {
-    *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
-  } else {
-  *statusOut = STORAGE_STATUS_HTTP_ERROR;
-  }
   if (session) {
     httpClientSessionDestroy(session);
   }
@@ -454,16 +457,15 @@ static void apimlStorageRemove(ApimlStorage *storage, const char *key, int *stat
       printf ("error receiving response: %d\n", status);
       break;
     }
+    int statusCode = session->response->statusCode;
+    if (statusCode >= 200 && statusCode < 300) {
+      *statusOut = STORAGE_STATUS_OK;
+    } else if (statusCode == 404) {
+      *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
+    } else {
+    *statusOut = STORAGE_STATUS_HTTP_ERROR;
+    }
   } while (0);
-  printf ("http response status %d\n", session->response->statusCode);
-  int statusCode = session->response->statusCode;
-  if (statusCode >= 200 && statusCode < 300) {
-    *statusOut = STORAGE_STATUS_OK;
-  } else if (statusCode == 404) {
-    *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
-  } else {
-  *statusOut = STORAGE_STATUS_HTTP_ERROR;
-  }
   if (session) {
     httpClientSessionDestroy(session);
   }
