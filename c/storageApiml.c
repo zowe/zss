@@ -66,6 +66,20 @@ static char *duplicateString(const char *str) {
   return duplicate;
 }
 
+static void convertToEbcdic(char *str, int len) {
+  const char *trTable = getTranslationTable("iso88591_to_ibm1047");
+  for (int i = 0; i < len; i++) {
+    str[i] = trTable[str[i]];
+  }
+}
+
+static void convertToAscii(char *str, int len) {
+  const char *trTable = getTranslationTable("ibm1047_to_iso88591");
+  for (int i = 0; i < len; i++) {
+    str[i] = trTable[str[i]];
+  }
+}
+
 static void printerGrowBuffer(JsonMemoryPrinter *printer) {
   int newCapacity = printer->capacity * 2;
   char *newBuffer = safeMalloc(newCapacity, "JsonMemoryPrinter Buffer");
@@ -186,10 +200,7 @@ static void receiveResponse(HttpClientContext *httpClientContext, HttpClientSess
     char *responseEbcdic = SLHAlloc(slh, contentLength + 1);
     memset(responseEbcdic, '\0', contentLength + 1);
     memcpy(responseEbcdic, session->response->body, contentLength);
-    const char *trTable = getTranslationTable("iso88591_to_ibm1047");
-    for (int i = 0; i < contentLength; i++) {
-      responseEbcdic[i] = trTable[responseEbcdic[i]];
-    }
+    convertToEbcdic(responseEbcdic, contentLength);
     zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "successfully received response(EBCDIC): %s\n", responseEbcdic);
     *statusOut = STORAGE_STATUS_OK;
   } else {
@@ -228,10 +239,7 @@ static char *apimlCreateLoginRequestBody(const char *username, const char *passw
   char *body = jsonMemoryPrinterGetOutput(printer);
   freeJsonMemoryPrinter(printer);
   int bodyLen = strlen(body);
-  const char *trTable = getTranslationTable("ibm1047_to_iso88591");
-  for (int i = 0; i < bodyLen; i++) {
-    body[i] = trTable[body[i]];
-  }
+  convertToAscii(body, bodyLen);
   return body;
 }
 
@@ -309,10 +317,7 @@ static char *apimlCreateCachingServiceRequestBody(const char *key, const char *v
   char *body = jsonMemoryPrinterGetOutput(printer);
   int bodyLen = strlen(body);
   freeJsonMemoryPrinter(printer);
-  const char *trTable = getTranslationTable("ibm1047_to_iso88591");
-  for (int i = 0; i < bodyLen; i++) {
-    body[i] = trTable[body[i]];
-  }
+  convertToAscii(body, bodyLen);
   return body;
 } 
 
