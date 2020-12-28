@@ -76,12 +76,37 @@ static void jsonWriteCallback(jsonPrinter *p, char *data, int len) {
   printer->size += len;
 }
 
+static void freeJsonMemoryPrinter(JsonMemoryPrinter *printer) {
+  if (!printer) {
+    return;
+  }
+  if (printer->buffer) {
+    safeFree(printer->buffer, printer->capacity);
+  }
+  if (printer->jsonPrinter) {
+    freeJsonPrinter(printer->jsonPrinter);
+  }
+  memset(printer, 0, sizeof(*printer));
+  safeFree((char*)printer, sizeof(*printer));
+}
+
 static JsonMemoryPrinter *makeJsonMemoryPrinter() {
   JsonMemoryPrinter *printer = (JsonMemoryPrinter*)safeMalloc(sizeof(*printer), "JsonMemoryPrinter");
+  if (!printer) {
+    return NULL;
+  }
   printer->capacity = INITIAL_CAPACITY;
-  printer->buffer = safeMalloc(printer->capacity, "PS JsonMemoryPrinter Buffer");
+  printer->buffer = safeMalloc(printer->capacity, "JsonMemoryPrinter Buffer");
   printer->size = 0;
+  if (!printer->buffer) {
+    freeJsonMemoryPrinter(printer);
+    return NULL;
+  }
   printer->jsonPrinter = makeCustomJsonPrinter(jsonWriteCallback, printer);
+  if (!printer->jsonPrinter) {
+    freeJsonMemoryPrinter(printer);
+    return NULL;
+  }
   return printer;
 }
 
@@ -92,16 +117,11 @@ static void resetJsonMemoryPrinter(JsonMemoryPrinter *printer) {
   printer->jsonPrinter = makeCustomJsonPrinter(jsonWriteCallback, printer);
 }
 
-static void freeJsonMemoryPrinter(JsonMemoryPrinter *printer) {
-  safeFree(printer->buffer, printer->capacity);
-  freeJsonPrinter(printer->jsonPrinter);
-  memset(printer, 0, sizeof(*printer));
-  safeFree((char*)printer, sizeof(*printer));
-}
-
 char *jsonMemoryPrinterGetOutput(JsonMemoryPrinter *printer) {
   char *output = safeMalloc(printer->size + 1, "JsonMemoryPrinter output");
-  memcpy(output, printer->buffer, printer->size);
+  if (output) {
+    memcpy(output, printer->buffer, printer->size);
+  }
   return output;
 }
 
