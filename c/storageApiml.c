@@ -190,6 +190,23 @@ static Json *receiveJsonResponse(HttpClientContext *httpClientContext, HttpClien
   return json;
 }
 
+static char *apimlCreateLoginRequestBody(const char *username, const char *password) {
+  JsonMemoryPrinter *printer = makeJsonMemoryPrinter();
+  jsonPrinter *p = printer->jsonPrinter;
+  jsonStart(p);
+  jsonAddString(p, "username", (char *)username);
+  jsonAddString(p, "password", (char *)password);
+  jsonEnd(p);
+  char *body = jsonMemoryPrinterGetOutput(printer);
+  freeJsonMemoryPrinter(printer);
+  int bodyLen = strlen(body);
+  const char *trTable = getTranslationTable("ibm1047_to_iso88591");
+  for (int i = 0; i < bodyLen; i++) {
+    body[i] = trTable[body[i]];
+  }
+  return body;
+}
+
 static void apimlLogin(ApimlStorage *storage, const char *username, const char *password, int *statusOut) {
   printf ("[*] about to login with %s:%s\n", username, password);
   int status = 0;
@@ -200,24 +217,9 @@ static void apimlLogin(ApimlStorage *storage, const char *username, const char *
   HttpClientSession *session = NULL;
   LoggingContext *loggingContext = storage->loggingContext;
   char *token = NULL;
-
-  JsonMemoryPrinter *printer = makeJsonMemoryPrinter();
-  jsonPrinter *p = printer->jsonPrinter;
-  jsonStart(p);
-  jsonAddString(p, "username", (char*)username);
-  jsonAddString(p, "password", (char*)password);
-  jsonEnd(p);
   char *path = "/api/v1/apicatalog/auth/login";
-  char buffer[2048];
-  char *body = jsonMemoryPrinterGetOutput(printer);
+  char *body = apimlCreateLoginRequestBody(username, password);
   int bodyLen = strlen(body);
-  freeJsonMemoryPrinter(printer);
-
-  const char *trTable = getTranslationTable("ibm1047_to_iso88591");
-  fflush (stdout);
-  for (int i = 0; i < bodyLen; i++) {
-    body[i] = trTable[body[i]];
-  }
 
   do {
     status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
@@ -269,6 +271,23 @@ static void apimlLogin(ApimlStorage *storage, const char *username, const char *
   }
 }
 
+static char *apimlCreateCachingServiceRequestBody(const char *key, const char *value) {
+  JsonMemoryPrinter *printer = makeJsonMemoryPrinter();
+  jsonPrinter *p = printer->jsonPrinter;
+  jsonStart(p);
+  jsonAddString(p, "key", (char*)key);
+  jsonAddString(p, "value", (char*)value);
+  jsonEnd(p);
+  char *body = jsonMemoryPrinterGetOutput(printer);
+  int bodyLen = strlen(body);
+  freeJsonMemoryPrinter(printer);
+  const char *trTable = getTranslationTable("ibm1047_to_iso88591");
+  for (int i = 0; i < bodyLen; i++) {
+    body[i] = trTable[body[i]];
+  }
+  return body;
+} 
+
 #define OP_CREATE 1
 #define OP_CHANGE 2
 static void createOrChange(ApimlStorage *storage, int op, const char *key, const char *value, int *statusOut) {
@@ -279,25 +298,9 @@ static void createOrChange(ApimlStorage *storage, int op, const char *key, const
   HttpClientContext *httpClientContext = NULL;
   HttpClientSession *session = NULL;
   LoggingContext *loggingContext = storage->loggingContext;
-  char *token = NULL;
-  JsonMemoryPrinter *printer = makeJsonMemoryPrinter();
-  jsonPrinter *p = printer->jsonPrinter;
-  jsonStart(p);
-  jsonAddString(p, "key", (char*)key);
-  jsonAddString(p, "value", (char*)value);
-  jsonEnd(p);
-
   char *path = CACHING_SERVICE_URI;
-  char buffer[2048];
-  char *body = jsonMemoryPrinterGetOutput(printer);
+  char *body = apimlCreateCachingServiceRequestBody(key, value);
   int bodyLen = strlen(body);
-  freeJsonMemoryPrinter(printer);
-
-
-  const char *trTable = getTranslationTable("ibm1047_to_iso88591");
-  for (int i = 0; i < bodyLen; i++) {
-    body[i] = trTable[body[i]];
-  }
 
   do {
     status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
@@ -360,7 +363,7 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
   char *token = NULL;
   char *value = NULL;
   char path[2048] = {0};
-  snprintf (path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, key);  char buffer[2048];
+  snprintf (path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, key);
 
   do {
     status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
@@ -390,6 +393,16 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
       printf ("error receiving response: %d\n", status);
       break;
     }
+    int statusCode = session->response->statusCode;
+    if (statusCode >= 200 && statusCode < 300) {
+      *statusOut = STORAGE_STATUS_OK;
+    } else if (statusCode == 404) {
+      *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
+      break;
+    } else {
+      *statusOut = STORAGE_STATUS_HTTP_ERROR;
+      break;
+    }
     JsonObject *keyValue = jsonAsObject(jsonResponse);
     if (keyValue) {
       char *val = jsonObjectGetString(keyValue, "value");
@@ -397,14 +410,6 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
         value = safeMalloc(strlen(val) + 1, "value");
         strcpy(value, val);
       }
-    }
-    int statusCode = session->response->statusCode;
-    if (statusCode >= 200 && statusCode < 300) {
-      *statusOut = STORAGE_STATUS_OK;
-    } else if (statusCode == 404) {
-      *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
-    } else {
-      *statusOut = STORAGE_STATUS_HTTP_ERROR;
     }
   } while (0);
   if (session) {
