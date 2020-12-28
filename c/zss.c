@@ -864,6 +864,7 @@ static void initLoggingComponents(void) {
   logConfigureComponent(NULL, LOG_COMP_DATASERVICE, "ZSS dataservices", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+  logConfigureComponent(NULL, LOG_COMP_ID_APIML_STORAGE, "APIML Storage", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_START_VER_MSG, productVersion);
 }
 
