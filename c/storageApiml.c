@@ -29,6 +29,7 @@
 #include "tls.h"
 #include "charsets.h"
 #include "httpclient.h"
+#include "zssLogging.h"
 #include "storage.h"
 #include "storageApiml.h"
 
@@ -125,13 +126,13 @@ static char *extractTokenFromHeaders(HttpHeader *headers) {
   char *token = NULL;
   while (headers) {
     if (0 == strcmp(headers->nativeName, "set-cookie")) {
-      printf("header '%s' -> '%s'\n", headers->nativeName, headers->nativeValue);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "header '%s' -> '%s'\n", headers->nativeName, headers->nativeValue);
       token = extractTokenFromCookie(headers->nativeValue);
       if (token) {
-        printf("token found '%s'\n", token);
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "token found '%s'\n", token);
         break;
       } else {
-        printf("oops, token not found\n");
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "oops, token not found\n");
       }
     }
     headers = headers->next;
@@ -145,7 +146,7 @@ static void receiveResponse(HttpClientContext *httpClientContext, HttpClientSess
   while (!success) {
     int status = httpClientSessionReceiveNative(httpClientContext, session, 1024);
     if (status != 0) {
-      printf("error receiving response: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error receiving response: %d\n", status);
       break;
     }
     if (session->response) {
@@ -162,7 +163,7 @@ static void receiveResponse(HttpClientContext *httpClientContext, HttpClientSess
     for (int i = 0; i < contentLength; i++) {
       responseEbcdic[i] = trTable[responseEbcdic[i]];
     }
-    printf("successfully received response(EBCDIC): %s\n", responseEbcdic);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "successfully received response(EBCDIC): %s\n", responseEbcdic);
     *statusOut = STORAGE_STATUS_OK;
   } else {
     *statusOut = STORAGE_STATUS_RESPONSE_ERROR;
@@ -182,7 +183,7 @@ static Json *receiveJsonResponse(HttpClientContext *httpClientContext, HttpClien
   int contentLength = session->response->contentLength;
   Json *json = jsonParseUnterminatedUtf8String(slh, CCSID_IBM1047, response, contentLength, errorBuf, sizeof(errorBuf));
   if (!json) {
-    printf ("error parsing JSON response: %s\n", errorBuf);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error parsing JSON response: %s\n", errorBuf);
     *statusOut = STORAGE_STATUS_JSON_RESPONSE_ERROR;
     return NULL;
   }
@@ -208,7 +209,7 @@ static char *apimlCreateLoginRequestBody(const char *username, const char *passw
 }
 
 static void apimlLogin(ApimlStorage *storage, const char *username, const char *password, int *statusOut) {
-  printf ("[*] about to login with %s:%s\n", username, password);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "[*] about to login with %s:%s\n", username, password);
   int status = 0;
   int statusCode = 0;
   TlsEnvironment *tlsEnv = storage->tlsEnv;
@@ -224,29 +225,29 @@ static void apimlLogin(ApimlStorage *storage, const char *username, const char *
   do {
     status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
     if (status) {
-      printf("error in httpcb ctx init: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error in httpcb ctx init: %d\n", status);
       break;
     }
     status = httpClientSessionInit(httpClientContext, &session);
     if (status) {
-      printf("error initing session: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error initing session: %d\n", status);
       break;
     }
     status = httpClientSessionStageRequest(httpClientContext, session, "POST", path, NULL, NULL, body, bodyLen);
     if (status) {
-      printf("error staging request: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error staging request: %d\n", status);
       break;
     }
     requestStringHeader(session->request, TRUE, "Content-type", "application/json");
     status = httpClientSessionSend(httpClientContext, session);
     if (status) {
-      printf("error sending request: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error sending request: %d\n", status);
       break;
     }
     safeFree(body, bodyLen + 1);
     receiveResponse(httpClientContext, session, &status);
     if (status) {
-      printf ("error receiving response: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error receiving response: %d\n", status);
       break;
     }
     statusCode = session->response->statusCode;
@@ -262,7 +263,7 @@ static void apimlLogin(ApimlStorage *storage, const char *username, const char *
       *statusOut = STORAGE_STATUS_LOGIN_ERROR;
     }
   } while (0);
-  printf("login status: %d, http status: %d\n", status, statusCode);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "login status: %d, http status: %d\n", status, statusCode);
   if (session) {
     httpClientSessionDestroy(session);
   }
@@ -291,7 +292,7 @@ static char *apimlCreateCachingServiceRequestBody(const char *key, const char *v
 #define OP_CREATE 1
 #define OP_CHANGE 2
 static void createOrChange(ApimlStorage *storage, int op, const char *key, const char *value, int *statusOut) {
-  printf ("[*] about to createOrChange [%s]:%s\n", key, value);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "[*] about to createOrChange [%s]:%s\n", key, value);
   int status = 0;
   TlsEnvironment *tlsEnv = storage->tlsEnv;
   HttpClientSettings *clientSettings = storage->clientSettings;
@@ -306,30 +307,30 @@ static void createOrChange(ApimlStorage *storage, int op, const char *key, const
     status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
 
     if (status) {
-      printf("error in httpcb ctx init: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error in httpcb ctx init: %d\n", status);
       break;
     }
     status = httpClientSessionInit(httpClientContext, &session);
     if (status) {
-      printf("error initing session: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error initing session: %d\n", status);
       break;
     }
     char *method = op == OP_CHANGE ? "PUT" : "POST";
     status = httpClientSessionStageRequest(httpClientContext, session, method, path, NULL, NULL, body, bodyLen);
     if (status) {
-      printf("error staging request: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error staging request: %d\n", status);
       break;
     }
     requestStringHeader(session->request, TRUE, "Content-type", "application/json");
     requestStringHeader(session->request, TRUE, "Cookie", storage->token);
     status = httpClientSessionSend(httpClientContext, session);
     if (status) {
-      printf("error sending request: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error sending request: %d\n", status);
       break;
     }
     receiveResponse(httpClientContext, session, &status);
     if (status) {
-      printf ("error receiving response: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error receiving response: %d\n", status);
       break;
     }
     int statusCode = session->response->statusCode;
@@ -342,7 +343,7 @@ static void createOrChange(ApimlStorage *storage, int op, const char *key, const
     }
   } while (0);
   safeFree(body, bodyLen + 1);
-  printf ("http response status %d\n", session->response->statusCode);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "http response status %d\n", session->response->statusCode);
 
   if (session) {
     httpClientSessionDestroy(session);
@@ -353,7 +354,7 @@ static void createOrChange(ApimlStorage *storage, int op, const char *key, const
 }
 
 static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *statusOut) {
-  printf ("[*] about to get [%s]\n", key);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "[*] about to get [%s]\n", key);
   int status = 0;
   TlsEnvironment *tlsEnv = storage->tlsEnv;
   HttpClientSettings *clientSettings = storage->clientSettings;
@@ -368,29 +369,29 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
   do {
     status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
     if (status) {
-      printf("error in httpcb ctx init: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error in httpcb ctx init: %d\n", status);
       break;
     }
     status = httpClientSessionInit(httpClientContext, &session);
     if (status) {
-      printf("error initing session: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error initing session: %d\n", status);
       break;
     }
     status = httpClientSessionStageRequest(httpClientContext, session, "GET", path, NULL, NULL, 0, 0);
     if (status) {
-      printf("error staging request: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error staging request: %d\n", status);
       break;
     }
     requestStringHeader(session->request, TRUE, "Content-type", "application/json");
     requestStringHeader(session->request, TRUE, "Cookie", storage->token);
     status = httpClientSessionSend(httpClientContext, session);
     if (status) {
-      printf("error sending request: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error sending request: %d\n", status);
       break;
     }
     Json *jsonResponse = receiveJsonResponse(httpClientContext, session, &status);
     if (status) {
-      printf ("error receiving response: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error receiving response: %d\n", status);
       break;
     }
     int statusCode = session->response->statusCode;
@@ -422,7 +423,7 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
 }
 
 static void apimlStorageRemove(ApimlStorage *storage, const char *key, int *statusOut) {
-  printf ("[*] about to delete [%s]\n", key);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "[*] about to delete [%s]\n", key);
   int status = 0;
   TlsEnvironment *tlsEnv = storage->tlsEnv;
   HttpClientSettings *clientSettings = storage->clientSettings;
@@ -431,35 +432,35 @@ static void apimlStorageRemove(ApimlStorage *storage, const char *key, int *stat
   LoggingContext *loggingContext = storage->loggingContext;
   char *token = NULL;
   char path[2048] = {0};
-  snprintf (path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, key);
+  snprintf(path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, key);
 
   do {
     status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
 
     if (status) {
-      printf("error in httpcb ctx init: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error in httpcb ctx init: %d\n", status);
       break;
     }
     status = httpClientSessionInit(httpClientContext, &session);
     if (status) {
-      printf("error initing session: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error initing session: %d\n", status);
       break;
     }
     status = httpClientSessionStageRequest(httpClientContext, session, "DELETE", path, NULL, NULL, NULL, 0);
     if (status) {
-      printf("error staging request: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error staging request: %d\n", status);
       break;
     }
     requestStringHeader(session->request, TRUE, "Content-type", "application/json");
     requestStringHeader(session->request, TRUE, "Cookie", storage->token);
     status = httpClientSessionSend(httpClientContext, session);
     if (status) {
-      printf("error sending request: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error sending request: %d\n", status);
       break;
     }
     receiveResponse(httpClientContext, session, &status);
     if (status) {
-      printf ("error receiving response: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "error receiving response: %d\n", status);
       break;
     }
     int statusCode = session->response->statusCode;
@@ -533,7 +534,7 @@ Storage *makeApimlStorage(ApimlStorageSettings *settings) {
   TlsEnvironment *tlsEnv = NULL;
   int status = tlsInit(&tlsEnv, settings->tlsSettings);
   if (status) {
-    printf("failed to init tls environment, rc=%d (%s)\n", status, tlsStrError(status));
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "failed to init tls environment, rc=%d (%s)\n", status, tlsStrError(status));
     safeFree((char*)storage, sizeof(*storage));
     safeFree((char*)apimlStorage, sizeof(*apimlStorage));
     safeFree((char*)clientSettings, sizeof(*clientSettings));
@@ -613,8 +614,8 @@ Run:
 int main(int argc, char *argv[]) {
   int status = 0;
   if (argc != 8) {
-    printf ("Usage: %s <apiml-gateway-host> <apiml-gateway-host> <kdb-file> <stash-file> <key-label> <user> <password>\n", argv[0]);
-    printf ("For example: %s localhost 10010 ./key.kdb ./key.sth client USER validPassword\n");
+    printf("Usage: %s <apiml-gateway-host> <apiml-gateway-host> <kdb-file> <stash-file> <key-label> <user> <password>\n", argv[0]);
+    printf("For example: %s localhost 10010 ./key.kdb ./key.sth client USER validPassword\n");
     return 1;
   }
   char *host = argv[1];
@@ -638,11 +639,11 @@ int main(int argc, char *argv[]) {
   };
   Storage *storage = makeApimlStorage(&settings);
   if (!storage) {
-    printf ("unable to make APIML storage\n");
+    printf("unable to make APIML storage\n");
     return 1;
   }
   ApimlStorage *apimlStorage = storage->userData;
-  printf ("apimlStorage host %s port %d, keyring %s, stash %s, label %s, user %s\n",
+  printf("apimlStorage host %s port %d, keyring %s, stash %s, label %s, user %s\n",
           host, port, keyring, stash, label, user);
   apimlLogin(apimlStorage, user, password, &status);
   if (status == STORAGE_STATUS_OK) {
@@ -652,7 +653,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   testStorage(storage);
-
   printf("test complete\n");
 }
 
