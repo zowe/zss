@@ -40,21 +40,39 @@
 #define STORAGE_STATUS_INVALID_CREDENTIALS  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 2)
 #define STORAGE_STATUS_RESPONSE_ERROR       (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 3)
 #define STORAGE_STATUS_JSON_RESPONSE_ERROR  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 4)
+#define STORAGE_STATUS_ALLOC_ERROR          (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 5)
+#define STORAGE_STATUS_INVALID_KV_RESPONSE  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 6)
 
-typedef struct ApimlStorage_tag {
+typedef struct {
   char *token;
   HttpClientSettings *clientSettings;
   TlsEnvironment *tlsEnv;
 } ApimlStorage;
 
-typedef struct JsonMemoryPrinter_tag JsonMemoryPrinter;
-
-struct JsonMemoryPrinter_tag {
+typedef struct {
   char *buffer;
   int size;
   int capacity;
+  bool error;
   jsonPrinter *jsonPrinter;
-};
+} JsonMemoryPrinter;
+
+typedef struct {
+  char *textResponse;
+  Json *jsonResponse;
+  HttpHeader *headers;
+  int statusCode;
+  HttpClientContext *_httpClientContext;
+  HttpClientSession *_session;
+} ApimlResponse;
+
+typedef struct  {
+  char *method;
+  char *path;
+  char *body;
+  int bodyLen;
+  bool parseJson;
+} ApimlRequest;
 
 #define INITIAL_CAPACITY 512
 
@@ -80,9 +98,12 @@ static void convertToAscii(char *str, int len) {
   }
 }
 
-static void printerGrowBuffer(JsonMemoryPrinter *printer) {
+static bool printerGrowBuffer(JsonMemoryPrinter *printer) {
   int newCapacity = printer->capacity * 2;
   char *newBuffer = safeMalloc(newCapacity, "JsonMemoryPrinter Buffer");
+  if (!newBuffer) {
+    return false;
+  }
   memcpy(newBuffer, printer->buffer, printer->size);
   safeFree(printer->buffer, printer->capacity);
   printer->buffer = newBuffer;
@@ -91,8 +112,14 @@ static void printerGrowBuffer(JsonMemoryPrinter *printer) {
 
 static void jsonWriteCallback(jsonPrinter *p, char *data, int len) {
   JsonMemoryPrinter *printer = (JsonMemoryPrinter*)p->customObject;
+  if (printer->error) {
+    return;
+  }
   while (printer->capacity - printer->size < len) {
-    printerGrowBuffer(printer);
+    if (!printerGrowBuffer(printer)) {
+      printer->error = true;
+      return;
+    }
   }
   memcpy(printer->buffer + printer->size, data, len);
   printer->size += len;
@@ -120,6 +147,7 @@ static JsonMemoryPrinter *makeJsonMemoryPrinter() {
   printer->capacity = INITIAL_CAPACITY;
   printer->buffer = safeMalloc(printer->capacity, "JsonMemoryPrinter Buffer");
   printer->size = 0;
+  printer->error = false;
   if (!printer->buffer) {
     freeJsonMemoryPrinter(printer);
     return NULL;
@@ -132,14 +160,10 @@ static JsonMemoryPrinter *makeJsonMemoryPrinter() {
   return printer;
 }
 
-static void resetJsonMemoryPrinter(JsonMemoryPrinter *printer) {
-  memset(printer->buffer, 0, printer->capacity);
-  printer->size = 0;
-  freeJsonPrinter(printer->jsonPrinter);
-  printer->jsonPrinter = makeCustomJsonPrinter(jsonWriteCallback, printer);
-}
-
-char *jsonMemoryPrinterGetOutput(JsonMemoryPrinter *printer) {
+static char *jsonMemoryPrinterGetOutput(JsonMemoryPrinter *printer) {
+  if (printer->error) {
+    return NULL;
+  }
   char *output = safeMalloc(printer->size + 1, "JsonMemoryPrinter output");
   if (output) {
     memcpy(output, printer->buffer, printer->size);
@@ -150,16 +174,18 @@ char *jsonMemoryPrinterGetOutput(JsonMemoryPrinter *printer) {
 static char *extractTokenFromCookie(const char *cookie) {
   const char *name = "apimlAuthenticationToken=";
   int len = strlen(name);
-  char *place = strstr(cookie, name);
-  if (!place) {
+  char *start = strstr(cookie, name);
+  if (!start) {
     return NULL;
   }
-  char *end = strchr(place + len, ';');
+  char *end = strchr(start + len, ';');
   if (!end) {
     return NULL;
   }
-  char *token = safeMalloc(end - place + 1, "APIML token");
-  memcpy(token, place, end - place);
+  char *token = safeMalloc(end - start + 1, "APIML token");
+  if (token) {
+    memcpy(token, start, end - start);
+  }
   return token;
 }
 
@@ -182,22 +208,26 @@ static char *extractTokenFromHeaders(HttpHeader *headers) {
 }
 
 static void receiveResponse(HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut) {
-  bool success = false;
+  bool done = false;
   ShortLivedHeap *slh = session->slh;
-  while (!success) {
+  while (!done) {
     int status = httpClientSessionReceiveNative(httpClientContext, session, 1024);
     if (status != 0) {
       zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error receiving response: %d\n", status);
       break;
     }
     if (session->response) {
-      success = true;
+      done = true;
       break;
     }
   }
-  if (success) {
+  if (done) {
     int contentLength = session->response->contentLength;
     char *responseEbcdic = SLHAlloc(slh, contentLength + 1);
+    if (!responseEbcdic) {
+      *statusOut = STORAGE_STATUS_ALLOC_ERROR;
+      return;
+    }
     memset(responseEbcdic, '\0', contentLength + 1);
     memcpy(responseEbcdic, session->response->body, contentLength);
     convertToEbcdic(responseEbcdic, contentLength);
@@ -231,6 +261,9 @@ static Json *receiveJsonResponse(HttpClientContext *httpClientContext, HttpClien
 
 static char *apimlCreateLoginRequestBody(const char *username, const char *password) {
   JsonMemoryPrinter *printer = makeJsonMemoryPrinter();
+  if (!printer) {
+    return NULL;
+  }
   jsonPrinter *p = printer->jsonPrinter;
   jsonStart(p);
   jsonAddString(p, "username", (char *)username);
@@ -238,13 +271,27 @@ static char *apimlCreateLoginRequestBody(const char *username, const char *passw
   jsonEnd(p);
   char *body = jsonMemoryPrinterGetOutput(printer);
   freeJsonMemoryPrinter(printer);
-  int bodyLen = strlen(body);
-  convertToAscii(body, bodyLen);
+  if (body) {
+    int bodyLen = strlen(body);
+    convertToAscii(body, bodyLen);
+  }
   return body;
 }
 
-static void apimlLogin(ApimlStorage *storage, const char *username, const char *password, int *statusOut) {
-  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "[*] about to login with %s:%s\n", username, password);
+static void freeApimlResponse(ApimlResponse *response) {
+  if (!response) {
+    return;
+  }
+  if (response->_session) {
+    httpClientSessionDestroy(response->_session);
+  }
+  if (response->_httpClientContext) {
+    httpClientContextDestroy(response->_httpClientContext);
+  }
+  safeFree((char*)response, sizeof(*response));
+}
+
+static ApimlResponse *apimlDoRequest(ApimlStorage *storage, ApimlRequest *request, int *statusOut) {
   int status = 0;
   int statusCode = 0;
   TlsEnvironment *tlsEnv = storage->tlsEnv;
@@ -252,45 +299,106 @@ static void apimlLogin(ApimlStorage *storage, const char *username, const char *
   HttpClientContext *httpClientContext = NULL;
   HttpClientSession *session = NULL;
   LoggingContext *loggingContext = makeLoggingContext();
-  char *token = NULL;
-  char *path = "/api/v1/apicatalog/auth/login";
-  char *body = apimlCreateLoginRequestBody(username, password);
-  int bodyLen = strlen(body);
+  char *token = storage->token;
+  char *path = request->path;
+  char *body = request->body;
+  int bodyLen = request->bodyLen;
+  Json *jsonResponse = NULL;
+  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "apiml request %s %s\n", request->method, request->path);
 
   do {
     status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
     if (status) {
       zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error in httpcb ctx init: %d\n", status);
+      *statusOut = STORAGE_STATUS_HTTP_ERROR;
       break;
     }
     status = httpClientSessionInit(httpClientContext, &session);
     if (status) {
       zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error initing session: %d\n", status);
+      *statusOut = STORAGE_STATUS_HTTP_ERROR;
       break;
     }
-    status = httpClientSessionStageRequest(httpClientContext, session, "POST", path, NULL, NULL, body, bodyLen);
+    status = httpClientSessionStageRequest(httpClientContext, session, request->method, path, NULL, NULL, body, bodyLen);
     if (status) {
       zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error staging request: %d\n", status);
+      *statusOut = STORAGE_STATUS_HTTP_ERROR;
       break;
     }
     requestStringHeader(session->request, TRUE, "Content-type", "application/json");
+    if (storage->token) {
+      requestStringHeader(session->request, TRUE, "Cookie", storage->token);
+    }
     status = httpClientSessionSend(httpClientContext, session);
     if (status) {
       zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error sending request: %d\n", status);
+      *statusOut = STORAGE_STATUS_HTTP_ERROR;
       break;
     }
-    safeFree(body, bodyLen + 1);
-    receiveResponse(httpClientContext, session, &status);
+    if (request->parseJson) {
+      jsonResponse = receiveJsonResponse(httpClientContext, session, &status);
+    } else {
+      receiveResponse(httpClientContext, session, &status);
+    }
     if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error receiving response: %d\n", status);
+      *statusOut = status;
       break;
     }
-    statusCode = session->response->statusCode;
+  } while (0);
+  if (status) {
+    if (session) {
+      httpClientSessionDestroy(session);
+    }
+    if (httpClientContext) {
+      httpClientContextDestroy(httpClientContext);
+    }    
+    return NULL;
+  }
+  ApimlResponse *response = (ApimlResponse*)safeMalloc(sizeof(*response), "APIML Response");
+  if (response) {
+    response->_httpClientContext = httpClientContext;
+    response->_session = session;
+    response->jsonResponse = jsonResponse;
+    response->textResponse = session->response->body;
+    response->headers = session->response->headers;
+    response->statusCode = session->response->statusCode;
+  }
+  return response;
+}
+
+static void apimlLogin(ApimlStorage *storage, const char *username, const char *password, int *statusOut) {
+  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "[+] about to login with %s:%s\n", username, password);
+  int status = 0;
+  int statusCode = 0;
+  char *token = NULL;
+  char *body = apimlCreateLoginRequestBody(username, password);
+  if (!body) {
+    *statusOut = STORAGE_STATUS_ALLOC_ERROR;
+    return;
+  }
+  int bodyLen = strlen(body);
+  ApimlRequest request = {
+    .method = "POST",
+    .path = "/api/v1/apicatalog/auth/login",
+    .body = body,
+    .bodyLen = bodyLen,
+    .parseJson = false
+  };
+  
+  ApimlResponse *response = apimlDoRequest(storage, &request, &status);
+  safeFree(body, bodyLen + 1);
+  if (status) {
+    *statusOut = status;
+    return;
+  }
+
+  do {
+    statusCode = response->statusCode;
     if (statusCode != HTTP_STATUS_OK && statusCode != HTTP_STATUS_NO_CONTENT) {
       status = STORAGE_STATUS_INVALID_CREDENTIALS;
       break;
     }
-    token = extractTokenFromHeaders(session->response->headers);
+    token = extractTokenFromHeaders(response->headers);
     if (token) {
       *statusOut = STORAGE_STATUS_OK;
       storage->token = token;
@@ -298,136 +406,111 @@ static void apimlLogin(ApimlStorage *storage, const char *username, const char *
       *statusOut = STORAGE_STATUS_LOGIN_ERROR;
     }
   } while (0);
+  freeApimlResponse(response);
   zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "login status: %d, http status: %d\n", status, statusCode);
-  if (session) {
-    httpClientSessionDestroy(session);
-  }
-  if (httpClientContext) {
-    httpClientContextDestroy(httpClientContext);
-  }
 }
 
 static char *apimlCreateCachingServiceRequestBody(const char *key, const char *value) {
   JsonMemoryPrinter *printer = makeJsonMemoryPrinter();
+  if (!printer) {
+    return NULL;
+  }
   jsonPrinter *p = printer->jsonPrinter;
   jsonStart(p);
   jsonAddString(p, "key", (char*)key);
   jsonAddString(p, "value", (char*)value);
   jsonEnd(p);
   char *body = jsonMemoryPrinterGetOutput(printer);
-  int bodyLen = strlen(body);
   freeJsonMemoryPrinter(printer);
-  convertToAscii(body, bodyLen);
+  if (body) {
+    int bodyLen = strlen(body);
+    convertToAscii(body, bodyLen);
+  }
   return body;
 } 
 
 #define OP_CREATE 1
 #define OP_CHANGE 2
 static void createOrChange(ApimlStorage *storage, int op, const char *key, const char *value, int *statusOut) {
-  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "[*] about to createOrChange [%s]:%s\n", key, value);
+  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "[+] about to createOrChange [%s]:%s\n", key, value);
   int status = 0;
-  TlsEnvironment *tlsEnv = storage->tlsEnv;
-  HttpClientSettings *clientSettings = storage->clientSettings;
-  HttpClientContext *httpClientContext = NULL;
-  HttpClientSession *session = NULL;
-  LoggingContext *loggingContext = makeLoggingContext();
   char *path = CACHING_SERVICE_URI;
+  char *method = (op == OP_CHANGE ? "PUT" : "POST");
   char *body = apimlCreateCachingServiceRequestBody(key, value);
+  if (!body) {
+    *statusOut = STORAGE_STATUS_ALLOC_ERROR;
+    return;
+  }
   int bodyLen = strlen(body);
-
-  do {
-    status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
-
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error in httpcb ctx init: %d\n", status);
-      break;
-    }
-    status = httpClientSessionInit(httpClientContext, &session);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error initing session: %d\n", status);
-      break;
-    }
-    char *method = op == OP_CHANGE ? "PUT" : "POST";
-    status = httpClientSessionStageRequest(httpClientContext, session, method, path, NULL, NULL, body, bodyLen);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error staging request: %d\n", status);
-      break;
-    }
-    requestStringHeader(session->request, TRUE, "Content-type", "application/json");
-    requestStringHeader(session->request, TRUE, "Cookie", storage->token);
-    status = httpClientSessionSend(httpClientContext, session);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error sending request: %d\n", status);
-      break;
-    }
-    receiveResponse(httpClientContext, session, &status);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error receiving response: %d\n", status);
-      break;
-    }
-    int statusCode = session->response->statusCode;
-    if (statusCode >= 200 && statusCode < 300) {
-      *statusOut = STORAGE_STATUS_OK;
-    } else if (statusCode == 404) {
-      *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
-    } else {
-      *statusOut = STORAGE_STATUS_HTTP_ERROR;
-    }
-  } while (0);
+  ApimlRequest request = {
+    .method = method,
+    .path = CACHING_SERVICE_URI,
+    .body = body,
+    .bodyLen = bodyLen,
+    .parseJson = false
+  };
+  ApimlResponse *response = apimlDoRequest(storage, &request, &status);
   safeFree(body, bodyLen + 1);
-  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "http response status %d\n", session->response->statusCode);
+  if (status) {
+    *statusOut = status;
+    return;
+  }
+  int statusCode = response->statusCode;
+  if (statusCode >= 200 && statusCode < 300) {
+    *statusOut = STORAGE_STATUS_OK;
+  } else if (statusCode == HTTP_STATUS_NOT_FOUND) {
+    *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
+  } else {
+    *statusOut = STORAGE_STATUS_HTTP_ERROR;
+  }
+  freeApimlResponse(response);
+  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "http response status %d\n", statusCode);
+}
 
-  if (session) {
-    httpClientSessionDestroy(session);
+static char *getValue(Json *jsonResponse, int *statusOut) {
+  JsonObject *keyValue = jsonAsObject(jsonResponse);
+  if (!keyValue) {
+    *statusOut = STORAGE_STATUS_INVALID_KV_RESPONSE;
+    return NULL;
   }
-  if (httpClientContext) {
-    httpClientContextDestroy(httpClientContext);
+  char *val = jsonObjectGetString(keyValue, "value");
+  if (!val) {
+    *statusOut = STORAGE_STATUS_INVALID_KV_RESPONSE;
+    return NULL;
   }
+  char *value = duplicateString(val);
+  if (!value) {
+    *statusOut = STORAGE_STATUS_ALLOC_ERROR;
+    return NULL;
+  }
+  *statusOut = STORAGE_STATUS_OK;
+  return value;
 }
 
 static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *statusOut) {
-  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "[*] about to get [%s]\n", key);
+  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "[+] about to get [%s]\n", key);
   int status = 0;
-  TlsEnvironment *tlsEnv = storage->tlsEnv;
-  HttpClientSettings *clientSettings = storage->clientSettings;
-  HttpClientContext *httpClientContext = NULL;
-  HttpClientSession *session = NULL;
-  LoggingContext *loggingContext = makeLoggingContext();
+  int statusCode = 0;
   char *token = NULL;
   char *value = NULL;
   char path[2048] = {0};
   snprintf (path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, key);
-
+  
+  ApimlRequest request = {
+    .method = "GET",
+    .path = path,
+    .body = NULL,
+    .bodyLen = 0,
+    .parseJson = true
+  };
+  ApimlResponse *response = apimlDoRequest(storage, &request, &status);
+  if (status) {
+    *statusOut = status;
+    return NULL;
+  }
   do {
-    status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error in httpcb ctx init: %d\n", status);
-      break;
-    }
-    status = httpClientSessionInit(httpClientContext, &session);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error initing session: %d\n", status);
-      break;
-    }
-    status = httpClientSessionStageRequest(httpClientContext, session, "GET", path, NULL, NULL, 0, 0);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error staging request: %d\n", status);
-      break;
-    }
-    requestStringHeader(session->request, TRUE, "Content-type", "application/json");
-    requestStringHeader(session->request, TRUE, "Cookie", storage->token);
-    status = httpClientSessionSend(httpClientContext, session);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error sending request: %d\n", status);
-      break;
-    }
-    Json *jsonResponse = receiveJsonResponse(httpClientContext, session, &status);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error receiving response: %d\n", status);
-      break;
-    }
-    int statusCode = session->response->statusCode;
-    if (statusCode >= 200 && statusCode < 300) {
+    statusCode = response->statusCode;
+    if (statusCode == 200) {
       *statusOut = STORAGE_STATUS_OK;
     } else if (statusCode == 404) {
       *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
@@ -436,79 +519,41 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
       *statusOut = STORAGE_STATUS_HTTP_ERROR;
       break;
     }
-    JsonObject *keyValue = jsonAsObject(jsonResponse);
-    if (keyValue) {
-      char *val = jsonObjectGetString(keyValue, "value");
-      if (val) {
-        value = duplicateString(val);
-      }
-    }
+    value = getValue(response->jsonResponse, statusOut);
   } while (0);
-  if (session) {
-    httpClientSessionDestroy(session);
-  }
-  if (httpClientContext) {
-    httpClientContextDestroy(httpClientContext);
-  }
+  freeApimlResponse(response);
+  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "http response status %d\n", statusCode);
   return value;
 }
 
 static void apimlStorageRemove(ApimlStorage *storage, const char *key, int *statusOut) {
-  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "[*] about to delete [%s]\n", key);
+  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "[+] about to remove [%s]\n", key);
   int status = 0;
-  TlsEnvironment *tlsEnv = storage->tlsEnv;
-  HttpClientSettings *clientSettings = storage->clientSettings;
-  HttpClientContext *httpClientContext = NULL;
-  HttpClientSession *session = NULL;
-  LoggingContext *loggingContext = makeLoggingContext();
   char *token = NULL;
   char path[2048] = {0};
   snprintf(path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, key);
-
-  do {
-    status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
-
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error in httpcb ctx init: %d\n", status);
-      break;
-    }
-    status = httpClientSessionInit(httpClientContext, &session);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error initing session: %d\n", status);
-      break;
-    }
-    status = httpClientSessionStageRequest(httpClientContext, session, "DELETE", path, NULL, NULL, NULL, 0);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error staging request: %d\n", status);
-      break;
-    }
-    requestStringHeader(session->request, TRUE, "Content-type", "application/json");
-    requestStringHeader(session->request, TRUE, "Cookie", storage->token);
-    status = httpClientSessionSend(httpClientContext, session);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error sending request: %d\n", status);
-      break;
-    }
-    receiveResponse(httpClientContext, session, &status);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error receiving response: %d\n", status);
-      break;
-    }
-    int statusCode = session->response->statusCode;
-    if (statusCode >= 200 && statusCode < 300) {
-      *statusOut = STORAGE_STATUS_OK;
-    } else if (statusCode == 404) {
-      *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
-    } else {
+  ApimlRequest request = {
+    .method = "DELETE",
+    .path = path,
+    .body = NULL,
+    .bodyLen = 0,
+    .parseJson = false
+  };
+  ApimlResponse *response = apimlDoRequest(storage, &request, &status);
+  if (status) {
+    *statusOut = status;
+    return;
+  }
+  int statusCode = response->statusCode;
+  if (statusCode >= 200 && statusCode < 300) {
+    *statusOut = STORAGE_STATUS_OK;
+  } else if (statusCode == HTTP_STATUS_NOT_FOUND) {
+    *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
+  } else {
     *statusOut = STORAGE_STATUS_HTTP_ERROR;
-    }
-  } while (0);
-  if (session) {
-    httpClientSessionDestroy(session);
   }
-  if (httpClientContext) {
-    httpClientContextDestroy(httpClientContext);
-  }
+  freeApimlResponse(response);
+  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "http response status %d\n", statusCode);
 }
 
 static void apimlStorageSetString(ApimlStorage *storage, const char *key, const char *value, int *statusOut) {
@@ -526,6 +571,8 @@ static const char *MESSAGES[] = {
   [STORAGE_STATUS_INVALID_CREDENTIALS] = "Invalid credentials",
   [STORAGE_STATUS_RESPONSE_ERROR] = "Error receiving response",
   [STORAGE_STATUS_JSON_RESPONSE_ERROR] = "Error parsing JSON response",
+  [STORAGE_STATUS_ALLOC_ERROR] = "Failed to allocate memory",
+  [STORAGE_STATUS_INVALID_KV_RESPONSE] = "Invalid key/value response",
 };
 
 #define MESSAGE_COUNT sizeof(MESSAGES)/sizeof(MESSAGES[0])
