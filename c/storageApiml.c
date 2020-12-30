@@ -590,7 +590,7 @@ static const char *MESSAGES[] = {
 #define MESSAGE_COUNT sizeof(MESSAGES)/sizeof(MESSAGES[0])
 
 static const char *apimlStorageGetStrStatus(ApimlStorage *storage, int status) {
-  if (status >= MESSAGE_COUNT || status < 0) {
+  if (status >= MESSAGE_COUNT || status < STORAGE_STATUS_FIRST_CUSTOM_STATUS) {
     return "Unknown status code";
   }
   const char *message = MESSAGES[status];
