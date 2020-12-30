@@ -233,7 +233,7 @@ static void receiveResponse(HttpClientContext *httpClientContext, HttpClientSess
     memset(responseEbcdic, '\0', contentLength + 1);
     memcpy(responseEbcdic, session->response->body, contentLength);
     convertToEbcdic(responseEbcdic, contentLength);
-    zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "successfully received response(EBCDIC): %s\n", responseEbcdic);
+    zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "successfully received response: %s\n", responseEbcdic);
     *statusOut = STORAGE_STATUS_OK;
   } else {
     *statusOut = STORAGE_STATUS_RESPONSE_ERROR;
@@ -576,7 +576,7 @@ static void apimlStorageSetString(ApimlStorage *storage, const char *key, const 
 }
 
 static const char *MESSAGES[] = {
-  [STORAGE_STATUS_HTTP_ERROR] = "HTTP error",
+  [STORAGE_STATUS_HTTP_ERROR] = "Failed to send HTTP request",
   [STORAGE_STATUS_LOGIN_ERROR] = "Login failed",
   [STORAGE_STATUS_INVALID_CREDENTIALS] = "Invalid credentials",
   [STORAGE_STATUS_RESPONSE_ERROR] = "Error receiving response",
@@ -720,7 +720,7 @@ int main(int argc, char *argv[]) {
   };
   Storage *storage = makeApimlStorage(&settings);
   if (!storage) {
-    printf("unable to make APIML storage\n");
+    printf("[-] unable to make APIML storage\n");
     return 1;
   }
   ApimlStorage *apimlStorage = storage->userData;
@@ -728,13 +728,13 @@ int main(int argc, char *argv[]) {
           host, port, keyring, stash, label, user);
   apimlLogin(apimlStorage, user, password, &status);
   if (status == STORAGE_STATUS_OK) {
-    printf("login ok, token '%s'\n", apimlStorage->token);
+    printf("[+] login ok, token '%s'\n", apimlStorage->token);
   } else {
-    printf("oops, login failed, status %d - %s\n", status, storageGetStrStatus(storage, status));
+    printf("[-] login failed, status %d - %s\n", status, storageGetStrStatus(storage, status));
     return 1;
   }
   testStorage(storage);
-  printf("test complete\n");
+  printf("[!] test complete successfully\n");
 }
 
 #endif // _TEST_APIML_STORAGE
