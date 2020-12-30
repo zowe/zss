@@ -42,6 +42,8 @@
 #define STORAGE_STATUS_JSON_RESPONSE_ERROR  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 4)
 #define STORAGE_STATUS_ALLOC_ERROR          (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 5)
 #define STORAGE_STATUS_INVALID_KV_RESPONSE  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 6)
+#define STORAGE_STATUS_INVALID_JWT_TOKEN    (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 7)
+#define STORAGE_STATUS_NO_AUTH_PROVIDED     (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 8)
 
 typedef struct {
   char *token;
@@ -291,6 +293,25 @@ static void freeApimlResponse(ApimlResponse *response) {
   safeFree((char*)response, sizeof(*response));
 }
 
+static int transformHttpStatus(int httpStatus) {
+  switch (httpStatus) {
+    case HTTP_STATUS_NOT_FOUND:
+      return STORAGE_STATUS_KEY_NOT_FOUND;
+    case HTTP_STATUS_UNAUTHORIZED:
+      return STORAGE_STATUS_INVALID_JWT_TOKEN;
+    case HTTP_STATUS_BAD_REQUEST:
+      return STORAGE_STATUS_NO_AUTH_PROVIDED;
+    case HTTP_STATUS_OK:
+      return STORAGE_STATUS_OK;
+    case HTTP_STATUS_NO_CONTENT:
+      return STORAGE_STATUS_OK;
+    case HTTP_STATUS_CREATED:
+      return STORAGE_STATUS_OK;
+    default:
+      return STORAGE_STATUS_HTTP_ERROR;
+  }
+}
+
 static ApimlResponse *apimlDoRequest(ApimlStorage *storage, ApimlRequest *request, int *statusOut) {
   int status = 0;
   int statusCode = 0;
@@ -394,8 +415,12 @@ static void apimlLogin(ApimlStorage *storage, const char *username, const char *
 
   do {
     statusCode = response->statusCode;
-    if (statusCode != HTTP_STATUS_OK && statusCode != HTTP_STATUS_NO_CONTENT) {
+    if (statusCode == HTTP_STATUS_UNAUTHORIZED) {
       status = STORAGE_STATUS_INVALID_CREDENTIALS;
+      break;
+    }
+    status = transformHttpStatus(statusCode);
+    if (status) {
       break;
     }
     token = extractTokenFromHeaders(response->headers);
@@ -456,13 +481,7 @@ static void createOrChange(ApimlStorage *storage, int op, const char *key, const
     return;
   }
   int statusCode = response->statusCode;
-  if (statusCode >= 200 && statusCode < 300) {
-    *statusOut = STORAGE_STATUS_OK;
-  } else if (statusCode == HTTP_STATUS_NOT_FOUND) {
-    *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
-  } else {
-    *statusOut = STORAGE_STATUS_HTTP_ERROR;
-  }
+  *statusOut = transformHttpStatus(statusCode);
   freeApimlResponse(response);
   zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "http response status %d\n", statusCode);
 }
@@ -510,13 +529,9 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
   }
   do {
     statusCode = response->statusCode;
-    if (statusCode == 200) {
-      *statusOut = STORAGE_STATUS_OK;
-    } else if (statusCode == 404) {
-      *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
-      break;
-    } else {
-      *statusOut = STORAGE_STATUS_HTTP_ERROR;
+    status = transformHttpStatus(statusCode);
+    if (status) {
+      *statusOut = status;
       break;
     }
     value = getValue(response->jsonResponse, statusOut);
@@ -545,13 +560,7 @@ static void apimlStorageRemove(ApimlStorage *storage, const char *key, int *stat
     return;
   }
   int statusCode = response->statusCode;
-  if (statusCode >= 200 && statusCode < 300) {
-    *statusOut = STORAGE_STATUS_OK;
-  } else if (statusCode == HTTP_STATUS_NOT_FOUND) {
-    *statusOut = STORAGE_STATUS_KEY_NOT_FOUND;
-  } else {
-    *statusOut = STORAGE_STATUS_HTTP_ERROR;
-  }
+  *statusOut = transformHttpStatus(statusCode);
   freeApimlResponse(response);
   zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "http response status %d\n", statusCode);
 }
@@ -573,6 +582,8 @@ static const char *MESSAGES[] = {
   [STORAGE_STATUS_JSON_RESPONSE_ERROR] = "Error parsing JSON response",
   [STORAGE_STATUS_ALLOC_ERROR] = "Failed to allocate memory",
   [STORAGE_STATUS_INVALID_KV_RESPONSE] = "Invalid key/value response",
+  [STORAGE_STATUS_INVALID_JWT_TOKEN] = "Invalid JWT token",
+  [STORAGE_STATUS_NO_AUTH_PROVIDED] = "No auth provided",
 };
 
 #define MESSAGE_COUNT sizeof(MESSAGES)/sizeof(MESSAGES[0])
