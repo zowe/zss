@@ -94,6 +94,7 @@ if c89 \
   ${COMMON}/c/dynalloc.c \
   ${COMMON}/c/fdpoll.c \
   ${COMMON}/c/http.c \
+  ${COMMON}/c/httpclient.c \
   ${COMMON}/c/httpserver.c \
   ${COMMON}/c/httpfileservice.c \
   ${COMMON}/c/icsf.c \
@@ -117,6 +118,8 @@ if c89 \
   ${COMMON}/c/signalcontrol.c \
   ${COMMON}/c/socketmgmt.c \
   ${COMMON}/c/stcbase.c \
+  ${COMMON}/c/storage.c \
+  ${COMMON}/c/storage_mem.c \
   ${COMMON}/c/timeutls.c \
   ${COMMON}/c/tls.c \
   ${COMMON}/c/utils.c \
@@ -128,6 +131,7 @@ if c89 \
   ${COMMON}/c/zvt.c \
   ${ZSS}/c/zssLogging.c \
   ${ZSS}/c/zss.c \
+  ${ZSS}/c/storageApiml.c \
   ${ZSS}/c/serviceUtils.c \
   ${ZSS}/c/authService.c \
   ${ZSS}/c/omvsService.c \
