@@ -416,11 +416,12 @@ static void apimlLogin(ApimlStorage *storage, const char *username, const char *
   do {
     statusCode = response->statusCode;
     if (statusCode == HTTP_STATUS_UNAUTHORIZED) {
-      status = STORAGE_STATUS_INVALID_CREDENTIALS;
+      *statusOut = STORAGE_STATUS_INVALID_CREDENTIALS;
       break;
     }
     status = transformHttpStatus(statusCode);
     if (status) {
+      *statusOut = status;
       break;
     }
     token = extractTokenFromHeaders(response->headers);
@@ -432,7 +433,7 @@ static void apimlLogin(ApimlStorage *storage, const char *username, const char *
     }
   } while (0);
   freeApimlResponse(response);
-  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "login status: %d, http status: %d\n", status, statusCode);
+  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "login http status: %d\n", statusCode);
 }
 
 static char *apimlCreateCachingServiceRequestBody(const char *key, const char *value) {
@@ -589,11 +590,10 @@ static const char *MESSAGES[] = {
 #define MESSAGE_COUNT sizeof(MESSAGES)/sizeof(MESSAGES[0])
 
 static const char *apimlStorageGetStrStatus(ApimlStorage *storage, int status) {
-  int adjustedStatus = status - STORAGE_STATUS_FIRST_CUSTOM_STATUS;
-  if (adjustedStatus >= MESSAGE_COUNT || adjustedStatus < 0) {
+  if (status >= MESSAGE_COUNT || status < 0) {
     return "Unknown status code";
   }
-  const char *message = MESSAGES[adjustedStatus];
+  const char *message = MESSAGES[status];
   if (!message) {
     return "Unknown status code";
   }
@@ -730,7 +730,7 @@ int main(int argc, char *argv[]) {
   if (status == STORAGE_STATUS_OK) {
     printf("login ok, token '%s'\n", apimlStorage->token);
   } else {
-    printf("oops, login failed, status %d - %s\n", status, apimlStorageGetStrStatus(apimlStorage, status));
+    printf("oops, login failed, status %d - %s\n", status, storageGetStrStatus(storage, status));
     return 1;
   }
   testStorage(storage);
