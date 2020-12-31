@@ -280,6 +280,12 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_PORT_OCCUP_MSG_TEXT          "This is usually because the server port '%d' is occupied. Is ZSS running twice?\n"
 #define ZSS_LOG_PORT_OCCUP_MSG               ZSS_LOG_PORT_OCCUP_MSG_ID" "ZSS_LOG_PORT_OCCUP_MSG_TEXT
 
+#ifndef ZSS_LOG_TLS_INIT_MSG_ID
+#define ZSS_LOG_TLS_INIT_MSG_ID              ZSS_LOG_MSG_PRFX"1038W"
+#endif
+#define ZSS_LOG_TLS_INIT_MSG_TEXT            "Failed to init TLS environment, rc=%d(%s)\n"
+#define ZSS_LOG_TLS_INIT_MSG                 ZSS_LOG_TLS_INIT_MSG_ID" "ZSS_LOG_TLS_INIT_MSG_TEXT
+
 /* MVD Server (Datasets) */
 
 #ifndef ZSS_LOG_INSTALL_MSG_ID
