@@ -65,6 +65,8 @@
 #include "securityService.h"
 #include "zis/client.h"
 #endif
+#include "storage.h"
+#include "storageApiml.h"
 
 #include "zssLogging.h"
 #include "serviceUtils.h"
@@ -620,6 +622,10 @@ static int checkLoggingVerbosity(const char *serverConfigFile, char *pluginIdent
   return ZOWE_LOG_INFO;
 }
 
+Storage *makeStorage() {
+  
+}
+
 static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLivedHeap *slh, char *dirname,
                                                   const char *serverConfigFile) {
   int pluginDefinitionCount = 0;
@@ -670,8 +676,9 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
               if (identifier && pluginLocation) {
                 JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, pluginLocation, relativeTo);
                 if (pluginDefinition) {
-                  WebPlugin *plugin = makeWebPlugin(pluginLocation, pluginDefinition, internalAPIMap,
-                                                    &idMultiplier, pluginLogLevel);
+                  Storage *storage = makeMemoryStorage(NULL);
+                  WebPlugin *plugin = makeWebPlugin2(pluginLocation, pluginDefinition, internalAPIMap,
+                                                    &idMultiplier, pluginLogLevel, storage);
                   if (plugin != NULL) {
                     initalizeWebPlugin(plugin, server);
                     //zlux does this, so don't bother doing it twice.
