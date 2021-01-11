@@ -70,6 +70,7 @@ if c89 \
   -DAPF_AUTHORIZED=0 \
   -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
   -Wc,agg,exp,list\(\),so\(\),off,xref \
+  -Wc,debug\(level\(9\),nofile\) \
   -Wl,ac=1,dll \
   -I ${COMMON}/h \
   -I ${COMMON}/jwt/jwt \
