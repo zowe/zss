@@ -163,4 +163,4 @@ ld -V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus \
   aux-host.o \
   > ZWESAUX.link
 
-echo "Build successfull"
+echo "Build successful"

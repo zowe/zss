@@ -54,4 +54,4 @@ c89 \
   
 extattr +p ${ZSS}/bin/envService
 
-echo "Build successfull"
+echo "Build successful"
