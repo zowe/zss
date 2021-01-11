@@ -4,7 +4,7 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
-## `1.19.0`
+## `1.20.0`
 
 ### New features and enhancements
 - Added method to read user & group server timeout info from a JSON file
