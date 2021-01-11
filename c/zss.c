@@ -312,10 +312,10 @@ static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings, Jso
    * mainService->authType = SERVICE_AUTH_NONE;
    */
   server->sharedServiceMem = mvdSettings;
-  //registerHttpService(server, mainService);
-  registerHttpServiceOfLastResort(server,NULL);
   server->config->userTimeouts = htUsers;
   server->config->groupTimeouts = htGroups;
+  //registerHttpService(server, mainService);
+  registerHttpServiceOfLastResort(server,NULL);
 #ifdef __ZOWE_OS_ZOS
   setPrivilegedServerName(server, mvdSettings, envSettings);
 #endif
