@@ -1234,10 +1234,8 @@ int main(int argc, char **argv){
     strcat(serverTimeoutsDir, serverTimeoutsDirSuffix);
     htUsers = getServerUserTimeoutsHt(slh, serverTimeoutsDir, "users");
     htGroups = getServerUserTimeoutsHt(slh, serverTimeoutsDir, "groups");
-    printf("timeoutsdir: %s  instanceDir: %s   serverTimeoutsDirSuffix: %s", serverTimeoutsDir, instanceDir, serverTimeoutsDirSuffix);
     safeFree(serverTimeoutsDir, serverTimeoutsDirSize);
-    printf("timeoutsdir: %s  instanceDir: %s   serverTimeoutsDirSuffix: %s", serverTimeoutsDir, instanceDir, serverTimeoutsDirSuffix);
-
+   
     /* This one IS used*/
     checkAndSetVariableWithEnvOverride(mvdSettings, "pluginsDir", envSettings, "ZWED_pluginsDir", pluginsDir, COMMON_PATH_MAX);
 
