@@ -398,7 +398,7 @@ static hashtable *getServerUserTimeoutsHt(ShortLivedHeap *slh, const char *filen
   int jsonErrorBufferSize = sizeof(jsonErrorBuffer);
   Json *serverTimeouts = NULL; 
   JsonObject *serverTimeoutsJsonObject = NULL;
-  hashtable *ht = NULL;
+  hashtable *ht = htCreate(277, stringHash, stringCompare, NULL, NULL);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "reading '%s' timeout settings from %s\n", key, filename);
   serverTimeouts = jsonParseFile(slh, filename, jsonErrorBuffer, jsonErrorBufferSize);
   if (serverTimeouts) {
@@ -414,7 +414,6 @@ static hashtable *getServerUserTimeoutsHt(ShortLivedHeap *slh, const char *filen
         char *userKey = jsonPropertyGetKey(property);
         int timeoutValue = jsonObjectGetNumber(users, userKey);
 
-        ht = htCreate(500, NULL, NULL, NULL, NULL); // Going to use natural hash function
         htPut(ht, userKey, (void*)timeoutValue);
         property = jsonObjectGetNextProperty(property);
       }
@@ -1221,12 +1220,21 @@ int main(int argc, char **argv){
     checkAndSetVariable(mvdSettings, "groupsDir", groupsDir, COMMON_PATH_MAX);
     checkAndSetVariable(mvdSettings, "usersDir", usersDir, COMMON_PATH_MAX);
     
-    char *serverTimeoutsLoc = malloc(strlen(instanceDir) + strlen("/workspace/app-server/serverConfig/timeouts.json") + 1); // +1 for the null-terminator
-    strcpy(serverTimeoutsLoc, instanceDir);
-    strcat(serverTimeoutsLoc, "/workspace/app-server/serverConfig/timeouts.json");
-    htUsers = getServerUserTimeoutsHt(slh, serverTimeoutsLoc, "users");
-    htGroups = getServerUserTimeoutsHt(slh, serverTimeoutsLoc, "groups");
-    free(serverTimeoutsLoc);
+    char *serverTimeoutsDir;
+    char *serverTimeoutsDirSuffix;
+    if (instanceDir[strlen(instanceDir)-1] == '/') {
+      serverTimeoutsDirSuffix = "workspace/app-server/serverConfig/timeouts.json";
+    } else {
+      serverTimeoutsDirSuffix = "/workspace/app-server/serverConfig/timeouts.json";
+    }
+    serverTimeoutsDir = safeMalloc((strlen(instanceDir) + strlen(serverTimeoutsDirSuffix) + 1), ""); // +1 for the null-terminator
+    strcpy(serverTimeoutsDir, instanceDir);
+    strcat(serverTimeoutsDir, serverTimeoutsDirSuffix);
+    htUsers = getServerUserTimeoutsHt(slh, serverTimeoutsDir, "users");
+    htGroups = getServerUserTimeoutsHt(slh, serverTimeoutsDir, "groups");
+    printf("timeoutsdir: %s  instanceDir: %s   serverTimeoutsDirSuffix: %s", serverTimeoutsDir, instanceDir, serverTimeoutsDirSuffix);
+    safeFree(serverTimeoutsDir, sizeof(char));
+    printf("timeoutsdir: %s  instanceDir: %s   serverTimeoutsDirSuffix: %s", serverTimeoutsDir, instanceDir, serverTimeoutsDirSuffix);
 
     /* This one IS used*/
     checkAndSetVariableWithEnvOverride(mvdSettings, "pluginsDir", envSettings, "ZWED_pluginsDir", pluginsDir, COMMON_PATH_MAX);
