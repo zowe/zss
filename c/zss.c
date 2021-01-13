@@ -406,6 +406,7 @@ static hashtable *getServerUserTimeoutsHt(ShortLivedHeap *slh, const char *filen
       serverTimeoutsJsonObject = jsonAsObject(serverTimeouts);
     } else {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_FILE_EXPECTED_TOP_MSG, filename);
+      return ht; // Returns empty hash table
     }
     JsonObject *users = jsonObjectGetObject(serverTimeoutsJsonObject, key);
     if (users) {
@@ -1228,7 +1229,7 @@ int main(int argc, char **argv){
       serverTimeoutsDirSuffix = "/workspace/app-server/serverConfig/timeouts.json";
     }
     int serverTimeoutsDirSize = strlen(instanceDir) + strlen(serverTimeoutsDirSuffix) + 1;
-    serverTimeoutsDir = safeMalloc(serverTimeoutsDirSize, ""); // +1 for the null-terminator
+    serverTimeoutsDir = safeMalloc(serverTimeoutsDirSize, "serverTimeoutsDir"); // +1 for the null-terminator
     strcpy(serverTimeoutsDir, instanceDir);
     strcat(serverTimeoutsDir, serverTimeoutsDirSuffix);
     htUsers = getServerUserTimeoutsHt(slh, serverTimeoutsDir, "users");
