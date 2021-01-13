@@ -1227,13 +1227,14 @@ int main(int argc, char **argv){
     } else {
       serverTimeoutsDirSuffix = "/workspace/app-server/serverConfig/timeouts.json";
     }
-    serverTimeoutsDir = safeMalloc((strlen(instanceDir) + strlen(serverTimeoutsDirSuffix) + 1), ""); // +1 for the null-terminator
+    int serverTimeoutsDirSize = strlen(instanceDir) + strlen(serverTimeoutsDirSuffix) + 1;
+    serverTimeoutsDir = safeMalloc(serverTimeoutsDirSize, ""); // +1 for the null-terminator
     strcpy(serverTimeoutsDir, instanceDir);
     strcat(serverTimeoutsDir, serverTimeoutsDirSuffix);
     htUsers = getServerUserTimeoutsHt(slh, serverTimeoutsDir, "users");
     htGroups = getServerUserTimeoutsHt(slh, serverTimeoutsDir, "groups");
     printf("timeoutsdir: %s  instanceDir: %s   serverTimeoutsDirSuffix: %s", serverTimeoutsDir, instanceDir, serverTimeoutsDirSuffix);
-    safeFree(serverTimeoutsDir, sizeof(char));
+    safeFree(serverTimeoutsDir, serverTimeoutsDirSize);
     printf("timeoutsdir: %s  instanceDir: %s   serverTimeoutsDirSuffix: %s", serverTimeoutsDir, instanceDir, serverTimeoutsDirSuffix);
 
     /* This one IS used*/
