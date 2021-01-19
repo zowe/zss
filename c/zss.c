@@ -421,7 +421,7 @@ static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, const char *filename,
     }
     dumpJson(serverTimeouts);
   } else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PARS_ZSS_SETTING_MSG, filename, jsonErrorBuffer);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PARS_ZSS_TIMEOUT_MSG, key);
   }
   return ht;
 }
