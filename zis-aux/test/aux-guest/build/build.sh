@@ -49,7 +49,7 @@ as "${ASFLAGS[@]}" -aegimrsx=zos.asm zos.s
 as "${ASFLAGS[@]}" -aegimrsx=aux-guest.asm aux-guest.s
 as "${ASFLAGS[@]}" -aegimrsx=testguest.asm testguest.s
 
-export _LD_SYSLIB="//'SYS1.CSSLIB'://'CEE.SCEELKEX'://'CEE.SCEELKED'://'CEE.SCEERUN'://'CEE.SCEERUN2'://'PP.CSF.ZOS203.SCSFMOD0'"
+export _LD_SYSLIB="//'SYS1.CSSLIB'://'CEE.SCEELKEX'://'CEE.SCEELKED'://'CEE.SCEERUN'://'CEE.SCEERUN2'://'CSF.SCSFMOD0'"
 
 ld "${LDFLAGS[@]}" -e getModuleDescriptor \
 -o "//'$USER.DEV.LOADLIB(ZWESAUXG)'" \

@@ -108,7 +108,7 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
 
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Updating if exists: %s\n", filename);
     fflush(stdout);
-    updateDataset(response, filename, TRUE);   
+    updateDataset(response, filename, TRUE);
 
   }
   else if (!strcmp(request->method, methodDELETE)) {
@@ -140,13 +140,8 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
   return 0;
 }
 
-/* new for ENQ */
-
 static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
-
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s\n", __FUNCTION__);
-
   HttpRequest *request = response->request;
 
   if (!strcmp(request->method, methodGET)) {
@@ -155,7 +150,6 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Taking enqueue on: %s\n", filename);
-    fflush(stdout);
     respondWithEnqueue(response, filename, TRUE);
   }
   else if (!strcmp(request->method, methodDELETE)) {
@@ -164,7 +158,6 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Releasing enqueue on: %s\n", filename);
-    fflush(stdout);
     
     respondWithDequeue(response, filename, TRUE);
     
@@ -188,7 +181,6 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Returning from %s\n", __FUNCTION__);
   return 0;
 }
-/* end of new for ENQ */
 
 static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -247,7 +239,6 @@ void installDatasetContentsService(HttpServer *server) {
   registerHttpService(server, httpService);
 }
 
-/* new */
 void installDatasetEnqueueService(HttpServer *server) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset enqueue");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);

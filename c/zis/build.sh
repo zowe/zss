@@ -88,7 +88,7 @@ as "${ASFLAGS[@]}" -aegimrsx=nwm.asm nwm.s
 as "${ASFLAGS[@]}" -aegimrsx=secmgmt.asm secmgmt.s
 as "${ASFLAGS[@]}" -aegimrsx=snarfer.asm snarfer.s
 
-export _LD_SYSLIB="//'SYS1.CSSLIB'://'CEE.SCEELKEX'://'CEE.SCEELKED'://'CEE.SCEERUN'://'CEE.SCEERUN2'://'PP.CSF.ZOS203.SCSFMOD0'"
+export _LD_SYSLIB="//'SYS1.CSSLIB'://'CEE.SCEELKEX'://'CEE.SCEELKED'://'CEE.SCEERUN'://'CEE.SCEERUN2'://'CSF.SCSFMOD0'"
 
 ld "${LDFLAGS[@]}" -e main \
 -o "//'$USER.DEV.LOADLIB(ZWESIS01)'" \
