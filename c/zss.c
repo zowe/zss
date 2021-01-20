@@ -393,7 +393,8 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
 }
 
 static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, const char *filename, const char *key) {
-
+  int rc = 0;
+  int rsn = 0;
   char jsonErrorBuffer[512] = { 0 };
   int jsonErrorBufferSize = sizeof(jsonErrorBuffer);
   Json *serverTimeouts = NULL; 
@@ -413,9 +414,17 @@ static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, const char *filename,
       JsonProperty *property = jsonObjectGetFirstProperty(users);
       while (property != NULL) {
         char *userKey = jsonPropertyGetKey(property);
+        strupcase(userKey); /* make case insensitive */
         int timeoutValue = jsonObjectGetNumber(users, userKey);
+        if (strcmp(key, "groups")) {
+          int id = groupIdGet(userKey, &rc, &rsn);
+          if (rc == 0) {
+            htPut(ht, id, (void*)timeoutValue);
+          }
+        } else {
+          htPut(ht, userKey, (void*)timeoutValue);
+        }
 
-        htPut(ht, userKey, (void*)timeoutValue);
         property = jsonObjectGetNextProperty(property);
       }
     }
