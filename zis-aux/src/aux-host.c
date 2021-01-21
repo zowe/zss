@@ -797,7 +797,7 @@ static int establishCommunicationPC(ZISAUXContext *context) {
 
 static ZISAUXCommArea *getMasterCommAreaAddress(ZISParmSet *parms) {
 
-  const char *addressString = zisGetParmValue(parms, "COMM");
+  const char *addressString = zisGetParmValue(parms, ZISAUX_HOST_PARM_COMM_KEY);
   if (addressString == NULL) {
     zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
             ZISAUX_LOG_COMM_FAILED_MSG" master comm area parm not found");
@@ -931,7 +931,7 @@ static void extractABENDInfo(RecoveryContext * __ptr32 context,
 static int getUserModuleName(const ZISParmSet *parms,
                              EightCharString *name) {
 
-  const char *moduleParmValue = zisGetParmValue(parms, "MOD");
+  const char *moduleParmValue = zisGetParmValue(parms, ZISAUX_HOST_PARM_MOD_KEY);
   if (moduleParmValue == NULL) {
     zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
             ZISAUX_LOG_USERMOD_FAIULRE_MSG" module name not provided");
@@ -1498,13 +1498,14 @@ static void handleWorkRequest(ZISAUXContext *context,
                                               parmList->traceLevel);
 }
 
+static void terminateAUX(ZISAUXContext *context) {
+  ZISAUXCommArea *commArea = context->masterCommArea;
+  auxutilPost(&commArea->commECB, ZISAUX_COMM_SIGNAL_TERM);
+}
+
 static void handleTermRequest(ZISAUXContext *context,
                               ZISAUXCommServiceParmList *parmList) {
-
-  context->flags |= ZISAUX_CONTEXT_FLAG_TERM_COMMAND_RECEIVED;
-
-  stcBaseShutdown(context->base);
-
+  terminateAUX(context);
   parmList->auxRC = RC_ZISAUX_OK;
 
 }
@@ -1625,6 +1626,41 @@ static int workElementHandler(STCBase *base, STCModule *module,
   return 0;
 }
 
+static bool isCommunicationPCEnabled(ZISAUXContext *context) {
+  return context->masterCommArea->flag & ZISAUX_HOST_FLAG_COMM_PC_ON;
+}
+
+static int commTaskMain(RLETask *task) {
+
+  ZISAUXContext *context = task->userPointer;
+  ZISAUXCommArea *commArea = context->masterCommArea;
+
+  auxutilWait(&commArea->commECB);
+
+  // the only signal we handle is termination
+  context->flags |= ZISAUX_CONTEXT_FLAG_TERM_COMMAND_RECEIVED;
+  stcBaseShutdown(context->base);
+
+  return 0;
+}
+
+static int launchCommTask(ZISAUXContext *context, STCBase *base) {
+
+
+  int taskFlags = RLE_TASK_DISPOSABLE
+                  | RLE_TASK_RECOVERABLE
+                  | RLE_TASK_TCB_CAPABLE;
+  RLETask *task = makeRLETask(base->rleAnchor, taskFlags, commTaskMain);
+  if (task == NULL) {
+    return RC_ZISAUX_ALLOC_FAILED;
+  }
+
+  task->userPointer = context;
+  startRLETask(task, NULL);
+
+  return RC_ZISAUX_OK;
+}
+
 #define MAIN_WAIT_MILLIS 10000
 /* TODO This delay is used to give the console task time to terminate and
  * prevent A03. This should be addressed at some point. */
@@ -1673,16 +1709,24 @@ static int run(STCBase *base, const ZISMainFunctionParms *mainParms) {
 
   do {
 
+    int commTaskRC = launchCommTask(context, base);
+    if (commTaskRC != RC_ZISAUX_OK) {
+      status = commTaskRC;
+      break;
+    }
+
     int configRC = loadConfig(context, mainParms);
     if (configRC != RC_ZISAUX_OK) {
       status = configRC;
       break;
     }
 
-    int pcRC = establishCommunicationPC(context);
-    if (pcRC != RC_ZISAUX_OK) {
-      status = pcRC;
-      break;
+    if (isCommunicationPCEnabled(context)) {
+      int pcRC = establishCommunicationPC(context);
+      if (pcRC != RC_ZISAUX_OK) {
+        status = pcRC;
+        break;
+      }
     }
 
     int moduleLoadRC = loadUserModule(context);

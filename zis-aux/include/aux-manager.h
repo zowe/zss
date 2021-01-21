@@ -51,13 +51,18 @@ typedef struct ZISAUXCommArea_tag {
   int32_t flag;
 #define ZISAUX_HOST_FLAG_READY          0x00000001
 #define ZISAUX_HOST_FLAG_TERMINATED     0x00000002
+#define ZISAUX_HOST_FLAG_COMM_PC_ON     0x00000004
   uint32_t pcNumber;
   uint32_t sequenceNumber;
   int32_t termECB;
   uint64_t stoken;
   ASCB * __ptr32 ascb;
   uint16_t parentASID;
-  char reserved0[2];
+  uint8_t version;
+#define ZISAUX_COMM_VERSION 2
+  char reserved0[1];
+  int32_t commECB;
+#define ZISAUX_COMM_SIGNAL_TERM 1
 } ZISAUXCommArea;
 
 typedef struct ZISAUXNickname_tag {
@@ -74,6 +79,7 @@ typedef struct ZISAUXParm_tag {
 
 #define ZIS_AUX_FLAG_NONE         0x00000000
 #define ZIS_AUX_FLAG_REUSASID_NO  0x00000001
+#define ZIS_AUX_FLAG_COMM_PC_OFF  0x00000002
 
 ZOWE_PRAGMA_PACK_RESET
 
@@ -214,6 +220,8 @@ int zisauxMgrWaitForTerm(ZISAUXManager *mgr,
 #define RC_ZISAUX_SHR64_ERROR             40
 #define RC_ZISAUX_BUFFER_TOO_SMALL        41
 #define RC_ZISAUX_NOT_MANAGER_TCB         42
-#define RC_ZISAUX_CALLER_NOT_RECOGNIZED   43
+#define RC_ZISAUX_COMM_PC_DISABLED        43
+#define RC_ZISAUX_XMEM_POST_FAILED        44
+#define RC_ZISAUX_CALLER_NOT_RECOGNIZED   45
 
 #endif /* SRC_AUX_MANAGER_H_ */

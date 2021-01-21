@@ -127,6 +127,7 @@ static ZISAUXCommArea *allocCommArea(ZISAUXManager *mgr) {
   memset(commArea, 0, sizeof(ZISAUXCommArea));
   memcpy(commArea->eyecatcher, ZISAUX_COMM_EYECATCHER,
          sizeof(commArea->eyecatcher));
+  commArea->version = ZISAUX_COMM_VERSION;
 
   return commArea;
 }
@@ -160,6 +161,14 @@ static uint32_t makeASCREAttributes(int auxFlags) {
   return attributes;
 }
 
+static void setCommAreaFlags(ZISAUXCommArea *commArea, int auxFlags) {
+  if (auxFlags & ZIS_AUX_FLAG_COMM_PC_OFF) {
+    commArea->flag &= ~ZISAUX_HOST_FLAG_COMM_PC_ON;
+  } else {
+    commArea->flag |= ZISAUX_HOST_FLAG_COMM_PC_ON;
+  }
+}
+
 int zisauxMgrStartGuest2(ZISAUXManager *mgr,
                          ZISAUXNickname guestNickname,
                          ZISAUXModule guestModuleName,
@@ -188,8 +197,14 @@ int zisauxMgrStartGuest2(ZISAUXManager *mgr,
 
  ASParm hostParm = {0};
  int printRC = snprintf(hostParm.data, sizeof(hostParm.data),
-                        ":=),MOD=%s,COMM=%08X,%s",
-                        guestModuleName.text, commArea,
+                        /* parm string */
+                        ":=),"
+                        ZISAUX_HOST_PARM_MOD_KEY"=%s,"
+                        ZISAUX_HOST_PARM_COMM_KEY"=%08X,"
+                        "%s",
+                        /* parm values */
+                        guestModuleName.text,
+                        commArea,
                         guestParm ? guestParm->value : "");
  if (printRC < 0) {
    freeCommArea(mgr, commArea);
@@ -242,6 +257,7 @@ int zisauxMgrStartGuest2(ZISAUXManager *mgr,
  commArea->stoken = asCreateResult.stoken;
  commArea->ascb = asCreateResult.ascb;
  commArea->parentASID = getASCB()->ascbasid;
+ setCommAreaFlags(commArea, flags);
 
  return RC_ZISAUX_OK;
 }
@@ -319,6 +335,39 @@ static ZISAUXCommArea *getCommArea(ZISAUXManager *mgr,
 
 }
 
+static int xmemPost(ASCB *ascb, ECB *ecb, uint32_t code) {
+
+  int rc = 0;
+  char parmList[256] = {0};
+
+  __asm(
+      "         PUSH USING                                                     \n"
+      "         DROP                                                           \n"
+      "XMEMP    DS    0H                                                       \n"
+      "         LARL  2,XMEMP                                                  \n"
+      "         USING XMEMP,2                                                  \n"
+
+      "         POST  (%[ecb]),(%[code])"
+      ",ASCB=(%[ascb]),ERRET=XMEMPEND,ECBKEY=%[key]"
+      ",LINKAGE=SYSTEM"
+      ",MF=(E,%[parm])"
+      "                                                                        \n"
+      "XMEMPEND DS    0H                                                       \n"
+      "         POP USING                                                      \n"
+
+      : "=NR:r15"(rc)
+
+      : [ecb]"r"(ecb), [code]"r"(code),
+        [ascb]"r"(ascb),
+        [parm]"m"(parmList),
+        [key]"i"(CROSS_MEMORY_SERVER_KEY)
+
+      : "r0", "r1", "r2", "r14", "r15"
+  );
+
+  return rc;
+}
+
 int zisauxMgrSendTermSignal(ZISAUXManager *mgr,
                              ZISAUXNickname guestNickname,
                              int *reasonCode, int traceLevel) {
@@ -341,19 +390,33 @@ int zisauxMgrSendTermSignal(ZISAUXManager *mgr,
     return RC_ZISAUX_AUX_NOT_READY;
   }
 
-  ZISAUXCommServiceParmList parmList = {
-    .eyecatcher = ZISAUX_COMM_SERVICE_PARM_EYE,
-    .version = ZISAUX_COMM_SERVICE_PARM_VERSION,
-    .function = ZISAUX_COMM_SERVICE_FUNC_TERM,
-    .traceLevel = traceLevel,
-  };
+  if (commArea->flag & ZISAUX_HOST_FLAG_COMM_PC_ON) {
 
-  int callRC = pcCallRoutine(commArea->pcNumber, commArea->sequenceNumber,
-                             &parmList);
+    ZISAUXCommServiceParmList parmList = {
+        .eyecatcher = ZISAUX_COMM_SERVICE_PARM_EYE,
+        .version = ZISAUX_COMM_SERVICE_PARM_VERSION,
+        .function = ZISAUX_COMM_SERVICE_FUNC_TERM,
+        .traceLevel = traceLevel,
+    };
 
-  *reasonCode = parmList.auxRSN;
+    int callRC = pcCallRoutine(commArea->pcNumber, commArea->sequenceNumber,
+                               &parmList);
 
-  return callRC;
+    *reasonCode = parmList.auxRSN;
+
+    return callRC;
+
+  } else {
+
+    int postRC = xmemPost(commArea->ascb, &commArea->commECB,
+                          ZISAUX_COMM_SIGNAL_TERM);
+    if (postRC != 0) {
+      return RC_ZISAUX_XMEM_POST_FAILED;
+    }
+
+    return RC_ZISAUX_OK;
+  }
+
 }
 
 int zisauxMgrInitCommand(ZISAUXCommand *command,
@@ -581,6 +644,10 @@ int zisauxMgrSendCommand(ZISAUXManager *mgr,
     return RC_ZISAUX_AUX_NOT_READY;
   }
 
+  if (!(commArea->flag & ZISAUX_HOST_FLAG_COMM_PC_ON)) {
+    return RC_ZISAUX_COMM_PC_DISABLED;
+  }
+
   ZISAUXCommServiceParmList parmList = {
     .eyecatcher = ZISAUX_COMM_SERVICE_PARM_EYE,
     .version = ZISAUX_COMM_SERVICE_PARM_VERSION,
@@ -626,6 +693,10 @@ int zisauxMgrSendWork(ZISAUXManager *mgr,
 
   if (!(commArea->flag & ZISAUX_HOST_FLAG_READY)) {
     return RC_ZISAUX_AUX_NOT_READY;
+  }
+
+  if (!(commArea->flag & ZISAUX_HOST_FLAG_COMM_PC_ON)) {
+    return RC_ZISAUX_COMM_PC_DISABLED;
   }
 
   ZISAUXCommServiceParmList parmList = {
