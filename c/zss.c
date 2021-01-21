@@ -416,10 +416,13 @@ static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, const char *filename,
         char *userKey = jsonPropertyGetKey(property);
         strupcase(userKey); /* make case insensitive */
         int timeoutValue = jsonObjectGetNumber(users, userKey);
-        if (strcmp(key, "groups")) {
-          int id = groupIdGet(userKey, &rc, &rsn);
+        if (!strcmp(key, "groups")) {
+          int gid = groupIdGet(userKey, &rc, &rsn);
           if (rc == 0) {
-            htPut(ht, id, (void*)timeoutValue);
+            char *gidString = safeMalloc(GID_MAX_CHAR_LENGTH+1, "groupstring");
+            convertIntToString(gidString, GID_MAX_CHAR_LENGTH, gid);
+            gidString[GID_MAX_CHAR_LENGTH]='\0';
+            htPut(ht, gidString, (void*)timeoutValue);
           }
         } else {
           htPut(ht, userKey, (void*)timeoutValue);
@@ -1233,9 +1236,9 @@ int main(int argc, char **argv){
     char *serverTimeoutsDir;
     char *serverTimeoutsDirSuffix;
     if (instanceDir[strlen(instanceDir)-1] == '/') {
-      serverTimeoutsDirSuffix = "workspace/app-server/serverConfig/timeouts.json";
+      serverTimeoutsDirSuffix = "serverConfig/timeouts.json";
     } else {
-      serverTimeoutsDirSuffix = "/workspace/app-server/serverConfig/timeouts.json";
+      serverTimeoutsDirSuffix = "/serverConfig/timeouts.json";
     }
     int serverTimeoutsDirSize = strlen(instanceDir) + strlen(serverTimeoutsDirSuffix) + 1;
     serverTimeoutsDir = safeMalloc(serverTimeoutsDirSize, "serverTimeoutsDir"); // +1 for the null-terminator
