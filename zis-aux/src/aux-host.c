@@ -1638,6 +1638,11 @@ static int commTaskMain(RLETask *task) {
   auxutilWait(&commArea->commECB);
 
   // the only signal we handle is termination
+
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZISAUX_LOG_TERM_SIGNAL_MSG,
+          commArea->commECB);
+  commArea->commECB = 0;
+
   context->flags |= ZISAUX_CONTEXT_FLAG_TERM_COMMAND_RECEIVED;
   stcBaseShutdown(context->base);
 
@@ -1709,15 +1714,15 @@ static int run(STCBase *base, const ZISMainFunctionParms *mainParms) {
 
   do {
 
-    int commTaskRC = launchCommTask(context, base);
-    if (commTaskRC != RC_ZISAUX_OK) {
-      status = commTaskRC;
-      break;
-    }
-
     int configRC = loadConfig(context, mainParms);
     if (configRC != RC_ZISAUX_OK) {
       status = configRC;
+      break;
+    }
+
+    int commTaskRC = launchCommTask(context, base);
+    if (commTaskRC != RC_ZISAUX_OK) {
+      status = commTaskRC;
       break;
     }
 
