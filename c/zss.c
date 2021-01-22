@@ -106,7 +106,7 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
                                                   const char *serverConfigFile);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
-static hashtable *getServerUserTimeoutsHt(ShortLivedHeap *slh, const char *filename, const char *key);
+static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, const char *filename, const char *key);
 static InternalAPIMap *makeInternalAPIMap(void);
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
@@ -392,7 +392,7 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
   return mvdSettingsJsonObject;
 }
 
-static hashtable *getServerUserTimeoutsHt(ShortLivedHeap *slh, const char *filename, const char *key) {
+static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, const char *filename, const char *key) {
 
   char jsonErrorBuffer[512] = { 0 };
   int jsonErrorBufferSize = sizeof(jsonErrorBuffer);
@@ -405,7 +405,7 @@ static hashtable *getServerUserTimeoutsHt(ShortLivedHeap *slh, const char *filen
     if (jsonIsObject(serverTimeouts)) {
       serverTimeoutsJsonObject = jsonAsObject(serverTimeouts);
     } else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_FILE_EXPECTED_TOP_MSG, filename);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_FILE_EXPECTED_TOP_MSG, filename);
       return ht; // Returns empty hash table
     }
     JsonObject *users = jsonObjectGetObject(serverTimeoutsJsonObject, key);
@@ -421,7 +421,7 @@ static hashtable *getServerUserTimeoutsHt(ShortLivedHeap *slh, const char *filen
     }
     dumpJson(serverTimeouts);
   } else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PARS_ZSS_SETTING_MSG, filename, jsonErrorBuffer);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PARS_ZSS_TIMEOUT_MSG, key);
   }
   return ht;
 }
@@ -1232,8 +1232,8 @@ int main(int argc, char **argv){
     serverTimeoutsDir = safeMalloc(serverTimeoutsDirSize, "serverTimeoutsDir"); // +1 for the null-terminator
     strcpy(serverTimeoutsDir, instanceDir);
     strcat(serverTimeoutsDir, serverTimeoutsDirSuffix);
-    htUsers = getServerUserTimeoutsHt(slh, serverTimeoutsDir, "users");
-    htGroups = getServerUserTimeoutsHt(slh, serverTimeoutsDir, "groups");
+    htUsers = getServerTimeoutsHt(slh, serverTimeoutsDir, "users");
+    htGroups = getServerTimeoutsHt(slh, serverTimeoutsDir, "groups");
     safeFree(serverTimeoutsDir, serverTimeoutsDirSize);
    
     /* This one IS used*/
