@@ -47,7 +47,10 @@ typedef struct ZISAUXManager_tag {
 
 typedef struct ZISAUXCommArea_tag {
   char eyecatcher[8];
-#define ZISAUX_COMM_EYECATCHER    "ZISAUXC "
+#define ZISAUX_COMM_EYECATCHER    "ZISAUXCA"
+  uint8_t version;
+#define ZISAUX_COMM_VERSION 2
+  char reserved0[3];
   int32_t flag;
 #define ZISAUX_HOST_FLAG_READY          0x00000001
 #define ZISAUX_HOST_FLAG_TERMINATED     0x00000002
@@ -55,12 +58,11 @@ typedef struct ZISAUXCommArea_tag {
   uint32_t pcNumber;
   uint32_t sequenceNumber;
   int32_t termECB;
+  char reserved1[4];
   uint64_t stoken;
   ASCB * __ptr32 ascb;
   uint16_t parentASID;
-  uint8_t version;
-#define ZISAUX_COMM_VERSION 2
-  char reserved0[1];
+  char reserved2[2];
   int32_t commECB;
 #define ZISAUX_COMM_SIGNAL_TERM 1
 } ZISAUXCommArea;
