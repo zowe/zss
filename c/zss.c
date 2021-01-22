@@ -106,7 +106,7 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
                                                   const char *serverConfigFile);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
-static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, const char *filename, const char *key);
+static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts, const char *key);
 static InternalAPIMap *makeInternalAPIMap(void);
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
@@ -304,7 +304,9 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
 }
 #endif /* __ZOWE_OS_ZOS */
 
-static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings, JsonObject *envSettings, hashtable *htUsers, hashtable *htGroups){
+static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings,
+                                JsonObject *envSettings, hashtable *htUsers,
+                                hashtable *htGroups, int defaultSessionTimeout){
   MVD_SETTINGS = mvdSettings;
   /* Disabled because this server is not being used by end users, but called by other servers
    * HttpService *mainService = makeGeneratedService("main", "/");
@@ -314,6 +316,7 @@ static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings, Jso
   server->sharedServiceMem = mvdSettings;
   server->config->userTimeouts = htUsers;
   server->config->groupTimeouts = htGroups;
+  server->config->defaultTimeout = defaultSessionTimeout;
   //registerHttpService(server, mainService);
   registerHttpServiceOfLastResort(server,NULL);
 #ifdef __ZOWE_OS_ZOS
@@ -392,48 +395,59 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
   return mvdSettingsJsonObject;
 }
 
-static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, const char *filename, const char *key) {
+static int getDefaultSessionTimeout(Json *serverTimeouts) {
+  JsonObject *serverTimeoutsJsonObject = NULL;
+  if (jsonIsObject(serverTimeouts)) {
+    serverTimeoutsJsonObject = jsonAsObject(serverTimeouts);
+    Json *defaultJson = jsonObjectGetPropertyValue(serverTimeoutsJsonObject, "default");
+    if (defaultJson == NULL){
+      return 0;
+    } else if (!jsonIsNumber(defaultJson)){
+      return 0;
+    } else{
+      return jsonAsNumber(defaultJson);
+    }
+  } else {
+    return 0;
+  }
+}
+
+static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts, const char *key) {
   int rc = 0;
   int rsn = 0;
-  char jsonErrorBuffer[512] = { 0 };
-  int jsonErrorBufferSize = sizeof(jsonErrorBuffer);
-  Json *serverTimeouts = NULL; 
   JsonObject *serverTimeoutsJsonObject = NULL;
-  hashtable *ht = htCreate(277, stringHash, stringCompare, NULL, NULL);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "reading '%s' timeout settings from %s\n", key, filename);
-  serverTimeouts = jsonParseFile(slh, filename, jsonErrorBuffer, jsonErrorBufferSize);
-  if (serverTimeouts) {
-    if (jsonIsObject(serverTimeouts)) {
-      serverTimeoutsJsonObject = jsonAsObject(serverTimeouts);
-    } else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_FILE_EXPECTED_TOP_MSG, filename);
-      return ht; // Returns empty hash table
-    }
-    JsonObject *users = jsonObjectGetObject(serverTimeoutsJsonObject, key);
-    if (users) {
-      JsonProperty *property = jsonObjectGetFirstProperty(users);
-      while (property != NULL) {
-        char *userKey = jsonPropertyGetKey(property);
-        strupcase(userKey); /* make case insensitive */
-        int timeoutValue = jsonObjectGetNumber(users, userKey);
-        if (!strcmp(key, "groups")) {
-          int gid = groupIdGet(userKey, &rc, &rsn);
-          if (rc == 0) {
-            char *gidString = safeMalloc(GID_MAX_CHAR_LENGTH+1, "groupstring");
-            convertIntToString(gidString, GID_MAX_CHAR_LENGTH, gid);
-            gidString[GID_MAX_CHAR_LENGTH]='\0';
-            htPut(ht, gidString, (void*)timeoutValue);
-          }
-        } else {
-          htPut(ht, userKey, (void*)timeoutValue);
-        }
-
-        property = jsonObjectGetNextProperty(property);
-      }
-    }
-    dumpJson(serverTimeouts);
+  hashtable *ht;
+  if (!strcmp(key,"groups")) {
+    //int comparisons
+    ht = htCreate(277, NULL, NULL, NULL, NULL);
   } else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PARS_ZSS_TIMEOUT_MSG, key);
+    ht = htCreate(277, stringHash, stringCompare, NULL, NULL);
+  } 
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "reading '%s' timeout settings\n", key);
+  if (jsonIsObject(serverTimeouts)) {
+    serverTimeoutsJsonObject = jsonAsObject(serverTimeouts);
+  } else {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_FILE_EXPECTED_TOP_MSG);
+    return ht; // Returns empty hash table
+  }
+  JsonObject *users = jsonObjectGetObject(serverTimeoutsJsonObject, key);
+  if (users) {
+    JsonProperty *property = jsonObjectGetFirstProperty(users);
+    while (property != NULL) {
+      char *userKey = jsonPropertyGetKey(property);
+      strupcase(userKey); /* make case insensitive */
+      int timeoutValue = jsonObjectGetNumber(users, userKey);
+      if (!strcmp(key, "groups")) {
+        int gid = groupIdGet(userKey, &rc, &rsn);
+        if (rc == 0) {
+          htPut(ht, POINTER_FROM_INT(gid), (void*)timeoutValue);
+        }
+      } else {
+        htPut(ht, userKey, (void*)timeoutValue);
+      }
+
+      property = jsonObjectGetNextProperty(property);
+    }
   }
   return ht;
 }
@@ -1244,8 +1258,20 @@ int main(int argc, char **argv){
     serverTimeoutsDir = safeMalloc(serverTimeoutsDirSize, "serverTimeoutsDir"); // +1 for the null-terminator
     strcpy(serverTimeoutsDir, instanceDir);
     strcat(serverTimeoutsDir, serverTimeoutsDirSuffix);
-    htUsers = getServerTimeoutsHt(slh, serverTimeoutsDir, "users");
-    htGroups = getServerTimeoutsHt(slh, serverTimeoutsDir, "groups");
+
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "reading timeout file '%s'\n", serverTimeoutsDir);
+    char jsonErrorBuffer[512] = { 0 };
+    int jsonErrorBufferSize = sizeof(jsonErrorBuffer);
+    Json *serverTimeouts = jsonParseFile(slh, serverTimeoutsDir, jsonErrorBuffer, jsonErrorBufferSize);
+    int defaultSeconds = 0;
+    if (serverTimeouts) {
+      dumpJson(serverTimeouts);
+      defaultSeconds = getDefaultSessionTimeout(serverTimeouts);
+      htUsers = getServerTimeoutsHt(slh, serverTimeouts, "users");
+      htGroups = getServerTimeoutsHt(slh, serverTimeouts, "groups");
+    } else {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PARS_ZSS_TIMEOUT_MSG, serverTimeoutsDir);
+    }
     safeFree(serverTimeoutsDir, serverTimeoutsDirSize);
    
     /* This one IS used*/
@@ -1272,7 +1298,7 @@ int main(int argc, char **argv){
       }
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
-      loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups);
+      loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
       readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile);
       installCertificateService(server);
       installUnixFileContentsService(server);

@@ -66,7 +66,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_FILE_EXPECTED_TOP_MSG_ID
 #define ZSS_LOG_FILE_EXPECTED_TOP_MSG_ID     ZSS_LOG_MSG_PRFX"1002E"
 #endif
-#define ZSS_LOG_FILE_EXPECTED_TOP_MSG_TEXT   "Error in file '%s': Could not parse config file as a JSON object.\n"
+#define ZSS_LOG_FILE_EXPECTED_TOP_MSG_TEXT   "Error in timeouts file: Could not parse config file as a JSON object.\n"
 #define ZSS_LOG_FILE_EXPECTED_TOP_MSG        ZSS_LOG_FILE_EXPECTED_TOP_MSG_ID" "ZSS_LOG_FILE_EXPECTED_TOP_MSG_TEXT
 
 #ifndef ZSS_LOG_PARS_ZSS_SETTING_MSG_ID
@@ -282,7 +282,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_PARS_ZSS_TIMEOUT_MSG_ID
 #define ZSS_LOG_PARS_ZSS_TIMEOUT_MSG_ID      ZSS_LOG_MSG_PRFX"1038I"
 #endif
-#define ZSS_LOG_PARS_ZSS_TIMEOUT_MSG_TEXT    "Session timeouts for '%s' N/A, file not provided. ZSS sessions will use the default length of one hour.\n"
+#define ZSS_LOG_PARS_ZSS_TIMEOUT_MSG_TEXT    "Server timeouts file '%s' either not found or invalid JSON. ZSS sessions will use the default length of one hour.\n"
 #define ZSS_LOG_PARS_ZSS_TIMEOUT_MSG         ZSS_LOG_PARS_ZSS_TIMEOUT_MSG_ID" "ZSS_LOG_PARS_ZSS_TIMEOUT_MSG_TEXT
 
 /* MVD Server (Datasets) */
