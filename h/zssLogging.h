@@ -293,6 +293,12 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_INSTALL_MSG_TEXT             "Installing '%s' service...\n"
 #define ZSS_LOG_INSTALL_MSG                  ZSS_LOG_INSTALL_MSG_ID" "ZSS_LOG_INSTALL_MSG_TEXT
 
+#ifndef ZSS_LOG_TLS_INIT_MSG_ID
+#define ZSS_LOG_TLS_INIT_MSG_ID              ZSS_LOG_MSG_PRFX"1040W"
+#endif
+#define ZSS_LOG_TLS_INIT_MSG_TEXT            "Failed to init TLS environment, rc=%d(%s)\n"
+#define ZSS_LOG_TLS_INIT_MSG                 ZSS_LOG_TLS_INIT_MSG_ID" "ZSS_LOG_TLS_INIT_MSG_TEXT
+
 /* MVD Server (Discovery) */
 
 /* empty */
