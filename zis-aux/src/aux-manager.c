@@ -145,6 +145,29 @@ int zisauxMgrStartGuest(ZISAUXManager *mgr,
                         const ZISAUXParm *guestParm,
                         int *reasonCode, int traceLevel) {
 
+  return zisauxMgrStartGuest2(mgr, guestNickname, guestModuleName, guestParm,
+                              ZIS_AUX_FLAG_NONE, reasonCode, traceLevel);
+}
+
+static uint32_t makeASCREAttributes(int auxFlags) {
+
+  uint32_t attributes = AS_ATTR_NOSWAP;
+
+  if (!(auxFlags & ZIS_AUX_FLAG_REUSASID_NO)) {
+    attributes |= AS_ATTR_REUSASID;
+  }
+
+  return attributes;
+}
+
+int zisauxMgrStartGuest2(ZISAUXManager *mgr,
+                         ZISAUXNickname guestNickname,
+                         ZISAUXModule guestModuleName,
+                         const ZISAUXParm *guestParm,
+                         int flags,
+                         int *reasonCode,
+                         int traceLevel) {
+
   if (memcmp(mgr->eyecatcher, ZISAUX_MGR_EYECATCHER,
              sizeof(mgr->eyecatcher))) {
     return RC_ZISAUX_BAD_EYECATCHER;
@@ -179,7 +202,7 @@ int zisauxMgrStartGuest(ZISAUXManager *mgr,
 
  ASOutputData asCreateResult = {0};
  int startRC = 0, startRSN = 0;
- uint32_t ascreAttributes = AS_ATTR_NOSWAP | AS_ATTR_REUSASID;
+ uint32_t ascreAttributes = makeASCREAttributes(flags);
  startRC = addressSpaceCreateWithTerm(&startCmd, &hostParm, ascreAttributes,
                                       &asCreateResult, auxTermExit, commArea,
                                       &startRSN);
