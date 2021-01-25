@@ -23,6 +23,9 @@
 #define ZISAUX_REVISION             ZIS_REVISION
 #define ZISAUX_VERSION_DATE_STAMP   ZIS_VERSION_DATE_STAMP
 
+#define ZISAUX_HOST_PARM_MOD_KEY  "MOD"
+#define ZISAUX_HOST_PARM_COMM_KEY "COMM"
+
 typedef struct ZISAUXContext_tag {
 
   char eyecatcher[8];
