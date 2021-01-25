@@ -71,6 +71,31 @@ static void printStopMessage(void) {
   zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZISAUX_LOG_TERM_OK_MSG);
 }
 
+#ifdef _LP64
+#pragma linkage(BPX4QDB,OS)
+#define BPXQDB BPX4QDB
+#else
+#pragma linkage(BPX1QDB,OS)
+#define BPXQDB BPX1QDB
+#endif
+
+static bool isDubStatusOk(int *status, int *bpxRC, int *bpxRSN) {
+
+  const int dubFailRC = 4; /* QDB_DUB_MAY_FAIL */
+
+  BPXQDB(status, bpxRC, bpxRSN);
+
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+          CMS_LOG_DEBUG_MSG_ID" BPXnQDB RV = %d, RC = %d, RSN = 0x%08X\n",
+          *status, *bpxRC, *bpxRSN);
+
+  if (*status == dubFailRC) {
+    return false;
+  }
+
+  return true;
+}
+
 static int checkEnv(void) {
 
   int authStatus = testAuth();
@@ -87,7 +112,12 @@ static int checkEnv(void) {
     return RC_ZISAUX_ERROR;
   }
 
-  /* TODO verify the OMVS segment */
+  int dubStatus = 0, bpxRC = 0, bpxRSN = 0;
+  if (!isDubStatusOk(&dubStatus, &bpxRC, &bpxRSN)) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE, ZISAUX_LOG_DUB_ERROR_MSG,
+            dubStatus, bpxRC, bpxRSN & 0xFFFF);
+    return RC_ZISAUX_ERROR;
+  }
 
   return RC_ZISAUX_OK;
 }

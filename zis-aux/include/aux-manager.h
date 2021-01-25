@@ -72,6 +72,9 @@ typedef struct ZISAUXParm_tag {
   char value[200];
 } ZISAUXParm;
 
+#define ZIS_AUX_FLAG_NONE         0x00000000
+#define ZIS_AUX_FLAG_REUSASID_NO  0x00000001
+
 ZOWE_PRAGMA_PACK_RESET
 
 #ifndef __LONGNAME__
@@ -80,6 +83,7 @@ ZOWE_PRAGMA_PACK_RESET
 #define zisauxMgrClean ZISAMCL
 #define zisauxMgrSetHostSTC ZISAMHS
 #define zisauxMgrStartGuest ZISAMST
+#define zisauxMgrStartGuest2 ZISAMST2
 #define zisauxMgrStopGuest ZISAMSP
 #define zisauxMgrInitCommand ZISAICMD
 #define zisauxMgrCleanCommand ZISACCMD
@@ -111,6 +115,14 @@ int zisauxMgrStartGuest(ZISAUXManager *mgr,
                         ZISAUXModule guestModuleName,
                         const ZISAUXParm *guestParm,
                         int *reasonCode, int traceLevel);
+
+int zisauxMgrStartGuest2(ZISAUXManager *mgr,
+                         ZISAUXNickname guestNickname,
+                         ZISAUXModule guestModuleName,
+                         const ZISAUXParm *guestParm,
+                         int flags,
+                         int *reasonCode,
+                         int traceLevel);
 
 int zisauxMgrStopGuest(ZISAUXManager *mgr,
                        ZISAUXNickname guestNickname,
