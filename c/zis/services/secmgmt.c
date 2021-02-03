@@ -593,7 +593,7 @@ int validateGenresParmList(ZISGenresAdminServiceParmList *parmList) {
 
   if (memcmp(parmList->eyecatcher,
              ZIS_GENRES_ADMIN_SERVICE_PARMLIST_EYECATCHER,
-             sizeof(parmList->eyecatcher) != 0)) {
+             sizeof(parmList->eyecatcher))) {
     return RC_ZIS_GSADMNSRV_BAD_EYECATCHER;
   }
 
@@ -1435,7 +1435,7 @@ int validateGroupParmList(ZISGroupAdminServiceParmList *parmList) {
 
   if (memcmp(parmList->eyecatcher,
              ZIS_GROUP_ADMIN_SERVICE_PARMLIST_EYECATCHER,
-             sizeof(parmList->eyecatcher) != 0)) {
+             sizeof(parmList->eyecatcher))) {
     return RC_ZIS_GRPASRV_BAD_EYECATCHER;
   }
 
