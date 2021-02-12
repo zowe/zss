@@ -23,6 +23,19 @@ PAX_WORKSPACE_DIR=.pax
 # make sure in project root folder
 cd $SCRIPT_DIR/..
 
+# update build information
+# BRANCH_NAME and BUILD_NUMBER is Jenkins environment variable
+commit_hash=$(git rev-parse --verify HEAD)
+current_timestamp=$(date +%s%3N)
+sed -e "s|{{build\.branch}}|${BRANCH_NAME}|g" \
+    -e "s|{{build\.number}}|${BUILD_NUMBER}|g" \
+    -e "s|{{build\.commitHash}}|${commit_hash}|g" \
+    -e "s|{{build\.timestamp}}|${current_timestamp}|g" \
+    "${PAX_WORKSPACE_DIR}/content/manifest.yaml" > "${PAX_WORKSPACE_DIR}/content/manifest.yaml.tmp"
+mv "${PAX_WORKSPACE_DIR}/content/manifest.yaml.tmp" "${PAX_WORKSPACE_DIR}/content/manifest.yaml"
+echo "[${SCRIPT_NAME}] manifest:"
+cat "${PAX_WORKSPACE_DIR}/content/manifest.yaml"
+
 # prepare pax workspace
 echo "[${SCRIPT_NAME}] preparing folders ..."
 rm -fr "${PAX_WORKSPACE_DIR}/ascii" && mkdir -p "${PAX_WORKSPACE_DIR}/ascii"
