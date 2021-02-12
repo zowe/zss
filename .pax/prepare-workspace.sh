@@ -49,6 +49,5 @@ sed -e "s|{{build\.branch}}|${BRANCH_NAME}|g" \
     -e "s|{{build\.timestamp}}|${current_timestamp}|g" \
     "manifest.template.yaml" > "${PAX_WORKSPACE_DIR}/content/manifest.yaml.tmp"
 mv "${PAX_WORKSPACE_DIR}/content/manifest.yaml.tmp" "${PAX_WORKSPACE_DIR}/content/manifest.yaml"
-rm "${PAX_WORKSPACE_DIR}/content/manifest.template.yaml"
 echo "[${SCRIPT_NAME}] manifest:"
 cat "${PAX_WORKSPACE_DIR}/content/manifest.yaml"
