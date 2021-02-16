@@ -1,0 +1,22 @@
+{
+  "name": "@zowe/sanity-test",
+  "version": "0.9.0",
+  "description": "Sanity test for Zowe instance",
+  "main": "index.js",
+  "license": "EPL-2.0",
+  "devDependencies": {
+    "axios": "^0.21.0",
+    "chai": "^4.1.2",
+    "debug": "^3.1.0",
+    "eslint": "^5.2.0",
+    "lodash": "^4.17.19",
+    "mocha": "^7.2.0",
+    "mocha-jenkins-reporter": "^0.4.3",
+    "mocha-multi-reporters": "^1.1.7"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "mocha",
+    "lint": "eslint ."
+  }
+}
