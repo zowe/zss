@@ -1,7 +1,6 @@
-import _ from 'lodash';
-import axios from 'axios';
-import chai from 'chai';
-const {expect} = chai;
+const _ = require('lodash');
+const axios = require('axios');
+const {expect} = require('chai');
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 expect(process.env.ZOWE_EXTERNAL_HOST, 'ZOWE_EXTERNAL_HOST is empty').to.not.be.empty;
@@ -10,9 +9,9 @@ expect(process.env.ZOWE_USER, 'ZOWE_USER is not defined').to.not.be.empty;
 expect(process.env.ZOWE_PASSWD, 'ZOWE_PASSWD is not defined').to.not.be.empty;
 const { ZOWE_EXTERNAL_HOST, ZOWE_ZSS_PORT, ZOWE_USER, ZOWE_PASSWD } = process.env;
 
-export const baseURL = `http://${ZOWE_EXTERNAL_HOST}:${ZOWE_ZSS_PORT}`;
+const baseURL = `http://${ZOWE_EXTERNAL_HOST}:${ZOWE_ZSS_PORT}`;
 
-let timeout = 20000;
+let timeout = 200000000;
 let headers = { 'Content-Type': 'application/json' };
 let auth = {
   username: ZOWE_USER,
@@ -20,7 +19,7 @@ let auth = {
 };
 let maxRedirects = 0;
 
-export const REQ = axios.create({
+const REQ = axios.create({
   baseURL,
   timeout,
   headers,
@@ -28,7 +27,7 @@ export const REQ = axios.create({
   maxRedirects
 });
 
-export function printError(error) {
+function printError(error) {
   if (error.response) {
     console.log('error.response');
     // The request was made and the server responded with a status code
@@ -51,7 +50,7 @@ export function printError(error) {
   //console.log(error.config);
 }
 
-export async function getOMVS(options={}) {
+async function getOMVS(options={}) {
   try {
     const res = await REQ.get('omvs', options);
     expect(res).to.have.property('data');
@@ -61,7 +60,7 @@ export async function getOMVS(options={}) {
   }
 }
 
-export async function getUnixfileContent(fullpath='',options={}) {
+async function getUnixfileContent(fullpath='',options={}) {
   let addOptions = {
     params: {responseType: 'raw'},
   };
@@ -77,7 +76,7 @@ export async function getUnixfileContent(fullpath='',options={}) {
   }
 }
 
-export async function getDatasetMetadata(searchPath='', options={}) {
+async function getDatasetMetadata(searchPath='', options={}) {
   let addOptions = {
     params: {responseType: 'raw'},
   };
@@ -93,7 +92,7 @@ export async function getDatasetMetadata(searchPath='', options={}) {
   }
 }
 
-export async function getDatasetContents(datasetName, options={}) {
+async function getDatasetContents(datasetName, options={}) {
   let addOptions = {
     params: {responseType: 'raw'},
   };
@@ -110,7 +109,7 @@ export async function getDatasetContents(datasetName, options={}) {
   }
 }
 
-export async function postDatasetContents(datasetName, datasetContent, options={}) {
+async function postDatasetContents(datasetName, datasetContent, options={}) {
   
   try {
     const res = await REQ.post(`/datasetContents/${datasetName}`, datasetContent, options);
@@ -121,7 +120,7 @@ export async function postDatasetContents(datasetName, datasetContent, options={
   }
 }
 
-export async function getDatasetEnqueue(datasetName,options={}) {
+async function getDatasetEnqueue(datasetName,options={}) {
   try {
     const res = await REQ.get(`/datasetEnqueue/${datasetName}`, );
     expect(res).to.have.property('data');
@@ -131,7 +130,7 @@ export async function getDatasetEnqueue(datasetName,options={}) {
   }
 }
 
-export async function deleteDatasetEnqueue(datasetName,options={}) {
+async function deleteDatasetEnqueue(datasetName,options={}) {
   try {
     const res = await REQ.delete(`/datasetEnqueue/${datasetName}`);
     expect(res).to.have.property('data');
@@ -141,10 +140,11 @@ export async function deleteDatasetEnqueue(datasetName,options={}) {
   }
 }
 
-export async function getDatasetHeartbeat(options={}) {
+async function getDatasetHeartbeat(options={}) {
   try {
     const res = await REQ.get('/datasetHeartbeat',options);
-    expect(res).to.be.empty;
+    expect(res).to.have.property('data');
+    expect(res.data).to.be.empty;
     return '';
   } catch (err) {
     throw err;
@@ -156,7 +156,9 @@ export async function getDatasetHeartbeat(options={}) {
 
 // (async function() {
 //   try {
-//     console.log(await getDatasetEnqueue('NAKUL.SAMPLE.JCL'));
+//     console.log(await getDatasetContents('NAKUL.SAMPLE.JCL'));
+//     console.log(await postDatasetContents('NAKUL.SAMPLE.JCL',{records: ['writing test']}));
+//     console.log(await getDatasetContents('NAKUL.SAMPLE.JCL'));
 //     // console.log(await postDatasetContents('NAKUL.SAMPLE.JCL', {records: ['TEST 500']}));
 //     // console.log(await getDatasetContents('NAKUL.SAMPLE.JCL'));
 //     // console.log(await deleteDatasetEnqueue('NAKUL.SAMPLE.JCL'));
@@ -165,3 +167,15 @@ export async function getDatasetHeartbeat(options={}) {
 //     printError(err);
 //   }
 // }());
+
+module.exports = {
+  getDatasetHeartbeat,
+  deleteDatasetEnqueue,
+  getDatasetEnqueue,
+  postDatasetContents,
+  getDatasetContents,
+  getDatasetMetadata,
+  getUnixfileContent,
+  getOMVS,
+  printError
+};

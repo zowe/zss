@@ -1,6 +1,5 @@
-import chai from 'chai';
-import {getDatasetEnqueue, deleteDatasetEnqueue, printError, getDatasetContents} from '../utils/api';
-const {expect} = chai;
+const {expect} = require('chai');
+const {getDatasetEnqueue, deleteDatasetEnqueue, printError, getDatasetContents}= require('../../utils/api');
 
 var sleep = timeout => {
   return new Promise(resolve => {
@@ -13,7 +12,7 @@ var sleep = timeout => {
 
 let optionsUser2, ZOWE_DATASET_TEST;
 // 120 seconds
-let WAIT__BEFORE_HEARTBEAT = 120000;
+let WAIT_BEFORE_HEARTBEAT = 120000;
 
 // https://github.com/zowe/zlux/issues/616
 describe('01 client crash scenario', function() {
@@ -30,7 +29,7 @@ describe('01 client crash scenario', function() {
   });
 
   describe('grab lock wait for 2 mins, and release lock should fail, get lock should succeed ', async () => {
-    this.timeout(WAIT__BEFORE_HEARTBEAT*5);
+    this.timeout(WAIT_BEFORE_HEARTBEAT*5);
 
     before('grab dataset lock, but dont send heartbeat', async ()=>{
       getDatasetContents(ZOWE_DATASET_TEST)
@@ -46,7 +45,7 @@ describe('01 client crash scenario', function() {
       });
 
       //simulating client crash with sleep
-      await sleep(WAIT__BEFORE_HEARTBEAT);
+      await sleep(WAIT_BEFORE_HEARTBEAT);
     });
 
     it('delete lock should fail, lock must be released on receiving no heartbeat', () => {
@@ -57,7 +56,7 @@ describe('01 client crash scenario', function() {
           expect(res.status).to.equal(500);
         }
       }).then(()=>{
-        throw new Error(`lock should not exist after ${WAIT__BEFORE_HEARTBEAT/1000} seconds, but exists`);
+        throw new Error(`lock should not exist after ${WAIT_BEFORE_HEARTBEAT/1000} seconds, but exists`);
       });
     });
 
