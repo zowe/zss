@@ -8,9 +8,7 @@
 # Copyright Contributors to the Zowe Project.
 
 RUN_ON_ZOS=$(test `uname` = "OS/390" && echo "true")
-if [ "${RUN_ON_ZOS}" = "true" ]; then
-  exit 0
-else
+if [ ! "${RUN_ON_ZOS}" = "true" ]; then
   echo "Error: ZSS can only be run on z/OS, but validation detected a different OS from uname."
   exit 1
 fi
