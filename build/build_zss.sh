@@ -110,6 +110,7 @@ if c89 \
   ${COMMON}/jwt/rscrypto/rs_icsfp11.c \
   ${COMMON}/jwt/rscrypto/rs_rsclibc.c \
   ${COMMON}/c/scheduling.c \
+  ${COMMON}/c/semTable.c \
   ${COMMON}/c/signalcontrol.c \
   ${COMMON}/c/socketmgmt.c \
   ${COMMON}/c/stcbase.c \
@@ -129,6 +130,7 @@ if c89 \
   ${ZSS}/c/certificateService.c \
   ${ZSS}/c/unixFileService.c \
   ${ZSS}/c/datasetService.c \
+  ${ZSS}/c/datasetHeartbeatService.c \
   ${ZSS}/c/envService.c \
   ${ZSS}/c/zosDiscovery.c \
   ${ZSS}/c/securityService.c \

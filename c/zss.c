@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
+#include <assert.h>
 
 #endif
 
@@ -107,6 +108,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLived
                                                   const char *serverConfigFile);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static InternalAPIMap *makeInternalAPIMap(void);
+
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -1226,6 +1228,7 @@ int main(int argc, char **argv){
       installDatasetMetadataService(server);
       installDatasetContentsService(server);
       installDatasetEnqueueService(server);
+      installDatasetHeartbeatService(server);
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);

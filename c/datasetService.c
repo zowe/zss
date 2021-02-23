@@ -86,9 +86,13 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
 }
 
 static int serveDatasetContents(HttpService *service, HttpResponse *response){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "begin %s\n", __FUNCTION__);  
   HttpRequest *request = response->request;
-
+/*zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "reqest method: %s\n", request->method);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "reqest methodGET: %s\n", methodGET);   
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "reqest methodPOST: %s\n", methodPOST); 
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "reqest methodDELETE: %s\n", methodDELETE);
+  */
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
