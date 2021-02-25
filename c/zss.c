@@ -1229,6 +1229,7 @@ int main(int argc, char **argv){
       installDatasetContentsService(server);
       installDatasetEnqueueService(server);
       installDatasetHeartbeatService(server);
+      initDatasetLocking(server);
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);
@@ -1240,7 +1241,6 @@ int main(int argc, char **argv){
       installLogoutService(server);
       printZISStatus(server);
       mainHttpLoop(server);
-
     } else{
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_ZSS_STARTUP_MSG, returnCode, reasonCode);
       if (returnCode==EADDRINUSE) {
