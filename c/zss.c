@@ -62,6 +62,7 @@
 #include "plugins.h"
 #ifdef __ZOWE_OS_ZOS
 #include "datasetjson.h"
+#include "zssbackground.h"
 #include "authService.h"
 #include "securityService.h"
 #include "zis/client.h"
@@ -390,6 +391,25 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
   }
   return mvdSettingsJsonObject;
 }
+
+static void initZssBackgroundTasks(HttpServer *server) {
+  zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_INFO,"initZssBackgroundTasks\n");  
+  // register background handler
+  STCBase *base = server->base;
+  stcRegisterModule(
+    base,
+    STC_MODULE_ZSS,
+    server,
+    NULL,
+    NULL,
+    NULL,
+    processZssBackgroundHandler
+  );
+
+  for(int i=0; i < N_TASK_TABLE_ENTRIES; i++) {
+    task_list[i].id = 0;  /* initialise */
+  }
+};
 
 static int stringEndsWith(char *s, char *suffix) {
   int suffixLen = strlen(suffix);
@@ -1220,6 +1240,7 @@ int main(int argc, char **argv){
       installUnixFileChangeOwnerService(server);
 #ifdef __ZOWE_OS_ZOS
       installUnixFileChangeTagService(server);
+      initZssBackgroundTasks(server);
 #endif
       installUnixFileChangeModeService(server);
       installUnixFileTableOfContentsService(server); /* This needs to be registered last */
