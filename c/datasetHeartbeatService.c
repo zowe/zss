@@ -48,19 +48,34 @@
 
 static int serveDatasetHeartbeat(HttpService *service, HttpResponse *response){
   time_t T;
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "begin %s\n", __FUNCTION__);  
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "begin %s\n", __FUNCTION__); 
   HttpRequest *request = response->request;
-  resetTimeInHbt(request->username);
+  if (!strcmp(request->method, methodPOST)) { 
+    resetTimeInHbt(request->username);
 
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "user name=%s\n", request->username);
-  time(&T);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "time ....:%s\n", ctime(&T));
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "user name=%s\n", request->username);
+    time(&T);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "time ....:%s\n", ctime(&T));
 
-  setResponseStatus(response, HTTP_STATUS_NO_CONTENT, "OK");
-  setContentType(response, "text/plain");
-  addIntHeader(response, "Content-Length", 0);
-  writeHeader(response);
-  finishResponse(response);
+    setResponseStatus(response, HTTP_STATUS_NO_CONTENT, "OK");
+    setContentType(response, "text/plain");
+    addIntHeader(response, "Content-Length", 0);
+    writeHeader(response);
+    finishResponse(response);
+  } else {
+    jsonPrinter *out = respondWithJsonPrinter(response);
+    setContentType(response, "text/json");
+    setResponseStatus(response, 405, "Method Not Allowed");
+    addStringHeader(response, "Server", "jdmfws");
+    addStringHeader(response, "Transfer-Encoding", "chunked");
+    addStringHeader(response, "Allow", "POST");
+    writeHeader(response);
+
+    jsonStart(out);
+    jsonEnd(out);
+
+    finishResponse(response);
+  }
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "end %s\n", __FUNCTION__);  
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Returning from %s\n", __FUNCTION__); 

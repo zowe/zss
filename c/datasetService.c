@@ -148,7 +148,7 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
 
-  if (!strcmp(request->method, methodGET)) {
+  if (!strcmp(request->method, methodPOST)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
@@ -173,7 +173,7 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
     setResponseStatus(response, 405, "Method Not Allowed");
     addStringHeader(response, "Server", "jdmfws");
     addStringHeader(response, "Transfer-Encoding", "chunked");
-    addStringHeader(response, "Allow", "GET, DELETE, POST");
+    addStringHeader(response, "Allow", "DELETE, POST");
     writeHeader(response);
 
     jsonStart(out);
