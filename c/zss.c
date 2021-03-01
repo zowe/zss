@@ -96,6 +96,8 @@ char productVersion[40];
 
 static JsonObject *MVD_SETTINGS = NULL;
 static int traceLevel = 0;
+extern int heartbeat_loop_time;
+extern int heartbeat_expiry_time;
 
 #define JSON_ERROR_BUFFER_SIZE 1024
 
@@ -838,6 +840,21 @@ static void printZISStatus(HttpServer *server) {
 
 }
 
+static void readDatasetSettings() {
+  JsonObject *datasetLockSettings = readEnvSettings("ZSS_DATASET");
+  int heartbeat = jsonObjectGetNumber(datasetLockSettings, "ZSS_DATASET_HEARTBEAT");
+  if(heartbeat>0) {
+    heartbeat_loop_time=heartbeat;
+  }
+  printf("heartbeat_loop_time %d\n", heartbeat_loop_time);
+  
+  int expiry = jsonObjectGetNumber(datasetLockSettings, "ZSS_DATASET_EXPIRY");
+  if(expiry>0) {
+    heartbeat_expiry_time=expiry;
+  }
+  printf("heartbeat_expiry_time %d\n", heartbeat_expiry_time);
+}
+
 static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envConfig, char **address, int *port) {
   *port = jsonObjectGetNumber(envConfig, "ZWED_agent_http_port");
   *address = jsonObjectGetString(envConfig, "ZWED_agent_http_ipAddresses");
@@ -1195,7 +1212,7 @@ int main(int argc, char **argv){
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
   JsonObject *envSettings = readEnvSettings("ZWED");
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
-
+  readDatasetSettings();
   if (mvdSettings) {
     /* Hmm - most of these aren't used, at least here. */
     checkAndSetVariable(mvdSettings, "productDir", productDir, COMMON_PATH_MAX);
