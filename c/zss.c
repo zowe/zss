@@ -395,7 +395,7 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
 }
 
 static void initZssBackgroundTasks(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_INFO,"initZssBackgroundTasks\n");  
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG,"initZssBackgroundTasks\n");  
   // register background handler
   STCBase *base = server->base;
   stcRegisterModule(
@@ -846,13 +846,13 @@ static void readDatasetSettings() {
   if(heartbeat>0) {
     heartbeat_loop_time=heartbeat;
   }
-  printf("heartbeat_loop_time %d\n", heartbeat_loop_time);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,"heartbeat_loop_time %d\n", heartbeat_loop_time);
   
   int expiry = jsonObjectGetNumber(datasetLockSettings, "ZSS_DATASET_EXPIRY");
   if(expiry>0) {
     heartbeat_expiry_time=expiry;
   }
-  printf("heartbeat_expiry_time %d\n", heartbeat_expiry_time);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,"heartbeat_expiry_time %d\n", heartbeat_expiry_time);
 }
 
 static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envConfig, char **address, int *port) {
