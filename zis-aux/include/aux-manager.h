@@ -47,17 +47,24 @@ typedef struct ZISAUXManager_tag {
 
 typedef struct ZISAUXCommArea_tag {
   char eyecatcher[8];
-#define ZISAUX_COMM_EYECATCHER    "ZISAUXC "
+#define ZISAUX_COMM_EYECATCHER    "ZISAUXCA"
+  uint8_t version;
+#define ZISAUX_COMM_VERSION 2
+  char reserved0[3];
   int32_t flag;
 #define ZISAUX_HOST_FLAG_READY          0x00000001
 #define ZISAUX_HOST_FLAG_TERMINATED     0x00000002
+#define ZISAUX_HOST_FLAG_COMM_PC_ON     0x00000004
   uint32_t pcNumber;
   uint32_t sequenceNumber;
   int32_t termECB;
+  char reserved1[4];
   uint64_t stoken;
   ASCB * __ptr32 ascb;
   uint16_t parentASID;
-  char reserved0[2];
+  char reserved2[2];
+  int32_t commECB;
+#define ZISAUX_COMM_SIGNAL_TERM 1
 } ZISAUXCommArea;
 
 typedef struct ZISAUXNickname_tag {
@@ -72,6 +79,10 @@ typedef struct ZISAUXParm_tag {
   char value[200];
 } ZISAUXParm;
 
+#define ZIS_AUX_FLAG_NONE         0x00000000
+#define ZIS_AUX_FLAG_REUSASID_NO  0x00000001
+#define ZIS_AUX_FLAG_COMM_PC_OFF  0x00000002
+
 ZOWE_PRAGMA_PACK_RESET
 
 #ifndef __LONGNAME__
@@ -80,6 +91,7 @@ ZOWE_PRAGMA_PACK_RESET
 #define zisauxMgrClean ZISAMCL
 #define zisauxMgrSetHostSTC ZISAMHS
 #define zisauxMgrStartGuest ZISAMST
+#define zisauxMgrStartGuest2 ZISAMST2
 #define zisauxMgrStopGuest ZISAMSP
 #define zisauxMgrInitCommand ZISAICMD
 #define zisauxMgrCleanCommand ZISACCMD
@@ -111,6 +123,14 @@ int zisauxMgrStartGuest(ZISAUXManager *mgr,
                         ZISAUXModule guestModuleName,
                         const ZISAUXParm *guestParm,
                         int *reasonCode, int traceLevel);
+
+int zisauxMgrStartGuest2(ZISAUXManager *mgr,
+                         ZISAUXNickname guestNickname,
+                         ZISAUXModule guestModuleName,
+                         const ZISAUXParm *guestParm,
+                         int flags,
+                         int *reasonCode,
+                         int traceLevel);
 
 int zisauxMgrStopGuest(ZISAUXManager *mgr,
                        ZISAUXNickname guestNickname,
@@ -202,6 +222,8 @@ int zisauxMgrWaitForTerm(ZISAUXManager *mgr,
 #define RC_ZISAUX_SHR64_ERROR             40
 #define RC_ZISAUX_BUFFER_TOO_SMALL        41
 #define RC_ZISAUX_NOT_MANAGER_TCB         42
-#define RC_ZISAUX_CALLER_NOT_RECOGNIZED   43
+#define RC_ZISAUX_COMM_PC_DISABLED        43
+#define RC_ZISAUX_XMEM_POST_FAILED        44
+#define RC_ZISAUX_CALLER_NOT_RECOGNIZED   45
 
 #endif /* SRC_AUX_MANAGER_H_ */
