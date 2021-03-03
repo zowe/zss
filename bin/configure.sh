@@ -79,7 +79,7 @@ services:
     description: 'Zowe System Services is an HTTPS and Websocket server that makes it easy to have secure, powerful web APIs backed by low-level z/OS constructs. It contains services for essential z/OS abilities such as working with files, datasets, and ESMs, but is also extensible by REST and Websocket "Dataservices" which are optionally present in App Framework "Plugins".'
     catalogUiTileId: zss
     instanceBaseUrls:
-      - http://${ZOWE_EXPLORER_HOST}:${ZOWE_ZSS_SERVER_PORT}/
+      - https://${ZOWE_EXPLORER_HOST}:${ZOWE_ZSS_SERVER_PORT}/
     homePageRelativeUrl:
     routedServices:
       - gatewayUrl: api/v1
@@ -98,4 +98,16 @@ EOF
 iconv -f IBM-1047 -t IBM-850 ${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml > $STATIC_DEF_CONFIG_DIR/zss.yml
 rm ${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml
 chmod 770 $STATIC_DEF_CONFIG_DIR/zss.yml
+fi
+
+# Setup certificates
+PREFIX="ZWED_agent_https_"
+export "${PREFIX}port"="${ZOWE_ZSS_SERVER_PORT}"
+export "${PREFIX}label"="${KEY_ALIAS}"
+export "${PREFIX}password"="${KEYSTORE_PASSWORD}"
+
+if [[ "${KEYSTORE_TYPE}" = "JCERACFKS" ]]; then
+  export "${PREFIX}keyring"="${KEYRING_OWNER}/${KEYRING_NAME}"
+else
+  export "${PREFIX}keyring"="${GSKIT_KEYSTORE}"
 fi
