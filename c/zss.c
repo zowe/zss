@@ -100,6 +100,20 @@ static int traceLevel = 0;
 
 #define JSON_ERROR_BUFFER_SIZE 1024
 
+#define DEFAULT_TLS_CIPHERS               \
+  TLS_DHE_RSA_WITH_AES_128_GCM_SHA256     \
+  TLS_DHE_RSA_WITH_AES_128_CBC_SHA256     \
+  TLS_DHE_RSA_WITH_AES_256_GCM_SHA384     \
+  TLS_DHE_RSA_WITH_AES_256_CBC_SHA256     \
+  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 \
+  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 \
+  TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 \
+  TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 \
+  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256   \
+  TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256   \
+  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384   \
+  TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+
 static int stringEndsWith(char *s, char *suffix);
 static void dumpJson(Json *json);
 static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
@@ -935,6 +949,7 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
   char *address = jsonObjectGetString(envConfig, ENV_AGENT_HTTPS_KEY(IP_ADDRESSES_KEY));
 
   TlsSettings *settings = (TlsSettings*)SLHAlloc(slh, sizeof(*settings));
+  settings->ciphers = DEFAULT_TLS_CIPHERS;
   settings->keyring = jsonObjectGetString(envConfig, ENV_AGENT_HTTPS_KEY(KEYRING_KEY));
   settings->label = jsonObjectGetString(envConfig, ENV_AGENT_HTTPS_KEY(LABEL_KEY));
   settings->stash = jsonObjectGetString(envConfig, ENV_AGENT_HTTPS_KEY(STASH_KEY));
