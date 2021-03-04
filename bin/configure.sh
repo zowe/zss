@@ -109,5 +109,5 @@ export "${PREFIX}password"="${KEYSTORE_PASSWORD}"
 if [[ "${KEYSTORE_TYPE}" = "JCERACFKS" ]]; then
   export "${PREFIX}keyring"="${KEYRING_OWNER}/${KEYRING_NAME}"
 else
-  export "${PREFIX}keyring"="${GSKIT_KEYSTORE}"
+  export "${PREFIX}keyring"="${KEYSTORE}"
 fi
