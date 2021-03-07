@@ -131,7 +131,6 @@ if c89 \
   ${ZSS}/c/certificateService.c \
   ${ZSS}/c/unixFileService.c \
   ${ZSS}/c/datasetService.c \
-  ${ZSS}/c/datasetHeartbeatService.c \
   ${ZSS}/c/envService.c \
   ${ZSS}/c/zosDiscovery.c \
   ${ZSS}/c/securityService.c \
