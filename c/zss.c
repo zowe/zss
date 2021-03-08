@@ -96,8 +96,6 @@ char productVersion[40];
 
 static JsonObject *MVD_SETTINGS = NULL;
 static int traceLevel = 0;
-extern int heartbeat_loop_time;
-extern int heartbeat_expiry_time;
 
 #define JSON_ERROR_BUFFER_SIZE 1024
 
@@ -187,7 +185,7 @@ static int extractAuthorizationFromJson(HttpService *service, HttpRequest *reque
 
   Json *body = jsonParseUnterminatedString(request->slh, nativeBody, inLen, errBuf, JSON_ERROR_BUFFER_SIZE);
 
-  if(body != NULL){
+  if (body != NULL){
     JsonObject *inputMessage = jsonAsObject(body);
     Json *username = jsonObjectGetPropertyValue(inputMessage,"username");
     Json *password = jsonObjectGetPropertyValue(inputMessage,"password");
@@ -782,13 +780,13 @@ void checkAndSetVariableWithEnvOverride(JsonObject *mvdSettings,
 {
   bool override=true;
   char* tempString = jsonObjectGetString(envSettings, envConfigVariableName);
-  if(tempString == NULL) {
+  if (tempString == NULL) {
     override=false;
     tempString = jsonObjectGetString(mvdSettings, configVariableName);
   }
   if (tempString){
     snprintf(target, targetMax, "%s", tempString);
-    if(override){
+    if (override){
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "%s override with env %s is '%s'\n", configVariableName, envConfigVariableName, target);
     }
     else {
@@ -838,21 +836,6 @@ static void printZISStatus(HttpServer *server) {
           status.descriptionNullTerm,
           CROSS_MEMORY_SERVER_VERSION);
 
-}
-
-static void readDatasetSettings() {
-  JsonObject *datasetLockSettings = readEnvSettings("ZSS_DATASET");
-  int heartbeat = jsonObjectGetNumber(datasetLockSettings, "ZSS_DATASET_HEARTBEAT");
-  if(heartbeat>0) {
-    heartbeat_loop_time=heartbeat;
-  }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,"heartbeat_loop_time %d\n", heartbeat_loop_time);
-  
-  int expiry = jsonObjectGetNumber(datasetLockSettings, "ZSS_DATASET_EXPIRY");
-  if(expiry>0) {
-    heartbeat_expiry_time=expiry;
-  }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,"heartbeat_expiry_time %d\n", heartbeat_expiry_time);
 }
 
 static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envConfig, char **address, int *port) {
@@ -1023,7 +1006,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
   bool envIsSet = (envTokenName != NULL
                       && envTokenLabel != NULL);
 
-  if(envIsSet){
+  if (envIsSet){
     int initTokenRc, p11rc, p11Rsn;
     const int contextInitRc = httpServerInitJwtContext(httpServer,
         envFallback,
@@ -1212,7 +1195,6 @@ int main(int argc, char **argv){
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
   JsonObject *envSettings = readEnvSettings("ZWED");
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
-  readDatasetSettings();
   if (mvdSettings) {
     /* Hmm - most of these aren't used, at least here. */
     checkAndSetVariable(mvdSettings, "productDir", productDir, COMMON_PATH_MAX);
@@ -1267,7 +1249,6 @@ int main(int argc, char **argv){
       installDatasetContentsService(server);
       installDatasetEnqueueService(server);
       installDatasetHeartbeatService(server);
-      initDatasetLocking(server);
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);
