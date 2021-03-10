@@ -296,13 +296,13 @@ static void readDatasetSettings(int* heartbeat, int* expiry) {
     *expiry = 0;
   }
   *heartbeat = jsonObjectGetNumber(datasetLockSettings, "ZSS_DATASET_HEARTBEAT");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,"heartbeat_loop_time %d\n", *heartbeat);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG,"heartbeat_loop_time %d\n", *heartbeat);
   *expiry = jsonObjectGetNumber(datasetLockSettings, "ZSS_DATASET_EXPIRY");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,"heartbeat_expiry_time %d\n", *expiry);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG,"heartbeat_expiry_time %d\n", *expiry);
 }
 
 static int serveDatasetHeartbeat(HttpService *service, HttpResponse *response){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "begin %s\n", __FUNCTION__); 
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__); 
   HttpRequest *request = response->request;
   if (!strcmp(request->method, methodPOST)) { 
     resetTimeInHbt(request->username);
@@ -331,7 +331,7 @@ void installDatasetHeartbeatService(HttpServer *server) {
   //initialize lock tables
   initLockResources(heartbeat, expiry);
   // register background handler
-  addZssBackgroudTask(&heartbeatBackgroundHandler,"DATASET_HEARTBEAT_TASK", lockService->heartbeat);
+  addStcBackgroudTask(&heartbeatBackgroundHandler,"DATASET_HEARTBEAT_TASK", lockService->heartbeat);
 }
 
 #endif /* __ZOWE_OS_ZOS */
