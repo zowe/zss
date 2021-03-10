@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
+#include <assert.h>
 
 #endif
 
@@ -61,6 +62,7 @@
 #include "plugins.h"
 #ifdef __ZOWE_OS_ZOS
 #include "datasetjson.h"
+#include "stcbackground.h"
 #include "authService.h"
 #include "securityService.h"
 #include "zis/client.h"
@@ -107,6 +109,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLived
                                                   const char *serverConfigFile);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static InternalAPIMap *makeInternalAPIMap(void);
+
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -182,7 +185,7 @@ static int extractAuthorizationFromJson(HttpService *service, HttpRequest *reque
 
   Json *body = jsonParseUnterminatedString(request->slh, nativeBody, inLen, errBuf, JSON_ERROR_BUFFER_SIZE);
 
-  if(body != NULL){
+  if (body != NULL){
     JsonObject *inputMessage = jsonAsObject(body);
     Json *username = jsonObjectGetPropertyValue(inputMessage,"username");
     Json *password = jsonObjectGetPropertyValue(inputMessage,"password");
@@ -388,6 +391,25 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
   }
   return mvdSettingsJsonObject;
 }
+
+static void initZssBackgroundTasks(HttpServer *server) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG,"initZssBackgroundTasks\n");  
+  // register background handler
+  STCBase *base = server->base;
+  stcRegisterModule(
+    base,
+    STC_MODULE_BACKGROUND,
+    server,
+    NULL,
+    NULL,
+    NULL,
+    processStcBackgroundHandler
+  );
+
+  for (int i = 0; i < N_TASK_TABLE_ENTRIES; i++) {
+    task_list[i].id = 0;  /* initialise */
+  }
+};
 
 static int stringEndsWith(char *s, char *suffix) {
   int suffixLen = strlen(suffix);
@@ -758,13 +780,13 @@ void checkAndSetVariableWithEnvOverride(JsonObject *mvdSettings,
 {
   bool override=true;
   char* tempString = jsonObjectGetString(envSettings, envConfigVariableName);
-  if(tempString == NULL) {
+  if (tempString == NULL) {
     override=false;
     tempString = jsonObjectGetString(mvdSettings, configVariableName);
   }
   if (tempString){
     snprintf(target, targetMax, "%s", tempString);
-    if(override){
+    if (override){
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "%s override with env %s is '%s'\n", configVariableName, envConfigVariableName, target);
     }
     else {
@@ -984,7 +1006,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
   bool envIsSet = (envTokenName != NULL
                       && envTokenLabel != NULL);
 
-  if(envIsSet){
+  if (envIsSet){
     int initTokenRc, p11rc, p11Rsn;
     const int contextInitRc = httpServerInitJwtContext(httpServer,
         envFallback,
@@ -1053,7 +1075,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
         ZOWE_LOG_SEVERE,
         ZSS_LOG_JWT_KEYSTORE_NAME_MSG);
     return 1;
-  } else if(tokenLabel == NULL){
+  } else if (tokenLabel == NULL){
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_SEVERE,
@@ -1173,7 +1195,6 @@ int main(int argc, char **argv){
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
   JsonObject *envSettings = readEnvSettings("ZWED");
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
-
   if (mvdSettings) {
     /* Hmm - most of these aren't used, at least here. */
     checkAndSetVariable(mvdSettings, "productDir", productDir, COMMON_PATH_MAX);
@@ -1218,6 +1239,7 @@ int main(int argc, char **argv){
       installUnixFileChangeOwnerService(server);
 #ifdef __ZOWE_OS_ZOS
       installUnixFileChangeTagService(server);
+      initZssBackgroundTasks(server);
 #endif
       installUnixFileChangeModeService(server);
       installUnixFileTableOfContentsService(server); /* This needs to be registered last */
@@ -1226,6 +1248,7 @@ int main(int argc, char **argv){
       installDatasetMetadataService(server);
       installDatasetContentsService(server);
       installDatasetEnqueueService(server);
+      installDatasetHeartbeatService(server);
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);
@@ -1237,7 +1260,6 @@ int main(int argc, char **argv){
       installLogoutService(server);
       printZISStatus(server);
       mainHttpLoop(server);
-
     } else{
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_ZSS_STARTUP_MSG, returnCode, reasonCode);
       if (returnCode==EADDRINUSE) {

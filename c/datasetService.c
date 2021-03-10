@@ -37,7 +37,9 @@
 #include "httpserver.h"
 #include "dataservice.h"
 #include "json.h"
+#include "envService.h"
 #include "datasetjson.h"
+#include "datasetlock.h"
 #include "logging.h"
 #include "zssLogging.h"
 
@@ -86,9 +88,8 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
 }
 
 static int serveDatasetContents(HttpService *service, HttpResponse *response){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "begin %s\n", __FUNCTION__);  
   HttpRequest *request = response->request;
-
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
@@ -144,12 +145,12 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
 
-  if (!strcmp(request->method, methodGET)) {
+  if (!strcmp(request->method, methodPOST)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Taking enqueue on: %s\n", filename);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Taking enqueue on: %s username: %s\n", filename, request->username);
     respondWithEnqueue(response, filename, TRUE);
   }
   else if (!strcmp(request->method, methodDELETE)) {
@@ -157,10 +158,8 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Releasing enqueue on: %s\n", filename);
-    
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Releasing enqueue on: %s , username: %s \n", filename, request->username);
     respondWithDequeue(response, filename, TRUE);
-    
   }
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
@@ -169,7 +168,7 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
     setResponseStatus(response, 405, "Method Not Allowed");
     addStringHeader(response, "Server", "jdmfws");
     addStringHeader(response, "Transfer-Encoding", "chunked");
-    addStringHeader(response, "Allow", "GET, DELETE, POST");
+    addStringHeader(response, "Allow", "DELETE, POST");
     writeHeader(response);
 
     jsonStart(out);
@@ -177,8 +176,6 @@ static int serveDatasetEnqueue(HttpService *service, HttpResponse *response){
 
     finishResponse(response);
   }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Returning from %s\n", __FUNCTION__);
   return 0;
 }
 
@@ -290,6 +287,51 @@ void installDatasetMetadataService(HttpServer *server) {
                     makeStringParamSpec("includeUnprintable", SERVICE_ARG_OPTIONAL,
                       makeIntParamSpec("workAreaSize", SERVICE_ARG_OPTIONAL, 0,0,0,0, NULL))))))))));
   registerHttpService(server, httpService);
+}
+
+static void readDatasetSettings(int* heartbeat, int* expiry) {
+  JsonObject *datasetLockSettings = readEnvSettings("ZSS_DATASET");
+  if (datasetLockSettings == NULL) {
+    *heartbeat = 0;
+    *expiry = 0;
+  }
+  *heartbeat = jsonObjectGetNumber(datasetLockSettings, "ZSS_DATASET_HEARTBEAT");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG,"heartbeat_loop_time %d\n", *heartbeat);
+  *expiry = jsonObjectGetNumber(datasetLockSettings, "ZSS_DATASET_EXPIRY");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG,"heartbeat_expiry_time %d\n", *expiry);
+}
+
+static int serveDatasetHeartbeat(HttpService *service, HttpResponse *response){
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__); 
+  HttpRequest *request = response->request;
+  if (!strcmp(request->method, methodPOST)) { 
+    resetTimeInHbt(request->username);
+    respondWithMessage(response, HTTP_STATUS_NO_CONTENT, "");
+  } else {
+    addStringHeader(response, "Allow", "POST");
+    respondWithError(response, HTTP_STATUS_METHOD_NOT_FOUND, "Method Not Allowed");
+  }
+  return 0;
+}
+
+
+void installDatasetHeartbeatService(HttpServer *server) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset Heartbeat");
+
+  HttpService *httpService = makeGeneratedService("datasetHeartbeart", "/datasetHeartbeat/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->runInSubtask = TRUE;  
+  httpService->doImpersonation = FALSE;
+  httpService->serviceFunction = serveDatasetHeartbeat;
+  registerHttpService(server, httpService);
+
+  int heartbeat;
+  int expiry;
+  readDatasetSettings(&heartbeat, &expiry);
+  //initialize lock tables
+  initLockResources(heartbeat, expiry);
+  // register background handler
+  addStcBackgroudTask(&heartbeatBackgroundHandler,"DATASET_HEARTBEAT_TASK", lockService->heartbeat);
 }
 
 #endif /* __ZOWE_OS_ZOS */
