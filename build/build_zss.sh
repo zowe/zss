@@ -111,7 +111,7 @@ if c89 \
   ${COMMON}/jwt/rscrypto/rs_rsclibc.c \
   ${COMMON}/c/scheduling.c \
   ${COMMON}/c/datasetlock.c \
-  ${COMMON}/c/zssbackground.c \
+  ${COMMON}/c/stcbackground.c \
   ${COMMON}/c/signalcontrol.c \
   ${COMMON}/c/socketmgmt.c \
   ${COMMON}/c/stcbase.c \

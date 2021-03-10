@@ -62,7 +62,7 @@
 #include "plugins.h"
 #ifdef __ZOWE_OS_ZOS
 #include "datasetjson.h"
-#include "zssbackground.h"
+#include "stcbackground.h"
 #include "authService.h"
 #include "securityService.h"
 #include "zis/client.h"
@@ -398,15 +398,15 @@ static void initZssBackgroundTasks(HttpServer *server) {
   STCBase *base = server->base;
   stcRegisterModule(
     base,
-    STC_MODULE_ZSS,
+    STC_MODULE_BACKGROUND,
     server,
     NULL,
     NULL,
     NULL,
-    processZssBackgroundHandler
+    processStcBackgroundHandler
   );
 
-  for(int i=0; i < N_TASK_TABLE_ENTRIES; i++) {
+  for (int i = 0; i < N_TASK_TABLE_ENTRIES; i++) {
     task_list[i].id = 0;  /* initialise */
   }
 };
@@ -1075,7 +1075,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
         ZOWE_LOG_SEVERE,
         ZSS_LOG_JWT_KEYSTORE_NAME_MSG);
     return 1;
-  } else if(tokenLabel == NULL){
+  } else if (tokenLabel == NULL){
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_SEVERE,
