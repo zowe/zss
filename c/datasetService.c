@@ -88,7 +88,7 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
 }
 
 static int serveDatasetContents(HttpService *service, HttpResponse *response){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "begin %s\n", __FUNCTION__);  
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);  
   HttpRequest *request = response->request;
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
@@ -137,7 +137,6 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     finishResponse(response);
   }
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Returning from servedatasetcontents\n");
   return 0;
 }
 
@@ -327,6 +326,7 @@ void installDatasetHeartbeatService(HttpServer *server) {
 
   int heartbeat;
   int expiry;
+  // read environment settings
   readDatasetSettings(&heartbeat, &expiry);
   //initialize lock tables
   initLockResources(heartbeat, expiry);
