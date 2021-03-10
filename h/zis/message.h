@@ -230,6 +230,14 @@
 #define ZISAUX_LOG_USERMOD_CMD_RESP_MSG_TEXT    "Response message - \'%.*s\'"
 #define ZISAUX_LOG_USERMOD_CMD_RESP_MSG         ZISAUX_LOG_USERMOD_CMD_RESP_MSG_ID" "ZISAUX_LOG_USERMOD_CMD_RESP_MSG_TEXT
 
+#define ZISAUX_LOG_TERM_SIGNAL_MSG_ID           ZIS_MSG_PRFX"0080I"
+#define ZISAUX_LOG_TERM_SIGNAL_MSG_TEXT         "Termination signal received (0x%08X)"
+#define ZISAUX_LOG_TERM_SIGNAL_MSG              ZISAUX_LOG_TERM_SIGNAL_MSG_ID" "ZISAUX_LOG_TERM_SIGNAL_MSG_TEXT
+
+#define ZISAUX_LOG_DUB_ERROR_MSG_ID             ZIS_MSG_PRFX"0081E"
+#define ZISAUX_LOG_DUB_ERROR_MSG_TEXT           "Bad dub status %d (%d,0x%04X), verify that the started task user has an OMVS segment"
+#define ZISAUX_LOG_DUB_ERROR_MSG                ZISAUX_LOG_DUB_ERROR_MSG_ID" "ZISAUX_LOG_DUB_ERROR_MSG_TEXT
+
 #endif /* ZIS_MSG_H_ */
 
 

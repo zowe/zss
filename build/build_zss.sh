@@ -139,7 +139,7 @@ if c89 \
   ${ZSS}/c/rasService.c ;
 then
   extattr +p ${ZSS}/bin/zssServer
-  echo "Build successfull"
+  echo "Build successful"
   exit 0
 else
   # remove zssServer in case the linker had RC=4 and produced the binary
