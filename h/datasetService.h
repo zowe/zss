@@ -17,7 +17,7 @@ void installDatasetContentsService(HttpServer *server);
 void installDatasetEnqueueService(HttpServer *server);
 void installVSAMDatasetContentsService(HttpServer *server);
 void installDatasetMetadataService(HttpServer *server);
-void installDatasetHeartbeatService(HttpServer *server);
+void installDatasetHeartbeatService(HttpServer *server, STCModule* backgroundModule);
 
 #endif /* __DATASET_SERVICE_H__ */
 

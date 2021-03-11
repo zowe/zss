@@ -95,6 +95,7 @@
 char productVersion[40];
 
 static JsonObject *MVD_SETTINGS = NULL;
+static STCModule *backgroundModule = NULL;
 static int traceLevel = 0;
 
 #define JSON_ERROR_BUFFER_SIZE 1024
@@ -110,7 +111,6 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLived
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts, const char *key);
 static InternalAPIMap *makeInternalAPIMap(void);
-
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -309,8 +309,11 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
 
 static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings,
                                 JsonObject *envSettings, hashtable *htUsers,
-                                hashtable *htGroups, int defaultSessionTimeout){
+                                hashtable *htGroups, int defaultSessionTimeout) {
+
   MVD_SETTINGS = mvdSettings;
+  backgroundModule = initBackgroundModule(server->base);
+
   /* Disabled because this server is not being used by end users, but called by other servers
    * HttpService *mainService = makeGeneratedService("main", "/");
    * mainService->serviceFunction = serveMainPage;
@@ -398,24 +401,6 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
   return mvdSettingsJsonObject;
 }
 
-static void initZssBackgroundTasks(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG,"initZssBackgroundTasks\n");  
-  // register background handler
-  STCBase *base = server->base;
-  stcRegisterModule(
-    base,
-    STC_MODULE_BACKGROUND,
-    server,
-    NULL,
-    NULL,
-    NULL,
-    processStcBackgroundHandler
-  );
-
-  for (int i = 0; i < N_TASK_TABLE_ENTRIES; i++) {
-    task_list[i].id = 0;  /* initialise */
-  }
-};
 static int getDefaultSessionTimeout(Json *serverTimeouts) {
   JsonObject *serverTimeoutsJsonObject = NULL;
   if (jsonIsObject(serverTimeouts)) {
@@ -1330,7 +1315,6 @@ int main(int argc, char **argv){
       installUnixFileChangeOwnerService(server);
 #ifdef __ZOWE_OS_ZOS
       installUnixFileChangeTagService(server);
-      initZssBackgroundTasks(server);
 #endif
       installUnixFileChangeModeService(server);
       installUnixFileTableOfContentsService(server); /* This needs to be registered last */
@@ -1339,7 +1323,7 @@ int main(int argc, char **argv){
       installDatasetMetadataService(server);
       installDatasetContentsService(server);
       installDatasetEnqueueService(server);
-      installDatasetHeartbeatService(server);
+      installDatasetHeartbeatService(server, backgroundModule);
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);
