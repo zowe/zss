@@ -1381,8 +1381,13 @@ int main(int argc, char **argv){
       goto out_term_stcbase;
     }
 
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port, httpsSettingsFound ? "https" : "http");
     if (httpsSettingsFound) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
+              tlsSettings->keyring,
+              tlsSettings->label ? tlsSettings->label : "(no label)",
+              tlsSettings->password ? "****" : "(no password)",
+              tlsSettings->stash ? tlsSettings->stash : "(no stash)");
       TlsEnvironment *env = NULL;
       int rc = tlsInit(&env, tlsSettings);
       if (rc != 0) {

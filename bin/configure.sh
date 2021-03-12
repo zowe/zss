@@ -64,6 +64,11 @@ if [ ! -f "$currentJsonConfigPath" ]; then
 fi
 
 APP_WORKSPACE_DIR=${INSTANCE_DIR}/workspace/app-server
+if [ "${ZOWE_ZSS_SERVER_TLS}" = "false" ]; then
+  PROTOCOL="http"
+else
+  PROTOCOL="https"
+fi
 
 if [ -n "${STATIC_DEF_CONFIG_DIR}" ]
 then
@@ -79,7 +84,7 @@ services:
     description: 'Zowe System Services is an HTTPS and Websocket server that makes it easy to have secure, powerful web APIs backed by low-level z/OS constructs. It contains services for essential z/OS abilities such as working with files, datasets, and ESMs, but is also extensible by REST and Websocket "Dataservices" which are optionally present in App Framework "Plugins".'
     catalogUiTileId: zss
     instanceBaseUrls:
-      - https://${ZOWE_EXPLORER_HOST}:${ZOWE_ZSS_SERVER_PORT}/
+      - ${PROTOCOL}://${ZOWE_EXPLORER_HOST}:${ZOWE_ZSS_SERVER_PORT}/
     homePageRelativeUrl:
     routedServices:
       - gatewayUrl: api/v1
@@ -100,14 +105,25 @@ rm ${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml
 chmod 770 $STATIC_DEF_CONFIG_DIR/zss.yml
 fi
 
-# Setup certificates
-PREFIX="ZWED_agent_https_"
-export "${PREFIX}port"="${ZOWE_ZSS_SERVER_PORT}"
-export "${PREFIX}label"="${KEY_ALIAS}"
-export "${PREFIX}password"="${KEYSTORE_PASSWORD}"
-
-if [[ "${KEYSTORE_TYPE}" = "JCERACFKS" ]]; then
-  export "${PREFIX}keyring"="${KEYRING_OWNER}/${KEYRING_NAME}"
+if [ "${ZOWE_ZSS_SERVER_TLS}" = "false" ]
+then
+  # HTTP
+  export "ZWED_agent_http_port=${ZOWE_ZSS_SERVER_PORT}"
 else
-  export "${PREFIX}keyring"="${KEYSTORE}"
+  # HTTPS
+  PREFIX="ZWED_agent_https_"
+  export "${PREFIX}port=${ZOWE_ZSS_SERVER_PORT}"
+  export "${PREFIX}label=${KEY_ALIAS}"
+  export "${PREFIX}password=${KEYSTORE_PASSWORD}"
+  IP_ADDRESSES_KEY_var="${PREFIX}ipAddresses"
+  eval "IP_ADDRESSES_val=\"\$${IP_ADDRESSES_KEY_var}\""
+  if [ -z "${IP_ADDRESSES_val}" ]; then
+    export "${IP_ADDRESSES_KEY_var}"="${ZOWE_IP_ADDRESS}"
+  fi
+
+  if [ "${KEYSTORE_TYPE}" = "JCERACFKS" ]; then
+    export "${PREFIX}keyring=${KEYRING_OWNER}/${KEYRING_NAME}"
+  else
+    export "${PREFIX}keyring=${KEYSTORE}"
+  fi
 fi
