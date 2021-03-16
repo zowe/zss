@@ -120,10 +120,5 @@ else
   if [ -z "${IP_ADDRESSES_val}" ]; then
     export "${IP_ADDRESSES_KEY_var}"="${ZOWE_IP_ADDRESS}"
   fi
-
-  if [ "${KEYSTORE_TYPE}" = "JCERACFKS" ]; then
-    export "${PREFIX}keyring=${KEYRING_OWNER}/${KEYRING_NAME}"
-  else
-    export "${PREFIX}keyring=${KEYSTORE}"
-  fi
+  export "${PREFIX}keyring=${KEYSTORE}"
 fi
