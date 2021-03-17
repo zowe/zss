@@ -114,11 +114,15 @@ else
   PREFIX="ZWED_agent_https_"
   export "${PREFIX}port=${ZOWE_ZSS_SERVER_PORT}"
   export "${PREFIX}label=${KEY_ALIAS}"
-  export "${PREFIX}password=${KEYSTORE_PASSWORD}"
   IP_ADDRESSES_KEY_var="${PREFIX}ipAddresses"
   eval "IP_ADDRESSES_val=\"\$${IP_ADDRESSES_KEY_var}\""
   if [ -z "${IP_ADDRESSES_val}" ]; then
     export "${IP_ADDRESSES_KEY_var}"="${ZOWE_IP_ADDRESS}"
   fi
-  export "${PREFIX}keyring=${KEYSTORE}"
+  if [ "${KEYSTORE_TYPE}" = "JCERACFKS" ]; then
+    export "${PREFIX}keyring=${KEYRING_OWNER}/${KEYRING_NAME}"
+  else
+    export "${PREFIX}keyring=${KEYSTORE}"
+    export "${PREFIX}password=${KEYSTORE_PASSWORD}"
+  fi
 fi
