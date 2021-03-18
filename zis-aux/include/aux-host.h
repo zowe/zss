@@ -38,6 +38,7 @@ typedef struct ZISAUXContext_tag {
   unsigned int flags;
 #define ZISAUX_CONTEXT_FLAG_TERM_COMMAND_RECEIVED     0x00000001
 #define ZISAUX_CONTEXT_FLAG_GUEST_INITIALIZED         0x00000002
+#define ZISAUX_CONTEXT_FLAG_LEGACY_API                0x00000004
   char reserved0[12];
 
   struct STCBase_tag *base;
