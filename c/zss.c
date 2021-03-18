@@ -93,6 +93,7 @@
 char productVersion[40];
 
 static JsonObject *MVD_SETTINGS = NULL;
+static STCModule *backgroundModule = NULL;
 static int traceLevel = 0;
 
 #define JSON_ERROR_BUFFER_SIZE 1024
@@ -308,6 +309,7 @@ static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings,
                                 JsonObject *envSettings, hashtable *htUsers,
                                 hashtable *htGroups, int defaultSessionTimeout){
   MVD_SETTINGS = mvdSettings;
+  backgroundModule = initBackgroundModule(server->base);
   /* Disabled because this server is not being used by end users, but called by other servers
    * HttpService *mainService = makeGeneratedService("main", "/");
    * mainService->serviceFunction = serveMainPage;

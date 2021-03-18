@@ -112,6 +112,7 @@ if c89 \
   ${COMMON}/c/signalcontrol.c \
   ${COMMON}/c/socketmgmt.c \
   ${COMMON}/c/stcbase.c \
+  ${COMMON}/c/stcbackground.c \
   ${COMMON}/c/timeutls.c \
   ${COMMON}/c/utils.c \
   ${COMMON}/c/vsam.c \
