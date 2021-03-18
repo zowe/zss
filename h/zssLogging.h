@@ -318,6 +318,12 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_TLS_SETTINGS_MSG_TEXT        "TLS settings: keyring '%s', label '%s', password '%s', stash '%s'\n"
 #define ZSS_LOG_TLS_SETTINGS_MSG             ZSS_LOG_TLS_SETTINGS_MSG_ID" "ZSS_LOG_TLS_SETTINGS_MSG_TEXT
 
+#ifndef ZSS_LOG_ENV_SETTINGS_MSG_ID
+#define ZSS_LOG_ENV_SETTINGS_MSG_ID          ZSS_LOG_MSG_PRFX"1062E"
+#endif
+#define ZSS_LOG_ENV_SETTINGS_MSG_TEXT        "Failed to process environment variables\n"
+#define ZSS_LOG_ENV_SETTINGS_MSG             ZSS_LOG_ENV_SETTINGS_MSG_ID" "ZSS_LOG_ENV_SETTINGS_MSG_TEXT
+
 /* Unixfile */
 
 #ifndef ZSS_LOG_UNABLE_MSG_ID

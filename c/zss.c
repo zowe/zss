@@ -1325,6 +1325,11 @@ int main(int argc, char **argv){
   } 
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
   JsonObject *envSettings = readEnvSettings("ZWED");
+  if (envSettings == NULL) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_ENV_SETTINGS_MSG);
+    zssStatus = ZSS_STATUS_ERROR;
+    goto out_term_stcbase;
+  }
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
 
   if (mvdSettings) {
