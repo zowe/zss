@@ -22,7 +22,6 @@ struct ApimlStorageSettings_tag {
   TlsSettings *tlsSettings;
   char *host;
   int port;
-  char *token;
 };
 
 #endif // STORAGE_APIML_H

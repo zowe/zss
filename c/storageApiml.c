@@ -36,17 +36,13 @@
 #define CACHING_SERVICE_URI "/cachingservice/api/v1/cache"
 
 #define STORAGE_STATUS_HTTP_ERROR           (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 0)
-#define STORAGE_STATUS_LOGIN_ERROR          (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 1)
-#define STORAGE_STATUS_INVALID_CREDENTIALS  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 2)
-#define STORAGE_STATUS_RESPONSE_ERROR       (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 3)
-#define STORAGE_STATUS_JSON_RESPONSE_ERROR  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 4)
-#define STORAGE_STATUS_ALLOC_ERROR          (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 5)
-#define STORAGE_STATUS_INVALID_KV_RESPONSE  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 6)
-#define STORAGE_STATUS_INVALID_JWT_TOKEN    (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 7)
-#define STORAGE_STATUS_NO_AUTH_PROVIDED     (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 8)
+#define STORAGE_STATUS_RESPONSE_ERROR       (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 1)
+#define STORAGE_STATUS_JSON_RESPONSE_ERROR  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 2)
+#define STORAGE_STATUS_ALLOC_ERROR          (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 3)
+#define STORAGE_STATUS_INVALID_KV_RESPONSE  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 4)
+#define STORAGE_STATUS_INVALID_CLIENT_CERT  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 5)
 
 typedef struct {
-  char *token;
   HttpClientSettings *clientSettings;
   TlsEnvironment *tlsEnv;
 } ApimlStorage;
@@ -173,42 +169,6 @@ static char *jsonMemoryPrinterGetOutput(JsonMemoryPrinter *printer) {
   return output;
 }
 
-static char *extractTokenFromCookie(const char *cookie) {
-  const char *name = "apimlAuthenticationToken=";
-  int len = strlen(name);
-  char *start = strstr(cookie, name);
-  if (!start) {
-    return NULL;
-  }
-  char *end = strchr(start + len, ';');
-  if (!end) {
-    return NULL;
-  }
-  char *token = safeMalloc(end - start + 1, "APIML token");
-  if (token) {
-    memcpy(token, start, end - start);
-  }
-  return token;
-}
-
-static char *extractTokenFromHeaders(HttpHeader *headers) {
-  char *token = NULL;
-  while (headers) {
-    if (0 == strcmp(headers->nativeName, "set-cookie")) {
-      zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "header '%s' -> '%s'\n", headers->nativeName, headers->nativeValue);
-      token = extractTokenFromCookie(headers->nativeValue);
-      if (token) {
-        zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "token found '%s'\n", token);
-        break;
-      } else {
-        zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "oops, token not found\n");
-      }
-    }
-    headers = headers->next;
-  }
-  return token;
-}
-
 static void receiveResponse(HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut) {
   bool done = false;
   ShortLivedHeap *slh = session->slh;
@@ -261,25 +221,6 @@ static Json *receiveJsonResponse(HttpClientContext *httpClientContext, HttpClien
   return json;
 }
 
-static char *apimlCreateLoginRequestBody(const char *username, const char *password) {
-  JsonMemoryPrinter *printer = makeJsonMemoryPrinter();
-  if (!printer) {
-    return NULL;
-  }
-  jsonPrinter *p = printer->jsonPrinter;
-  jsonStart(p);
-  jsonAddString(p, "username", (char *)username);
-  jsonAddString(p, "password", (char *)password);
-  jsonEnd(p);
-  char *body = jsonMemoryPrinterGetOutput(printer);
-  freeJsonMemoryPrinter(printer);
-  if (body) {
-    int bodyLen = strlen(body);
-    convertToAscii(body, bodyLen);
-  }
-  return body;
-}
-
 static void freeApimlResponse(ApimlResponse *response) {
   if (!response) {
     return;
@@ -297,10 +238,8 @@ static int transformHttpStatus(int httpStatus) {
   switch (httpStatus) {
     case HTTP_STATUS_NOT_FOUND:
       return STORAGE_STATUS_KEY_NOT_FOUND;
-    case HTTP_STATUS_UNAUTHORIZED:
-      return STORAGE_STATUS_INVALID_JWT_TOKEN;
-    case HTTP_STATUS_BAD_REQUEST:
-      return STORAGE_STATUS_NO_AUTH_PROVIDED;
+    case HTTP_STATUS_FORBIDDEN:
+      return STORAGE_STATUS_INVALID_CLIENT_CERT;
     case HTTP_STATUS_OK:
       return STORAGE_STATUS_OK;
     case HTTP_STATUS_NO_CONTENT:
@@ -320,7 +259,6 @@ static ApimlResponse *apimlDoRequest(ApimlStorage *storage, ApimlRequest *reques
   HttpClientContext *httpClientContext = NULL;
   HttpClientSession *session = NULL;
   LoggingContext *loggingContext = makeLoggingContext();
-  char *token = storage->token;
   char *path = request->path;
   char *body = request->body;
   int bodyLen = request->bodyLen;
@@ -347,9 +285,6 @@ static ApimlResponse *apimlDoRequest(ApimlStorage *storage, ApimlRequest *reques
       break;
     }
     requestStringHeader(session->request, TRUE, "Content-type", "application/json");
-    if (storage->token) {
-      requestStringHeader(session->request, TRUE, "Cookie", storage->token);
-    }
     status = httpClientSessionSend(httpClientContext, session);
     if (status) {
       zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error sending request: %d\n", status);
@@ -385,55 +320,6 @@ static ApimlResponse *apimlDoRequest(ApimlStorage *storage, ApimlRequest *reques
     response->statusCode = session->response->statusCode;
   }
   return response;
-}
-
-static void apimlLogin(ApimlStorage *storage, const char *username, const char *password, int *statusOut) {
-  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "[+] about to login with %s:%s\n", username, password);
-  int status = 0;
-  int statusCode = 0;
-  char *token = NULL;
-  char *body = apimlCreateLoginRequestBody(username, password);
-  if (!body) {
-    *statusOut = STORAGE_STATUS_ALLOC_ERROR;
-    return;
-  }
-  int bodyLen = strlen(body);
-  ApimlRequest request = {
-    .method = "POST",
-    .path = "/api/v1/apicatalog/auth/login",
-    .body = body,
-    .bodyLen = bodyLen,
-    .parseJson = false
-  };
-  
-  ApimlResponse *response = apimlDoRequest(storage, &request, &status);
-  safeFree(body, bodyLen + 1);
-  if (status) {
-    *statusOut = status;
-    return;
-  }
-
-  do {
-    statusCode = response->statusCode;
-    if (statusCode == HTTP_STATUS_UNAUTHORIZED) {
-      *statusOut = STORAGE_STATUS_INVALID_CREDENTIALS;
-      break;
-    }
-    status = transformHttpStatus(statusCode);
-    if (status) {
-      *statusOut = status;
-      break;
-    }
-    token = extractTokenFromHeaders(response->headers);
-    if (token) {
-      *statusOut = STORAGE_STATUS_OK;
-      storage->token = token;
-    } else {
-      *statusOut = STORAGE_STATUS_LOGIN_ERROR;
-    }
-  } while (0);
-  freeApimlResponse(response);
-  zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "login http status: %d\n", statusCode);
 }
 
 static char *apimlCreateCachingServiceRequestBody(const char *key, const char *value) {
@@ -511,7 +397,6 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
   zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "[+] about to get [%s]\n", key);
   int status = 0;
   int statusCode = 0;
-  char *token = NULL;
   char *value = NULL;
   char path[2048] = {0};
   snprintf (path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, key);
@@ -545,7 +430,6 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
 static void apimlStorageRemove(ApimlStorage *storage, const char *key, int *statusOut) {
   zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "[+] about to remove [%s]\n", key);
   int status = 0;
-  char *token = NULL;
   char path[2048] = {0};
   snprintf(path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, key);
   ApimlRequest request = {
@@ -577,14 +461,11 @@ static void apimlStorageSetString(ApimlStorage *storage, const char *key, const 
 
 static const char *MESSAGES[] = {
   [STORAGE_STATUS_HTTP_ERROR] = "Failed to send HTTP request",
-  [STORAGE_STATUS_LOGIN_ERROR] = "Login failed",
-  [STORAGE_STATUS_INVALID_CREDENTIALS] = "Invalid credentials",
   [STORAGE_STATUS_RESPONSE_ERROR] = "Error receiving response",
   [STORAGE_STATUS_JSON_RESPONSE_ERROR] = "Error parsing JSON response",
   [STORAGE_STATUS_ALLOC_ERROR] = "Failed to allocate memory",
   [STORAGE_STATUS_INVALID_KV_RESPONSE] = "Invalid key/value response",
-  [STORAGE_STATUS_INVALID_JWT_TOKEN] = "Invalid JWT token",
-  [STORAGE_STATUS_NO_AUTH_PROVIDED] = "No auth provided",
+  [STORAGE_STATUS_INVALID_CLIENT_CERT] = "Invalid client certificate",
 };
 
 #define MESSAGE_COUNT sizeof(MESSAGES)/sizeof(MESSAGES[0])
@@ -632,7 +513,6 @@ Storage *makeApimlStorage(ApimlStorageSettings *settings) {
 
   apimlStorage->clientSettings = clientSettings;
   apimlStorage->tlsEnv = tlsEnv;
-  apimlStorage->token = settings->token;
 
   storage->userData = apimlStorage;
   storage->set = (StorageSet) apimlStorageSetString;
@@ -686,37 +566,34 @@ c89 \
   /usr/lpp/gskssl/lib/GSKSSL.x
 
 Run:
-  ./test_apiml_storage localhost 10010 ./key.kdb ./key.sth client USER validPassword
-*/
+  ./test_apiml_storage <gateway-host> 10010 ./client-certs.p12 password user */
 
 int main(int argc, char *argv[]) {
   int status = 0;
-  if (argc != 8) {
-    printf("Usage: %s <apiml-gateway-host> <apiml-gateway-host> <kdb-file> <stash-file> <key-label> <user> <password>\n", argv[0]);
-    printf("For example: %s localhost 10010 ./key.kdb ./key.sth client USER validPassword\n");
+  if (argc != 6) {
+    printf("Usage: %s <apiml-gateway-host> <apiml-gateway-host> <keyring> <password> <label>\n", argv[0]);
+    printf("For example: %s localhost 10010 ./client-certs.p12 password user\n");
     return 1;
   }
   char *host = argv[1];
   int port = atoi(argv[2]);
   char *keyring = argv[3];
-  char *stash = argv[4];
+  char *password = argv[4];
   char *label = argv[5];
-  char *user = argv[6];
-  char *password = argv[7];
 
   LoggingContext *context = makeLoggingContext();
   logConfigureStandardDestinations(context);
   logConfigureComponent(context, LOG_COMP_ID_APIML_STORAGE, "APIML Storage",  LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_DEBUG);
+  logConfigureComponent(context, LOG_COMP_HTTPCLIENT, "HTTP Client", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_DEBUG2);
   TlsSettings tlsSettings = {
     .keyring = keyring,
-    .stash = stash,
+    .password = password,
     .label = label
   };
   ApimlStorageSettings settings = {
     .host = host,
     .port = port,
     .tlsSettings = &tlsSettings,
-    .token = NULL // obtain the token later using apimlLogin()
   };
   Storage *storage = makeApimlStorage(&settings);
   if (!storage) {
@@ -724,15 +601,8 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   ApimlStorage *apimlStorage = storage->userData;
-  printf("apimlStorage host %s port %d, keyring %s, stash %s, label %s, user %s\n",
-          host, port, keyring, stash, label, user);
-  apimlLogin(apimlStorage, user, password, &status);
-  if (status == STORAGE_STATUS_OK) {
-    printf("[+] login ok, token '%s'\n", apimlStorage->token);
-  } else {
-    printf("[-] login failed, status %d - %s\n", status, storageGetStrStatus(storage, status));
-    return 1;
-  }
+  printf("apimlStorage host %s port %d, keyring %s, password %s, label %s\n",
+          host, port, keyring, password, label);
   testStorage(storage);
   printf("[!] test complete successfully\n");
 }
