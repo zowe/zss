@@ -35,6 +35,9 @@
 
 #define CACHING_SERVICE_URI "/cachingservice/api/v1/cache"
 
+#define KEY_PREFIX_MAX 16
+#define KEY_SIZE 256
+
 #define STORAGE_STATUS_HTTP_ERROR           (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 0)
 #define STORAGE_STATUS_RESPONSE_ERROR       (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 1)
 #define STORAGE_STATUS_JSON_RESPONSE_ERROR  (STORAGE_STATUS_FIRST_CUSTOM_STATUS + 2)
@@ -45,6 +48,7 @@
 typedef struct {
   HttpClientSettings *clientSettings;
   TlsEnvironment *tlsEnv;
+  char keyPrefix[KEY_PREFIX_MAX];
 } ApimlStorage;
 
 typedef struct {
@@ -339,7 +343,11 @@ static char *apimlCreateCachingServiceRequestBody(const char *key, const char *v
     convertToAscii(body, bodyLen);
   }
   return body;
-} 
+}
+
+static void apimlStoragePrefixKey(ApimlStorage *storage, const char *key, char *buffer, int bufferSize) {
+  snprintf (buffer, bufferSize, "%s%s", storage->keyPrefix, key);
+}
 
 #define OP_CREATE 1
 #define OP_CHANGE 2
@@ -348,7 +356,9 @@ static void createOrChange(ApimlStorage *storage, int op, const char *key, const
   int status = 0;
   char *path = CACHING_SERVICE_URI;
   char *method = (op == OP_CHANGE ? "PUT" : "POST");
-  char *body = apimlCreateCachingServiceRequestBody(key, value);
+  char keyWithPrefix[KEY_SIZE] = {0};
+  apimlStoragePrefixKey(storage, key, keyWithPrefix, sizeof(keyWithPrefix));
+  char *body = apimlCreateCachingServiceRequestBody(keyWithPrefix, value);
   if (!body) {
     *statusOut = STORAGE_STATUS_ALLOC_ERROR;
     return;
@@ -398,8 +408,11 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
   int status = 0;
   int statusCode = 0;
   char *value = NULL;
-  char path[2048] = {0};
-  snprintf (path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, key);
+  char path[4096] = {0};
+  char keyWithPrefix[KEY_SIZE] = {0};
+
+  apimlStoragePrefixKey(storage, key, keyWithPrefix, sizeof(keyWithPrefix));
+  snprintf (path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, keyWithPrefix);
   
   ApimlRequest request = {
     .method = "GET",
@@ -430,8 +443,10 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
 static void apimlStorageRemove(ApimlStorage *storage, const char *key, int *statusOut) {
   zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "[+] about to remove [%s]\n", key);
   int status = 0;
-  char path[2048] = {0};
-  snprintf(path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, key);
+  char path[4096] = {0};
+  char keyWithPrefix[KEY_SIZE] = {0};
+  apimlStoragePrefixKey(storage, key, keyWithPrefix, sizeof(keyWithPrefix));
+  snprintf(path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, keyWithPrefix);
   ApimlRequest request = {
     .method = "DELETE",
     .path = path,
@@ -481,6 +496,17 @@ static const char *apimlStorageGetStrStatus(ApimlStorage *storage, int status) {
   return message;
 }
 
+static makeKeyPrefix(const char *pluginId, char *keyBuffer, int keyBufferSize) {
+  int pluginIdLen = strlen(pluginId);
+  int pos = 0;
+  for (int i = 0; i < pluginIdLen; i++) {
+    if (pluginId[i] != '.' && pos < keyBufferSize - 1) {
+      keyBuffer[pos++] = pluginId[i];
+    }
+  }
+  keyBuffer[pos] = '\0';
+}
+
 Storage *makeApimlStorage(ApimlStorageSettings *settings) {
   Storage *storage = (Storage*)safeMalloc(sizeof(*storage), "Storage");
   if (!storage) {
@@ -510,9 +536,10 @@ Storage *makeApimlStorage(ApimlStorageSettings *settings) {
     safeFree((char*)clientSettings, sizeof(*clientSettings));
     return NULL;
   }
-
   apimlStorage->clientSettings = clientSettings;
   apimlStorage->tlsEnv = tlsEnv;
+  
+  makeKeyPrefix(settings->pluginId, apimlStorage->keyPrefix, sizeof(apimlStorage->keyPrefix));
 
   storage->userData = apimlStorage;
   storage->set = (StorageSet) apimlStorageSetString;
@@ -594,6 +621,7 @@ int main(int argc, char *argv[]) {
     .host = host,
     .port = port,
     .tlsSettings = &tlsSettings,
+    .pluginId = "test.plugin.id",
   };
   Storage *storage = makeApimlStorage(&settings);
   if (!storage) {
