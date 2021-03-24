@@ -79,6 +79,8 @@
 #ifdef USE_ZOWE_TLS
 #include "tls.h"
 #endif // USE_ZOWE_TLS
+#include "storage.h"
+#include "storageApiml.h"
 
 #define PRODUCT "ZLUX"
 #ifndef PRODUCT_MAJOR_VERSION
@@ -121,10 +123,12 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
                                         char *pluginLocation,
                                         char *relativeTo);
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
-                                                  const char *serverConfigFile);
+                                                  const char *serverConfigFile, ApimlStorageSettings *apimlStorageSettings);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts, const char *key);
 static InternalAPIMap *makeInternalAPIMap(void);
+static bool readAgentCachingServiceHttpsSettings(ShortLivedHeap *slh, JsonObject *serverConfig, JsonObject *envConfig, TlsSettings **outSettings);
+static bool readGatewaySettings(ShortLivedHeap *slh, JsonObject *serverConfig, JsonObject *envConfig, char **outGatewayHost, int *outGatewayPort);
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -698,8 +702,25 @@ static int checkLoggingVerbosity(const char *serverConfigFile, char *pluginIdent
   return ZOWE_LOG_INFO;
 }
 
+static Storage* makeStorageForPlugin(const char *pluginId, ApimlStorageSettings *apimlStorageSettings) {
+  Storage *storage = NULL;
+  if (apimlStorageSettings) {
+    storage = makeApimlStorage(apimlStorageSettings, pluginId);
+    if (storage) {
+      int status = 0;
+      storageSetString(storage, "a", "b", &status);
+      printf ("storageSetString setString status %d - %s\n", status, storageGetStrStatus(storage, status));
+    }
+  }
+  if (!storage) {
+    storage = makeMemoryStorage(NULL);
+  }
+  return storage;
+}
+
 static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLivedHeap *slh, char *dirname,
-                                                  const char *serverConfigFile) {
+                                                  const char *serverConfigFile,
+                                                  ApimlStorageSettings *apimlStorageSettings) {
   int pluginDefinitionCount = 0;
   int returnCode;
   int reasonCode;
@@ -748,8 +769,9 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
               if (identifier && pluginLocation) {
                 JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, pluginLocation, relativeTo);
                 if (pluginDefinition) {
-                  WebPlugin *plugin = makeWebPlugin(pluginLocation, pluginDefinition, internalAPIMap,
-                                                    &idMultiplier, pluginLogLevel);
+                  Storage *storage = makeStorageForPlugin(identifier, apimlStorageSettings);
+                  WebPlugin *plugin = makeWebPlugin2(pluginLocation, pluginDefinition, internalAPIMap,
+                                                    &idMultiplier, pluginLogLevel, storage);
                   if (plugin != NULL) {
                     initalizeWebPlugin(plugin, server);
                     //zlux does this, so don't bother doing it twice.
@@ -809,6 +831,25 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
   }
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s end result %d\n", __FUNCTION__, pluginDefinitionCount);
   return webPluginListHead;
+}
+
+static ApimlStorageSettings *readApimlStorageSettings(ShortLivedHeap *slh, JsonObject *serverConfig, JsonObject *envConfig) {
+  ApimlStorageSettings *settings = (ApimlStorageSettings*)SLHAlloc(slh, sizeof(*settings));
+  if (!settings) {
+    return NULL;
+  }
+  memset(settings, 0, sizeof(*settings));
+  bool isConfigured = readGatewaySettings(slh, serverConfig, envConfig, &settings->host, &settings->port);
+  if (isConfigured) {
+    if (!readAgentCachingServiceHttpsSettings(slh, serverConfig, envConfig, &settings->tlsSettings)) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Cashing service TLS settings not found\n");
+      isConfigured = false;
+    }
+  }
+  if (isConfigured) {
+    return settings;
+  }
+  return NULL;
 }
 
 static const char defaultConfigPath[] = "../defaults/serverConfig/server.json";
@@ -996,6 +1037,107 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
     *outSettings = settings;
   }
   return httpsSettingsFound;
+}
+
+#define AGENT_CACHING_SERVICE_PREFIX   "ZWED_agent_cachingService_"
+#define ENV_AGENT_CACHING_SERVICE_KEY(key) AGENT_CACHING_SERVICE_PREFIX key
+
+static bool readAgentCachingServiceHttpsSettings(ShortLivedHeap *slh,
+                                   JsonObject *serverConfig,
+                                   JsonObject *envConfig,
+                                   TlsSettings **outSettings
+                                  ) {
+  TlsSettings *settings = (TlsSettings*)SLHAlloc(slh, sizeof(*settings));
+  settings->ciphers = DEFAULT_TLS_CIPHERS;
+  settings->keyring = jsonObjectGetString(envConfig, ENV_AGENT_CACHING_SERVICE_KEY(KEYRING_KEY));
+  settings->label = jsonObjectGetString(envConfig, ENV_AGENT_CACHING_SERVICE_KEY(LABEL_KEY));
+  settings->stash = jsonObjectGetString(envConfig, ENV_AGENT_CACHING_SERVICE_KEY(STASH_KEY));
+  settings->password = jsonObjectGetString(envConfig, ENV_AGENT_CACHING_SERVICE_KEY(PASSWORD_KEY));
+
+  JsonObject *agentSettings = jsonObjectGetObject(serverConfig, "agent");
+  if (agentSettings) {
+    JsonObject *agentCachingService = jsonObjectGetObject(agentSettings, "cachingService");
+    if (agentCachingService) {
+      if (!settings->keyring) {
+        settings->keyring = jsonObjectGetString(agentCachingService, KEYRING_KEY);
+      }
+      if (!settings->label) {
+        settings->label = jsonObjectGetString(agentCachingService, LABEL_KEY);
+      }
+      if (!settings->stash) {
+        settings->stash = jsonObjectGetString(agentCachingService, STASH_KEY);
+      }
+      if (!settings->password) {
+        settings->password = jsonObjectGetString(agentCachingService, PASSWORD_KEY);
+      }
+    }
+  }
+  bool httpsSettingsFound = (settings->keyring != NULL);
+  if (httpsSettingsFound) {
+    *outSettings = settings;
+  }
+  return httpsSettingsFound;
+}
+
+#define MEDIATION_LAYER_PREFIX   "ZWED_node_mediationLayer_"
+#define ENV_MEDIATION_LAYER_KEY(key) MEDIATION_LAYER_PREFIX key
+#define MEDIATION_LAYER_SERVER_PREFIX   MEDIATION_LAYER_PREFIX "server"
+#define ENV_MEDIATION_LAYER_SERVER_KEY(key) MEDIATION_LAYER_SERVER_PREFIX key
+
+#define ENABLED_KEY "enabled"
+// Returns false if gateway settings not found or mediation layer disabled
+static bool readGatewaySettings(ShortLivedHeap *slh,
+                                JsonObject *serverConfig,
+                                JsonObject *envConfig,
+                                char **outGatewayHost,
+                                int *outGatewayPort
+                               ) {
+  bool enabledSettingFound = jsonObjectHasKey(envConfig, ENV_MEDIATION_LAYER_KEY(ENABLED_KEY));
+  bool enabled = false;
+  if (enabledSettingFound) {
+    enabled = jsonObjectGetBoolean(envConfig, ENV_MEDIATION_LAYER_KEY(ENABLED_KEY));
+    if (!enabled) {
+      return false;
+    }
+  }
+  char *gatewayHost = jsonObjectGetString(envConfig, ENV_MEDIATION_LAYER_SERVER_KEY("gatewayHost"));
+  int gatewayPort = jsonObjectGetNumber(envConfig, ENV_MEDIATION_LAYER_SERVER_KEY("gatewayPort"));
+
+  JsonObject *nodeSettings = jsonObjectGetObject(serverConfig, "node");
+  if (!nodeSettings) {
+    return false;
+  }
+  JsonObject *mediationLayerSettings = jsonObjectGetObject(nodeSettings, "mediationLayer");
+  if (!mediationLayerSettings) {
+    return false;
+  }
+  enabledSettingFound = jsonObjectHasKey(mediationLayerSettings, ENABLED_KEY);
+  if (!enabledSettingFound) {
+    return false;
+  }
+  enabled = jsonObjectGetBoolean(mediationLayerSettings, ENABLED_KEY);
+  if (!enabled) {
+    return false;
+  }
+  JsonObject *serverSettings = jsonObjectGetObject(mediationLayerSettings, "server");
+  if (!serverSettings) {
+    return false;
+  }
+  if (!gatewayHost) {
+    gatewayHost = jsonObjectGetString(serverSettings, "gatewayHost");
+  }
+  if (!gatewayHost) {
+    return false;
+  }
+  if (!gatewayPort) {
+    gatewayPort = jsonObjectGetNumber(serverSettings, "gatewayPort");
+  }
+  if (!gatewayPort) {
+    return false;
+  }
+  *outGatewayHost = gatewayHost;
+  *outGatewayPort = gatewayPort;
+  return true;
 }
 
 static int validateAddress(char *address, InetAddr **inetAddress, int *requiredTLSFlag) {
@@ -1410,10 +1552,22 @@ int main(int argc, char **argv){
         zssStatus = ZSS_STATUS_ERROR;
         goto out_term_stcbase;
       }
+      ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettings(slh, mvdSettings, envSettings);
+      if (apimlStorageSettings) {
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,
+                "Cashing Service settings: "
+                "gateway host '%s', port %d, keyring '%s', label '%s', password '%s', stash '%s'\n",
+                apimlStorageSettings->host, apimlStorageSettings->port, apimlStorageSettings->tlsSettings->keyring,
+                apimlStorageSettings->tlsSettings->label ? apimlStorageSettings->tlsSettings->label : "(no label)",
+                apimlStorageSettings->tlsSettings->password ? "****" : "(no password)",
+                apimlStorageSettings->tlsSettings->stash ? apimlStorageSettings->tlsSettings->stash : "(no stash)");
+      } else {
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Cashing Service not configured\n");
+      }
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
-      readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile);
+      readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile, apimlStorageSettings);
       installCertificateService(server);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);

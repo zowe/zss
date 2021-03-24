@@ -16,13 +16,12 @@
 
 typedef struct ApimlStorageSettings_tag ApimlStorageSettings;
 
-Storage *makeApimlStorage(ApimlStorageSettings *settings);
+Storage *makeApimlStorage(ApimlStorageSettings *settings, const char *pluginId);
 
 struct ApimlStorageSettings_tag {
   TlsSettings *tlsSettings;
   char *host;
   int port;
-  char *pluginId;
 };
 
 #endif // STORAGE_APIML_H

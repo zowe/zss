@@ -500,14 +500,19 @@ static makeKeyPrefix(const char *pluginId, char *keyBuffer, int keyBufferSize) {
   int pluginIdLen = strlen(pluginId);
   int pos = 0;
   for (int i = 0; i < pluginIdLen; i++) {
-    if (pluginId[i] != '.' && pos < keyBufferSize - 1) {
+    // Currently, only alpha-numeric chars allowed in keys
+    // TODO: Use pluginId as a prefix when https://github.com/zowe/api-layer/issues/1300 has resolved
+    if (isalnum(pluginId[i]) && pos < keyBufferSize - 1) {
       keyBuffer[pos++] = pluginId[i];
     }
   }
   keyBuffer[pos] = '\0';
 }
 
-Storage *makeApimlStorage(ApimlStorageSettings *settings) {
+Storage *makeApimlStorage(ApimlStorageSettings *settings, const char *pluginId) {
+  if (!settings) {
+    return NULL;
+  }
   Storage *storage = (Storage*)safeMalloc(sizeof(*storage), "Storage");
   if (!storage) {
     return NULL;
@@ -539,7 +544,7 @@ Storage *makeApimlStorage(ApimlStorageSettings *settings) {
   apimlStorage->clientSettings = clientSettings;
   apimlStorage->tlsEnv = tlsEnv;
   
-  makeKeyPrefix(settings->pluginId, apimlStorage->keyPrefix, sizeof(apimlStorage->keyPrefix));
+  makeKeyPrefix(pluginId, apimlStorage->keyPrefix, sizeof(apimlStorage->keyPrefix));
 
   storage->userData = apimlStorage;
   storage->set = (StorageSet) apimlStorageSetString;
@@ -621,9 +626,8 @@ int main(int argc, char *argv[]) {
     .host = host,
     .port = port,
     .tlsSettings = &tlsSettings,
-    .pluginId = "test.plugin.id",
   };
-  Storage *storage = makeApimlStorage(&settings);
+  Storage *storage = makeApimlStorage(&settings, "test.plugin.id");
   if (!storage) {
     printf("[-] unable to make APIML storage\n");
     return 1;
