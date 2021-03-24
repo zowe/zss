@@ -1,18 +1,11 @@
 const {expect} = require('chai');
-const {getDatasetEnqueue, deleteDatasetEnqueue, printError, getDatasetContents}= require('../../utils/api');
+const {postDatasetEnqueue, deleteDatasetEnqueue, printError, getDatasetContents, sleepPromise}= require('../../utils/api');
 
-var sleep = timeout => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      console.log(`I was sleeping ${timeout} ms`);
-      resolve();
-    }, timeout);
-  });
-};
+
 
 let optionsUser2, ZOWE_DATASET_TEST;
 // 120 seconds
-let WAIT_BEFORE_HEARTBEAT = 120000;
+let WAIT_BEFORE_HEARTBEAT = 60000;
 
 // https://github.com/zowe/zlux/issues/616
 describe('01 client crash scenario', function() {
@@ -39,13 +32,13 @@ describe('01 client crash scenario', function() {
           printError(err);
           throw new Error('check if dataset exists');
         });
-      getDatasetEnqueue(ZOWE_DATASET_TEST).catch((err)=>{
+      postDatasetEnqueue(ZOWE_DATASET_TEST).catch((err)=>{
         printError(err);
         throw err;
       });
 
       //simulating client crash with sleep
-      await sleep(WAIT_BEFORE_HEARTBEAT);
+      await sleepPromise(WAIT_BEFORE_HEARTBEAT);
     });
 
     it('delete lock should fail, lock must be released on receiving no heartbeat', () => {
@@ -61,7 +54,7 @@ describe('01 client crash scenario', function() {
     });
 
     it('get lock should succeed for user 2, user 1 lock must be released on receiving no heartbeat', () => {
-      getDatasetEnqueue(ZOWE_DATASET_TEST, optionsUser2).catch((err)=>{
+      postDatasetEnqueue(ZOWE_DATASET_TEST, optionsUser2).catch((err)=>{
         printError(err);
         throw err;
       });

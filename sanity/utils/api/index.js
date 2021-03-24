@@ -2,6 +2,15 @@ const _ = require('lodash');
 const axios = require('axios');
 const {expect} = require('chai');
 
+const sleepPromise = timeout => {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      console.log(`I was sleeping ${timeout} ms`);
+      resolve();
+    }, timeout);
+  });
+};
+
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 expect(process.env.ZOWE_EXTERNAL_HOST, 'ZOWE_EXTERNAL_HOST is empty').to.not.be.empty;
 expect(process.env.ZOWE_ZSS_PORT, 'ZOWE_ZSS_PORT is not defined').to.not.be.empty;
@@ -120,9 +129,9 @@ async function postDatasetContents(datasetName, datasetContent, options={}) {
   }
 }
 
-async function getDatasetEnqueue(datasetName,options={}) {
+async function postDatasetEnqueue(datasetName,options={}) {
   try {
-    const res = await REQ.get(`/datasetEnqueue/${datasetName}`, );
+    const res = await REQ.post(`/datasetEnqueue/${datasetName}`,'',options);
     expect(res).to.have.property('data');
     return res.data;
   } catch (err) {
@@ -132,7 +141,7 @@ async function getDatasetEnqueue(datasetName,options={}) {
 
 async function deleteDatasetEnqueue(datasetName,options={}) {
   try {
-    const res = await REQ.delete(`/datasetEnqueue/${datasetName}`);
+    const res = await REQ.delete(`/datasetEnqueue/${datasetName}`, options);
     expect(res).to.have.property('data');
     return res.data;
   } catch (err) {
@@ -140,9 +149,9 @@ async function deleteDatasetEnqueue(datasetName,options={}) {
   }
 }
 
-async function getDatasetHeartbeat(options={}) {
+async function postDatasetHeartbeat(options={}) {
   try {
-    const res = await REQ.get('/datasetHeartbeat',options);
+    const res = await REQ.post('/datasetHeartbeat', '', options);
     expect(res).to.have.property('data');
     expect(res.data).to.be.empty;
     return '';
@@ -169,13 +178,14 @@ async function getDatasetHeartbeat(options={}) {
 // }());
 
 module.exports = {
-  getDatasetHeartbeat,
+  postDatasetHeartbeat,
   deleteDatasetEnqueue,
-  getDatasetEnqueue,
+  postDatasetEnqueue,
   postDatasetContents,
   getDatasetContents,
   getDatasetMetadata,
   getUnixfileContent,
   getOMVS,
-  printError
+  printError, 
+  sleepPromise
 };

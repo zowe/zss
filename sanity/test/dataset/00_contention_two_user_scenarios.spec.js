@@ -1,11 +1,16 @@
 const { v4:uuid}=require('uuid');
 const {expect} = require('chai');
-const {getDatasetEnqueue, deleteDatasetEnqueue, printError, getDatasetContents, postDatasetContents, getDatasetHeartbeat} =require('../../utils/api');
+const {postDatasetEnqueue, deleteDatasetEnqueue, printError, getDatasetContents, postDatasetContents, postDatasetHeartbeat, sleepPromise} =require('../../utils/api');
 
+// 60 seconds
+let WAIT_BETWEEN_SCENARIOS = 60000;
+Error.stackTraceLimit = Infinity;
 
 let optionsUser2, ZOWE_DATASET_TEST;
 // https://github.com/zowe/zlux/issues/615
 describe('00 contention two user scenarios', function() {
+  this.timeout(WAIT_BETWEEN_SCENARIOS*5);
+
   before('verify environment variables', function() {
     // allow self signed certs
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -31,7 +36,7 @@ describe('00 contention two user scenarios', function() {
             printError(err);
             throw new Error('check if dataset exists');
           });
-        return getDatasetEnqueue(ZOWE_DATASET_TEST).catch((err)=>{
+        return postDatasetEnqueue(ZOWE_DATASET_TEST).catch((err)=>{
           printError(err);
           throw err;
         });
@@ -46,14 +51,14 @@ describe('00 contention two user scenarios', function() {
 
       // sending heartbeat to keep lock alive
       beforeEach('send dataset heartbeat', async ()=>{
-        return getDatasetHeartbeat().catch((err)=>{
+        return postDatasetHeartbeat().catch((err)=>{
           printError(err);
           throw err;
         });
       });
     
       it('try grab lock user 2, should fail', async ()=>{
-        return getDatasetEnqueue(ZOWE_DATASET_TEST, optionsUser2)
+        return postDatasetEnqueue(ZOWE_DATASET_TEST, optionsUser2)
           .then((data)=>{
             throw new Error('grab lock user 2 should fail but succeded');
           }).catch((err)=>{
@@ -93,11 +98,14 @@ describe('00 contention two user scenarios', function() {
 
       it('try release lock from user2 held by user 1, should fail', async ()=>{
         return deleteDatasetEnqueue(ZOWE_DATASET_TEST, optionsUser2)
+          .then((data)=> {
+            throw new Error('should fail');
+          })
           .catch((err)=>{
             if(err.response) {
               let res = err.response;
               expect(res).to.have.property('status');
-              expect(res.status).to.equal(500);
+              expect(res.status).to.equal(400);
             }
           });
       });
@@ -127,16 +135,18 @@ describe('00 contention two user scenarios', function() {
 
     // grab lock user 1, try save user 2, release lock user 1
     // dont add any tests in this decribe
-    describe('scenario 2 - perform action by user 2 when lock held by user 1', async () => {
+    describe.only('scenario 2 - perform action by user 2 when lock held by user 1', async () => {
+
       before('get lock user 1', async () => {
         await getDatasetContents(ZOWE_DATASET_TEST)
           .then((data)=>{
-            expect(data).to.have.property('records');
-          }).catch((err)=>{
-            printError(err);
-            throw new Error('check if dataset exists');
-          });
-        return getDatasetEnqueue(ZOWE_DATASET_TEST).catch((err)=>{
+          expect(data).to.have.property('records');
+        }).catch((err)=>{
+          printError(err);
+          throw new Error('check if dataset exists');
+        });
+        await sleepPromise(WAIT_BETWEEN_SCENARIOS);
+        return postDatasetEnqueue(ZOWE_DATASET_TEST).catch((err)=>{
           printError(err);
           throw err;
         });
@@ -182,13 +192,13 @@ describe('00 contention two user scenarios', function() {
         })
         .catch((err)=>{
           printError(err);
-          throw new Error('save after releassing lock from user 2 should succeed');
+          throw new Error('save after releasing lock from user 2 should succeed');
         });
 
       // fetch user 2 should see latest changes
       return getDatasetContents(ZOWE_DATASET_TEST, optionsUser2).then((data) => {
-      expect(JSON.stringify(data)).to.have.string(randStr);
-      });  
+        expect(JSON.stringify(data)).to.have.string(randStr);
+      });
     });
   });
 });
