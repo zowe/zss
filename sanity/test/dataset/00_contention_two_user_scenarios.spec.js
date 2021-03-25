@@ -1,16 +1,10 @@
 const { v4:uuid}=require('uuid');
 const {expect} = require('chai');
-const {postDatasetEnqueue, deleteDatasetEnqueue, printError, getDatasetContents, postDatasetContents, postDatasetHeartbeat, sleepPromise} =require('../../utils/api');
-
-// 60 seconds
-let WAIT_BETWEEN_SCENARIOS = 60000;
-Error.stackTraceLimit = Infinity;
+const {postDatasetEnqueue, deleteDatasetEnqueue, printError, getDatasetContents, postDatasetContents, postDatasetHeartbeat} =require('../../utils/api');
 
 let optionsUser2, ZOWE_DATASET_TEST;
 // https://github.com/zowe/zlux/issues/615
 describe('00 contention two user scenarios', function() {
-  this.timeout(WAIT_BETWEEN_SCENARIOS*5);
-
   before('verify environment variables', function() {
     // allow self signed certs
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -135,7 +129,7 @@ describe('00 contention two user scenarios', function() {
 
     // grab lock user 1, try save user 2, release lock user 1
     // dont add any tests in this decribe
-    describe.only('scenario 2 - perform action by user 2 when lock held by user 1', async () => {
+    describe('scenario 2 - perform action by user 2 when lock held by user 1', async () => {
 
       before('get lock user 1', async () => {
         await getDatasetContents(ZOWE_DATASET_TEST)
@@ -145,7 +139,6 @@ describe('00 contention two user scenarios', function() {
           printError(err);
           throw new Error('check if dataset exists');
         });
-        await sleepPromise(WAIT_BETWEEN_SCENARIOS);
         return postDatasetEnqueue(ZOWE_DATASET_TEST).catch((err)=>{
           printError(err);
           throw err;
