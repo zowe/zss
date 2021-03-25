@@ -325,6 +325,36 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_ENV_SETTINGS_MSG_TEXT        "Failed to process environment variables\n"
 #define ZSS_LOG_ENV_SETTINGS_MSG             ZSS_LOG_ENV_SETTINGS_MSG_ID" "ZSS_LOG_ENV_SETTINGS_MSG_TEXT
 
+#ifndef ZSS_LOG_CACHE_SETTINGS_MSG_ID
+#define ZSS_LOG_CACHE_SETTINGS_MSG_ID        ZSS_LOG_MSG_PRFX"1063I"
+#endif
+#define ZSS_LOG_CACHE_SETTINGS_MSG_TEXT      "Caching Service settings: gateway host '%s', port %d, keyring '%s', label '%s', password '%s', stash '%s'\n",
+#define ZSS_LOG_CACHE_SETTINGS_MSG           ZSS_LOG_CACHE_SETTINGS_MSG_ID" "ZSS_LOG_CACHE_SETTINGS_MSG_TEXT
+
+#ifndef ZSS_LOG_CACHE_NOT_CFG_MSG_ID
+#define ZSS_LOG_CACHE_NOT_CFG_MSG_ID         ZSS_LOG_MSG_PRFX"1064I"
+#endif
+#define ZSS_LOG_CACHE_NOT_CFG_MSG_TEXT       "Caching Service not configured\n"
+#define ZSS_LOG_CACHE_NOT_CFG_MSG            ZSS_LOG_CACHE_NOT_CFG_MSG_ID" "ZSS_LOG_CACHE_NOT_CFG_MSG_TEXT
+
+#ifndef ZSS_LOG_CACHE_TLS_NOT_CFG_MSG_ID
+#define ZSS_LOG_CACHE_TLS_NOT_CFG_MSG_ID     ZSS_LOG_MSG_PRFX"1065W"
+#endif
+#define ZSS_LOG_CACHE_TLS_NOT_CFG_MSG_TEXT   "Cashing service TLS settings not found\n"
+#define ZSS_LOG_CACHE_TLS_NOT_CFG_MSG        ZSS_LOG_CACHE_TLS_NOT_CFG_MSG_ID" "ZSS_LOG_CACHE_TLS_NOT_CFG_MSG_TEXT
+
+#ifndef ZSS_LOG_CACHE_CFG_FAILED_MSG_ID
+#define ZSS_LOG_CACHE_CFG_FAILED_MSG_ID      ZSS_LOG_MSG_PRFX"1065W"
+#endif
+#define ZSS_LOG_CACHE_CFG_FAILED_MSG_TEXT    "Failed to configure Caching Service, fallback to Memory Cache\n"
+#define ZSS_LOG_CACHE_CFG_FAILED_MSG         ZSS_LOG_CACHE_CFG_FAILED_MSG_ID" "ZSS_LOG_CACHE_CFG_FAILED_MSG_TEXT
+
+#ifndef ZSS_LOG_CACHE_TLS_ENV_FAILED_MSG_ID
+#define ZSS_LOG_CACHE_TLS_ENV_FAILED_MSG_ID   ZSS_LOG_MSG_PRFX"1066W"
+#endif
+#define ZSS_LOG_CACHE_TLS_ENV_FAILED_MSG_TEXT "Failed to init TLS environment for Caching Service, rc=%d (%s)\n"
+#define ZSS_LOG_CACHE_TLS_ENV_FAILED_MSG      ZSS_LOG_CACHE_TLS_ENV_FAILED_MSG_ID" "ZSS_LOG_CACHE_TLS_ENV_FAILED_MSG_TEXT
+
 /* Unixfile */
 
 #ifndef ZSS_LOG_UNABLE_MSG_ID

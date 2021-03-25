@@ -706,10 +706,8 @@ static Storage* makeStorageForPlugin(const char *pluginId, ApimlStorageSettings 
   Storage *storage = NULL;
   if (apimlStorageSettings) {
     storage = makeApimlStorage(apimlStorageSettings, pluginId);
-    if (storage) {
-      int status = 0;
-      storageSetString(storage, "a", "b", &status);
-      printf ("storageSetString setString status %d - %s\n", status, storageGetStrStatus(storage, status));
+    if (!storage) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_CACHE_CFG_FAILED_MSG);
     }
   }
   if (!storage) {
@@ -842,13 +840,19 @@ static ApimlStorageSettings *readApimlStorageSettings(ShortLivedHeap *slh, JsonO
   bool isConfigured = readGatewaySettings(slh, serverConfig, envConfig, &settings->host, &settings->port);
   if (isConfigured) {
     if (!readAgentCachingServiceHttpsSettings(slh, serverConfig, envConfig, &settings->tlsSettings)) {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Cashing service TLS settings not found\n");
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_CACHE_TLS_NOT_CFG_MSG);
       isConfigured = false;
     }
   }
   if (isConfigured) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_CACHE_SETTINGS_MSG
+            settings->host, settings->port, settings->tlsSettings->keyring,
+            settings->tlsSettings->label ? settings->tlsSettings->label : "(no label)",
+            settings->tlsSettings->password ? "****" : "(no password)",
+            settings->tlsSettings->stash ? settings->tlsSettings->stash : "(no stash)");
     return settings;
   }
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_CACHE_NOT_CFG_MSG);
   return NULL;
 }
 
@@ -1553,17 +1557,6 @@ int main(int argc, char **argv){
         goto out_term_stcbase;
       }
       ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettings(slh, mvdSettings, envSettings);
-      if (apimlStorageSettings) {
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,
-                "Cashing Service settings: "
-                "gateway host '%s', port %d, keyring '%s', label '%s', password '%s', stash '%s'\n",
-                apimlStorageSettings->host, apimlStorageSettings->port, apimlStorageSettings->tlsSettings->keyring,
-                apimlStorageSettings->tlsSettings->label ? apimlStorageSettings->tlsSettings->label : "(no label)",
-                apimlStorageSettings->tlsSettings->password ? "****" : "(no password)",
-                apimlStorageSettings->tlsSettings->stash ? apimlStorageSettings->tlsSettings->stash : "(no stash)");
-      } else {
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Cashing Service not configured\n");
-      }
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);

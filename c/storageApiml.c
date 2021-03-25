@@ -535,7 +535,7 @@ Storage *makeApimlStorage(ApimlStorageSettings *settings, const char *pluginId) 
   TlsEnvironment *tlsEnv = NULL;
   int status = tlsInit(&tlsEnv, settings->tlsSettings);
   if (status) {
-    zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "failed to init tls environment, rc=%d (%s)\n", status, tlsStrError(status));
+    zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_WARNING, ZSS_LOG_CACHE_TLS_ENV_FAILED_MSG, status, tlsStrError(status));
     safeFree((char*)storage, sizeof(*storage));
     safeFree((char*)apimlStorage, sizeof(*apimlStorage));
     safeFree((char*)clientSettings, sizeof(*clientSettings));
