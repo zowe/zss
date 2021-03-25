@@ -78,6 +78,9 @@
 #include "certificateService.h"
 
 #include "jwt.h"
+#ifdef USE_ZOWE_TLS
+#include "tls.h"
+#endif // USE_ZOWE_TLS
 
 #define PRODUCT "ZLUX"
 #ifndef PRODUCT_MAJOR_VERSION
@@ -99,6 +102,20 @@ static STCModule *backgroundModule = NULL;
 static int traceLevel = 0;
 
 #define JSON_ERROR_BUFFER_SIZE 1024
+
+#define DEFAULT_TLS_CIPHERS               \
+  TLS_DHE_RSA_WITH_AES_128_GCM_SHA256     \
+  TLS_DHE_RSA_WITH_AES_128_CBC_SHA256     \
+  TLS_DHE_RSA_WITH_AES_256_GCM_SHA384     \
+  TLS_DHE_RSA_WITH_AES_256_CBC_SHA256     \
+  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 \
+  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 \
+  TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 \
+  TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 \
+  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256   \
+  TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256   \
+  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384   \
+  TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
 
 static int stringEndsWith(char *s, char *suffix);
 static void dumpJson(Json *json);
@@ -917,12 +934,83 @@ static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envCon
   }
 }
 
+#define PORT_KEY         "port"
+#define IP_ADDRESSES_KEY "ipAddresses"
+#define KEYRING_KEY      "keyring"
+#define LABEL_KEY        "label"
+#define STASH_KEY        "stash"
+#define PASSWORD_KEY     "password"
+
+#define AGENT_HTTPS_PREFIX       "ZWED_agent_https_"
+#define ENV_AGENT_HTTPS_KEY(key) AGENT_HTTPS_PREFIX key
+
+static bool readAgentHttpsSettings(ShortLivedHeap *slh,
+                                   JsonObject *serverConfig,
+                                   JsonObject *envConfig,
+                                   char **outAddress,
+                                   int *outPort,
+                                   TlsSettings **outSettings
+                                  ) {
+  int port = jsonObjectGetNumber(envConfig, ENV_AGENT_HTTPS_KEY(PORT_KEY));
+  char *address = jsonObjectGetString(envConfig, ENV_AGENT_HTTPS_KEY(IP_ADDRESSES_KEY));
+
+  TlsSettings *settings = (TlsSettings*)SLHAlloc(slh, sizeof(*settings));
+  settings->ciphers = DEFAULT_TLS_CIPHERS;
+  settings->keyring = jsonObjectGetString(envConfig, ENV_AGENT_HTTPS_KEY(KEYRING_KEY));
+  settings->label = jsonObjectGetString(envConfig, ENV_AGENT_HTTPS_KEY(LABEL_KEY));
+  settings->stash = jsonObjectGetString(envConfig, ENV_AGENT_HTTPS_KEY(STASH_KEY));
+  settings->password = jsonObjectGetString(envConfig, ENV_AGENT_HTTPS_KEY(PASSWORD_KEY));
+
+  JsonObject *agentSettings = jsonObjectGetObject(serverConfig, "agent");
+  if (agentSettings) {
+    JsonObject *agentHttps = jsonObjectGetObject(agentSettings, "https");
+    if (agentHttps) {
+      if (!port) {
+        port = jsonObjectGetNumber(agentHttps, PORT_KEY);
+      }
+      if (!address) {
+        JsonArray *ipAddresses = jsonObjectGetArray(agentHttps, IP_ADDRESSES_KEY);
+        if (ipAddresses && jsonArrayGetCount(ipAddresses) > 0) {
+          Json *firstAddressItem = jsonArrayGetItem(ipAddresses, 0);
+          if (jsonIsString(firstAddressItem)) {
+            address = jsonAsString(firstAddressItem);
+          }
+        }
+      }
+      if (!settings->keyring) {
+        settings->keyring = jsonObjectGetString(agentHttps, KEYRING_KEY);
+      }
+      if (!settings->label) {
+        settings->label = jsonObjectGetString(agentHttps, LABEL_KEY);
+      }
+      if (!settings->stash) {
+        settings->stash = jsonObjectGetString(agentHttps, STASH_KEY);
+      }
+      if (!settings->password) {
+        settings->password = jsonObjectGetString(agentHttps, PASSWORD_KEY);
+      }
+    }
+  }
+  if (!address) {
+    address = "127.0.0.1";
+  }
+  bool httpsSettingsFound = port && settings->keyring;
+  if (httpsSettingsFound) {
+    *outPort = port;
+    *outAddress = address;
+    *outSettings = settings;
+  }
+  return httpsSettingsFound;
+}
+
 static int validateAddress(char *address, InetAddr **inetAddress, int *requiredTLSFlag) {
   *inetAddress = getAddressByName(address);
   if (strcmp(address,"127.0.0.1") && strcmp(address,"localhost")) {
+#ifndef USE_ZOWE_TLS
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, 
       ZSS_LOG_HTTPS_NO_IMPLEM_MSG,
       address);
+#endif // USE_ZOWE_TLS
     *requiredTLSFlag = RS_TLS_WANT_TLS;
   }
   if (!strcmp(address,"0.0.0.0")) {
@@ -1243,6 +1331,11 @@ int main(int argc, char **argv){
   } 
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
   JsonObject *envSettings = readEnvSettings("ZWED");
+  if (envSettings == NULL) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_ENV_SETTINGS_MSG);
+    zssStatus = ZSS_STATUS_ERROR;
+    goto out_term_stcbase;
+  }
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
   if (mvdSettings) {
     /* Hmm - most of these aren't used, at least here. */
@@ -1285,7 +1378,11 @@ int main(int argc, char **argv){
     HttpServer *server = NULL;
     int port = 0;
     char *address = NULL;
-    readAgentAddressAndPort(mvdSettings,envSettings,&address, &port);
+    TlsSettings *tlsSettings = NULL;
+    bool httpsSettingsFound = readAgentHttpsSettings(slh, mvdSettings, envSettings, &address, &port, &tlsSettings);
+    if (!httpsSettingsFound) {
+      readAgentAddressAndPort(mvdSettings, envSettings, &address, &port);
+    }
     InetAddr *inetAddress = NULL;
     int requiredTLSFlag = 0;
     if (!validateAddress(address, &inetAddress, &requiredTLSFlag)) {
@@ -1294,8 +1391,24 @@ int main(int argc, char **argv){
       goto out_term_stcbase;
     }
 
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port);
-    server = makeHttpServer2(base,inetAddress,port,requiredTLSFlag,&returnCode,&reasonCode);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port, httpsSettingsFound ? "https" : "http");
+    if (httpsSettingsFound) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
+              tlsSettings->keyring,
+              tlsSettings->label ? tlsSettings->label : "(no label)",
+              tlsSettings->password ? "****" : "(no password)",
+              tlsSettings->stash ? tlsSettings->stash : "(no stash)");
+      TlsEnvironment *env = NULL;
+      int rc = tlsInit(&env, tlsSettings);
+      if (rc != 0) {
+        zssStatus = ZSS_STATUS_ERROR;
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_TLS_INIT_MSG, rc, tlsStrError(rc));
+        goto out_term_stcbase;
+      }
+      server = makeSecureHttpServer(base, inetAddress, port, env, requiredTLSFlag, &returnCode, &reasonCode);
+    } else {
+      server = makeHttpServer2(base, inetAddress, port, requiredTLSFlag, &returnCode, &reasonCode);
+    }
     if (server){
       if (0 != initializeJwtKeystoreIfConfigured(mvdSettings, server, envSettings)) {
         zssStatus = ZSS_STATUS_ERROR;
