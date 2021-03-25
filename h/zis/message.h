@@ -238,6 +238,10 @@
 #define ZISAUX_LOG_DUB_ERROR_MSG_TEXT           "Bad dub status %d (%d,0x%04X), verify that the started task user has an OMVS segment"
 #define ZISAUX_LOG_DUB_ERROR_MSG                ZISAUX_LOG_DUB_ERROR_MSG_ID" "ZISAUX_LOG_DUB_ERROR_MSG_TEXT
 
+#define ZISAUX_LOG_LEGACY_API_MSG_ID            ZIS_MSG_PRFX"0082W"
+#define ZISAUX_LOG_LEGACY_API_MSG_TEXT          "Legacy API has been detected, some functionality may be limited"
+#define ZISAUX_LOG_LEGACY_API_MSG               ZISAUX_LOG_LEGACY_API_MSG_ID" "ZISAUX_LOG_LEGACY_API_MSG_TEXT
+
 #endif /* ZIS_MSG_H_ */
 
 

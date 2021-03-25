@@ -824,6 +824,10 @@ static ZISAUXCommArea *getMasterCommAreaAddress(ZISParmSet *parms) {
   return commArea;
 }
 
+static bool isLegacyAPI(const ZISAUXContext *context) {
+  return context->flags & ZISAUX_CONTEXT_FLAG_LEGACY_API;
+}
+
 static int loadMasterParm(ZISAUXContext *context) {
 
   ASParm *parm = NULL;
@@ -865,6 +869,11 @@ static int loadMasterParm(ZISAUXContext *context) {
     return RC_ZISAUX_ERROR;
   }
   context->masterCommArea = commArea;
+
+  if (commArea->version < ZISAUX_COMM_VERSION) {
+    context->flags |= ZISAUX_CONTEXT_FLAG_LEGACY_API;
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING, ZISAUX_LOG_LEGACY_API_MSG);
+  }
 
   return RC_ZISAUX_OK;
 }
@@ -1499,8 +1508,20 @@ static void handleWorkRequest(ZISAUXContext *context,
 }
 
 static void terminateAUX(ZISAUXContext *context) {
-  ZISAUXCommArea *commArea = context->masterCommArea;
-  auxutilPost(&commArea->commECB, ZISAUX_COMM_SIGNAL_TERM);
+
+  if (isLegacyAPI(context)) {
+
+    context->flags |= ZISAUX_CONTEXT_FLAG_TERM_COMMAND_RECEIVED;
+
+    stcBaseShutdown(context->base);
+
+  } else {
+
+    ZISAUXCommArea *commArea = context->masterCommArea;
+    auxutilPost(&commArea->commECB, ZISAUX_COMM_SIGNAL_TERM);
+
+  }
+
 }
 
 static void handleTermRequest(ZISAUXContext *context,
@@ -1627,6 +1648,9 @@ static int workElementHandler(STCBase *base, STCModule *module,
 }
 
 static bool isCommunicationPCEnabled(ZISAUXContext *context) {
+  if (isLegacyAPI(context)) {
+    return true;
+  }
   return context->masterCommArea->flag & ZISAUX_HOST_FLAG_COMM_PC_ON;
 }
 
@@ -1651,6 +1675,9 @@ static int commTaskMain(RLETask *task) {
 
 static int launchCommTask(ZISAUXContext *context, STCBase *base) {
 
+  if (isLegacyAPI(context)) {
+    return RC_ZISAUX_OK;
+  }
 
   int taskFlags = RLE_TASK_DISPOSABLE
                   | RLE_TASK_RECOVERABLE
