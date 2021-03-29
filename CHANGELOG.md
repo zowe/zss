@@ -4,6 +4,10 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `1.21.0`
+
+- Set cookie path to root in order to avoid multiple cookies when browser tries to set path automatically
+
 ## `1.20.0`
 
 ### New features and enhancements
