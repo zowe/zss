@@ -48,7 +48,7 @@
 typedef struct {
   HttpClientSettings *clientSettings;
   TlsEnvironment *tlsEnv;
-  char keyPrefix[KEY_PREFIX_MAX];
+  const char *pluginId;
 } ApimlStorage;
 
 typedef struct {
@@ -267,6 +267,7 @@ static ApimlResponse *apimlDoRequest(ApimlStorage *storage, ApimlRequest *reques
   char *body = request->body;
   int bodyLen = request->bodyLen;
   Json *jsonResponse = NULL;
+  char *pluginId = (char*)storage->pluginId;
   zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "apiml request %s %s\n", request->method, request->path);
 
   do {
@@ -289,6 +290,7 @@ static ApimlResponse *apimlDoRequest(ApimlStorage *storage, ApimlRequest *reques
       break;
     }
     requestStringHeader(session->request, TRUE, "Content-type", "application/json");
+    requestStringHeader(session->request, TRUE, "X-CS-Service-ID", pluginId);
     status = httpClientSessionSend(httpClientContext, session);
     if (status) {
       zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error sending request: %d\n", status);
@@ -345,10 +347,6 @@ static char *apimlCreateCachingServiceRequestBody(const char *key, const char *v
   return body;
 }
 
-static void apimlStoragePrefixKey(ApimlStorage *storage, const char *key, char *buffer, int bufferSize) {
-  snprintf (buffer, bufferSize, "%s%s", storage->keyPrefix, key);
-}
-
 #define OP_CREATE 1
 #define OP_CHANGE 2
 static void createOrChange(ApimlStorage *storage, int op, const char *key, const char *value, int *statusOut) {
@@ -356,9 +354,7 @@ static void createOrChange(ApimlStorage *storage, int op, const char *key, const
   int status = 0;
   char *path = CACHING_SERVICE_URI;
   char *method = (op == OP_CHANGE ? "PUT" : "POST");
-  char keyWithPrefix[KEY_SIZE] = {0};
-  apimlStoragePrefixKey(storage, key, keyWithPrefix, sizeof(keyWithPrefix));
-  char *body = apimlCreateCachingServiceRequestBody(keyWithPrefix, value);
+  char *body = apimlCreateCachingServiceRequestBody(key, value);
   if (!body) {
     *statusOut = STORAGE_STATUS_ALLOC_ERROR;
     return;
@@ -409,10 +405,11 @@ static char *apimlStorageGetString(ApimlStorage *storage, const char *key, int *
   int statusCode = 0;
   char *value = NULL;
   char path[4096] = {0};
-  char keyWithPrefix[KEY_SIZE] = {0};
+  int keyLen = strlen(key);
+  char percentEncodedKey[keyLen*3+1];
 
-  apimlStoragePrefixKey(storage, key, keyWithPrefix, sizeof(keyWithPrefix));
-  snprintf (path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, keyWithPrefix);
+  percentEncode((char*)key, percentEncodedKey, keyLen);
+  snprintf (path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, percentEncodedKey);
   
   ApimlRequest request = {
     .method = "GET",
@@ -444,9 +441,12 @@ static void apimlStorageRemove(ApimlStorage *storage, const char *key, int *stat
   zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "[+] about to remove [%s]\n", key);
   int status = 0;
   char path[4096] = {0};
-  char keyWithPrefix[KEY_SIZE] = {0};
-  apimlStoragePrefixKey(storage, key, keyWithPrefix, sizeof(keyWithPrefix));
-  snprintf(path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, keyWithPrefix);
+  int keyLen = strlen(key);
+  char percentEncodedKey[keyLen*3+1];
+
+  percentEncode((char*)key, percentEncodedKey, keyLen);
+  snprintf (path, sizeof(path), "%s/%s", CACHING_SERVICE_URI, percentEncodedKey);
+
   ApimlRequest request = {
     .method = "DELETE",
     .path = path,
@@ -543,8 +543,7 @@ Storage *makeApimlStorage(ApimlStorageSettings *settings, const char *pluginId) 
   }
   apimlStorage->clientSettings = clientSettings;
   apimlStorage->tlsEnv = tlsEnv;
-  
-  makeKeyPrefix(pluginId, apimlStorage->keyPrefix, sizeof(apimlStorage->keyPrefix));
+  apimlStorage->pluginId = pluginId;
 
   storage->userData = apimlStorage;
   storage->set = (StorageSet) apimlStorageSetString;
