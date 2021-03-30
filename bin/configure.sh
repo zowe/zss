@@ -78,27 +78,38 @@ version=`grep "version" ${INSTANCE_DIR}/workspace/manifest.json |  head -1 | sed
 # Add static definition for zss. TODO: Needs documentation
 cat <<EOF >${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml
 #
-services:
-  - serviceId: zss
-    title: Zowe System Services (ZSS)
-    description: 'Zowe System Services is an HTTPS and Websocket server that makes it easy to have secure, powerful web APIs backed by low-level z/OS constructs. It contains services for essential z/OS abilities such as working with files, datasets, and ESMs, but is also extensible by REST and Websocket "Dataservices" which are optionally present in App Framework "Plugins".'
-    catalogUiTileId: zss
-    instanceBaseUrls:
-      - ${PROTOCOL}://${ZOWE_EXPLORER_HOST}:${ZOWE_ZSS_SERVER_PORT}/
-    homePageRelativeUrl:
-    routedServices:
-      - gatewayUrl: api/v1
-        serviceRelativeUrl: 
-    apiInfo:
-      - apiId: org.zowe.zss
-        gatewayUrl: api/v1
-        version: ${version}
-        # swaggerUrl: TODO
-        # documentationUrl: TODO
-catalogUiTiles:
-  zss:
-    title: Zowe System Services (ZSS)
-    description:  Zowe System Services is an HTTPS and Websocket server that makes it easy to have secure, powerful web APIs backed by low-level z/OS constructs.
+---
+name: zss
+# Component identifier. This identifier matches artifact path in Zowe Artifactory https://zowe.jfrog.io/.
+id: org.zowe.zss
+# Without the v
+version: "{{build.version}}"
+# Component version is defined in gradle.properties for Gradle project
+# Human readable component name
+title: Zowe System Services (ZSS)
+# Human readable component description
+description: 'Zowe System Services is an HTTPS and Websocket server that makes it easy to have secure, powerful web APIs backed by low-level z/OS constructs. It contains services for essential z/OS abilities such as working with files, datasets, and ESMs, but is also extensible by REST and Websocket "Dataservices" which are optionally present in App Framework "Plugins".'
+homepage: https://zowe.org
+keywords:
+  - zss
+  - appfw
+license: EPL-2.0
+repository:
+  type: git
+  url: https://github.com/zowe/zss.git
+build:
+  branch: "{{build.branch}}"
+  number: "{{build.number}}"
+  commitHash: "{{build.commitHash}}"
+  timestamp: "{{build.timestamp}}"
+commands:
+  start: bin/start.sh
+  configure: bin/configure.sh
+  validate: bin/validate.sh
+# we do not specify encoding here because its already tagged ascii
+apimlServices:
+  static:
+  - file: zss.yml
 EOF
 iconv -f IBM-1047 -t IBM-850 ${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml > $STATIC_DEF_CONFIG_DIR/zss.yml
 rm ${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml
