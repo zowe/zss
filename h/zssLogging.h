@@ -328,7 +328,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_CACHE_SETTINGS_MSG_ID
 #define ZSS_LOG_CACHE_SETTINGS_MSG_ID        ZSS_LOG_MSG_PRFX"1063I"
 #endif
-#define ZSS_LOG_CACHE_SETTINGS_MSG_TEXT      "Caching Service settings: gateway host '%s', port %d, keyring '%s', label '%s', password '%s', stash '%s'\n",
+#define ZSS_LOG_CACHE_SETTINGS_MSG_TEXT      "Caching Service settings: gateway host '%s', port %d\n",
 #define ZSS_LOG_CACHE_SETTINGS_MSG           ZSS_LOG_CACHE_SETTINGS_MSG_ID" "ZSS_LOG_CACHE_SETTINGS_MSG_TEXT
 
 #ifndef ZSS_LOG_CACHE_NOT_CFG_MSG_ID
@@ -336,12 +336,6 @@ bool isLogLevelValid(int level);
 #endif
 #define ZSS_LOG_CACHE_NOT_CFG_MSG_TEXT       "Caching Service not configured\n"
 #define ZSS_LOG_CACHE_NOT_CFG_MSG            ZSS_LOG_CACHE_NOT_CFG_MSG_ID" "ZSS_LOG_CACHE_NOT_CFG_MSG_TEXT
-
-#ifndef ZSS_LOG_CACHE_TLS_NOT_CFG_MSG_ID
-#define ZSS_LOG_CACHE_TLS_NOT_CFG_MSG_ID     ZSS_LOG_MSG_PRFX"1065W"
-#endif
-#define ZSS_LOG_CACHE_TLS_NOT_CFG_MSG_TEXT   "Cashing service TLS settings not found\n"
-#define ZSS_LOG_CACHE_TLS_NOT_CFG_MSG        ZSS_LOG_CACHE_TLS_NOT_CFG_MSG_ID" "ZSS_LOG_CACHE_TLS_NOT_CFG_MSG_TEXT
 
 #ifndef ZSS_LOG_CACHE_CFG_FAILED_MSG_ID
 #define ZSS_LOG_CACHE_CFG_FAILED_MSG_ID      ZSS_LOG_MSG_PRFX"1065W"
