@@ -127,7 +127,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLived
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts, const char *key);
 static InternalAPIMap *makeInternalAPIMap(void);
-static bool readGatewaySettings(ShortLivedHeap *slh, JsonObject *serverConfig, JsonObject *envConfig, char **outGatewayHost, int *outGatewayPort);
+static bool readGatewaySettings(JsonObject *serverConfig, JsonObject *envConfig, char **outGatewayHost, int *outGatewayPort);
 static bool isCachingServiceEnabled(JsonObject *serverConfig, JsonObject *envConfig);
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
@@ -838,7 +838,7 @@ static ApimlStorageSettings *readApimlStorageSettings(ShortLivedHeap *slh, JsonO
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Caching Service disabled\n");
       break;
     }
-    if (!readGatewaySettings(slh, serverConfig, envConfig, &host, &port)) {
+    if (!readGatewaySettings(serverConfig, envConfig, &host, &port)) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Gateway settings not found\n");
       break;
     }
@@ -990,8 +990,6 @@ static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envCon
 #define AGENT_HTTPS_PREFIX       "ZWED_agent_https_"
 #define ENV_AGENT_HTTPS_KEY(key) AGENT_HTTPS_PREFIX key
 
-// Returns true if https is configured and TLS settings are valid
-// If TLS settings are valid then always sets *outTlsEnv even if https.port is not set
 static bool readAgentHttpsSettings(ShortLivedHeap *slh,
                                    JsonObject *serverConfig,
                                    JsonObject *envConfig,
@@ -1053,7 +1051,6 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
     int rc = tlsInit(&tlsEnv, settings);
     if (rc != 0) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_TLS_INIT_MSG, rc, tlsStrError(rc));
-      isHttpsConfigured = false;
     } else {
       *outTlsEnv = tlsEnv;
     }
@@ -1065,29 +1062,28 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
   return isHttpsConfigured;
 }
 
-#define NODE_MEDIATION_LAYER_SERVER_PREFIX   "ZWED_node_mediationLayer_server"
-#define ENV_NODE_MEDIATION_LAYER_SERVER_KEY(key) NODE_MEDIATION_LAYER_SERVER_PREFIX key
+#define AGENT_MEDIATION_LAYER_SERVER_PREFIX   "ZWED_agent_mediationLayer_server_"
+#define ENV_AGENT_MEDIATION_LAYER_SERVER_KEY(key) AGENT_MEDIATION_LAYER_SERVER_PREFIX key
 
 // Returns false if gateway host and port not found
-static bool readGatewaySettings(ShortLivedHeap *slh,
-                                JsonObject *serverConfig,
+static bool readGatewaySettings(JsonObject *serverConfig,
                                 JsonObject *envConfig,
                                 char **outGatewayHost,
                                 int *outGatewayPort
                                ) {
-  char *gatewayHost = jsonObjectGetString(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("hostname"));
-  int gatewayPort = jsonObjectGetNumber(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("gatewayPort"));
+  char *gatewayHost = jsonObjectGetString(envConfig, ENV_AGENT_MEDIATION_LAYER_SERVER_KEY("hostname"));
+  int gatewayPort = jsonObjectGetNumber(envConfig, ENV_AGENT_MEDIATION_LAYER_SERVER_KEY("gatewayPort"));
   if (gatewayHost && gatewayPort) {
     *outGatewayHost = gatewayHost;
     *outGatewayPort = gatewayPort;
     return true;
   }
 
-  JsonObject *nodeSettings = jsonObjectGetObject(serverConfig, "node");
-  if (!nodeSettings) {
+  JsonObject *agentSettings = jsonObjectGetObject(serverConfig, "agent");
+  if (!agentSettings) {
     return false;
   }
-  JsonObject *mediationLayerSettings = jsonObjectGetObject(nodeSettings, "mediationLayer");
+  JsonObject *mediationLayerSettings = jsonObjectGetObject(agentSettings, "mediationLayer");
   if (!mediationLayerSettings) {
     return false;
   }
@@ -1124,17 +1120,21 @@ static bool isCachingServiceEnabled(JsonObject *serverConfig, JsonObject *envCon
       return false;
     }
   }
-  JsonObject *agentSettings = jsonObjectGetObject(serverConfig, "agent");
-  if (!agentSettings) {
-    return false;
-  }
-  JsonObject *mediationLayerSettings = jsonObjectGetObject(agentSettings, "mediationLayer");
-  if (!mediationLayerSettings) {
-    return false;
-  }
-  enabled = jsonObjectGetBoolean(mediationLayerSettings, ENABLED_KEY);
+  JsonObject *agentSettings = NULL;
+  JsonObject *mediationLayerSettings = NULL;
   if (!enabled) {
-    return false;
+    agentSettings = jsonObjectGetObject(serverConfig, "agent");
+    if (!agentSettings) {
+      return false;
+    }
+    mediationLayerSettings = jsonObjectGetObject(agentSettings, "mediationLayer");
+    if (!mediationLayerSettings) {
+      return false;
+    }
+    enabled = jsonObjectGetBoolean(mediationLayerSettings, ENABLED_KEY);
+    if (!enabled) {
+      return false;
+    }
   }
   enabledSettingFound = jsonObjectGetBoolean(envConfig, AGENT_MEDIATION_LAYER_CACHING_SERVICE_KEY(ENABLED_KEY));
   if (enabledSettingFound) {
@@ -1527,8 +1527,13 @@ int main(int argc, char **argv){
     char *address = NULL;
     TlsSettings *tlsSettings = NULL;
     TlsEnvironment *tlsEnv = NULL;
-    bool isHttps = readAgentHttpsSettings(slh, mvdSettings, envSettings, &address, &port, &tlsEnv);
-    if (!isHttps) {
+    bool isHttpsConfigured = readAgentHttpsSettings(slh, mvdSettings, envSettings, &address, &port, &tlsEnv);
+    if (isHttpsConfigured && !tlsEnv) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_HTTPS_INVALID_MSG);
+      zssStatus = ZSS_STATUS_ERROR;
+      goto out_term_stcbase;
+    }
+    if (!isHttpsConfigured) {
       readAgentAddressAndPort(mvdSettings, envSettings, &address, &port);
     }
     InetAddr *inetAddress = NULL;
@@ -1538,8 +1543,8 @@ int main(int argc, char **argv){
       zssStatus = ZSS_STATUS_ERROR;
       goto out_term_stcbase;
     }
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port,  isHttps ? "https" : "http");
-    if (isHttps) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port,  isHttpsConfigured ? "https" : "http");
+    if (isHttpsConfigured) {
       server = makeSecureHttpServer(base, inetAddress, port, tlsEnv, requiredTLSFlag, &returnCode, &reasonCode);
     } else {
       server = makeHttpServer2(base, inetAddress, port, requiredTLSFlag, &returnCode, &reasonCode);

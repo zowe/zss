@@ -337,6 +337,12 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_CACHE_NOT_CFG_MSG_TEXT       "Caching Service not configured\n"
 #define ZSS_LOG_CACHE_NOT_CFG_MSG            ZSS_LOG_CACHE_NOT_CFG_MSG_ID" "ZSS_LOG_CACHE_NOT_CFG_MSG_TEXT
 
+#ifndef ZSS_LOG_HTTPS_INVALID_MSG_ID
+#define ZSS_LOG_HTTPS_INVALID_MSG_ID          ZSS_LOG_MSG_PRFX"1065E"
+#endif
+#define ZSS_LOG_HTTPS_INVALID_MSG_TEXT        "Failed to configure https server, check agent https settings\n"
+#define ZSS_LOG_HTTPS_INVALID_MSG             ZSS_LOG_HTTPS_INVALID_MSG_ID" "ZSS_LOG_HTTPS_INVALID_MSG_TEXT
+
 /* Unixfile */
 
 #ifndef ZSS_LOG_UNABLE_MSG_ID
