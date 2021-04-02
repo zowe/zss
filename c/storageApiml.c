@@ -532,17 +532,8 @@ Storage *makeApimlStorage(ApimlStorageSettings *settings, const char *pluginId) 
   clientSettings->port = settings->port;
   clientSettings->recvTimeoutSeconds = 10;
 
-  TlsEnvironment *tlsEnv = NULL;
-  int status = tlsInit(&tlsEnv, settings->tlsSettings);
-  if (status) {
-    zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_WARNING, ZSS_LOG_CACHE_TLS_ENV_FAILED_MSG, status, tlsStrError(status));
-    safeFree((char*)storage, sizeof(*storage));
-    safeFree((char*)apimlStorage, sizeof(*apimlStorage));
-    safeFree((char*)clientSettings, sizeof(*clientSettings));
-    return NULL;
-  }
   apimlStorage->clientSettings = clientSettings;
-  apimlStorage->tlsEnv = tlsEnv;
+  apimlStorage->tlsEnv = settings->tlsEnv;
   apimlStorage->pluginId = pluginId;
 
   storage->userData = apimlStorage;
@@ -621,10 +612,16 @@ int main(int argc, char *argv[]) {
     .password = password,
     .label = label
   };
+  TlsEnvironment *tlsEnv = NULL;
+  status = tlsInit(&tlsEnv, &tlsSettings);
+  if (status) {
+    printf("[-] Failed to init TLS environment, rc = %d - %s\n", status, tlsStrError(status));
+    return 1;
+  }
   ApimlStorageSettings settings = {
     .host = host,
     .port = port,
-    .tlsSettings = &tlsSettings,
+    .tlsEnv = tlsEnv,
   };
   Storage *storage = makeApimlStorage(&settings, "test.plugin.id");
   if (!storage) {

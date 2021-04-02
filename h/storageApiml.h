@@ -19,7 +19,7 @@ typedef struct ApimlStorageSettings_tag ApimlStorageSettings;
 Storage *makeApimlStorage(ApimlStorageSettings *settings, const char *pluginId);
 
 struct ApimlStorageSettings_tag {
-  TlsSettings *tlsSettings;
+  TlsEnvironment *tlsEnv;
   char *host;
   int port;
 };

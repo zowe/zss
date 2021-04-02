@@ -706,9 +706,6 @@ static Storage* makeStorageForPlugin(const char *pluginId, ApimlStorageSettings 
   Storage *storage = NULL;
   if (apimlStorageSettings) {
     storage = makeApimlStorage(apimlStorageSettings, pluginId);
-    if (!storage) {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_CACHE_CFG_FAILED_MSG);
-    }
   }
   if (!storage) {
     storage = makeMemoryStorage(NULL);
@@ -831,7 +828,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
   return webPluginListHead;
 }
 
-static ApimlStorageSettings *readApimlStorageSettings(ShortLivedHeap *slh, JsonObject *serverConfig, JsonObject *envConfig, TlsSettings *tlsSettings) {
+static ApimlStorageSettings *readApimlStorageSettings(ShortLivedHeap *slh, JsonObject *serverConfig, JsonObject *envConfig, TlsEnvironment *tlsEnv) {
   char *host = NULL;
   int port = 0;
   bool configured = false;
@@ -845,7 +842,7 @@ static ApimlStorageSettings *readApimlStorageSettings(ShortLivedHeap *slh, JsonO
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Gateway settings not found\n");
       break;
     }
-    if (!tlsSettings) {
+    if (!tlsEnv) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "TLS settings not found\n");
       break;
     }
@@ -860,7 +857,7 @@ static ApimlStorageSettings *readApimlStorageSettings(ShortLivedHeap *slh, JsonO
   memset(settings, 0, sizeof(*settings));
   settings->host = host;
   settings->port = port;
-  settings->tlsSettings = tlsSettings;
+  settings->tlsEnv = tlsEnv;
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_CACHE_SETTINGS_MSG settings->host, settings->port);
   return settings;
 }
@@ -1049,6 +1046,11 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
     *outAddress = address;
   }
   if (settings->keyring) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
+              settings->keyring,
+              settings->label ? settings->label : "(no label)",
+              settings->password ? "****" : "(no password)",
+              settings->stash ? settings->stash : "(no stash)");
     *outSettings = settings;
   }
   return isHttpsConfigured;
@@ -1515,8 +1517,16 @@ int main(int argc, char **argv){
     int port = 0;
     char *address = NULL;
     TlsSettings *tlsSettings = NULL;
+    TlsEnvironment *tlsEnv = NULL;
     bool httpsSettingsFound = readAgentHttpsSettings(slh, mvdSettings, envSettings, &address, &port, &tlsSettings);
-    if (!httpsSettingsFound) {
+    if (tlsSettings) {
+      int rc = tlsInit(&tlsEnv, tlsSettings);
+      if (rc != 0) {
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_TLS_INIT_MSG, rc, tlsStrError(rc));
+      }
+    }
+    bool isHttps = httpsSettingsFound && tlsEnv;
+    if (!isHttps) {
       readAgentAddressAndPort(mvdSettings, envSettings, &address, &port);
     }
     InetAddr *inetAddress = NULL;
@@ -1526,24 +1536,9 @@ int main(int argc, char **argv){
       zssStatus = ZSS_STATUS_ERROR;
       goto out_term_stcbase;
     }
-
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port, httpsSettingsFound ? "https" : "http");
-    if (tlsSettings) {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
-              tlsSettings->keyring,
-              tlsSettings->label ? tlsSettings->label : "(no label)",
-              tlsSettings->password ? "****" : "(no password)",
-              tlsSettings->stash ? tlsSettings->stash : "(no stash)");
-    }
-    if (httpsSettingsFound) {
-      TlsEnvironment *env = NULL;
-      int rc = tlsInit(&env, tlsSettings);
-      if (rc != 0) {
-        zssStatus = ZSS_STATUS_ERROR;
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_TLS_INIT_MSG, rc, tlsStrError(rc));
-        goto out_term_stcbase;
-      }
-      server = makeSecureHttpServer(base, inetAddress, port, env, requiredTLSFlag, &returnCode, &reasonCode);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port,  isHttps ? "https" : "http");
+    if (isHttps) {
+      server = makeSecureHttpServer(base, inetAddress, port, tlsEnv, requiredTLSFlag, &returnCode, &reasonCode);
     } else {
       server = makeHttpServer2(base, inetAddress, port, requiredTLSFlag, &returnCode, &reasonCode);
     }
@@ -1552,7 +1547,7 @@ int main(int argc, char **argv){
         zssStatus = ZSS_STATUS_ERROR;
         goto out_term_stcbase;
       }
-      ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettings(slh, mvdSettings, envSettings, tlsSettings);
+      ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettings(slh, mvdSettings, envSettings, tlsEnv);
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
