@@ -990,12 +990,14 @@ static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envCon
 #define AGENT_HTTPS_PREFIX       "ZWED_agent_https_"
 #define ENV_AGENT_HTTPS_KEY(key) AGENT_HTTPS_PREFIX key
 
+// Returns true if https is configured and TLS settings are valid
+// If TLS settings are valid then always sets *outTlsEnv even if https.port is not set
 static bool readAgentHttpsSettings(ShortLivedHeap *slh,
                                    JsonObject *serverConfig,
                                    JsonObject *envConfig,
                                    char **outAddress,
                                    int *outPort,
-                                   TlsSettings **outSettings
+                                   TlsEnvironment **outTlsEnv
                                   ) {
   int port = jsonObjectGetNumber(envConfig, ENV_AGENT_HTTPS_KEY(PORT_KEY));
   char *address = jsonObjectGetString(envConfig, ENV_AGENT_HTTPS_KEY(IP_ADDRESSES_KEY));
@@ -1041,17 +1043,24 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
     address = "127.0.0.1";
   }
   bool isHttpsConfigured = port && settings->keyring;
-  if (port) {
-    *outPort = port;
-    *outAddress = address;
-  }
   if (settings->keyring) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
               settings->keyring,
               settings->label ? settings->label : "(no label)",
               settings->password ? "****" : "(no password)",
               settings->stash ? settings->stash : "(no stash)");
-    *outSettings = settings;
+    TlsEnvironment *tlsEnv = NULL;
+    int rc = tlsInit(&tlsEnv, settings);
+    if (rc != 0) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_TLS_INIT_MSG, rc, tlsStrError(rc));
+      isHttpsConfigured = false;
+    } else {
+      *outTlsEnv = tlsEnv;
+    }
+  }
+  if (isHttpsConfigured) {
+    *outPort = port;
+    *outAddress = address;
   }
   return isHttpsConfigured;
 }
@@ -1518,14 +1527,7 @@ int main(int argc, char **argv){
     char *address = NULL;
     TlsSettings *tlsSettings = NULL;
     TlsEnvironment *tlsEnv = NULL;
-    bool httpsSettingsFound = readAgentHttpsSettings(slh, mvdSettings, envSettings, &address, &port, &tlsSettings);
-    if (tlsSettings) {
-      int rc = tlsInit(&tlsEnv, tlsSettings);
-      if (rc != 0) {
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_TLS_INIT_MSG, rc, tlsStrError(rc));
-      }
-    }
-    bool isHttps = httpsSettingsFound && tlsEnv;
+    bool isHttps = readAgentHttpsSettings(slh, mvdSettings, envSettings, &address, &port, &tlsEnv);
     if (!isHttps) {
       readAgentAddressAndPort(mvdSettings, envSettings, &address, &port);
     }
