@@ -70,10 +70,10 @@ else
   PROTOCOL="https"
 fi
 
-if [ -n "${STATIC_DEF_CONFIG_DIR}" ]
-then
+#if [ -n "${STATIC_DEF_CONFIG_DIR}" ]
+#then
 
-version=`grep "version" ${INSTANCE_DIR}/workspace/manifest.json |  head -1 | sed -e 's/"//g' | sed -e 's/.*: *//g' | sed -e 's/,.*//g'`
+#version=`grep "version" ${INSTANCE_DIR}/workspace/manifest.json |  head -1 | sed -e 's/"//g' | sed -e 's/.*: *//g' | sed -e 's/,.*//g'`
 
 # Add static definition for zss. TODO: Needs documentation
 # cat <<EOF >${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml
