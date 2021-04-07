@@ -325,7 +325,7 @@ void installDatasetMetadataService(HttpServer *server) {
 }
 
 
-static void datasetHeartbeatMonitor(void* server, void* lockService) {
+static void datasetHeartbeatMonitor(void* server,void* stcbase, void* stcmodule, void* callbackData, void* lockService) {
   heartbeatBackgroundHandler(getLockService(lockService));
 }
 
@@ -349,7 +349,7 @@ void installDatasetHeartbeatService(HttpServer *server, STCModule* backgroundMod
 
   initLockService();
   // register background handler
-  addStcBackgroudTask(backgroundModule, &datasetHeartbeatMonitor,"DATASET_HEARTBEAT_TASK", lockService->heartbeat, lockService);
+  stcAddIntervalCallback(backgroundModule, &datasetHeartbeatMonitor,"DATASET_HEARTBEAT_TASK", lockService->heartbeat, lockService);
 
   HttpService *httpService = makeGeneratedService("datasetHeartbeart", "/datasetHeartbeat/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;

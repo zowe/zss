@@ -329,7 +329,7 @@ static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings,
                                 hashtable *htGroups, int defaultSessionTimeout) {
 
   MVD_SETTINGS = mvdSettings;
-  backgroundModule = initBackgroundModule(server, server->base);
+  backgroundModule = stcInitBackgroundModule(server, server->base);
 
   /* Disabled because this server is not being used by end users, but called by other servers
    * HttpService *mainService = makeGeneratedService("main", "/");
