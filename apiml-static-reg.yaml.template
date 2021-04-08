@@ -12,7 +12,6 @@ services:
     apiInfo:
       - apiId: org.zowe.zss
         gatewayUrl: api/v1
-        version: ${version}
         # swaggerUrl: TODO
         # documentationUrl: TODO
 catalogUiTiles:
