@@ -33,6 +33,8 @@
 #include "zos.h"
 #include "utils.h"
 #include "socketmgmt.h"
+#include "stcbackground.h"
+
 
 #include "httpserver.h"
 #include "datasetlock.h"
@@ -325,7 +327,7 @@ void installDatasetMetadataService(HttpServer *server) {
 }
 
 
-static void datasetHeartbeatMonitor(void* server,void* stcbase, void* stcmodule, void* callbackData, void* lockService) {
+static int datasetHeartbeatMonitor(void* server,STCBase* stcbase, STCModule* stcmodule, STCIntervalCallbackData* callbackData, void* lockService) {
   heartbeatBackgroundHandler(getLockService(lockService));
 }
 
