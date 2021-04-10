@@ -327,7 +327,7 @@ void installDatasetMetadataService(HttpServer *server) {
 }
 
 
-static int datasetHeartbeatMonitor(void* server,STCBase* stcbase, STCModule* stcmodule, STCIntervalCallbackData* callbackData, void* lockService) {
+static int datasetHeartbeatMonitor(STCBase* stcbase, STCModule* stcmodule, STCIntervalCallbackData* callbackData, void* lockService) {
   heartbeatBackgroundHandler(getLockService(lockService));
 }
 
