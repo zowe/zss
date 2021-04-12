@@ -70,42 +70,8 @@ else
   PROTOCOL="https"
 fi
 
-if [ -n "${STATIC_DEF_CONFIG_DIR}" ]
-then
-
-version=`grep "version" ${INSTANCE_DIR}/workspace/manifest.json |  head -1 | sed -e 's/"//g' | sed -e 's/.*: *//g' | sed -e 's/,.*//g'`
-
-# Add static definition for zss. TODO: Needs documentation
-cat <<EOF >${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml
-#
-services:
-  - serviceId: zss
-    title: Zowe System Services (ZSS)
-    description: 'Zowe System Services is an HTTPS and Websocket server that makes it easy to have secure, powerful web APIs backed by low-level z/OS constructs. It contains services for essential z/OS abilities such as working with files, datasets, and ESMs, but is also extensible by REST and Websocket "Dataservices" which are optionally present in App Framework "Plugins".'
-    catalogUiTileId: zss
-    instanceBaseUrls:
-      - ${PROTOCOL}://${ZOWE_EXPLORER_HOST}:${ZOWE_ZSS_SERVER_PORT}/
-    homePageRelativeUrl:
-    routedServices:
-      - gatewayUrl: api/v1
-        serviceRelativeUrl: 
-    apiInfo:
-      - apiId: org.zowe.zss
-        gatewayUrl: api/v1
-        version: ${version}
-        # swaggerUrl: TODO
-        # documentationUrl: TODO
-catalogUiTiles:
-  zss:
-    title: Zowe System Services (ZSS)
-    description:  Zowe System Services is an HTTPS and Websocket server that makes it easy to have secure, powerful web APIs backed by low-level z/OS constructs.
-EOF
-iconv -f IBM-1047 -t IBM-850 ${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml > $STATIC_DEF_CONFIG_DIR/zss.yml
-rm ${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml
-chmod 770 $STATIC_DEF_CONFIG_DIR/zss.yml
-fi
-
 HTTPS_PREFIX="ZWED_agent_https_"
+
 if [ "${ZOWE_ZSS_SERVER_TLS}" = "false" ]
 then
   # HTTP
