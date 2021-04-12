@@ -93,7 +93,7 @@ services:
       - apiId: org.zowe.zss
         gatewayUrl: api/v1
         version: ${version}
-        swaggerUrl: https://${ZOWE_EXPLORER_HOST}:${ZOWE_ZLUX_SERVER_HTTPS_PORT}/api-docs
+        swaggerUrl: https://${ZOWE_EXPLORER_HOST}:${ZOWE_ZLUX_SERVER_HTTPS_PORT}/api-docs/zss
         # documentationUrl: TODO
 catalogUiTiles:
   zss:
