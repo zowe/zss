@@ -394,6 +394,14 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
     } else {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_FILE_EXPECTED_TOP_MSG, filename);
     }
+
+    //Temporarily hack to get tracing in testbed
+    TraceDefinition *traceDef = traceDefs;
+    while (traceDef->name != 0) {
+      traceDef->function(5);
+      ++traceDef;
+    }
+    /*
     JsonObject *logLevels = jsonObjectGetObject(mvdSettingsJsonObject, "logLevels");
     if (logLevels) {
       TraceDefinition *traceDef = traceDefs;
@@ -405,6 +413,7 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
         ++traceDef;
       }
     }
+    */
     dumpJson(mvdSettings);
   } else {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PARS_ZSS_SETTING_MSG, filename, jsonErrorBuffer);
