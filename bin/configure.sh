@@ -126,3 +126,12 @@ else
     export "${PREFIX}password=${KEYSTORE_PASSWORD}"
   fi
 fi
+
+# xmem name customization
+if [ -z "$ZWED_privilegedServerName" ]
+then
+  if [ -n "$ZOWE_ZSS_XMEM_SERVER_NAME" ]
+  then
+    export ZWED_privilegedServerName=$ZOWE_ZSS_XMEM_SERVER_NAME
+  fi 
+fi
