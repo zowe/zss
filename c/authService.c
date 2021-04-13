@@ -204,7 +204,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
   char productCode[50] = "NULL";
   char rootServiceName[50] = "NULL";
   char subUrl[15][50];
-  char profileName[2000];
+  char profileName[250];
   char scope[50];
   char _p[50] = "NULL", pluginID[50] = "NULL", _s[50] = "NULL", serviceName[50] = "NULL", _v[50] = "NULL";
   char regexStr[] = "^/[A-Za-z0-9]*/plugins/";
@@ -221,7 +221,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
            "RegEx compilation error %s.", regexStr);
   }
   value = regexec(&regex, url, 0, NULL, 0);
-  char urlCpy[2000];
+  char urlCpy[250];
   strcpy(urlCpy, url);
   int index = 0;
   while (urlCpy[index]) { // Capitalize query
@@ -332,8 +332,8 @@ const char* makeProfileName(
   char *serviceName,
   char *method,
   char *scope,
-  char subUrl[200][50]) {
-  char profileName[200] = "";
+  char subUrl[250][50]) {
+  char profileName[250] = "";
   if (strcmp(productCode, "NULL") == 0) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "Broken SAF query. Missing product code.");
