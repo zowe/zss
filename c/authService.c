@@ -78,7 +78,7 @@ const char* makeProfileName(
   char *serviceName,
   char *method,
   char *scope,
-  char subUrl[12][50]);
+  char subUrl[15][50]);
 
 int installAuthCheckService(HttpServer *server) {
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "begin %s\n",
@@ -88,7 +88,7 @@ int installAuthCheckService(HttpServer *server) {
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = &serveAuthCheck;
   httpService->runInSubtask = FALSE;
-  getProfileNameFromRequest("/plugins", "GET", -1);
+  // Test SAF query: getProfileNameFromRequest("/plugins", "GET", -1);
   registerHttpService(server, httpService);
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "end %s\n",
 //  __FUNCTION__);
@@ -203,8 +203,8 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
   char type[8] = "NULL"; // core || config || service
   char productCode[50] = "NULL";
   char rootServiceName[50] = "NULL";
-  char subUrl[12][50];
-  char profileName[150];
+  char subUrl[15][50];
+  char profileName[2000];
   char scope[50];
   char _p[50] = "NULL", pluginID[50] = "NULL", _s[50] = "NULL", serviceName[50] = "NULL", _v[50] = "NULL";
   char regexStr[] = "^/[A-Za-z0-9]*/plugins/";
@@ -221,7 +221,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
            "RegEx compilation error %s.", regexStr);
   }
   value = regexec(&regex, url, 0, NULL, 0);
-  char urlCpy[150];
+  char urlCpy[2000];
   strcpy(urlCpy, url);
   int index = 0;
   while (urlCpy[index]) { // Capitalize query
@@ -332,7 +332,7 @@ const char* makeProfileName(
   char *serviceName,
   char *method,
   char *scope,
-  char subUrl[15][50]) {
+  char subUrl[200][50]) {
   char profileName[200] = "";
   if (strcmp(productCode, "NULL") == 0) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
