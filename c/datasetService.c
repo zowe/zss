@@ -49,6 +49,7 @@
 
 #ifdef __ZOWE_OS_ZOS
 
+static const char DATASET_SERVICE_BG_NAME[] = "DATASET_HEARTBEAT_TASK";
 static DatasetLockService* lockService = NULL;
 
 static DatasetLockService* getLockService(void* userPointer) {
@@ -351,7 +352,7 @@ void installDatasetHeartbeatService(HttpServer *server, STCModule* backgroundMod
 
   initLockService();
   // register background handler
-  stcAddIntervalCallback(backgroundModule, &datasetHeartbeatMonitor,"DATASET_HEARTBEAT_TASK", lockService->heartbeat, lockService);
+  stcAddIntervalCallback(backgroundModule, &datasetHeartbeatMonitor,DATASET_SERVICE_BG_NAME, lockService->heartbeat, lockService);
 
   HttpService *httpService = makeGeneratedService("datasetHeartbeart", "/datasetHeartbeat/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
