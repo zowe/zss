@@ -19,6 +19,7 @@
 #include <iconv.h>
 #include <dirent.h>
 #include <pthread.h>
+#include <regex.h> 
 
 #include "authService.h"
 #include "zowetypes.h"
@@ -66,6 +67,19 @@
 
 static int serveAuthCheck(HttpService *service, HttpResponse *response);
 
+const char* getProfileNameFromRequest(char *url, const char *method, int instanceID);
+
+const char* makeProfileName(
+  char *type,
+  char *productCode, 
+  int instanceID, 
+  char *pluginID, 
+  char *rootServiceName, 
+  char *serviceName,
+  char *method,
+  char *scope,
+  char subUrl[12][50]);
+
 int installAuthCheckService(HttpServer *server) {
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "begin %s\n",
 //  __FUNCTION__);
@@ -74,6 +88,7 @@ int installAuthCheckService(HttpServer *server) {
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = &serveAuthCheck;
   httpService->runInSubtask = FALSE;
+  getProfileNameFromRequest("/plugins", "GET", -1);
   registerHttpService(server, httpService);
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "end %s\n",
 //  __FUNCTION__);
@@ -173,15 +188,207 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
     respondWithError(res, HTTP_STATUS_BAD_REQUEST, "Unexpected access level");
     return 0;
   }
-  /* printf("query: user %s, class %s, entity %s, access %d\n", userName, class,
-      entity, access); */
+  // printf("\n\nquery: user %s, class %s, entity %s, access %d accessStr %s\n", userName, class,
+      // entity, access, accessStr);
   privilegedServerName = getConfiguredProperty(service->server,
       HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   rc = zisCheckEntity(privilegedServerName, userName, class, entity, access,
       &reqStatus);
+      printf("\n\nprivileged server name: %s", privilegedServerName);
   respond(res, rc, &reqStatus);
   return 0;
 }
+
+const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
+  char type[8] = "NULL"; // core || config || service
+  char productCode[50] = "NULL";
+  char rootServiceName[50] = "NULL";
+  char subUrl[12][50];
+  char profileName[150];
+  char scope[50];
+  char _p[50] = "NULL", pluginID[50] = "NULL", _s[50] = "NULL", serviceName[50] = "NULL", _v[50] = "NULL";
+  char regexStr[] = "^/[A-Za-z0-9]*/plugins/";
+  
+  regex_t regex;
+  int value;
+  value = regcomp(&regex, regexStr, REG_EXTENDED);
+
+  if (value != 0) {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
+           "RegEx compiled successfully.");
+  } else {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
+           "RegEx compilation error %s.", regexStr);
+  }
+  value = regexec(&regex, url, 0, NULL, 0);
+  char urlCpy[150];
+  strcpy(urlCpy, url);
+  int index = 0;
+  while (urlCpy[index]) { // Capitalize query
+      urlCpy[index] = toupper(urlCpy[index]);
+      index++;
+  }
+  if (instanceID < 0) { // Set instanceID
+    instanceID = 0;
+  }
+  if (value == REG_NOMATCH) {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
+           "RegEx didn't match.");
+    char * token = strtok(urlCpy, "/");
+    int subUrlIndex = -1;
+    while( token != NULL ) {
+      if (strcmp(rootServiceName, "NULL") == 0)
+      {
+        strcpy(rootServiceName, token);
+      } else {
+        strcpy(subUrl[subUrlIndex], token);
+      }
+      subUrlIndex++;
+      token = strtok(NULL, "/");
+    }
+    strcpy(productCode, "ZLUX");
+    strcpy(type, "core");
+  }
+  else if (!value) {
+    char * token = strtok(urlCpy, "/");
+    int subUrlIndex;
+    subUrlIndex = 0;
+    while( token != NULL ) {
+      switch(subUrlIndex) {
+        case 0:
+          strcpy(productCode, token);
+          break;
+        case 1:
+          strcpy(_p, token);
+          break;
+        case 2:
+          strcpy(pluginID, token);
+          break;
+        case 3:
+          strcpy(_s, token);
+          break;
+        case 4:
+          strcpy(serviceName, token);
+          break;
+        case 5:
+          strcpy(_v, token);
+          break;
+        default:
+          strcpy(subUrl[subUrlIndex-6], token); // subtract 6 from maximum index to begin init subUrl array at 0
+      }
+      
+      subUrlIndex++;
+      token = strtok(NULL, "/");
+    }
+    if ((strcmp(pluginID, "ORG.ZOWE.CONFIGJS") == 0) && (strcmp(serviceName, "DATA") == 0))
+    {
+      strcpy(type, "config");
+      strcpy(pluginID, subUrl[0]);
+      strcpy(scope, subUrl[1]);
+      
+    } else {
+      strcpy(type, "service");
+    }
+    char* ch; 
+    char* chReplace;
+    ch = ".";
+    chReplace = "_";
+    for (index = 0; index <= strlen(pluginID); index++)
+  	{
+  		if (pluginID[index] == *ch)  
+      {
+        pluginID[index] = *chReplace;
+      }
+    }
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
+           "RegEx match OK.");
+  }
+  else {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+           "RegEx match failed.");
+  }
+  strcpy(profileName, makeProfileName(type, 
+    productCode, 
+    instanceID, 
+    pluginID, 
+    rootServiceName,
+    serviceName,
+    method,
+    scope,
+    subUrl));
+  // printf("\n\nFinal query profileName & URL %s - %s\n\n", profileName, url);
+  
+  /* Free memory allocated to the pattern buffer by regcomp() */
+  regfree(&regex);
+  return profileName;
+}
+
+const char* makeProfileName(
+  char *type,
+  char *productCode, 
+  int instanceID, 
+  char *pluginID, 
+  char *rootServiceName, 
+  char *serviceName,
+  char *method,
+  char *scope,
+  char subUrl[15][50]) {
+  char profileName[200] = "";
+  if (strcmp(productCode, "NULL") == 0) {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+           "Broken SAF query. Missing product code.");
+    return "NULL";
+  }
+  if (instanceID == -1) {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+           "Broken SAF query. Missing instance ID.");
+    return "NULL";
+  }
+  if (strcmp(method, "NULL") == 0) {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+           "Broken SAF query. Missing method.");
+    return "NULL";
+  }
+  // char someString[50] = { strcpy(*someString, type) };
+  if (strcmp(type, "service") == 0) {
+    if (strcmp(pluginID, "NULL") == 0) {
+      zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+       "Broken SAF query. Missing plugin ID.");
+      return "NULL";
+    }
+    if (strcmp(serviceName, "NULL") == 0) {
+      zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+       "Broken SAF query. Missing service name.");
+      return "NULL";
+    }
+    snprintf(profileName, 1024, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
+    return profileName;
+    
+  } else if (strcmp(type, "config") == 0) {
+    if (strcmp(pluginID, "NULL") == 0) {
+      zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+       "Broken SAF query. Missing plugin ID.");
+      return "NULL";
+    }
+    if (strcmp(scope, "NULL") == 0) {
+      zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+       "Broken SAF query. Missing scope.");
+      return "NULL";
+    }
+    snprintf(profileName, 1024, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
+    return profileName;
+  } else if (strcmp(type, "core") == 0) {
+    if (strcmp(rootServiceName, "NULL") == 0) {
+      zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+       "Broken SAF query. Missing root service name.");
+      return "NULL";
+    }
+    snprintf(profileName, 1024, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
+    return profileName;
+  }
+}
+
+/* Method goes here to do the same thing serveAuthCheck is doing except w/o input HttpService */
 
 void respondWithJsonStatus(HttpResponse *response, const char *status, int statusCode, const char *statusMessage) {
     jsonPrinter *out = respondWithJsonPrinter(response);
