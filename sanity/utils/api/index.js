@@ -18,7 +18,7 @@ expect(process.env.ZOWE_USER, 'ZOWE_USER is not defined').to.not.be.empty;
 expect(process.env.ZOWE_PASSWD, 'ZOWE_PASSWD is not defined').to.not.be.empty;
 const { ZOWE_EXTERNAL_HOST, ZOWE_ZSS_PORT, ZOWE_USER, ZOWE_PASSWD } = process.env;
 
-const baseURL = `https://${ZOWE_EXTERNAL_HOST}:${ZOWE_ZSS_PORT}`;
+const baseURL = `http://${ZOWE_EXTERNAL_HOST}:${ZOWE_ZSS_PORT}`;
 
 let timeout = 200000000;
 let headers = { 'Content-Type': 'application/json' };
