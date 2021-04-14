@@ -222,7 +222,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
   }
   value = regexec(&regex, url, 0, NULL, 0);
   char urlCpy[1024];
-  sprintf(urlCpy, url);
+  snprintf(urlCpy, 1024, url);
   int index = 0;
   while (urlCpy[index]) { // Capitalize query
       urlCpy[index] = toupper(urlCpy[index]);
@@ -239,15 +239,15 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     while( token != NULL ) {
       if (strcmp(rootServiceName, NULL) == 0)
       {
-        sprintf(rootServiceName, token);
+        snprintf(rootServiceName, 1024, token);
       } else {
-        sprintf(subUrl[subUrlIndex], token);
+        snprintf(subUrl[subUrlIndex], 1024, token);
       }
       subUrlIndex++;
       token = strtok(NULL, "/");
     }
-    sprintf(productCode, "ZLUX");
-    sprintf(type, "core");
+    snprintf(productCode, 1024, "ZLUX");
+    snprintf(type, 1024, "core");
   }
   else if (!value) {
     char * token = strtok(urlCpy, "/");
@@ -256,25 +256,25 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     while( token != NULL ) {
       switch(subUrlIndex) {
         case 0:
-          sprintf(productCode, token);
+          snprintf(productCode, 1024, token);
           break;
         case 1:
-          sprintf(_p, token);
+          snprintf(_p, 1024, token);
           break;
         case 2:
-          sprintf(pluginID, token);
+          snprintf(pluginID, 1024, token);
           break;
         case 3:
-          sprintf(_s, token);
+          snprintf(_s, 1024, token);
           break;
         case 4:
-          sprintf(serviceName, token);
+          snprintf(serviceName, 1024, token);
           break;
         case 5:
-          sprintf(_v, token);
+          snprintf(_v, 1024, token);
           break;
         default:
-          sprintf(subUrl[subUrlIndex-6], token); // subtract 6 from maximum index to begin init subUrl array at 0
+          snprintf(subUrl[subUrlIndex-6], 1024, token); // subtract 6 from maximum index to begin init subUrl array at 0
       }
       
       subUrlIndex++;
@@ -282,12 +282,12 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     }
     if ((strcmp(pluginID, "ORG.ZOWE.CONFIGJS") == 0) && (strcmp(serviceName, "DATA") == 0))
     {
-      sprintf(type, "config");
-      sprintf(pluginID, subUrl[0]);
-      sprintf(scope, subUrl[1]);
+      snprintf(type, 1024, "config");
+      snprintf(pluginID, 1024, subUrl[0]);
+      snprintf(scope, 1024, subUrl[1]);
       
     } else {
-      sprintf(type, "service");
+      snprintf(type, 1024, "service");
     }
     char* ch; 
     char* chReplace;
@@ -307,7 +307,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "RegEx match failed.");
   }
-  sprintf(profileName, makeProfileName(type, 
+  snprintf(profileName, 1024, makeProfileName(type, 
     productCode, 
     instanceID, 
     pluginID, 
@@ -350,7 +350,7 @@ const char* makeProfileName(
            "Broken SAF query. Missing method.");
     return NULL;
   }
-  // char someString[128] = { sprintf(*someString, type) };
+  // char someString[128] = { snprintf(*someString, 1024, type) };
   if (strcmp(type, "service") == 0) {
     if (strcmp(pluginID, NULL) == 0) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
