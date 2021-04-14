@@ -222,7 +222,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
   }
   value = regexec(&regex, url, 0, NULL, 0);
   char urlCpy[1024];
-  strcpy(urlCpy, url);
+  sprintf(urlCpy, url);
   int index = 0;
   while (urlCpy[index]) { // Capitalize query
       urlCpy[index] = toupper(urlCpy[index]);
@@ -239,15 +239,15 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     while( token != NULL ) {
       if (strcmp(rootServiceName, NULL) == 0)
       {
-        strcpy(rootServiceName, token);
+        sprintf(rootServiceName, token);
       } else {
-        strcpy(subUrl[subUrlIndex], token);
+        sprintf(subUrl[subUrlIndex], token);
       }
       subUrlIndex++;
       token = strtok(NULL, "/");
     }
-    strcpy(productCode, "ZLUX");
-    strcpy(type, "core");
+    sprintf(productCode, "ZLUX");
+    sprintf(type, "core");
   }
   else if (!value) {
     char * token = strtok(urlCpy, "/");
@@ -256,25 +256,25 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     while( token != NULL ) {
       switch(subUrlIndex) {
         case 0:
-          strcpy(productCode, token);
+          sprintf(productCode, token);
           break;
         case 1:
-          strcpy(_p, token);
+          sprintf(_p, token);
           break;
         case 2:
-          strcpy(pluginID, token);
+          sprintf(pluginID, token);
           break;
         case 3:
-          strcpy(_s, token);
+          sprintf(_s, token);
           break;
         case 4:
-          strcpy(serviceName, token);
+          sprintf(serviceName, token);
           break;
         case 5:
-          strcpy(_v, token);
+          sprintf(_v, token);
           break;
         default:
-          strcpy(subUrl[subUrlIndex-6], token); // subtract 6 from maximum index to begin init subUrl array at 0
+          sprintf(subUrl[subUrlIndex-6], token); // subtract 6 from maximum index to begin init subUrl array at 0
       }
       
       subUrlIndex++;
@@ -282,12 +282,12 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     }
     if ((strcmp(pluginID, "ORG.ZOWE.CONFIGJS") == 0) && (strcmp(serviceName, "DATA") == 0))
     {
-      strcpy(type, "config");
-      strcpy(pluginID, subUrl[0]);
-      strcpy(scope, subUrl[1]);
+      sprintf(type, "config");
+      sprintf(pluginID, subUrl[0]);
+      sprintf(scope, subUrl[1]);
       
     } else {
-      strcpy(type, "service");
+      sprintf(type, "service");
     }
     char* ch; 
     char* chReplace;
@@ -307,7 +307,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "RegEx match failed.");
   }
-  strcpy(profileName, makeProfileName(type, 
+  sprintf(profileName, makeProfileName(type, 
     productCode, 
     instanceID, 
     pluginID, 
@@ -350,7 +350,7 @@ const char* makeProfileName(
            "Broken SAF query. Missing method.");
     return NULL;
   }
-  // char someString[128] = { strcpy(*someString, type) };
+  // char someString[128] = { sprintf(*someString, type) };
   if (strcmp(type, "service") == 0) {
     if (strcmp(pluginID, NULL) == 0) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
