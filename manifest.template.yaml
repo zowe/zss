@@ -29,4 +29,4 @@ commands:
 # we do not specify encoding here because its already tagged ascii
 apimlServices:
   static:
-  - file: zss.yml
+  - file: apiml-static-reg.yaml.template

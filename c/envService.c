@@ -66,7 +66,7 @@ static JsonObject *returnJsonObj(ShortLivedHeap *slh, char buf[]) {
   char errorBuffer[512] = { 0 };
   Json *envSettings = jsonParseString(slh, buf, errorBuffer, sizeof(errorBuffer));
   JsonObject *envSettingsJsonObject = NULL;
-  if (jsonIsObject(envSettings)) {
+  if (envSettings != NULL && jsonIsObject(envSettings)) {
     envSettingsJsonObject = jsonAsObject(envSettings);
   }
 
@@ -78,11 +78,12 @@ static JsonObject *envVarsToObject(const char *prefix) {
   int j=0;
   char *foo;
   char *array[2];
-  char *envJsonStr=malloc(sizeof(char)*1024);
+  char envJsonStr[4096];
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
   JsonObject *envSettings;
-
-  strcpy(envJsonStr,"{ ");
+  int pos = 0;
+  
+  pos += snprintf(envJsonStr + pos, sizeof(envJsonStr) - pos, "{ ");
   if(prefix == NULL) {
     prefix="";
   }
@@ -96,9 +97,9 @@ static JsonObject *envVarsToObject(const char *prefix) {
         foo = returnJSONRow(array[0], array[1]);
         if(foo!=NULL) {
           if(j>1) {
-            strcat(envJsonStr," , ");
+            pos += snprintf(envJsonStr + pos, sizeof(envJsonStr) - pos, ", ");
           }
-          strcat(envJsonStr, foo);
+          pos += snprintf(envJsonStr + pos, sizeof(envJsonStr) - pos, "%s", foo);
           free(foo);
         }
       }
@@ -107,8 +108,7 @@ static JsonObject *envVarsToObject(const char *prefix) {
     i++;
   }
 
-  strcat(envJsonStr," }");
-  /*printf("%s\n",envJsonStr);*/
+  pos += snprintf(envJsonStr + pos, sizeof(envJsonStr) - pos, " }");
 
   envSettings = returnJsonObj(slh, envJsonStr);
   return envSettings;
