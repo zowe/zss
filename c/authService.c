@@ -204,7 +204,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
   char productCode[128];
   char rootServiceName[128];
   char subUrl[15][128];
-  char profileName[1024];
+  char *profileName = (char*) safeMalloc(1024, "profileName");
   char scope[128];
   char _p[128], pluginID[128], _s[128], serviceName[128], _v[128];
   char regexStr[] = "^/[A-Za-z0-9]*/plugins/";
@@ -320,6 +320,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
   
   /* Free memory allocated to the pattern buffer by regcomp() */
   regfree(&regex);
+  
   return profileName;
 }
 
@@ -333,7 +334,7 @@ const char* makeProfileName(
   char *method,
   char *scope,
   char subUrl[1024][128]) {
-  char profileName[1024] = "";
+  char *profileName = (char*) safeMalloc(1024, "profileNameInner");
   if (strcmp(productCode, NULL) == 0) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "Broken SAF query. Missing product code.");
