@@ -10,7 +10,7 @@
  * Copyright Contributors to the Zowe Project.
  */
 
-node("ibm-jenkins-slave-nvm") {
+node("zowe-jenkins-agent") {
 
     def lib = library("jenkins-library").org.zowe.jenkins_shared_library
     def pipeline = lib.pipelines.generic.GenericPipeline.new(this)
@@ -20,13 +20,7 @@ node("ibm-jenkins-slave-nvm") {
     pipeline.setup(
         packageName: 'org.zowe.zss',
         extraInit: {
-            def version = [
-                sh(script: "cat build/version.properties | grep PRODUCT_MAJOR_VERSION | awk -F= '{print \$2};'", returnStdout: true).trim(),
-                sh(script: "cat build/version.properties | grep PRODUCT_MINOR_VERSION | awk -F= '{print \$2};'", returnStdout: true).trim(),
-                sh(script: "cat build/version.properties | grep PRODUCT_REVISION | awk -F= '{print \$2};'", returnStdout: true).trim(),
-            ].join('.')
-            pipeline.setVersion(version)
-            echo "Current version is v${version}"
+            pipeline.setVersion(sh(script: "cat version.txt", returnStdout: true).trim())
         }
     )
 

@@ -19,7 +19,10 @@ void installUnixFileCopyService(HttpServer *server);
 void installUnixFileMakeDirectoryService(HttpServer *server);
 void installUnixFileTouchService(HttpServer *server);
 void installUnixFileMetadataService(HttpServer *server);
+void installUnixFileChangeOwnerService(HttpServer *server);
+void installUnixFileChangeTagService(HttpServer *server);
 void installUnixFileTableOfContentsService(HttpServer *server);
+void installUnixFileChangeModeService(HttpServer *server);
 
 #endif
 

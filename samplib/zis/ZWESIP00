@@ -14,6 +14,19 @@
 //* DESCRIPTION:                                                     */
 //*                                                                  */
 //*   ZWES - CORE PARAMETERS NAMESPACE.                              */
+//*     PCSS_STACK_POOL_SIZE - THE NUMBER OF PREALLOCATED STACK      */
+//*       FRAMES FOR THE PC-SS ROUTINE. USE THIS OPTION TO OVERRIDE  */
+//*       THE DEFAULT SIZE TO ADJUST TO THE NUMBER OF SIMULTANEOUS   */
+//*       PC-SS CALLERS.                                             */
+//*     PCSS_RECOVERY_POOL_SIZE - THE NUMBER OF PREALLOCATED         */
+//*       RECOVERY STATES FOR THE PC-SS ROUTINE. USE THIS OPTION TO  */
+//*       OVERRIDE THE DEFAULT SIZE TO ADJUST TO THE NUMBER OF       */
+//*       SIMULTANEOUS PC-SS CALLERS OR SERVICE WITH A LARGE NUMBER  */
+//*       OF RECOVERY STATE.                                         */
+//*       OPTION USED TO CONTROL THE PC ROUTINE SAF CHECK.           */
+//*       IF YES, THE SAF CHECK IS PERFORMED FOR ALL CALLERS.        */
+//*       OTHERWISE, SUPERVISOR CALLERS AND CALLERS RUNNING IN       */
+//*       A SYSTEM KEY CAN SKIP THE SAF CHECK USING A SPECIAL FLAG.  */
 //*     NAME - SERVER NAME. IF OMITTED, ZWESIS_STD IS USED.          */
 //*     PLUGIN - NAME OF A PLUG-IN LOAD MODULE.                      */
 //*     AUTH - AUTH SERVICES PARAMETERS NAMESPACE.                   */
@@ -23,7 +36,7 @@
 //*         THE PARMLIB CLASS VALUE IS USED.                         */
 //*     SECMGMT - SECURITY SERVICES PARAMETERS NAMESPACE.            */
 //*       CLASS -                                                    */
-//*         SAF CLASS USED BY THE PROFILE MANAGEMENT SERVICES.       */
+//*         SAF CLASS USED BY THE SECURITY MANAGEMENT SERVICES.      */
 //*         ANY PROFILE OPERATIONS WILL BE PERFORMED WITHIN          */
 //*         THIS CLASS ONLY. IF OMITTED, THE PROFILE SERVICES        */
 //*         WILL RETURN THE CORRESPONDING ERROR CODE.                */
@@ -32,6 +45,15 @@
 //*         WILL REFRESH THE PROFILES AFTER ANY PROFILE              */
 //*         OPERATION IN THE CLASS FROM ZWES.SECMGMT.CLASS.          */
 //*         THE DEFAULT VALUE IS NO.                                 */
+//*     DEV_MODE - DEVELOPMENT MODE. IF SET TO YES, ENABLES ALL THE  */
+//*         DEVELOPMENT MODES LISTED BELOW.                          */
+//*     DEV_MODE.LPA - LPA DEVELOPMENT MODE. IF SET TO YES, IT       */
+//*         FORCES THE SERVER TO REMOVE ALL THE MODULES FROM LPA     */
+//*         UPON TERMINATION AND REFRESH ALL THE MODULES IN LPA      */
+//*         AT START UP. THIS MODE MUST NEVER BE USED IN PRODUCTION  */
+//*         AS IT MAY AFFECT THE CALLERS OF THE CROSS-MEMORY SERVER. */
+//*         USE THIS MODE TO DECREASE THE MEMORY FOOTPRINT DURING    */
+//*         DEVELOPMENT.                                             */
 //*                                                                  */
 //********************************************************************/
 

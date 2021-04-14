@@ -439,7 +439,7 @@ int zisReadMainParms(ZISParmSet *parms, const ZISMainFunctionParms *mainParms) {
     }
 
     char *key = workBuffer;
-    char *value = NULL;
+    char *value = "";
 
     int parmLength = endIdx - startIdx;
     memcpy(key, &mainParms->text[startIdx], parmLength);

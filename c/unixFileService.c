@@ -146,8 +146,8 @@ static void freeValueSessionsByFileID(void *value) {
   UploadSession *s = value;
   status = fileClose(s->file, &returnCode, &reasonCode);
   if (status == -1) {
-    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not close file. Ret: %d, Res: %d\n",
-          returnCode, reasonCode);
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
+          "close", returnCode, reasonCode);
   }
   safeFree((char*)s, sizeof(UploadSession));
 }
@@ -169,8 +169,8 @@ static void timeOutDestroyer(void *userData, void *value) {
   UploadSession *s = value;
   status = fileClose(s->file, &returnCode, &reasonCode);
   if (status == -1) {
-    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not close file. Ret: %d, Res: %d\n",
-          returnCode, reasonCode);
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
+          "close", returnCode, reasonCode);
   }
   safeFree((char*)s, sizeof(UploadSession));
 }
@@ -255,16 +255,16 @@ static int handleNewFileCase(HttpResponse *response, char *encodedFileName, int 
                                &reasonCode);
 
   if (newFile == NULL) {
-    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not create file. Ret: %d, Res: %d\n",
-           returnCode, reasonCode);
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
+           "create", returnCode, reasonCode);
     respondWithJsonError(response, "Could not create new file.", 500, "Internal Server Error");
     return -1;
   }
 
   int status = fileClose(newFile, &returnCode, &reasonCode);
   if (status != 0) {
-    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not close file. Ret: %d, Res: %d\n",
-           returnCode, reasonCode);
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
+           "close", returnCode, reasonCode);
     respondWithJsonError(response, "Could not close file.", 500, "Internal Server Error");
     return -1;
   }
@@ -272,7 +272,7 @@ static int handleNewFileCase(HttpResponse *response, char *encodedFileName, int 
   FileInfo info;
   status = fileInfo(fileName, &info, &returnCode, &reasonCode);
   if (status != 0) {
-    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not get metadata for file. Ret: %d, Res: %d\n",
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_METADATA_MSG,
            returnCode, reasonCode);
     respondWithJsonError(response, "Could not get metadata for file.", 500, "Internal Server Error");
     return -1;
@@ -367,8 +367,8 @@ static int checkIfFileIsBusy(HttpResponse *response, char *encodedFileName, Unix
                   &reasonCode);
 
   if (*file == NULL) {
-    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Could not open file. Ret: %d, Res: %d\n",
-          returnCode, reasonCode);
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
+          "open", returnCode, reasonCode);
     respondWithJsonError(response, "Could not open file. Requested resource is busy. Please try again later.",
           403, "Forbidden");
     return -1;
@@ -654,7 +654,7 @@ static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, ch
      * mistake was made.
      */
     else {
-      zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, "Transfer type hasn't been set.");
+      zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_TTYPE_NOT_SET_MSG);
       status = -1;
     }
 
@@ -836,15 +836,20 @@ static int serveUnixFileMakeDirectory(HttpService *service, HttpResponse *respon
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
   char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
-  char *forceVal = getQueryParam(response->request, "forceOverwrite");
-  int force = FALSE;
+
+  char *forceVal  = getQueryParam(response->request,  "forceOverwrite");
+  char *recursive = getQueryParam(response->request, "recursive");
+  int force = FALSE, recurse = FALSE;
 
   if (!strcmp(strupcase(forceVal), "TRUE")) {
     force = TRUE;
   }
+  if (!strcmp(strupcase(recursive), "TRUE")) {
+    recurse = TRUE;
+  }
 
   if (!strcmp(request->method, methodPOST)) {
-    createUnixDirectoryAndRespond(response, routeFileName, force);
+    createUnixDirectoryAndRespond(response, routeFileName, recurse, force);
   }
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
@@ -891,6 +896,35 @@ static int serveUnixFileTouch(HttpService *service, HttpResponse *response) {
 
     finishResponse(response);
   }
+}
+
+static int serveUnixFileChangeMode(HttpService *service, HttpResponse *response) {
+  HttpRequest *request = response->request;
+  char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
+ 
+  char *recursive = getQueryParam(response->request, "recursive");
+  char *mode = getQueryParam(response->request, "mode");
+  char *pattern = getQueryParam(response->request, "pattern");
+
+  if (!strcmp(request->method, methodPOST)) {
+    directoryChangeModeAndRespond (response, routeFileName, 
+          recursive, mode, pattern );
+  }
+  else {
+    jsonPrinter *out = respondWithJsonPrinter(response);
+
+    setResponseStatus(response, 405, "Method Not Allowed");
+    setDefaultJSONRESTHeaders(response);
+    addStringHeader(response, "Allow", "POST");
+    writeHeader(response);
+
+    jsonStart(out);
+    jsonEnd(out);
+
+    finishResponse(response);
+  }
 
   return 0;
 }
@@ -919,6 +953,85 @@ static int serveUnixFileMetadata(HttpService *service, HttpResponse *response) {
 
   return 0;
 }
+
+static int serveUnixFileChangeOwner (HttpService *service, HttpResponse *response) {
+  HttpRequest *request = response->request;
+  char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
+
+  char *userId    = getQueryParam(response->request, "user");
+  char *groupId   = getQueryParam(response->request, "group");
+  char *pattern   = getQueryParam(response->request, "pattern");
+  char *recursive = getQueryParam(response->request, "recursive");
+
+  if (!strcmp(request->method, methodPOST)) {
+    directoryChangeOwnerAndRespond (response, routeFileName,
+                          userId, groupId, recursive, pattern);
+  }
+  else {
+    jsonPrinter *out = respondWithJsonPrinter(response);
+
+    setResponseStatus(response, 405, "Method Not Allowed");
+    setDefaultJSONRESTHeaders(response);
+    addStringHeader(response, "Allow", "POST");
+    writeHeader(response);
+    finishResponse(response);
+  }
+  return 0;
+}
+
+static int serveUnixFileChangeTag(HttpService *service, HttpResponse *response) {
+  HttpRequest *request = response->request;
+  char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
+
+  if (routeFileFrag == NULL) {
+   respondWithJsonError(response, "Allocation error", HTTP_STATUS_INTERNAL_SERVER_ERROR, "Allocation error");
+   return 0;
+  }
+
+  if (strlen(routeFileFrag) == 0) {
+   respondWithJsonError(response, "Required absolute path of the resource is not provided",
+        HTTP_STATUS_BAD_REQUEST, "Bad Request");
+   return 0;
+  }
+
+  char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
+  if (encodedRouteFileName == NULL) {
+   respondWithJsonError(response, "Allocation error", HTTP_STATUS_INTERNAL_SERVER_ERROR, "Allocation error");
+   return 0;
+  }
+  char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
+  if (routeFileName == NULL) {
+   respondWithJsonError(response, "Allocation error", HTTP_STATUS_INTERNAL_SERVER_ERROR, "Allocation error");
+   return 0;
+  }
+
+  char *codepage  = getQueryParam(response->request, "codeset");
+  char *recursive = getQueryParam(response->request, "recursive");
+  char *pattern   = getQueryParam(response->request, "pattern");
+  char *type      = getQueryParam(response->request, "type");
+
+  if (recursive == NULL || type == NULL) {
+   respondWithJsonError(response, "Required parameter not provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+   return 0;
+  }
+
+  if (!strcmp(request->method, methodPOST)) {
+    directoryChangeTagAndRespond(response, routeFileName, type, codepage, recursive, pattern);
+  }
+  else if (!strcmp(request->method, methodDELETE)) {
+      char type[8] = {"delete"};
+      directoryChangeDeleteTagAndRespond (response, routeFileName,
+                                  type, codepage, recursive, pattern);
+  }
+  else {
+    respondWithJsonError(response, "Method Not Allowed", HTTP_STATUS_METHOD_NOT_FOUND, "Bad Request");
+    return 0;
+  }
+  return 0;
+}
+
 
 static int serveTableOfContents(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
@@ -955,6 +1068,10 @@ static int serveTableOfContents(HttpService *service, HttpResponse *response) {
 
     jsonStartObject(out, NULL);
     jsonAddString(out, "stat", "/unixfile/metadata/{absPath}");
+    jsonEndObject(out);
+
+    jsonStartObject(out, NULL);
+    jsonAddString(out, "chmod", "/unixfile/chmod/{absPath}");
     jsonEndObject(out);
 
     jsonEndArray(out);
@@ -1045,6 +1162,36 @@ void installUnixFileMetadataService(HttpServer *server) {
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveUnixFileMetadata;
+  registerHttpService(server, httpService);
+}
+
+void installUnixFileChangeOwnerService(HttpServer *server) {
+  HttpService *httpService = makeGeneratedService("unixFileMetadata",
+      "/unixfile/chown/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
+  httpService->serviceFunction = serveUnixFileChangeOwner;
+  registerHttpService(server, httpService);
+}
+
+void installUnixFileChangeTagService(HttpServer *server) {
+  HttpService *httpService = makeGeneratedService("UnixFileChtag",
+      "/unixfile/chtag/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->serviceFunction = serveUnixFileChangeTag;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
+  registerHttpService(server, httpService);
+}
+
+void installUnixFileChangeModeService(HttpServer *server) {
+  HttpService *httpService = makeGeneratedService("UnixFileChmod",
+      "/unixfile/chmod/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->serviceFunction = serveUnixFileChangeMode;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
   registerHttpService(server, httpService);
 }
 

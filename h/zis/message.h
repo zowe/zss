@@ -27,12 +27,12 @@
 
 #define ZIS_LOG_DUMP_MSG_ID                     ZIS_MSG_PRFX"0099I" /* TODO will it be picked up? */
 
-/* keep this in synch with the default messages IDs from crossmemory.h */
+/* keep this in sync with the default messages IDs from crossmemory.h and zssLogging.h */
 #define ZIS_LOG_STARTUP_MSG_ID                  ZIS_MSG_PRFX"0001I"
  #ifdef CROSS_MEMORY_SERVER_DEBUG
-  #define ZIS_LOG_STARTUP_MSG_TEXT              "ZSS Cross-Memory Server starting in debug mode, version is "ZIS_VERSION"\n"
+  #define ZIS_LOG_STARTUP_MSG_TEXT              "ZSS Cross-Memory Server starting in debug mode, version is %d.%d.%d+%d\n"
  #else
-  #define ZIS_LOG_STARTUP_MSG_TEXT              "ZSS Cross-Memory Server starting, version is "ZIS_VERSION"\n"
+  #define ZIS_LOG_STARTUP_MSG_TEXT              "ZSS Cross-Memory Server starting, version is %d.%d.%d+%d\n"
  #endif
 #define ZIS_LOG_STARTUP_MSG                     ZIS_LOG_STARTUP_MSG_ID" "ZIS_LOG_STARTUP_MSG_TEXT
 
@@ -104,10 +104,14 @@
 #define ZIS_LOG_PLUGIN_VER_MISMATCH_MSG_TEXT    "Plug-in '%-16.16s' version %u doesn't match anchor version %u, LPA module discarded"
 #define ZIS_LOG_PLUGIN_VER_MISMATCH_MSG         ZIS_LOG_PLUGIN_VER_MISMATCH_MSG_ID" "ZIS_LOG_PLUGIN_VER_MISMATCH_MSG_TEXT
 
+#define ZIS_LOG_BAD_CONFIG_PARM_MSG_ID          ZIS_MSG_PRFX"0019W"
+#define ZIS_LOG_BAD_CONFIG_PARM_MSG_TEXT        "Parameter \'%s\' has an invalid value"
+#define ZIS_LOG_BAD_CONFIG_PARM_MSG             ZIS_LOG_BAD_CONFIG_PARM_MSG_ID" "ZIS_LOG_BAD_CONFIG_PARM_MSG_TEXT
+
 /* ZIS AUX messages */
 
 #define ZISAUX_LOG_STARTUP_MSG_ID               ZIS_MSG_PRFX"0050I"
-#define ZISAUX_LOG_STARTUP_MSG_TEXT             "ZIS AUX Server starting, version is %s"
+#define ZISAUX_LOG_STARTUP_MSG_TEXT             "ZIS AUX Server starting, version is %d.%d.%d+%d"
 #define ZISAUX_LOG_STARTUP_MSG                  ZISAUX_LOG_STARTUP_MSG_ID" "ZISAUX_LOG_STARTUP_MSG_TEXT
 
 #define ZISAUX_LOG_TERM_OK_MSG_ID               ZIS_MSG_PRFX"0051I"
@@ -225,6 +229,18 @@
 #define ZISAUX_LOG_USERMOD_CMD_RESP_MSG_ID      ZIS_MSG_PRFX"0079I"
 #define ZISAUX_LOG_USERMOD_CMD_RESP_MSG_TEXT    "Response message - \'%.*s\'"
 #define ZISAUX_LOG_USERMOD_CMD_RESP_MSG         ZISAUX_LOG_USERMOD_CMD_RESP_MSG_ID" "ZISAUX_LOG_USERMOD_CMD_RESP_MSG_TEXT
+
+#define ZISAUX_LOG_TERM_SIGNAL_MSG_ID           ZIS_MSG_PRFX"0080I"
+#define ZISAUX_LOG_TERM_SIGNAL_MSG_TEXT         "Termination signal received (0x%08X)"
+#define ZISAUX_LOG_TERM_SIGNAL_MSG              ZISAUX_LOG_TERM_SIGNAL_MSG_ID" "ZISAUX_LOG_TERM_SIGNAL_MSG_TEXT
+
+#define ZISAUX_LOG_DUB_ERROR_MSG_ID             ZIS_MSG_PRFX"0081E"
+#define ZISAUX_LOG_DUB_ERROR_MSG_TEXT           "Bad dub status %d (%d,0x%04X), verify that the started task user has an OMVS segment"
+#define ZISAUX_LOG_DUB_ERROR_MSG                ZISAUX_LOG_DUB_ERROR_MSG_ID" "ZISAUX_LOG_DUB_ERROR_MSG_TEXT
+
+#define ZISAUX_LOG_LEGACY_API_MSG_ID            ZIS_MSG_PRFX"0082W"
+#define ZISAUX_LOG_LEGACY_API_MSG_TEXT          "Legacy API has been detected, some functionality may be limited"
+#define ZISAUX_LOG_LEGACY_API_MSG               ZISAUX_LOG_LEGACY_API_MSG_ID" "ZISAUX_LOG_LEGACY_API_MSG_TEXT
 
 #endif /* ZIS_MSG_H_ */
 

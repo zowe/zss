@@ -30,6 +30,7 @@ typedef struct ZISContext_tag {
   CrossMemoryServerGlobalArea *cmsGA;
   struct ZISServerAnchor_tag *zisAnchor;
   struct ZISPlugin_tag *firstPlugin;
+  int cmsFlags;
 } ZISContext;
 
 typedef struct ZISServerAnchor_tag {
