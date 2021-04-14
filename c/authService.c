@@ -350,7 +350,7 @@ const char* makeProfileName(
            "Broken SAF query. Missing method.");
     return NULL;
   }
-  // char someString[128] = { snprintf(*someString, 1024, type) };
+  // char someString[1024] = { snprintf(*someString, 1024, type) };
   if (strcmp(type, "service") == 0) {
     if (strcmp(pluginID, NULL) == 0) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
