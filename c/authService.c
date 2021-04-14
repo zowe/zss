@@ -78,7 +78,7 @@ const char* makeProfileName(
   char *serviceName,
   char *method,
   char *scope,
-  char subUrl[15][50]);
+  char subUrl[15][128]);
 
 int installAuthCheckService(HttpServer *server) {
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "begin %s\n",
@@ -200,13 +200,13 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
 }
 
 const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
-  char type[8] = "NULL"; // core || config || service
-  char productCode[50] = "NULL";
-  char rootServiceName[50] = "NULL";
-  char subUrl[15][50];
-  char profileName[250];
-  char scope[50];
-  char _p[50] = "NULL", pluginID[50] = "NULL", _s[50] = "NULL", serviceName[50] = "NULL", _v[50] = "NULL";
+  char type[8]; // core || config || service
+  char productCode[128];
+  char rootServiceName[128];
+  char subUrl[15][128];
+  char profileName[1024];
+  char scope[128];
+  char _p[128], pluginID[128], _s[128], serviceName[128], _v[128];
   char regexStr[] = "^/[A-Za-z0-9]*/plugins/";
   
   regex_t regex;
@@ -221,7 +221,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
            "RegEx compilation error %s.", regexStr);
   }
   value = regexec(&regex, url, 0, NULL, 0);
-  char urlCpy[250];
+  char urlCpy[1024];
   strcpy(urlCpy, url);
   int index = 0;
   while (urlCpy[index]) { // Capitalize query
@@ -237,7 +237,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     char * token = strtok(urlCpy, "/");
     int subUrlIndex = -1;
     while( token != NULL ) {
-      if (strcmp(rootServiceName, "NULL") == 0)
+      if (strcmp(rootServiceName, NULL) == 0)
       {
         strcpy(rootServiceName, token);
       } else {
@@ -332,56 +332,56 @@ const char* makeProfileName(
   char *serviceName,
   char *method,
   char *scope,
-  char subUrl[250][50]) {
-  char profileName[250] = "";
-  if (strcmp(productCode, "NULL") == 0) {
+  char subUrl[1024][128]) {
+  char profileName[1024] = "";
+  if (strcmp(productCode, NULL) == 0) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "Broken SAF query. Missing product code.");
-    return "NULL";
+    return NULL;
   }
   if (instanceID == -1) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "Broken SAF query. Missing instance ID.");
-    return "NULL";
+    return NULL;
   }
-  if (strcmp(method, "NULL") == 0) {
+  if (strcmp(method, NULL) == 0) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "Broken SAF query. Missing method.");
-    return "NULL";
+    return NULL;
   }
-  // char someString[50] = { strcpy(*someString, type) };
+  // char someString[128] = { strcpy(*someString, type) };
   if (strcmp(type, "service") == 0) {
-    if (strcmp(pluginID, "NULL") == 0) {
+    if (strcmp(pluginID, NULL) == 0) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing plugin ID.");
-      return "NULL";
+      return NULL;
     }
-    if (strcmp(serviceName, "NULL") == 0) {
+    if (strcmp(serviceName, NULL) == 0) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing service name.");
-      return "NULL";
+      return NULL;
     }
     snprintf(profileName, 1024, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
     return profileName;
     
   } else if (strcmp(type, "config") == 0) {
-    if (strcmp(pluginID, "NULL") == 0) {
+    if (strcmp(pluginID, NULL) == 0) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing plugin ID.");
-      return "NULL";
+      return NULL;
     }
-    if (strcmp(scope, "NULL") == 0) {
+    if (strcmp(scope, NULL) == 0) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing scope.");
-      return "NULL";
+      return NULL;
     }
     snprintf(profileName, 1024, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
     return profileName;
   } else if (strcmp(type, "core") == 0) {
-    if (strcmp(rootServiceName, "NULL") == 0) {
+    if (strcmp(rootServiceName, NULL) == 0) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing root service name.");
-      return "NULL";
+      return NULL;
     }
     snprintf(profileName, 1024, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
     return profileName;
