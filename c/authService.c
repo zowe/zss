@@ -78,7 +78,7 @@ const char* makeProfileName(
   char *serviceName,
   char *method,
   char *scope,
-  char subUrl[15][128]);
+  char subUrl[15][1024]);
 
 int installAuthCheckService(HttpServer *server) {
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "begin %s\n",
@@ -201,12 +201,12 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
 
 const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
   char type[8]; // core || config || service
-  char productCode[128];
-  char rootServiceName[128];
-  char subUrl[15][128];
+  char productCode[1024];
+  char rootServiceName[1024];
+  char subUrl[15][1024];
   char *profileName = (char*) safeMalloc(1024, "profileName");
-  char scope[128];
-  char _p[128], pluginID[128], _s[128], serviceName[128], _v[128];
+  char scope[1024];
+  char _p[1024], pluginID[1024], _s[1024], serviceName[1024], _v[1024];
   char regexStr[] = "^/[A-Za-z0-9]*/plugins/";
   
   regex_t regex;
@@ -333,7 +333,7 @@ const char* makeProfileName(
   char *serviceName,
   char *method,
   char *scope,
-  char subUrl[1024][128]) {
+  char subUrl[15][1024]) {
   char *profileName = (char*) safeMalloc(1024, "profileNameInner");
   if (strcmp(productCode, NULL) == 0) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
