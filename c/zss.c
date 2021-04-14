@@ -401,6 +401,7 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
       traceDef->function(5);
       ++traceDef;
     }
+    logSetLevel(NULL,LOG_COMP_STCBASE,5);
     /*
     JsonObject *logLevels = jsonObjectGetObject(mvdSettingsJsonObject, "logLevels");
     if (logLevels) {
