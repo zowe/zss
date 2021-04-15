@@ -88,7 +88,7 @@ int installAuthCheckService(HttpServer *server) {
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = &serveAuthCheck;
   httpService->runInSubtask = FALSE;
-  // Test out SAF query: getProfileNameFromRequest("/plugins", "GET", -1);
+  // getProfileNameFromRequest("/plugins", "GET", -1);
   registerHttpService(server, httpService);
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "end %s\n",
 //  __FUNCTION__);
@@ -222,7 +222,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
   }
   value = regexec(&regex, url, 0, NULL, 0);
   char urlCpy[1024];
-  snprintf(urlCpy, sizeof(urlCpy), url);
+  snprintf(urlCpy, 1024, url);
   int index = 0;
   while (urlCpy[index]) { // Capitalize query
       urlCpy[index] = toupper(urlCpy[index]);
@@ -239,15 +239,15 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     while( token != NULL ) {
       if (strcmp(rootServiceName, NULL) == 0)
       {
-        snprintf(rootServiceName, sizeof(rootServiceName), token);
+        snprintf(rootServiceName, 1024, token);
       } else {
-        snprintf(subUrl[subUrlIndex], sizeof(subUrl[subUrlIndex]), token);
+        snprintf(subUrl[subUrlIndex], 1024, token);
       }
       subUrlIndex++;
       token = strtok(NULL, "/");
     }
-    snprintf(productCode, sizeof(productCode), "ZLUX");
-    snprintf(type, sizeof(type), "core");
+    snprintf(productCode, 1024, "ZLUX");
+    snprintf(type, 1024, "core");
   }
   else if (!value) {
     char * token = strtok(urlCpy, "/");
@@ -256,25 +256,25 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     while( token != NULL ) {
       switch(subUrlIndex) {
         case 0:
-          snprintf(productCode, sizeof(productCode), token);
+          snprintf(productCode, 1024, token);
           break;
         case 1:
-          snprintf(_p, sizeof(_p), token);
+          snprintf(_p, 1024, token);
           break;
         case 2:
-          snprintf(pluginID, sizeof(pluginID), token);
+          snprintf(pluginID, 1024, token);
           break;
         case 3:
-          snprintf(_s, sizeof(_s), token);
+          snprintf(_s, 1024, token);
           break;
         case 4:
-          snprintf(serviceName, sizeof(serviceName), token);
+          snprintf(serviceName, 1024, token);
           break;
         case 5:
-          snprintf(_v, sizeof(_v), token);
+          snprintf(_v, 1024, token);
           break;
         default:
-          snprintf(subUrl[subUrlIndex-6], sizeof(subUrl[subUrlIndex-6]), token); // subtract 6 from maximum index to begin init subUrl array at 0
+          snprintf(subUrl[subUrlIndex-6], 1024, token); // subtract 6 from maximum index to begin init subUrl array at 0
       }
       
       subUrlIndex++;
@@ -282,12 +282,12 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     }
     if ((strcmp(pluginID, "ORG.ZOWE.CONFIGJS") == 0) && (strcmp(serviceName, "DATA") == 0))
     {
-      snprintf(type, sizeof(type), "config");
-      snprintf(pluginID, sizeof(pluginID), subUrl[0]);
-      snprintf(scope, sizeof(scope), subUrl[1]);
+      snprintf(type, 1024, "config");
+      snprintf(pluginID, 1024, subUrl[0]);
+      snprintf(scope, 1024, subUrl[1]);
       
     } else {
-      snprintf(type, sizeof(type), "service");
+      snprintf(type, 1024, "service");
     }
     char* ch; 
     char* chReplace;
@@ -307,7 +307,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "RegEx match failed.");
   }
-  snprintf(profileName, sizeof(profileName), makeProfileName(type, 
+  snprintf(profileName, 1024, makeProfileName(type, 
     productCode, 
     instanceID, 
     pluginID, 
@@ -362,7 +362,7 @@ const char* makeProfileName(
        "Broken SAF query. Missing service name.");
       return NULL;
     }
-    snprintf(profileName, sizeof(profileName), "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
+    snprintf(profileName, 1024, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
     return profileName;
     
   } else if (strcmp(type, "config") == 0) {
@@ -376,7 +376,7 @@ const char* makeProfileName(
        "Broken SAF query. Missing scope.");
       return NULL;
     }
-    snprintf(profileName, sizeof(profileName), "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
+    snprintf(profileName, 1024, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
     return profileName;
   } else if (strcmp(type, "core") == 0) {
     if (strcmp(rootServiceName, NULL) == 0) {
@@ -384,7 +384,7 @@ const char* makeProfileName(
        "Broken SAF query. Missing root service name.");
       return NULL;
     }
-    snprintf(profileName, sizeof(profileName), "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
+    snprintf(profileName, 1024, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
     return profileName;
   }
 }
