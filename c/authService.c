@@ -69,15 +69,15 @@ static int serveAuthCheck(HttpService *service, HttpResponse *response);
 
 const char* getProfileNameFromRequest(char *url, const char *method, int instanceID);
 
-const char* makeProfileName(
-  char *type,
-  char *productCode, 
+static const char* makeProfileName(
+  const char *type,
+  const char *productCode, 
   int instanceID, 
-  char *pluginID, 
-  char *rootServiceName, 
-  char *serviceName,
-  char *method,
-  char *scope,
+  const char *pluginID, 
+  const char *rootServiceName, 
+  const char *serviceName,
+  const char *method,
+  const char *scope,
   char subUrl[15][1024]);
 
 int installAuthCheckService(HttpServer *server) {
@@ -88,7 +88,7 @@ int installAuthCheckService(HttpServer *server) {
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = &serveAuthCheck;
   httpService->runInSubtask = FALSE;
-  // getProfileNameFromRequest("/plugins", "GET", -1);
+  getProfileNameFromRequest("/plugins", "GET", -1);
   registerHttpService(server, httpService);
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "end %s\n",
 //  __FUNCTION__);
@@ -194,7 +194,6 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
       HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   rc = zisCheckEntity(privilegedServerName, userName, class, entity, access,
       &reqStatus);
-      // printf("\n\nprivileged server name: %s", privilegedServerName);
   respond(res, rc, &reqStatus);
   return 0;
 }
@@ -204,15 +203,20 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
   char productCode[1024];
   char rootServiceName[1024];
   char subUrl[15][1024];
-  char *profileName = (char*) safeMalloc(1024, "profileName");
+  char *profileName = safeMalloc(1024, "profileName");
   char scope[1024];
-  char _p[1024], pluginID[1024], _s[1024], serviceName[1024], _v[1024];
+  char placeHolder1[1024], pluginID[1024], placeHolder2[1024], serviceName[1024], placeHolder3[1024];
   char regexStr[] = "^/[A-Za-z0-9]*/plugins/";
   
   regex_t regex;
   int value;
   value = regcomp(&regex, regexStr, REG_EXTENDED);
-
+  
+  if (profileName == NULL) {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_SEVERE,
+           "safeMalloc failed. Not enough memory");
+    return NULL;
+  }
   if (value != 0) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
            "RegEx compiled successfully.");
@@ -237,7 +241,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     char * token = strtok(urlCpy, "/");
     int subUrlIndex = -1;
     while( token != NULL ) {
-      if (strcmp(rootServiceName, NULL) == 0)
+      if (rootServiceName == NULL)
       {
         snprintf(rootServiceName, 1024, token);
       } else {
@@ -259,19 +263,19 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
           snprintf(productCode, 1024, token);
           break;
         case 1:
-          snprintf(_p, 1024, token);
+          snprintf(placeHolder1, 1024, token);
           break;
         case 2:
           snprintf(pluginID, 1024, token);
           break;
         case 3:
-          snprintf(_s, 1024, token);
+          snprintf(placeHolder2, 1024, token);
           break;
         case 4:
           snprintf(serviceName, 1024, token);
           break;
         case 5:
-          snprintf(_v, 1024, token);
+          snprintf(placeHolder3, 1024, token);
           break;
         default:
           snprintf(subUrl[subUrlIndex-6], 1024, token); // subtract 6 from maximum index to begin init subUrl array at 0
@@ -316,7 +320,7 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     method,
     scope,
     subUrl));
-  // printf("\n\nFinal query profileName & URL %s - %s\n\n", profileName, url);
+  printf("\n\nFinal query profileName & URL %s - %s\n\n", profileName, url);
   
   /* Free memory allocated to the pattern buffer by regcomp() */
   regfree(&regex);
@@ -324,18 +328,23 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
   return profileName;
 }
 
-const char* makeProfileName(
-  char *type,
-  char *productCode, 
+static const char* makeProfileName(
+  const char *type,
+  const char *productCode, 
   int instanceID, 
-  char *pluginID, 
-  char *rootServiceName, 
-  char *serviceName,
-  char *method,
-  char *scope,
+  const char *pluginID, 
+  const char *rootServiceName, 
+  const char *serviceName,
+  const char *method,
+  const char *scope,
   char subUrl[15][1024]) {
-  char *profileName = (char*) safeMalloc(1024, "profileNameInner");
-  if (strcmp(productCode, NULL) == 0) {
+  char *profileName = safeMalloc(1024, "profileNameInner");
+  if (profileName == NULL) {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_SEVERE,
+           "safeMalloc failed. Not enough memory");
+    return NULL;
+  }
+  if (productCode == NULL) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "Broken SAF query. Missing product code.");
     return NULL;
@@ -345,19 +354,19 @@ const char* makeProfileName(
            "Broken SAF query. Missing instance ID.");
     return NULL;
   }
-  if (strcmp(method, NULL) == 0) {
+  if (method == NULL) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "Broken SAF query. Missing method.");
     return NULL;
   }
   // char someString[1024] = { snprintf(*someString, 1024, type) };
   if (strcmp(type, "service") == 0) {
-    if (strcmp(pluginID, NULL) == 0) {
+    if (pluginID == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing plugin ID.");
       return NULL;
     }
-    if (strcmp(serviceName, NULL) == 0) {
+    if (serviceName == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing service name.");
       return NULL;
@@ -366,12 +375,12 @@ const char* makeProfileName(
     return profileName;
     
   } else if (strcmp(type, "config") == 0) {
-    if (strcmp(pluginID, NULL) == 0) {
+    if (pluginID == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing plugin ID.");
       return NULL;
     }
-    if (strcmp(scope, NULL) == 0) {
+    if (scope == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing scope.");
       return NULL;
@@ -379,7 +388,7 @@ const char* makeProfileName(
     snprintf(profileName, 1024, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
     return profileName;
   } else if (strcmp(type, "core") == 0) {
-    if (strcmp(rootServiceName, NULL) == 0) {
+    if (rootServiceName == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing root service name.");
       return NULL;
