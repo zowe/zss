@@ -15,10 +15,18 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 expect(process.env.ZOWE_EXTERNAL_HOST, 'ZOWE_EXTERNAL_HOST is empty').to.not.be.empty;
 expect(process.env.ZOWE_ZSS_PORT, 'ZOWE_ZSS_PORT is not defined').to.not.be.empty;
 expect(process.env.ZOWE_USER, 'ZOWE_USER is not defined').to.not.be.empty;
+expect(process.env.ZOWE_USER2, 'ZOWE_USER2 is not defined').to.not.be.empty;
 expect(process.env.ZOWE_PASSWD, 'ZOWE_PASSWD is not defined').to.not.be.empty;
-const { ZOWE_EXTERNAL_HOST, ZOWE_ZSS_PORT, ZOWE_USER, ZOWE_PASSWD } = process.env;
+expect(process.env.ZOWE_DATASET_TEST, 'ZOWE_DATASET_TEST is not defined').to.not.be.empty;
+const { ZOWE_EXTERNAL_HOST, ZOWE_ZSS_PORT, ZOWE_USER, ZOWE_USER2, ZOWE_PASSWD, ZOWE_DATASET_TEST } = process.env;
 
 const baseURL = `http://${ZOWE_EXTERNAL_HOST}:${ZOWE_ZSS_PORT}`;
+console.log(`ZOWE_EXTERNAL_HOST: ${ZOWE_EXTERNAL_HOST}`);
+console.log(`ZOWE_ZSS_PORT: ${ZOWE_ZSS_PORT}`);
+console.log(`ZOWE_USER: ${ZOWE_USER}`);
+console.log(`ZOWE_USER2: ${ZOWE_USER2}`);
+console.log(`ZOWE_DATASET_TEST: ${ZOWE_DATASET_TEST}`);
+
 
 let timeout = 200000000;
 let headers = { 'Content-Type': 'application/json' };
