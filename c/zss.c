@@ -1400,6 +1400,8 @@ int main(int argc, char **argv){
       goto out_term_stcbase;
     }
 
+    registerProduct(productReg,productPID,productVer,productOwner,productName,productFeature);
+
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port, httpsSettingsFound ? "https" : "http");
     if (httpsSettingsFound) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
