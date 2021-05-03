@@ -31,7 +31,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
-
+#include <assert.h>
 #endif
 
 #include "zowetypes.h"
@@ -74,7 +74,7 @@
 #include "serverStatusService.h"
 #include "rasService.h"
 #include "certificateService.h"
-
+#include "registerProduct.h"
 #include "jwt.h"
 #ifdef USE_ZOWE_TLS
 #include "tls.h"
@@ -1339,6 +1339,12 @@ int main(int argc, char **argv){
     checkAndSetVariable(mvdSettings, "instanceDir", instanceDir, COMMON_PATH_MAX);
     checkAndSetVariable(mvdSettings, "groupsDir", groupsDir, COMMON_PATH_MAX);
     checkAndSetVariable(mvdSettings, "usersDir", usersDir, COMMON_PATH_MAX);
+    checkAndSetVariable(mvdSettings, "productReg", productReg, COMMON_PATH_MAX);
+    checkAndSetVariable(mvdSettings, "productVer", productVer, COMMON_PATH_MAX);
+    checkAndSetVariable(mvdSettings, "productPID", productPID, COMMON_PATH_MAX);
+    checkAndSetVariable(mvdSettings, "productOwner", productOwner, COMMON_PATH_MAX);
+    checkAndSetVariable(mvdSettings, "productName", productName, COMMON_PATH_MAX);
+    checkAndSetVariable(mvdSettings, "productFeature", productFeature, COMMON_PATH_MAX);
     
     char *serverTimeoutsDir;
     char *serverTimeoutsDirSuffix;
@@ -1369,6 +1375,14 @@ int main(int argc, char **argv){
    
     /* This one IS used*/
     checkAndSetVariableWithEnvOverride(mvdSettings, "pluginsDir", envSettings, "ZWED_pluginsDir", pluginsDir, COMMON_PATH_MAX);
+        /* and these 6 are also used */
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productReg", envSettings, "ZWED_productReg", productReg, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productVer", envSettings, "ZWED_productVer", productVer, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productPID", envSettings, "ZWED_productPID", productPID, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productOwner", envSettings, "ZWED_productOwner", productOwner, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productName", envSettings, "ZWED_productName", productName, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productFeature", envSettings, "ZWED_productFeature", productFeature, COMMON_PATH_MAX);
+
 
     HttpServer *server = NULL;
     int port = 0;
