@@ -120,13 +120,13 @@ unsigned long long __registerProduct(const char *major_version,
   }
 
   /* zowelog info */
-
+/*
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,"Major_version : %s\n", major_version);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,"Product_PID.. : %s\n", pid);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,"Product_owner : %s\n", product_owner);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,"Product_name. : %s\n", product_name);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,"Feature_name. : %s\n", feature_name);
-
+*/
   /*
   return 0;
   */
