@@ -23,6 +23,7 @@ build:
   commitHash: "{{build.commitHash}}"
   timestamp: "{{build.timestamp}}"
 commands:
+  install: bin/internal-install.sh
   start: bin/start.sh
   configure: bin/configure.sh
   validate: bin/validate.sh
