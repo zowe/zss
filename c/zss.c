@@ -1062,8 +1062,8 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
   return isHttpsConfigured;
 }
 
-#define AGENT_MEDIATION_LAYER_SERVER_PREFIX   "ZWED_agent_mediationLayer_server_"
-#define ENV_AGENT_MEDIATION_LAYER_SERVER_KEY(key) AGENT_MEDIATION_LAYER_SERVER_PREFIX key
+#define NODE_MEDIATION_LAYER_SERVER_PREFIX   "ZWED_node_mediationLayer_server_"
+#define ENV_NODE_MEDIATION_LAYER_SERVER_KEY(key) NODE_MEDIATION_LAYER_SERVER_PREFIX key
 
 // Returns false if gateway host and port not found
 static bool readGatewaySettings(JsonObject *serverConfig,
@@ -1071,19 +1071,19 @@ static bool readGatewaySettings(JsonObject *serverConfig,
                                 char **outGatewayHost,
                                 int *outGatewayPort
                                ) {
-  char *gatewayHost = jsonObjectGetString(envConfig, ENV_AGENT_MEDIATION_LAYER_SERVER_KEY("hostname"));
-  int gatewayPort = jsonObjectGetNumber(envConfig, ENV_AGENT_MEDIATION_LAYER_SERVER_KEY("gatewayPort"));
+  char *gatewayHost = jsonObjectGetString(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("hostname"));
+  int gatewayPort = jsonObjectGetNumber(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("gatewayPort"));
   if (gatewayHost && gatewayPort) {
     *outGatewayHost = gatewayHost;
     *outGatewayPort = gatewayPort;
     return true;
   }
 
-  JsonObject *agentSettings = jsonObjectGetObject(serverConfig, "agent");
-  if (!agentSettings) {
+  JsonObject *nodeSettings = jsonObjectGetObject(serverConfig, "node");
+  if (!nodeSettings) {
     return false;
   }
-  JsonObject *mediationLayerSettings = jsonObjectGetObject(agentSettings, "mediationLayer");
+  JsonObject *mediationLayerSettings = jsonObjectGetObject(nodeSettings, "mediationLayer");
   if (!mediationLayerSettings) {
     return false;
   }
@@ -1105,29 +1105,29 @@ static bool readGatewaySettings(JsonObject *serverConfig,
   return true;
 }
 
-#define AGENT_MEDIATION_LAYER_PREFIX   "ZWED_agent_mediationLayer_"
-#define ENV_AGENT_MEDIATION_LAYER_KEY(key) AGENT_MEDIATION_LAYER_PREFIX key
-#define AGENT_MEDIATION_LAYER_CACHING_SERVICE_PREFIX   AGENT_MEDIATION_LAYER_PREFIX "cachingService_"
-#define AGENT_MEDIATION_LAYER_CACHING_SERVICE_KEY(key) AGENT_MEDIATION_LAYER_CACHING_SERVICE_PREFIX key
+#define NODE_MEDIATION_LAYER_PREFIX   "ZWED_node_mediationLayer_"
+#define ENV_NODE_MEDIATION_LAYER_KEY(key) NODE_MEDIATION_LAYER_PREFIX key
+#define NODE_MEDIATION_LAYER_CACHING_SERVICE_PREFIX   NODE_MEDIATION_LAYER_PREFIX "cachingService_"
+#define NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(key) NODE_MEDIATION_LAYER_CACHING_SERVICE_PREFIX key
 #define ENABLED_KEY "enabled"
 
 static bool isCachingServiceEnabled(JsonObject *serverConfig, JsonObject *envConfig) {
-  bool enabledSettingFound = jsonObjectHasKey(envConfig, ENV_AGENT_MEDIATION_LAYER_KEY(ENABLED_KEY));
+  bool enabledSettingFound = jsonObjectHasKey(envConfig, ENV_NODE_MEDIATION_LAYER_KEY(ENABLED_KEY));
   bool enabled = false;
   if (enabledSettingFound) {
-    enabled = jsonObjectGetBoolean(envConfig, ENV_AGENT_MEDIATION_LAYER_KEY(ENABLED_KEY));
+    enabled = jsonObjectGetBoolean(envConfig, ENV_NODE_MEDIATION_LAYER_KEY(ENABLED_KEY));
     if (!enabled) {
       return false;
     }
   }
-  JsonObject *agentSettings = NULL;
+  JsonObject *nodeSettings = NULL;
   JsonObject *mediationLayerSettings = NULL;
   if (!enabled) {
-    agentSettings = jsonObjectGetObject(serverConfig, "agent");
-    if (!agentSettings) {
+    nodeSettings = jsonObjectGetObject(serverConfig, "node");
+    if (!nodeSettings) {
       return false;
     }
-    mediationLayerSettings = jsonObjectGetObject(agentSettings, "mediationLayer");
+    mediationLayerSettings = jsonObjectGetObject(nodeSettings, "mediationLayer");
     if (!mediationLayerSettings) {
       return false;
     }
@@ -1136,9 +1136,9 @@ static bool isCachingServiceEnabled(JsonObject *serverConfig, JsonObject *envCon
       return false;
     }
   }
-  enabledSettingFound = jsonObjectGetBoolean(envConfig, AGENT_MEDIATION_LAYER_CACHING_SERVICE_KEY(ENABLED_KEY));
+  enabledSettingFound = jsonObjectGetBoolean(envConfig, NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(ENABLED_KEY));
   if (enabledSettingFound) {
-    enabled = jsonObjectGetBoolean(envConfig, AGENT_MEDIATION_LAYER_CACHING_SERVICE_KEY(ENABLED_KEY));
+    enabled = jsonObjectGetBoolean(envConfig, NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(ENABLED_KEY));
     return enabled;
   }
   JsonObject *cachingServiceSettings = jsonObjectGetObject(mediationLayerSettings, "cachingService");

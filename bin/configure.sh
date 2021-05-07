@@ -94,31 +94,3 @@ else
   export "${HTTPS_PREFIX}keyring=${KEYSTORE}"
   export "${HTTPS_PREFIX}password=${KEYSTORE_PASSWORD}"
 fi
-
-# Mediation Layer and Caching Service
-if [ -z "$ZWED_agent_mediationLayer_server_gatewayPort" ]; then
-  if [ -n "$GATEWAY_PORT" ]; then
-    export ZWED_agent_mediationLayer_server_gatewayPort=$GATEWAY_PORT
-  fi
-fi
-
-if [ -z "$ZWED_agent_mediationLayer_server_hostname" ]; then
-  if [ -n "$ZOWE_EXPLORER_HOST" ]; then
-    export ZWED_agent_mediationLayer_server_hostname=$ZOWE_EXPLORER_HOST
-    case "$LAUNCH_COMPONENT_GROUPS" in
-      *GATEWAY*)
-        #All conditions met for app-server behind gateway: hostname, port, and component
-        export ZWED_agent_mediationLayer_enabled="true"
-        ;;
-    esac
-  fi
-fi
-
-# Check if Caching Service is enabled
-if [ "$ZWED_agent_mediationLayer_enabled" = "true" ]; then
-  case "$LAUNCH_COMPONENTS" in
-    *caching-service*)
-      export ZWED_agent_mediationLayer_cachingService_enabled="true"
-      ;;
-  esac
-fi
