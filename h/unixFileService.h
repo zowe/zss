@@ -23,6 +23,7 @@ void installUnixFileChangeOwnerService(HttpServer *server);
 void installUnixFileChangeTagService(HttpServer *server);
 void installUnixFileTableOfContentsService(HttpServer *server);
 void installUnixFileChangeModeService(HttpServer *server);
+void installUnixFolderToFileConvertAndDownloadService(HttpServer *server);
 
 #endif
 

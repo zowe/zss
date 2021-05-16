@@ -1425,6 +1425,7 @@ int main(int argc, char **argv){
       installUnixFileChangeTagService(server);
 #endif
       installUnixFileChangeModeService(server);
+      installUnixFolderToFileConvertAndDownloadService(server);
       installUnixFileTableOfContentsService(server); /* This needs to be registered last */
 #ifdef __ZOWE_OS_ZOS
       installVSAMDatasetContentsService(server);
