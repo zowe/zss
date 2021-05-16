@@ -18,7 +18,6 @@
 #include <metal/stdlib.h>
 #include <metal/string.h>
 #include "metalio.h"
-#include "qsam.h"
 #else
 #include <stddef.h>
 #include <stdio.h>
@@ -27,6 +26,7 @@
 #include <strings.h>
 #endif
 
+#include "qsam.h"
 #include "zowetypes.h"
 #include "alloc.h"
 #include "bpxnet.h"
@@ -40,13 +40,92 @@
 #include "datasetjson.h"
 #include "logging.h"
 #include "zssLogging.h"
+#include "dynalloc.h"
 
 #include "datasetService.h"
 
 #ifdef __ZOWE_OS_ZOS
+static void respondWithDataSetCreate(HttpResponse *response) {
+
+  dataSetRequest datasetRequest = {0};
+
+  /* Extract data set name */
+  HttpRequest *request = response->request;
+  int startElement = 2, maxElement = 1;
+  char *datasetOrMember = stringListPrint(request->parsedFile, startElement,
+                                          maxElement, "?", 0);
+  if (datasetOrMember == NULL || strlen(datasetOrMember) < 1){
+    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"No dataset name given");
+    return;
+  }
+  datasetRequest.daName        = datasetOrMember;
+  datasetRequest.ddName        = getQueryParam(request,"ddName");
+  datasetRequest.manageClass   = getQueryParam(request,"manageClass");
+  datasetRequest.storageClass  = getQueryParam(request,"storageClass");
+  datasetRequest.volume        = getQueryParam(request,"volume");
+  datasetRequest.dsnType       = getQueryParam(request,"dsnType");
+  datasetRequest.organization  = getQueryParam(request,"organization");
+  datasetRequest.recordFormat  = getQueryParam(request,"recordFormat");
+  datasetRequest.fileData      = getQueryParam(request,"fileData");
+  char *recordLength        = getQueryParam(request,"recordLength");
+  char *blockSize           = getQueryParam(request,"blockSize");
+  char *numGenerations      = getQueryParam(request,"numGeneration");
+  datasetRequest.eattr         = getQueryParam(request,"eattr");
+  datasetRequest.dataClass     = getQueryParam(request,"dataClass");
+  datasetRequest.averageRecord = getQueryParam(request,"averageRecord");
+  datasetRequest.expiration    = getQueryParam(request,"expiration");
+  datasetRequest.spaceUnit     = getQueryParam(request,"spaceUnit");
+
+  char *fileSize            = getQueryParam(request,"fileSize");
+
+  if (recordLength != NULL) {
+    datasetRequest.recordLength = atoi(recordLength);
+  }
+  if (blockSize != NULL) {
+    datasetRequest.blkSize  = atoi(blockSize);
+  }
+  if (fileSize != NULL) {
+    datasetRequest.fileSize  = atoi(fileSize);
+  }
+  if (numGenerations != NULL) {
+    datasetRequest.numGenerations  = atoi(numGenerations);
+  }
+  if (fileSize != NULL) {
+    datasetRequest.fileSize  = atoi(fileSize);
+  }
+#if 0
+  if (primary != NULL) {
+    datasetRequest.primary  = atoi(primary);
+  }
+  if (secondary != NULL) {
+    datasetRequest.secondary  = atoi(secondary);
+  }
+#endif
+
+  /* create dataset. */
+# define MESSAGE_LENGTH  200
+  char message[MESSAGE_LENGTH] = {};
+  char errorMessage[MESSAGE_LENGTH] = {};
+
+  int status = allocDataSet( &datasetRequest,  message, sizeof (message));
+  if (status == 0){
+    respondWithMessage(response, 201, "Created DataSet: %s\n", datasetRequest.daName);
+  }
+  else {
+    snprintf(errorMessage, sizeof (errorMessage),
+             "Unable to create DataSet %s:: ", datasetRequest.daName);
+    if (strlen(message)) {
+      strncat (errorMessage, message, sizeof (errorMessage));
+    }
+    respondWithError(response, 400, errorMessage);
+  }
+# undef MESSAGE_LENGTH
+}
+
 static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
+
   if (!strcmp(request->method, methodGET)) {
     if (service->userPointer == NULL){
       MetadataQueryCache *userData = (MetadataQueryCache*)safeMalloc(sizeof(MetadataQueryCache),"Pointer to metadata cache");
@@ -65,9 +144,19 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
       respondWithJsonError(response, "Invalid Subpath", 400, "Bad Request");
     }
   }
+  /* Create files */
+  else if (!strcmp(request->method, methodPOST)) {
+    char *lrequest = stringListPrint(request->parsedFile, 1, 1, "/", 0); 
+    if (!strcmp(lrequest, "dataset")) {
+      respondWithDataSetCreate(response);
+    }
+    else {
+      respondWithJsonError(response, "DataSet creation type", 400, "Bad Request");
+    }
+  }
+
   else{
     jsonPrinter *out = respondWithJsonPrinter(response);
-
     setContentType(response, "text/json");
     setResponseStatus(response, 405, "Method Not Allowed");
     addStringHeader(response, "Server", "jdmfws");
