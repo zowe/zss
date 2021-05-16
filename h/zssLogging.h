@@ -66,7 +66,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_FILE_EXPECTED_TOP_MSG_ID
 #define ZSS_LOG_FILE_EXPECTED_TOP_MSG_ID     ZSS_LOG_MSG_PRFX"1002E"
 #endif
-#define ZSS_LOG_FILE_EXPECTED_TOP_MSG_TEXT   "Error in file '%s': Could not parse config file as a JSON object.\n"
+#define ZSS_LOG_FILE_EXPECTED_TOP_MSG_TEXT   "Error in timeouts file: Could not parse config file as a JSON object.\n"
 #define ZSS_LOG_FILE_EXPECTED_TOP_MSG        ZSS_LOG_FILE_EXPECTED_TOP_MSG_ID" "ZSS_LOG_FILE_EXPECTED_TOP_MSG_TEXT
 
 #ifndef ZSS_LOG_PARS_ZSS_SETTING_MSG_ID
@@ -264,7 +264,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_ZSS_SETTINGS_MSG_ID
 #define ZSS_LOG_ZSS_SETTINGS_MSG_ID          ZSS_LOG_MSG_PRFX"1035I"
 #endif
-#define ZSS_LOG_ZSS_SETTINGS_MSG_TEXT        "ZSS Server settings: Address='%s', port='%d'\n"
+#define ZSS_LOG_ZSS_SETTINGS_MSG_TEXT        "ZSS Server settings: Address='%s', port='%d', protocol='%s'\n"
 #define ZSS_LOG_ZSS_SETTINGS_MSG             ZSS_LOG_ZSS_SETTINGS_MSG_ID" "ZSS_LOG_ZSS_SETTINGS_MSG_TEXT
 
 #ifndef ZSS_LOG_ZSS_STARTUP_MSG_ID
@@ -278,6 +278,12 @@ bool isLogLevelValid(int level);
 #endif
 #define ZSS_LOG_PORT_OCCUP_MSG_TEXT          "This is usually because the server port '%d' is occupied. Is ZSS running twice?\n"
 #define ZSS_LOG_PORT_OCCUP_MSG               ZSS_LOG_PORT_OCCUP_MSG_ID" "ZSS_LOG_PORT_OCCUP_MSG_TEXT
+
+#ifndef ZSS_LOG_PARS_ZSS_TIMEOUT_MSG_ID
+#define ZSS_LOG_PARS_ZSS_TIMEOUT_MSG_ID      ZSS_LOG_MSG_PRFX"1038I"
+#endif
+#define ZSS_LOG_PARS_ZSS_TIMEOUT_MSG_TEXT    "Server timeouts file '%s' either not found or invalid JSON. ZSS sessions will use the default length of one hour.\n"
+#define ZSS_LOG_PARS_ZSS_TIMEOUT_MSG         ZSS_LOG_PARS_ZSS_TIMEOUT_MSG_ID" "ZSS_LOG_PARS_ZSS_TIMEOUT_MSG_TEXT
 
 /* MVD Server (Datasets) */
 
@@ -298,6 +304,25 @@ bool isLogLevelValid(int level);
 #endif
 #define ZSS_LOG_FAIL_RMF_FETCH_MSG_TEXT      "Failed to fetch RMF data: RC='%d'\n"
 #define ZSS_LOG_FAIL_RMF_FETCH_MSG           ZSS_LOG_FAIL_RMF_FETCH_MSG_ID" "ZSS_LOG_FAIL_RMF_FETCH_MSG_TEXT
+
+/* MVD Server (TLS) */
+#ifndef ZSS_LOG_TLS_INIT_MSG_ID
+#define ZSS_LOG_TLS_INIT_MSG_ID              ZSS_LOG_MSG_PRFX"1060W"
+#endif
+#define ZSS_LOG_TLS_INIT_MSG_TEXT            "Failed to init TLS environment, rc=%d(%s)\n"
+#define ZSS_LOG_TLS_INIT_MSG                 ZSS_LOG_TLS_INIT_MSG_ID" "ZSS_LOG_TLS_INIT_MSG_TEXT
+
+#ifndef ZSS_LOG_TLS_SETTINGS_MSG_ID
+#define ZSS_LOG_TLS_SETTINGS_MSG_ID          ZSS_LOG_MSG_PRFX"1061I"
+#endif
+#define ZSS_LOG_TLS_SETTINGS_MSG_TEXT        "TLS settings: keyring '%s', label '%s', password '%s', stash '%s'\n"
+#define ZSS_LOG_TLS_SETTINGS_MSG             ZSS_LOG_TLS_SETTINGS_MSG_ID" "ZSS_LOG_TLS_SETTINGS_MSG_TEXT
+
+#ifndef ZSS_LOG_ENV_SETTINGS_MSG_ID
+#define ZSS_LOG_ENV_SETTINGS_MSG_ID          ZSS_LOG_MSG_PRFX"1062E"
+#endif
+#define ZSS_LOG_ENV_SETTINGS_MSG_TEXT        "Failed to process environment variables\n"
+#define ZSS_LOG_ENV_SETTINGS_MSG             ZSS_LOG_ENV_SETTINGS_MSG_ID" "ZSS_LOG_ENV_SETTINGS_MSG_TEXT
 
 /* Unixfile */
 

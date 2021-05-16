@@ -33,4 +33,6 @@ cp -X "//DEV.LOADLIB(ZWESIS01)" LOADLIB/ZWESIS01
 cp -X "//DEV.LOADLIB(ZWESAUX)" LOADLIB/ZWESAUX
 cp ../bak/samplib/zis/* SAMPLIB
 cp -r ../bak/bin .
+cp ../bak/manifest.yaml .
+cp ../bak/apiml-static-reg.yaml.template .
 extattr +p bin/zssServer

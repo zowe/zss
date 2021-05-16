@@ -17,6 +17,9 @@ export _C89_LSYSLIB="CEE.SCEELKED:SYS1.CSSLIB:CSF.SCSFMOD0"
 WORKING_DIR=$(dirname "$0")
 ZSS="../.."
 COMMON="../../deps/zowe-common-c"
+GSKDIR=/usr/lpp/gskssl
+GSKINC="${GSKDIR}/include"
+GSKLIB="${GSKDIR}/lib/GSKSSL.x"
 
 
 echo "********************************************************************************"
@@ -66,6 +69,7 @@ if c89 \
   -D_XOPEN_SOURCE=600 \
   -DNOIBMHTTP=1 \
   -D_OPEN_THREADS=1 \
+  -DUSE_ZOWE_TLS=1 \
   -DHTTPSERVER_BPX_IMPERSONATION=1 \
   -DAPF_AUTHORIZED=0 \
   -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
@@ -75,6 +79,7 @@ if c89 \
   -I ${COMMON}/jwt/jwt \
   -I ${COMMON}/jwt/rscrypto \
   -I ${ZSS}/h \
+  -I ${GSKINC} \
   -o ${ZSS}/bin/zssServer \
   ${COMMON}/c/alloc.c \
   ${COMMON}/c/bpxskt.c \
@@ -113,6 +118,7 @@ if c89 \
   ${COMMON}/c/socketmgmt.c \
   ${COMMON}/c/stcbase.c \
   ${COMMON}/c/timeutls.c \
+  ${COMMON}/c/tls.c \
   ${COMMON}/c/utils.c \
   ${COMMON}/c/vsam.c \
   ${COMMON}/c/xlate.c \
@@ -133,10 +139,11 @@ if c89 \
   ${ZSS}/c/securityService.c \
   ${ZSS}/c/zis/client.c \
   ${ZSS}/c/serverStatusService.c \
-  ${ZSS}/c/rasService.c ;
+  ${ZSS}/c/rasService.c \
+  ${GSKLIB} ;
 then
   extattr +p ${ZSS}/bin/zssServer
-  echo "Build successfull"
+  echo "Build successful"
   exit 0
 else
   # remove zssServer in case the linker had RC=4 and produced the binary

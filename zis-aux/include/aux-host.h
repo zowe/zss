@@ -23,6 +23,9 @@
 #define ZISAUX_REVISION             ZIS_REVISION
 #define ZISAUX_VERSION_DATE_STAMP   ZIS_VERSION_DATE_STAMP
 
+#define ZISAUX_HOST_PARM_MOD_KEY  "MOD"
+#define ZISAUX_HOST_PARM_COMM_KEY "COMM"
+
 typedef struct ZISAUXContext_tag {
 
   char eyecatcher[8];
@@ -35,6 +38,7 @@ typedef struct ZISAUXContext_tag {
   unsigned int flags;
 #define ZISAUX_CONTEXT_FLAG_TERM_COMMAND_RECEIVED     0x00000001
 #define ZISAUX_CONTEXT_FLAG_GUEST_INITIALIZED         0x00000002
+#define ZISAUX_CONTEXT_FLAG_LEGACY_API                0x00000004
   char reserved0[12];
 
   struct STCBase_tag *base;

@@ -71,6 +71,31 @@ static void printStopMessage(void) {
   zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZISAUX_LOG_TERM_OK_MSG);
 }
 
+#ifdef _LP64
+#pragma linkage(BPX4QDB,OS)
+#define BPXQDB BPX4QDB
+#else
+#pragma linkage(BPX1QDB,OS)
+#define BPXQDB BPX1QDB
+#endif
+
+static bool isDubStatusOk(int *status, int *bpxRC, int *bpxRSN) {
+
+  const int dubFailRC = 4; /* QDB_DUB_MAY_FAIL */
+
+  BPXQDB(status, bpxRC, bpxRSN);
+
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+          CMS_LOG_DEBUG_MSG_ID" BPXnQDB RV = %d, RC = %d, RSN = 0x%08X\n",
+          *status, *bpxRC, *bpxRSN);
+
+  if (*status == dubFailRC) {
+    return false;
+  }
+
+  return true;
+}
+
 static int checkEnv(void) {
 
   int authStatus = testAuth();
@@ -87,7 +112,12 @@ static int checkEnv(void) {
     return RC_ZISAUX_ERROR;
   }
 
-  /* TODO verify the OMVS segment */
+  int dubStatus = 0, bpxRC = 0, bpxRSN = 0;
+  if (!isDubStatusOk(&dubStatus, &bpxRC, &bpxRSN)) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE, ZISAUX_LOG_DUB_ERROR_MSG,
+            dubStatus, bpxRC, bpxRSN & 0xFFFF);
+    return RC_ZISAUX_ERROR;
+  }
 
   return RC_ZISAUX_OK;
 }
@@ -767,7 +797,7 @@ static int establishCommunicationPC(ZISAUXContext *context) {
 
 static ZISAUXCommArea *getMasterCommAreaAddress(ZISParmSet *parms) {
 
-  const char *addressString = zisGetParmValue(parms, "COMM");
+  const char *addressString = zisGetParmValue(parms, ZISAUX_HOST_PARM_COMM_KEY);
   if (addressString == NULL) {
     zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
             ZISAUX_LOG_COMM_FAILED_MSG" master comm area parm not found");
@@ -792,6 +822,10 @@ static ZISAUXCommArea *getMasterCommAreaAddress(ZISParmSet *parms) {
   }
 
   return commArea;
+}
+
+static bool isLegacyAPI(const ZISAUXContext *context) {
+  return context->flags & ZISAUX_CONTEXT_FLAG_LEGACY_API;
 }
 
 static int loadMasterParm(ZISAUXContext *context) {
@@ -835,6 +869,11 @@ static int loadMasterParm(ZISAUXContext *context) {
     return RC_ZISAUX_ERROR;
   }
   context->masterCommArea = commArea;
+
+  if (commArea->version < ZISAUX_COMM_VERSION) {
+    context->flags |= ZISAUX_CONTEXT_FLAG_LEGACY_API;
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING, ZISAUX_LOG_LEGACY_API_MSG);
+  }
 
   return RC_ZISAUX_OK;
 }
@@ -901,7 +940,7 @@ static void extractABENDInfo(RecoveryContext * __ptr32 context,
 static int getUserModuleName(const ZISParmSet *parms,
                              EightCharString *name) {
 
-  const char *moduleParmValue = zisGetParmValue(parms, "MOD");
+  const char *moduleParmValue = zisGetParmValue(parms, ZISAUX_HOST_PARM_MOD_KEY);
   if (moduleParmValue == NULL) {
     zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
             ZISAUX_LOG_USERMOD_FAIULRE_MSG" module name not provided");
@@ -1468,13 +1507,26 @@ static void handleWorkRequest(ZISAUXContext *context,
                                               parmList->traceLevel);
 }
 
+static void terminateAUX(ZISAUXContext *context) {
+
+  if (isLegacyAPI(context)) {
+
+    context->flags |= ZISAUX_CONTEXT_FLAG_TERM_COMMAND_RECEIVED;
+
+    stcBaseShutdown(context->base);
+
+  } else {
+
+    ZISAUXCommArea *commArea = context->masterCommArea;
+    auxutilPost(&commArea->commECB, ZISAUX_COMM_SIGNAL_TERM);
+
+  }
+
+}
+
 static void handleTermRequest(ZISAUXContext *context,
                               ZISAUXCommServiceParmList *parmList) {
-
-  context->flags |= ZISAUX_CONTEXT_FLAG_TERM_COMMAND_RECEIVED;
-
-  stcBaseShutdown(context->base);
-
+  terminateAUX(context);
   parmList->auxRC = RC_ZISAUX_OK;
 
 }
@@ -1595,6 +1647,52 @@ static int workElementHandler(STCBase *base, STCModule *module,
   return 0;
 }
 
+static bool isCommunicationPCEnabled(ZISAUXContext *context) {
+  if (isLegacyAPI(context)) {
+    return true;
+  }
+  return context->masterCommArea->flag & ZISAUX_HOST_FLAG_COMM_PC_ON;
+}
+
+static int commTaskMain(RLETask *task) {
+
+  ZISAUXContext *context = task->userPointer;
+  ZISAUXCommArea *commArea = context->masterCommArea;
+
+  auxutilWait(&commArea->commECB);
+
+  // the only signal we handle is termination
+
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, ZISAUX_LOG_TERM_SIGNAL_MSG,
+          commArea->commECB);
+  commArea->commECB = 0;
+
+  context->flags |= ZISAUX_CONTEXT_FLAG_TERM_COMMAND_RECEIVED;
+  stcBaseShutdown(context->base);
+
+  return 0;
+}
+
+static int launchCommTask(ZISAUXContext *context, STCBase *base) {
+
+  if (isLegacyAPI(context)) {
+    return RC_ZISAUX_OK;
+  }
+
+  int taskFlags = RLE_TASK_DISPOSABLE
+                  | RLE_TASK_RECOVERABLE
+                  | RLE_TASK_TCB_CAPABLE;
+  RLETask *task = makeRLETask(base->rleAnchor, taskFlags, commTaskMain);
+  if (task == NULL) {
+    return RC_ZISAUX_ALLOC_FAILED;
+  }
+
+  task->userPointer = context;
+  startRLETask(task, NULL);
+
+  return RC_ZISAUX_OK;
+}
+
 #define MAIN_WAIT_MILLIS 10000
 /* TODO This delay is used to give the console task time to terminate and
  * prevent A03. This should be addressed at some point. */
@@ -1649,10 +1747,18 @@ static int run(STCBase *base, const ZISMainFunctionParms *mainParms) {
       break;
     }
 
-    int pcRC = establishCommunicationPC(context);
-    if (pcRC != RC_ZISAUX_OK) {
-      status = pcRC;
+    int commTaskRC = launchCommTask(context, base);
+    if (commTaskRC != RC_ZISAUX_OK) {
+      status = commTaskRC;
       break;
+    }
+
+    if (isCommunicationPCEnabled(context)) {
+      int pcRC = establishCommunicationPC(context);
+      if (pcRC != RC_ZISAUX_OK) {
+        status = pcRC;
+        break;
+      }
     }
 
     int moduleLoadRC = loadUserModule(context);
