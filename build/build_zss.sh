@@ -89,6 +89,7 @@ if c89 \
   ${COMMON}/c/crossmemory.c \
   ${COMMON}/c/crypto.c \
   ${COMMON}/c/dataservice.c \
+  ${COMMON}/c/isgenq.c \
   ${COMMON}/c/datasetjson.c \
   ${COMMON}/c/discovery.c \
   ${COMMON}/c/dynalloc.c \
@@ -114,6 +115,8 @@ if c89 \
   ${COMMON}/jwt/rscrypto/rs_icsfp11.c \
   ${COMMON}/jwt/rscrypto/rs_rsclibc.c \
   ${COMMON}/c/scheduling.c \
+  ${COMMON}/c/datasetlock.c \
+  ${COMMON}/c/stcbackground.c \
   ${COMMON}/c/signalcontrol.c \
   ${COMMON}/c/socketmgmt.c \
   ${COMMON}/c/stcbase.c \

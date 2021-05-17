@@ -31,6 +31,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
+#include <assert.h>
 
 #endif
 
@@ -61,6 +62,7 @@
 #include "plugins.h"
 #ifdef __ZOWE_OS_ZOS
 #include "datasetjson.h"
+#include "stcbackground.h"
 #include "authService.h"
 #include "securityService.h"
 #include "zis/client.h"
@@ -96,6 +98,7 @@
 char productVersion[40];
 
 static JsonObject *MVD_SETTINGS = NULL;
+static STCModule *backgroundModule = NULL;
 static int traceLevel = 0;
 
 #define JSON_ERROR_BUFFER_SIZE 1024
@@ -200,7 +203,7 @@ static int extractAuthorizationFromJson(HttpService *service, HttpRequest *reque
 
   Json *body = jsonParseUnterminatedString(request->slh, nativeBody, inLen, errBuf, JSON_ERROR_BUFFER_SIZE);
 
-  if(body != NULL){
+  if (body != NULL){
     JsonObject *inputMessage = jsonAsObject(body);
     Json *username = jsonObjectGetPropertyValue(inputMessage,"username");
     Json *password = jsonObjectGetPropertyValue(inputMessage,"password");
@@ -323,8 +326,11 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
 
 static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings,
                                 JsonObject *envSettings, hashtable *htUsers,
-                                hashtable *htGroups, int defaultSessionTimeout){
+                                hashtable *htGroups, int defaultSessionTimeout) {
+
   MVD_SETTINGS = mvdSettings;
+  backgroundModule = stcInitBackgroundModule(server->base);
+
   /* Disabled because this server is not being used by end users, but called by other servers
    * HttpService *mainService = makeGeneratedService("main", "/");
    * mainService->serviceFunction = serveMainPage;
@@ -838,13 +844,13 @@ void checkAndSetVariableWithEnvOverride(JsonObject *mvdSettings,
 {
   bool override=true;
   char* tempString = jsonObjectGetString(envSettings, envConfigVariableName);
-  if(tempString == NULL) {
+  if (tempString == NULL) {
     override=false;
     tempString = jsonObjectGetString(mvdSettings, configVariableName);
   }
   if (tempString){
     snprintf(target, targetMax, "%s", tempString);
-    if(override){
+    if (override){
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "%s override with env %s is '%s'\n", configVariableName, envConfigVariableName, target);
     }
     else {
@@ -1135,7 +1141,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
   bool envIsSet = (envTokenName != NULL
                       && envTokenLabel != NULL);
 
-  if(envIsSet){
+  if (envIsSet){
     int initTokenRc, p11rc, p11Rsn;
     const int contextInitRc = httpServerInitJwtContext(httpServer,
         envFallback,
@@ -1204,7 +1210,7 @@ int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
         ZOWE_LOG_SEVERE,
         ZSS_LOG_JWT_KEYSTORE_NAME_MSG);
     return 1;
-  } else if(tokenLabel == NULL){
+  } else if (tokenLabel == NULL){
     zowelog(NULL,
         LOG_COMP_ID_MVD_SERVER,
         ZOWE_LOG_SEVERE,
@@ -1331,7 +1337,6 @@ int main(int argc, char **argv){
     goto out_term_stcbase;
   }
   JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
-
   if (mvdSettings) {
     /* Hmm - most of these aren't used, at least here. */
     checkAndSetVariable(mvdSettings, "productDir", productDir, COMMON_PATH_MAX);
@@ -1430,6 +1435,8 @@ int main(int argc, char **argv){
       installVSAMDatasetContentsService(server);
       installDatasetMetadataService(server);
       installDatasetContentsService(server);
+      installDatasetEnqueueService(server);
+      installDatasetHeartbeatService(server, backgroundModule);
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);
@@ -1441,7 +1448,6 @@ int main(int argc, char **argv){
       installLogoutService(server);
       printZISStatus(server);
       mainHttpLoop(server);
-
     } else{
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_ZSS_STARTUP_MSG, returnCode, reasonCode);
       if (returnCode==EADDRINUSE) {
@@ -1457,7 +1463,6 @@ out_term_stcbase:
 
   return zssStatus;
 }
-
 
 /*
   This program and the accompanying materials are

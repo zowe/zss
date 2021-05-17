@@ -362,14 +362,18 @@ def dataset_contents(dataset):
             return {
                 "records": x.get('records', []) for x in global_datasets if x['name'] == dataset
             }
-    elif request.method == 'POST':
-        if dataset.endswith(')'):
+    elif request.method == 'POST':  # writing to a dataset ...
+        if dataset.endswith(')'):   # PDS member
             dataset_names = dataset.replace(")","").split("(")
             for data in global_datasets:
                 if dataset_names[0] == data['name']:
                     for member in data['name']['members']:
                         if dataset_names[1] == member['name']:
                             member['records'] = request.get_data()['records']
+        else: # plain PS dataset
+            for data in global_datasets:
+                if data['name'] == dataset:
+                    data['records'] = request.get_data()['records']
     elif request.method == 'DELETE':
         if dataset.endswith(')'):
             dataset_names = dataset.replace(")","").split("(")

@@ -1,0 +1,19 @@
+{
+  "name": "zss.api.user.scenarios",
+  "version": "1.0.0",
+  "description": "zss reast api user scenarios",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {},
+  "devDependencies": {
+    "axios": "^0.21.1",
+    "chai": "^4.3.0",
+    "lodash": "^4.17.20",
+    "mocha": "^8.3.0",
+    "uuid": "^8.3.2"
+  }
+}
