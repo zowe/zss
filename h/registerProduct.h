@@ -1,37 +1,28 @@
 
 
+/*
+  This program and the accompanying materials are
+  made available under the terms of the Eclipse Public License v2.0 which accompanies
+  this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
+
+  SPDX-License-Identifier: EPL-2.0
+
+  Copyright Contributors to the Zowe Project.
+*/
+
 const char *MODULE_REGISTER_USAGE = "IFAUSAGE";
 
-char productReg[COMMON_PATH_MAX];
-char productPID[COMMON_PATH_MAX];
-char productVer[COMMON_PATH_MAX];
-char productOwner[COMMON_PATH_MAX];
-char productName[COMMON_PATH_MAX];
-char productFeature[COMMON_PATH_MAX];
+void registerProduct(char *productReg, char *productPID, char *productVer,
+                     char *productOwner, char *productName, char *productFeature);
 
-typedef struct IFAARGS {
-  int prefix;
-  char id[8];
-  short listlen;
-  char version;
-  char request;
-  char prodowner[16];
-  char prodname[16];
-  char prodvers[8];
-  char prodqual[8];
-  char prodid[8];
-  char domain;
-  char scope;
-  char rsv0001;
-  char flags;
-  char *__ptr32 prtoken_addr;
-  char *__ptr32 begtime_addr;
-  char *__ptr32 data_addr;
-  char xformat;
-  char rsv0002[3];
-  char *__ptr32 currentdata_addr;
-  char *__ptr32 enddata_addr;
-  char *__ptr32 endtime_addr;
-} IFAARGS_t;
 
+/*
+  This program and the accompanying materials are
+  made available under the terms of the Eclipse Public License v2.0 which accompanies
+  this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
+
+  SPDX-License-Identifier: EPL-2.0
+
+  Copyright Contributors to the Zowe Project.
+*/
 

@@ -31,7 +31,6 @@
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
-#include <assert.h>
 #endif
 
 #include "zowetypes.h"
@@ -1306,6 +1305,12 @@ int main(int argc, char **argv){
   char groupsDir[COMMON_PATH_MAX];
   char usersDir[COMMON_PATH_MAX];
   char pluginsDir[COMMON_PATH_MAX];
+  char productReg[COMMON_PATH_MAX];
+  char productPID[COMMON_PATH_MAX];
+  char productVer[COMMON_PATH_MAX];
+  char productOwner[COMMON_PATH_MAX];
+  char productName[COMMON_PATH_MAX];
+  char productFeature[COMMON_PATH_MAX];
   char *tempString;
   hashtable *htUsers;
   hashtable *htGroups;
@@ -1400,7 +1405,7 @@ int main(int argc, char **argv){
       goto out_term_stcbase;
     }
 
-    registerProduct(productReg,productPID,productVer,productOwner,productName,productFeature);
+    registerProduct(productReg, productPID, productVer, productOwner, productName, productFeature);
 
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port, httpsSettingsFound ? "https" : "http");
     if (httpsSettingsFound) {

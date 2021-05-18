@@ -10,95 +10,47 @@
   Copyright Contributors to the Zowe Project.
 */
 
-
-#ifdef METTLE
-#include <metal/metal.h>
-#include <metal/stddef.h>
-#include <metal/stdio.h>
-#include <metal/stdlib.h>
-#include <metal/string.h>
-#include <metal/stdarg.h>
-#include "metalio.h"
-
-#else
-#include <stdio.h>
-#include <string.h>
+#define  cvtsmcaAddr ((char *__ptr32 *__ptr32 *)0)[4][49]  /* smca field address in CVT */
+#define  ifaargs_xrequest_register 1                       /* register request          */
+#define  RC_ZSS_PREG_NULL_X1 1                             /* smf option null rc 1      */
+#define  RC_ZSS_PREG_NULL_X2 2                             /* smf option null rc 2      */
+#define  ZSS_SMCA_Option_null 0                            /* smf option null           */
 #include <stdlib.h>
-#include <stdarg.h>
-#include <sys/stat.h>
-#include <iconv.h>
-#include <dirent.h>
-#include <errno.h>
-#include <pthread.h>
-#include <signal.h>
 #include <assert.h>
-#include <stdbool.h>
-
-#endif
-
-#include "zowetypes.h"
-#include "alloc.h"
-#include "utils.h"
-#ifdef __ZOWE_OS_ZOS
-#include "zos.h"
-#endif
-#include "bpxnet.h"
-#include "collections.h"
-#include "unixfile.h"
-#include "socketmgmt.h"
-#include "le.h"
 #include "logging.h"
-#include "scheduling.h"
-#include "json.h"
-
-#include "xml.h"
-#include "httpserver.h"
-#include "httpfileservice.h"
-#include "dataservice.h"
-#include "envService.h"
-#ifdef __ZOWE_OS_ZOS
-#include "zosDiscovery.h"
-#endif
-#include "charsets.h"
-#include "plugins.h"
-#ifdef __ZOWE_OS_ZOS
-#include "datasetjson.h"
-#include "authService.h"
-#include "securityService.h"
-#include "zis/client.h"
-#endif
-
 #include "zssLogging.h"
-#include "serviceUtils.h"
-#include "unixFileService.h"
-#include "omvsService.h"
-#include "datasetService.h"
-#include "serverStatusService.h"
-#include "rasService.h"
-#include "certificateService.h"
 #include "registerProduct.h"
 
-#include "jwt.h"
+typedef struct IFAARGS {
+  int prefix;
+  char id[8];
+  short listlen;
+  char version;
+  char request;
+  char prodowner[16];
+  char prodname[16];
+  char prodvers[8];
+  char prodqual[8];
+  char prodid[8];
+  char domain;
+  char scope;
+  char rsv0001;
+  char flags;
+  char *__ptr32 prtoken_addr;
+  char *__ptr32 begtime_addr;
+  char *__ptr32 data_addr;
+  char xformat;
+  char rsv0002[3];
+  char *__ptr32 currentdata_addr;
+  char *__ptr32 enddata_addr;
+  char *__ptr32 endtime_addr;
+} IFAARGS_t;
 
-#define PRODUCT "ZLUX"
-#ifndef PRODUCT_MAJOR_VERSION
-#define PRODUCT_MAJOR_VERSION 0
-#endif
-#ifndef PRODUCT_MINOR_VERSION
-#define PRODUCT_MINOR_VERSION 0
-#endif
-#ifndef PRODUCT_REVISION
-#define PRODUCT_REVISION 0
-#endif
-#ifndef PRODUCT_VERSION_DATE_STAMP
-#define PRODUCT_VERSION_DATE_STAMP 0
-#endif
-
-unsigned long long __registerProduct(const char *major_version,
-                                const char *pid,
-                                const char *product_owner,
-                                const char *product_name,
-                                const char *feature_name){
+unsigned long long productRegistration(const char *major_version,
+                              const char *pid,
+                              const char *product_owner,
+                              const char *product_name,
+                              const char *feature_name){
 
   /* Creates buffers for registration product info */
 
@@ -110,13 +62,12 @@ unsigned long long __registerProduct(const char *major_version,
   unsigned long long ifausage_rc = 0;
   IFAARGS_t *arg;
 
-  /* Check if SMF is Active first  */
-  char *xx = ((char *__ptr32 *__ptr32 *)0)[4][49];
-  if (0 == xx) {
-    return 1;
+  char *smcaOpt = cvtsmcaAddr;
+  if (ZSS_SMCA_Option_null == smcaOpt) {
+    return RC_ZSS_PREG_NULL_X1;
   }
-  if (0 == (*xx & 0x04)) {
-    return 2;
+  if (ZSS_SMCA_Option_null == (*smcaOpt & 0x04)) {
+    return RC_ZSS_PREG_NULL_X2;
   }
 
   /* Left justify with space padding */
@@ -127,9 +78,9 @@ unsigned long long __registerProduct(const char *major_version,
   snprintf(str_product_name, sizeof(str_product_name), "%-16s", product_name);
   snprintf(str_pid, sizeof(str_pid), "%-8s", pid);
   snprintf(version, sizeof(version), "%-8s", major_version);
+
   /* Register Product with IFAUSAGE */
 
-/*IFAARGS_t *arg = (IFAARGS_t *)__malloc31(sizeof(IFAARGS_t)); */
   arg = (IFAARGS_t *)__malloc31(sizeof(IFAARGS_t));
 
   assert(arg);
@@ -137,7 +88,7 @@ unsigned long long __registerProduct(const char *major_version,
   memcpy(arg->id, MODULE_REGISTER_USAGE, 8);
   arg->listlen = sizeof(IFAARGS_t);
   arg->version = 1;
-  arg->request = 1; /* 1=REGISTER */
+  arg->request = ifaargs_xrequest_register;
 
   /* Insert properties */
 
@@ -151,9 +102,13 @@ unsigned long long __registerProduct(const char *major_version,
 
 
   arg->prtoken_addr = (char *__ptr32)__malloc31(sizeof(char *__ptr32));
+  assert(arg->prtoken_addr);
   arg->begtime_addr = (char *__ptr32)__malloc31(sizeof(char *__ptr32));
+  assert(arg->begtime_addr);
   /* Load 25 (IFAUSAGE) into reg15 and call via SVC */
   asm(" svc 109\n" : "=NR:r15"(ifausage_rc) : "NR:r1"(arg), "NR:r15"(25) :);
+  free(arg->prtoken_addr);
+  free(arg->begtime_addr);
   free(arg);
 
   return ifausage_rc;
@@ -177,11 +132,11 @@ void registerProduct(char *productReg, char *productPID, char *productVer,
     return;
   }
 
-  unsigned long long rc = __registerProduct(productVer ,
-                                       productPID,
-                                       productOwner,
-                                       productName,
-                                       productFeature);
+  unsigned long long rc = productRegistration(productVer,
+                                     productPID,
+                                     productOwner,
+                                     productName,
+                                     productFeature);
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Product Registration RC = %llu\n", rc);
 
