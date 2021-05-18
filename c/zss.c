@@ -702,17 +702,6 @@ static int checkLoggingVerbosity(const char *serverConfigFile, char *pluginIdent
   return ZOWE_LOG_INFO;
 }
 
-static Storage* makeStorageForPlugin(const char *pluginId, ApimlStorageSettings *apimlStorageSettings) {
-  Storage *storage = NULL;
-  if (apimlStorageSettings) {
-    storage = makeApimlStorage(apimlStorageSettings, pluginId);
-  }
-  if (!storage) {
-    storage = makeMemoryStorage(NULL);
-  }
-  return storage;
-}
-
 static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLivedHeap *slh, char *dirname,
                                                   const char *serverConfigFile,
                                                   ApimlStorageSettings *apimlStorageSettings) {
@@ -764,9 +753,12 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
               if (identifier && pluginLocation) {
                 JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, pluginLocation, relativeTo);
                 if (pluginDefinition) {
-                  Storage *storage = makeStorageForPlugin(identifier, apimlStorageSettings);
+                  Storage *remoteStorage = NULL;
+                  if (apimlStorageSettings) {
+                    remoteStorage = makeApimlStorage(apimlStorageSettings, identifier);
+                  }
                   WebPlugin *plugin = makeWebPlugin2(pluginLocation, pluginDefinition, internalAPIMap,
-                                                    &idMultiplier, pluginLogLevel, storage);
+                                                    &idMultiplier, pluginLogLevel, remoteStorage);
                   if (plugin != NULL) {
                     initalizeWebPlugin(plugin, server);
                     //zlux does this, so don't bother doing it twice.
