@@ -530,7 +530,7 @@ Storage *makeApimlStorage(ApimlStorageSettings *settings, const char *pluginId) 
   }
   clientSettings->host = settings->host;
   clientSettings->port = settings->port;
-  clientSettings->recvTimeoutSeconds = 10;
+  clientSettings->recvTimeoutSeconds = (settings->timeoutSeconds > 0) ? settings->timeoutSeconds : 10;
 
   apimlStorage->clientSettings = clientSettings;
   apimlStorage->tlsEnv = settings->tlsEnv;

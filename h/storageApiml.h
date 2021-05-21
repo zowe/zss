@@ -22,6 +22,7 @@ struct ApimlStorageSettings_tag {
   TlsEnvironment *tlsEnv;
   char *host;
   int port;
+  int timeoutSeconds;
 };
 
 #endif // STORAGE_APIML_H
