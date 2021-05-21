@@ -1063,7 +1063,8 @@ static bool readGatewaySettings(JsonObject *serverConfig,
                                 char **outGatewayHost,
                                 int *outGatewayPort
                                ) {
-  char *gatewayHost = jsonObjectGetString(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("hostname"));
+  char *gatewayHost = jsonObjectGetString(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("gatewayHostname"));
+  char *hostname = jsonObjectGetString(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("hostname"));
   int gatewayPort = jsonObjectGetNumber(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("gatewayPort"));
   if (gatewayHost && gatewayPort) {
     *outGatewayHost = gatewayHost;
@@ -1082,6 +1083,12 @@ static bool readGatewaySettings(JsonObject *serverConfig,
   JsonObject *serverSettings = jsonObjectGetObject(mediationLayerSettings, "server");
   if (!serverSettings) {
     return false;
+  }
+  if (!gatewayHost) {
+    gatewayHost = jsonObjectGetString(serverSettings, "gatewayHostname");
+  }
+  if (!gatewayHost) {
+    gatewayHost = hostname;
   }
   if (!gatewayHost) {
     gatewayHost = jsonObjectGetString(serverSettings, "hostname");
