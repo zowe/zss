@@ -23,10 +23,11 @@ build:
   commitHash: "{{build.commitHash}}"
   timestamp: "{{build.timestamp}}"
 commands:
+  install: bin/internal-install.sh
   start: bin/start.sh
   configure: bin/configure.sh
   validate: bin/validate.sh
 # we do not specify encoding here because its already tagged ascii
 apimlServices:
   static:
-  - file: zss.yml
+  - file: apiml-static-reg.yaml.template
