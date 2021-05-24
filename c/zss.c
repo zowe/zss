@@ -79,6 +79,8 @@
 #ifdef USE_ZOWE_TLS
 #include "tls.h"
 #endif // USE_ZOWE_TLS
+#include "storage.h"
+#include "storageApiml.h"
 
 #define PRODUCT "ZLUX"
 #ifndef PRODUCT_MAJOR_VERSION
@@ -121,10 +123,12 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
                                         char *pluginLocation,
                                         char *relativeTo);
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
-                                                  const char *serverConfigFile);
+                                                  const char *serverConfigFile, ApimlStorageSettings *apimlStorageSettings);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts, const char *key);
 static InternalAPIMap *makeInternalAPIMap(void);
+static bool readGatewaySettings(JsonObject *serverConfig, JsonObject *envConfig, char **outGatewayHost, int *outGatewayPort);
+static bool isCachingServiceEnabled(JsonObject *serverConfig, JsonObject *envConfig);
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -699,7 +703,8 @@ static int checkLoggingVerbosity(const char *serverConfigFile, char *pluginIdent
 }
 
 static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLivedHeap *slh, char *dirname,
-                                                  const char *serverConfigFile) {
+                                                  const char *serverConfigFile,
+                                                  ApimlStorageSettings *apimlStorageSettings) {
   int pluginDefinitionCount = 0;
   int returnCode;
   int reasonCode;
@@ -748,8 +753,12 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
               if (identifier && pluginLocation) {
                 JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, pluginLocation, relativeTo);
                 if (pluginDefinition) {
-                  WebPlugin *plugin = makeWebPlugin(pluginLocation, pluginDefinition, internalAPIMap,
-                                                    &idMultiplier, pluginLogLevel);
+                  Storage *remoteStorage = NULL;
+                  if (apimlStorageSettings) {
+                    remoteStorage = makeApimlStorage(apimlStorageSettings, identifier);
+                  }
+                  WebPlugin *plugin = makeWebPlugin2(pluginLocation, pluginDefinition, internalAPIMap,
+                                                    &idMultiplier, pluginLogLevel, remoteStorage);
                   if (plugin != NULL) {
                     initalizeWebPlugin(plugin, server);
                     //zlux does this, so don't bother doing it twice.
@@ -811,6 +820,40 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
   return webPluginListHead;
 }
 
+static ApimlStorageSettings *readApimlStorageSettings(ShortLivedHeap *slh, JsonObject *serverConfig, JsonObject *envConfig, TlsEnvironment *tlsEnv) {
+  char *host = NULL;
+  int port = 0;
+  bool configured = false;
+
+  do {
+    if (!isCachingServiceEnabled(serverConfig, envConfig)) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Caching Service disabled\n");
+      break;
+    }
+    if (!readGatewaySettings(serverConfig, envConfig, &host, &port)) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Gateway settings not found\n");
+      break;
+    }
+    if (!tlsEnv) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "TLS settings not found\n");
+      break;
+    }
+    configured = true;
+  } while(0);
+
+  if (!configured) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_CACHE_NOT_CFG_MSG);
+    return NULL;
+  }
+  ApimlStorageSettings *settings = (ApimlStorageSettings*)SLHAlloc(slh, sizeof(*settings));
+  memset(settings, 0, sizeof(*settings));
+  settings->host = host;
+  settings->port = port;
+  settings->tlsEnv = tlsEnv;
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_CACHE_SETTINGS_MSG settings->host, settings->port);
+  return settings;
+}
+
 static const char defaultConfigPath[] = "../defaults/serverConfig/server.json";
 
 static
@@ -864,6 +907,7 @@ static void initLoggingComponents(void) {
   logConfigureComponent(NULL, LOG_COMP_DATASERVICE, "ZSS dataservices", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+  logConfigureComponent(NULL, LOG_COMP_ID_APIML_STORAGE, "APIML Storage", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_START_VER_MSG, productVersion);
 }
 
@@ -943,7 +987,7 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
                                    JsonObject *envConfig,
                                    char **outAddress,
                                    int *outPort,
-                                   TlsSettings **outSettings
+                                   TlsEnvironment **outTlsEnv
                                   ) {
   int port = jsonObjectGetNumber(envConfig, ENV_AGENT_HTTPS_KEY(PORT_KEY));
   char *address = jsonObjectGetString(envConfig, ENV_AGENT_HTTPS_KEY(IP_ADDRESSES_KEY));
@@ -988,13 +1032,120 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
   if (!address) {
     address = "127.0.0.1";
   }
-  bool httpsSettingsFound = port && settings->keyring;
-  if (httpsSettingsFound) {
+  bool isHttpsConfigured = port && settings->keyring;
+  if (settings->keyring) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
+              settings->keyring,
+              settings->label ? settings->label : "(no label)",
+              settings->password ? "****" : "(no password)",
+              settings->stash ? settings->stash : "(no stash)");
+    TlsEnvironment *tlsEnv = NULL;
+    int rc = tlsInit(&tlsEnv, settings);
+    if (rc != 0) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_TLS_INIT_MSG, rc, tlsStrError(rc));
+    } else {
+      *outTlsEnv = tlsEnv;
+    }
+  }
+  if (isHttpsConfigured) {
     *outPort = port;
     *outAddress = address;
-    *outSettings = settings;
   }
-  return httpsSettingsFound;
+  return isHttpsConfigured;
+}
+
+#define NODE_MEDIATION_LAYER_SERVER_PREFIX   "ZWED_node_mediationLayer_server_"
+#define ENV_NODE_MEDIATION_LAYER_SERVER_KEY(key) NODE_MEDIATION_LAYER_SERVER_PREFIX key
+
+// Returns false if gateway host and port not found
+static bool readGatewaySettings(JsonObject *serverConfig,
+                                JsonObject *envConfig,
+                                char **outGatewayHost,
+                                int *outGatewayPort
+                               ) {
+  char *gatewayHost = jsonObjectGetString(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("gatewayHostname"));
+  char *hostname = jsonObjectGetString(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("hostname"));
+  int gatewayPort = jsonObjectGetNumber(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("gatewayPort"));
+  if (gatewayHost && gatewayPort) {
+    *outGatewayHost = gatewayHost;
+    *outGatewayPort = gatewayPort;
+    return true;
+  }
+
+  JsonObject *nodeSettings = jsonObjectGetObject(serverConfig, "node");
+  if (!nodeSettings) {
+    return false;
+  }
+  JsonObject *mediationLayerSettings = jsonObjectGetObject(nodeSettings, "mediationLayer");
+  if (!mediationLayerSettings) {
+    return false;
+  }
+  JsonObject *serverSettings = jsonObjectGetObject(mediationLayerSettings, "server");
+  if (!serverSettings) {
+    return false;
+  }
+  if (!gatewayHost) {
+    gatewayHost = jsonObjectGetString(serverSettings, "gatewayHostname");
+  }
+  if (!gatewayHost) {
+    gatewayHost = hostname;
+  }
+  if (!gatewayHost) {
+    gatewayHost = jsonObjectGetString(serverSettings, "hostname");
+  }
+  if (!gatewayPort) {
+    gatewayPort = jsonObjectGetNumber(serverSettings, "gatewayPort");
+  }
+  if (!gatewayHost || !gatewayPort) {
+    return false;
+  }
+  *outGatewayHost = gatewayHost;
+  *outGatewayPort = gatewayPort;
+  return true;
+}
+
+#define NODE_MEDIATION_LAYER_PREFIX   "ZWED_node_mediationLayer_"
+#define ENV_NODE_MEDIATION_LAYER_KEY(key) NODE_MEDIATION_LAYER_PREFIX key
+#define NODE_MEDIATION_LAYER_CACHING_SERVICE_PREFIX   NODE_MEDIATION_LAYER_PREFIX "cachingService_"
+#define NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(key) NODE_MEDIATION_LAYER_CACHING_SERVICE_PREFIX key
+#define ENABLED_KEY "enabled"
+
+static bool isCachingServiceEnabled(JsonObject *serverConfig, JsonObject *envConfig) {
+  bool enabledSettingFound = jsonObjectHasKey(envConfig, ENV_NODE_MEDIATION_LAYER_KEY(ENABLED_KEY));
+  bool enabled = false;
+  if (enabledSettingFound) {
+    enabled = jsonObjectGetBoolean(envConfig, ENV_NODE_MEDIATION_LAYER_KEY(ENABLED_KEY));
+    if (!enabled) {
+      return false;
+    }
+  }
+  JsonObject *nodeSettings = NULL;
+  JsonObject *mediationLayerSettings = NULL;
+  if (!enabled) {
+    nodeSettings = jsonObjectGetObject(serverConfig, "node");
+    if (!nodeSettings) {
+      return false;
+    }
+    mediationLayerSettings = jsonObjectGetObject(nodeSettings, "mediationLayer");
+    if (!mediationLayerSettings) {
+      return false;
+    }
+    enabled = jsonObjectGetBoolean(mediationLayerSettings, ENABLED_KEY);
+    if (!enabled) {
+      return false;
+    }
+  }
+  enabledSettingFound = jsonObjectGetBoolean(envConfig, NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(ENABLED_KEY));
+  if (enabledSettingFound) {
+    enabled = jsonObjectGetBoolean(envConfig, NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(ENABLED_KEY));
+    return enabled;
+  }
+  JsonObject *cachingServiceSettings = jsonObjectGetObject(mediationLayerSettings, "cachingService");
+  if (!cachingServiceSettings) {
+    return false;
+  }
+  enabled = jsonObjectGetBoolean(cachingServiceSettings, ENABLED_KEY);
+  return enabled;
 }
 
 static int validateAddress(char *address, InetAddr **inetAddress, int *requiredTLSFlag) {
@@ -1374,8 +1525,14 @@ int main(int argc, char **argv){
     int port = 0;
     char *address = NULL;
     TlsSettings *tlsSettings = NULL;
-    bool httpsSettingsFound = readAgentHttpsSettings(slh, mvdSettings, envSettings, &address, &port, &tlsSettings);
-    if (!httpsSettingsFound) {
+    TlsEnvironment *tlsEnv = NULL;
+    bool isHttpsConfigured = readAgentHttpsSettings(slh, mvdSettings, envSettings, &address, &port, &tlsEnv);
+    if (isHttpsConfigured && !tlsEnv) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_HTTPS_INVALID_MSG);
+      zssStatus = ZSS_STATUS_ERROR;
+      goto out_term_stcbase;
+    }
+    if (!isHttpsConfigured) {
       readAgentAddressAndPort(mvdSettings, envSettings, &address, &port);
     }
     InetAddr *inetAddress = NULL;
@@ -1385,22 +1542,9 @@ int main(int argc, char **argv){
       zssStatus = ZSS_STATUS_ERROR;
       goto out_term_stcbase;
     }
-
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port, httpsSettingsFound ? "https" : "http");
-    if (httpsSettingsFound) {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
-              tlsSettings->keyring,
-              tlsSettings->label ? tlsSettings->label : "(no label)",
-              tlsSettings->password ? "****" : "(no password)",
-              tlsSettings->stash ? tlsSettings->stash : "(no stash)");
-      TlsEnvironment *env = NULL;
-      int rc = tlsInit(&env, tlsSettings);
-      if (rc != 0) {
-        zssStatus = ZSS_STATUS_ERROR;
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_TLS_INIT_MSG, rc, tlsStrError(rc));
-        goto out_term_stcbase;
-      }
-      server = makeSecureHttpServer(base, inetAddress, port, env, requiredTLSFlag, &returnCode, &reasonCode);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port,  isHttpsConfigured ? "https" : "http");
+    if (isHttpsConfigured) {
+      server = makeSecureHttpServer(base, inetAddress, port, tlsEnv, requiredTLSFlag, &returnCode, &reasonCode);
     } else {
       server = makeHttpServer2(base, inetAddress, port, requiredTLSFlag, &returnCode, &reasonCode);
     }
@@ -1409,10 +1553,11 @@ int main(int argc, char **argv){
         zssStatus = ZSS_STATUS_ERROR;
         goto out_term_stcbase;
       }
+      ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettings(slh, mvdSettings, envSettings, tlsEnv);
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
-      readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile);
+      readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile, apimlStorageSettings);
       installCertificateService(server);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
