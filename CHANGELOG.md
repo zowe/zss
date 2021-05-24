@@ -6,10 +6,10 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## `1.22.0`
 
-### New features and enhancements]
+### New features and enhancements
 - Added RBAC capability via SAF checks
 
-- Bugfix: Dataset contents API doesn't skip empty records while reading a dataset
+- Bugfix: Dataset contents API doesn't skip empty records while reading a dataset 
 
 ## `1.21.0`
 
