@@ -65,9 +65,11 @@
  *    }
  */
 
-static int serveAuthCheck(HttpService *service, HttpResponse *response);
+int serveAuthCheck(HttpService *service, HttpResponse *response);
 
-const char* getProfileNameFromRequest(char *url, const char *method, int instanceID);
+int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char* entity, int access);
+
+const char* getProfileNameFromRequest(char *profileName, char *url, const char *method, int instanceID);
 
 static const char* makeProfileName(
   const char *type,
@@ -88,7 +90,6 @@ int installAuthCheckService(HttpServer *server) {
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = &serveAuthCheck;
   httpService->runInSubtask = FALSE;
-  getProfileNameFromRequest("/plugins", "GET", -1);
   registerHttpService(server, httpService);
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "end %s\n",
 //  __FUNCTION__);
@@ -170,11 +171,16 @@ static void respond(HttpResponse *res, int rc, const ZISAuthServiceStatus
   finishResponse(res);
 }
 
-static int serveAuthCheck(HttpService *service, HttpResponse *res) {
+int serveAuthCheck(HttpService *service, HttpResponse *res) {
   HttpRequest *req = res->request;
   char *entity, *accessStr;
   int access = 0;
   int rc = 0, rsn = 0, safStatus = 0;
+  char *uri = safeMalloc(1024, "uri");
+  snprintf(uri, 1024, "%s", req->uri); 
+  destructivelyNativize(uri);
+  // TODO: Remove printf's for a merge
+  printf("\n\n\nBegin with this URI %s\n\n\n", uri);
   ZISAuthServiceStatus reqStatus = {0};
   CrossMemoryServerName *privilegedServerName;
   const char *userName = req->username, *class = SAF_CLASS;
@@ -188,22 +194,38 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
     respondWithError(res, HTTP_STATUS_BAD_REQUEST, "Unexpected access level");
     return 0;
   }
+  printf("\n\n\naccessStr - %s : entity - %s : rc - %d : parsedFile - %s\n\n\n", accessStr, entity, rc, req->parsedFile);
+  
   // printf("\n\nquery: user %s, class %s, entity %s, access %d accessStr %s\n", userName, class,
       // entity, access, accessStr);
   privilegedServerName = getConfiguredProperty(service->server,
       HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   rc = zisCheckEntity(privilegedServerName, userName, class, entity, access,
       &reqStatus);
+  printf("\n\n\nRESULTS OF ZISCHECKENTITY privilegedServerName - %s : userName - %s : class - %s : entity - %s : access - %d: reqstatus - %s : rc - %d\n\n\n", privilegedServerName, userName, class, entity, access,
+      &reqStatus, rc);
+  
   respond(res, rc, &reqStatus);
   return 0;
 }
 
-const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
+int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char *entity, int access) {
+  int rc = 0;
+  CrossMemoryServerName *privilegedServerName = getConfiguredProperty(service->server,
+      HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
+  ZISAuthServiceStatus reqStatus = {0};
+  rc = zisCheckEntity(privilegedServerName, userName, Class, entity, access,
+      &reqStatus);
+  printf("\n\n\nRESULTS OF serveAuthCheckByParams privilegedServerName - %s : userName - %s : class - %s : entity - %s : access - %d: reqstatus - %s : rc - %d\n\n\n", privilegedServerName, userName, Class, entity, access,
+      &reqStatus, rc);
+  return rc;
+}
+
+const char* getProfileNameFromRequest(char *profileName, char *url, char *method, int instanceID) {
   char type[8]; // core || config || service
   char productCode[1024];
   char rootServiceName[1024];
   char subUrl[15][1024];
-  char *profileName = safeMalloc(1024, "profileName");
   char scope[1024];
   char placeHolder1[1024], pluginID[1024], placeHolder2[1024], serviceName[1024], placeHolder3[1024];
   char regexStr[] = "^/[A-Za-z0-9]*/plugins/";
@@ -320,7 +342,6 @@ const char* getProfileNameFromRequest(char *url, char *method, int instanceID) {
     method,
     scope,
     subUrl));
-  printf("\n\nFinal query profileName & URL %s - %s\n\n", profileName, url);
   
   /* Free memory allocated to the pattern buffer by regcomp() */
   regfree(&regex);
@@ -372,8 +393,6 @@ static const char* makeProfileName(
       return NULL;
     }
     snprintf(profileName, 1024, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
-    return profileName;
-    
   } else if (strcmp(type, "config") == 0) {
     if (pluginID == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
@@ -386,7 +405,6 @@ static const char* makeProfileName(
       return NULL;
     }
     snprintf(profileName, 1024, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
-    return profileName;
   } else if (strcmp(type, "core") == 0) {
     if (rootServiceName == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
@@ -394,8 +412,14 @@ static const char* makeProfileName(
       return NULL;
     }
     snprintf(profileName, 1024, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
-    return profileName;
   }
+  // Child endpoints housed via subUrl
+  int index = 0;
+  while (index < 15 && strcmp(subUrl[index], "") != 0) {
+    snprintf(profileName, 1024, "%s.%s", profileName, subUrl[index]);
+    index++;
+  }
+  return profileName;
 }
 
 /* Method goes here to do the same thing serveAuthCheck is doing except w/o input HttpService */

@@ -28,6 +28,10 @@
 
 int installAuthCheckService(HttpServer *server);
 void installZosPasswordService(HttpServer *server);
+const char* getProfileNameFromRequest(char *profileName, char *url, char *method, int instanceID);
+int serveAuthCheck(HttpService *service, HttpResponse *res);
+int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char *entity, int access);
+
 
 #endif
 
