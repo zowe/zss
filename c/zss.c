@@ -120,8 +120,7 @@ static int stringEndsWith(char *s, char *suffix);
 static void dumpJson(Json *json);
 static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
                                         char *pluginIdentifier,
-                                        char *pluginLocation,
-                                        char *relativeTo);
+                                        char *resolvedPluginLocation);
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
                                                   const char *serverConfigFile, ApimlStorageSettings *apimlStorageSettings);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
@@ -533,27 +532,56 @@ static InternalAPIMap *makeInternalAPIMap(void) {
   return map;
 }
 
+static char* resolvePluginLocation(ShortLivedHeap *slh, const char *pluginLocation, const char *relativeTo) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "resolving pluginLocation '%s' relative to '%s'\n",
+          pluginLocation ? pluginLocation : "<NULL>",
+          relativeTo ? relativeTo : "<NULL>");
+  if (!pluginLocation) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "pluginLocation is <NULL>\n");
+    return NULL;
+  }
+  const int maxPathSize = 1024;
+  char *resolvedPluginLocation = SLHAlloc(slh, maxPathSize);
+  if (!resolvedPluginLocation) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "failed to allocate memory for resolvedPluginLocation\n");
+    return NULL;
+  }
+  int pluginLocationLen = strlen(pluginLocation);
+  int relativeToLen = relativeTo ? strlen(relativeTo) : 0;
+  bool hasTrailingSlash = (pluginLocationLen > 0 && pluginLocation[pluginLocationLen - 1] == '/');
+  if (relativeTo != NULL && relativeToLen > 1 && relativeTo[0] == '$') {
+    char *varValue = getenv(relativeTo + 1);
+    if (varValue) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "relativeTo '%s' resolves to '%s'\n", relativeTo, varValue);
+      relativeTo = varValue;
+    } else {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "unable to resolve relativeTo '%s', env var not set\n", relativeTo, varValue);
+    }
+  }
+  if (!relativeTo || (pluginLocation[0] == '/')) {
+    snprintf(resolvedPluginLocation, maxPathSize, "%.*s",
+             hasTrailingSlash ? pluginLocationLen - 1 : pluginLocationLen,
+             pluginLocation);
+  } else {
+    bool relativeNeedsSlash = (relativeToLen > 0 && relativeTo[relativeToLen - 1] != '/');
+    snprintf(resolvedPluginLocation, maxPathSize, "%s%s%.*s",
+            relativeTo, relativeNeedsSlash ? "/" : "",
+            hasTrailingSlash ? pluginLocationLen - 1 : pluginLocationLen,
+            pluginLocation);
+  }
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "resolved pluginLocation is '%s'\n", resolvedPluginLocation);
+  return resolvedPluginLocation;
+}
+
 static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
                                         char *pluginIdentifier,
-                                        char *pluginLocation,
-                                        char *relativeTo) {
+                                        char *resolvedPluginLocation) {
   JsonObject *pluginDefinition = NULL;
   char path[1024];
   char errorBuffer[512];
-  int pluginLocationLen = strlen(pluginLocation);
-  int needsSlash = (pluginLocation[pluginLocationLen - 1] != '/');
   
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s begin identifier %s location %s\n", __FUNCTION__, pluginIdentifier, pluginLocation);
-  if (relativeTo == NULL || (pluginLocation[0] == '/')) {
-    sprintf(path, "%s%s%s", pluginLocation, needsSlash ? "/" : "", "pluginDefinition.json");
-  } else {
-    int relativeLength = strlen(relativeTo);
-    int relativeNeedsSlash = (relativeTo[relativeLength - 1] != '/');
-    sprintf(path, "%s%s%s%s%s",
-            relativeTo, relativeNeedsSlash ? "/" : "",
-            pluginLocation, needsSlash ? "/" : "",
-            "pluginDefinition.json");
-  }
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s begin identifier %s location %s\n", __FUNCTION__, pluginIdentifier, resolvedPluginLocation);
+  sprintf(path, "%s/%s", resolvedPluginLocation, "pluginDefinition.json");
   Json *pluginDefinitionJson = jsonParseFile(slh, path, errorBuffer, sizeof (errorBuffer));
   if (pluginDefinitionJson) {
     dumpJson(pluginDefinitionJson);
@@ -741,23 +769,16 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
               char *identifier = jsonObjectGetString(jsonObject, "identifier");
               char *pluginLocation = jsonObjectGetString(jsonObject, "pluginLocation");
               char *relativeTo = jsonObjectGetString(jsonObject, "relativeTo");
-              if (relativeTo != NULL && relativeTo[0] == '$') {
-#ifdef METTLE
-                printf("relativeTo env var plugin resolution unimplemented in metal\n");
-#else
-                char *varValue = getenv(relativeTo+1);
-                if (varValue != NULL) { relativeTo = varValue; }
-#endif
-              }
+              char *resolvedPluginLocation = resolvePluginLocation(slh, pluginLocation, relativeTo);
               int pluginLogLevel = checkLoggingVerbosity(serverConfigFile, identifier, slh);
-              if (identifier && pluginLocation) {
-                JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, pluginLocation, relativeTo);
+              if (identifier && resolvedPluginLocation) {
+                JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, resolvedPluginLocation);
                 if (pluginDefinition) {
                   Storage *remoteStorage = NULL;
                   if (apimlStorageSettings) {
                     remoteStorage = makeApimlStorage(apimlStorageSettings, identifier);
                   }
-                  WebPlugin *plugin = makeWebPlugin2(pluginLocation, pluginDefinition, internalAPIMap,
+                  WebPlugin *plugin = makeWebPlugin2(resolvedPluginLocation, pluginDefinition, internalAPIMap,
                                                     &idMultiplier, pluginLogLevel, remoteStorage);
                   if (plugin != NULL) {
                     initalizeWebPlugin(plugin, server);
