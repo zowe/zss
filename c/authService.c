@@ -211,9 +211,14 @@ int serveAuthCheck(HttpService *service, HttpResponse *res) {
 
 int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char *entity, int access) {
   int rc = 0;
+  JsonObject *dataserviceAuth = jsonObjectGetObject(service->server->sharedServiceMem, "dataserviceAuthentication");
+  int rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
   CrossMemoryServerName *privilegedServerName = getConfiguredProperty(service->server,
       HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   ZISAuthServiceStatus reqStatus = {0};
+  if (!rbacParm) {
+    return rc; // When rbac isn't enabled, we don't try to check the auth query
+  }
   rc = zisCheckEntity(privilegedServerName, userName, Class, entity, access,
       &reqStatus);
   printf("\n\n\nRESULTS OF serveAuthCheckByParams privilegedServerName - %s : userName - %s : class - %s : entity - %s : access - %d: reqstatus - %s : rc - %d\n\n\n", privilegedServerName, userName, Class, entity, access,
