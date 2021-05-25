@@ -10,6 +10,8 @@ All notable changes to the ZSS package will be documented in this file.
 - Added RBAC capability via SAF checks
 
 - Bugfix: Dataset contents API doesn't skip empty records while reading a dataset 
+- Enhancement: Plugins can push state out to the Caching Service for high availability storage via a storage API, available to dataservices as `remoteStorage`
+- Enhancement: Plugins can push state out to the In-Memory Storage via a storage API, available to dataservices as `localStorage`
 
 ## `1.21.0`
 
