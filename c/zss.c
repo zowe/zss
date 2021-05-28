@@ -1111,41 +1111,40 @@ static bool readGatewaySettings(JsonObject *serverConfig,
 #define ENABLED_KEY "enabled"
 
 static bool isCachingServiceEnabled(JsonObject *serverConfig, JsonObject *envConfig) {
-  bool enabledSettingFound = jsonObjectHasKey(envConfig, ENV_NODE_MEDIATION_LAYER_KEY(ENABLED_KEY));
-  bool enabled = false;
-  if (enabledSettingFound) {
-    enabled = jsonObjectGetBoolean(envConfig, ENV_NODE_MEDIATION_LAYER_KEY(ENABLED_KEY));
-    if (!enabled) {
+  bool mediationLayerEnabledFound = jsonObjectHasKey(envConfig, ENV_NODE_MEDIATION_LAYER_KEY(ENABLED_KEY));
+  bool mediationLayerEnabled = false;
+  if (mediationLayerEnabledFound) {
+    mediationLayerEnabled = jsonObjectGetBoolean(envConfig, ENV_NODE_MEDIATION_LAYER_KEY(ENABLED_KEY));
+    if (!mediationLayerEnabled) {
       return false;
     }
   }
-  JsonObject *nodeSettings = NULL;
+  JsonObject *nodeSettings = jsonObjectGetObject(serverConfig, "node");
   JsonObject *mediationLayerSettings = NULL;
-  if (!enabled) {
-    nodeSettings = jsonObjectGetObject(serverConfig, "node");
-    if (!nodeSettings) {
-      return false;
-    }
+  JsonObject *cachingServiceSettings = NULL;
+  if (nodeSettings) {
     mediationLayerSettings = jsonObjectGetObject(nodeSettings, "mediationLayer");
+  }
+  if (mediationLayerSettings) {
+    cachingServiceSettings = jsonObjectGetObject(mediationLayerSettings, "cachingService");
+  }
+  if (!mediationLayerEnabled) {
     if (!mediationLayerSettings) {
       return false;
     }
-    enabled = jsonObjectGetBoolean(mediationLayerSettings, ENABLED_KEY);
-    if (!enabled) {
+    mediationLayerEnabled = jsonObjectGetBoolean(mediationLayerSettings, ENABLED_KEY);
+    if (!mediationLayerEnabled) {
       return false;
     }
   }
-  enabledSettingFound = jsonObjectGetBoolean(envConfig, NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(ENABLED_KEY));
-  if (enabledSettingFound) {
-    enabled = jsonObjectGetBoolean(envConfig, NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(ENABLED_KEY));
-    return enabled;
+  bool cachingServiceEnabledFound = jsonObjectGetBoolean(envConfig, NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(ENABLED_KEY));
+  if (cachingServiceEnabledFound) {
+    return jsonObjectGetBoolean(envConfig, NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(ENABLED_KEY));
   }
-  JsonObject *cachingServiceSettings = jsonObjectGetObject(mediationLayerSettings, "cachingService");
   if (!cachingServiceSettings) {
     return false;
   }
-  enabled = jsonObjectGetBoolean(cachingServiceSettings, ENABLED_KEY);
-  return enabled;
+  return jsonObjectGetBoolean(cachingServiceSettings, ENABLED_KEY);
 }
 
 static int validateAddress(char *address, InetAddr **inetAddress, int *requiredTLSFlag) {
