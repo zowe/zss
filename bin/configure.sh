@@ -70,24 +70,27 @@ else
   PROTOCOL="https"
 fi
 
+HTTPS_PREFIX="ZWED_agent_https_"
+
 if [ "${ZOWE_ZSS_SERVER_TLS}" = "false" ]
 then
   # HTTP
   export "ZWED_agent_http_port=${ZOWE_ZSS_SERVER_PORT}"
 else
   # HTTPS
-  PREFIX="ZWED_agent_https_"
-  export "${PREFIX}port=${ZOWE_ZSS_SERVER_PORT}"
-  export "${PREFIX}label=${KEY_ALIAS}"
-  IP_ADDRESSES_KEY_var="${PREFIX}ipAddresses"
+  export "${HTTPS_PREFIX}port=${ZOWE_ZSS_SERVER_PORT}"
+  IP_ADDRESSES_KEY_var="${HTTPS_PREFIX}ipAddresses"
   eval "IP_ADDRESSES_val=\"\$${IP_ADDRESSES_KEY_var}\""
   if [ -z "${IP_ADDRESSES_val}" ]; then
     export "${IP_ADDRESSES_KEY_var}"="${ZOWE_IP_ADDRESS}"
   fi
-  if [ "${KEYSTORE_TYPE}" = "JCERACFKS" ]; then
-    export "${PREFIX}keyring=${KEYRING_OWNER}/${KEYRING_NAME}"
-  else
-    export "${PREFIX}keyring=${KEYSTORE}"
-    export "${PREFIX}password=${KEYSTORE_PASSWORD}"
-  fi
+fi
+
+# Keystore settings are used for both https server and Caching Service
+export "${HTTPS_PREFIX}label=${KEY_ALIAS}"
+if [ "${KEYSTORE_TYPE}" = "JCERACFKS" ]; then
+  export "${HTTPS_PREFIX}keyring=${KEYRING_OWNER}/${KEYRING_NAME}"
+else
+  export "${HTTPS_PREFIX}keyring=${KEYSTORE}"
+  export "${HTTPS_PREFIX}password=${KEYSTORE_PASSWORD}"
 fi

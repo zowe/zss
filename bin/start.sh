@@ -23,6 +23,7 @@
 
 OSNAME=$(uname)
 if [[ "${OSNAME}" == "OS/390" ]]; then
+  export _EDC_ZERO_RECLEN=Y # allow processing of zero-length records in datasets
   cd ${ROOT_DIR}/components/zss/bin
   ./zssServer.sh
 else
