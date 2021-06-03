@@ -118,8 +118,7 @@ static int stringEndsWith(char *s, char *suffix);
 static void dumpJson(Json *json);
 static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
                                         char *pluginIdentifier,
-                                        char *pluginLocation,
-                                        char *relativeTo);
+                                        char *resolvedPluginLocation);
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
                                                   const char *serverConfigFile);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
@@ -563,27 +562,56 @@ static InternalAPIMap *makeInternalAPIMap(void) {
   return map;
 }
 
+static char* resolvePluginLocation(ShortLivedHeap *slh, const char *pluginLocation, const char *relativeTo) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "resolving pluginLocation '%s' relative to '%s'\n",
+          pluginLocation ? pluginLocation : "<NULL>",
+          relativeTo ? relativeTo : "<NULL>");
+  if (!pluginLocation) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "pluginLocation is <NULL>\n");
+    return NULL;
+  }
+  const int maxPathSize = 1024;
+  char *resolvedPluginLocation = SLHAlloc(slh, maxPathSize);
+  if (!resolvedPluginLocation) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "failed to allocate memory for resolvedPluginLocation\n");
+    return NULL;
+  }
+  int pluginLocationLen = strlen(pluginLocation);
+  int relativeToLen = relativeTo ? strlen(relativeTo) : 0;
+  bool hasTrailingSlash = (pluginLocationLen > 0 && pluginLocation[pluginLocationLen - 1] == '/');
+  if (relativeTo != NULL && relativeToLen > 1 && relativeTo[0] == '$') {
+    char *varValue = getenv(relativeTo + 1);
+    if (varValue) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "relativeTo '%s' resolves to '%s'\n", relativeTo, varValue);
+      relativeTo = varValue;
+    } else {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "unable to resolve relativeTo '%s', env var not set\n", relativeTo, varValue);
+    }
+  }
+  if (!relativeTo || (pluginLocation[0] == '/')) {
+    snprintf(resolvedPluginLocation, maxPathSize, "%.*s",
+             hasTrailingSlash ? pluginLocationLen - 1 : pluginLocationLen,
+             pluginLocation);
+  } else {
+    bool relativeNeedsSlash = (relativeToLen > 0 && relativeTo[relativeToLen - 1] != '/');
+    snprintf(resolvedPluginLocation, maxPathSize, "%s%s%.*s",
+            relativeTo, relativeNeedsSlash ? "/" : "",
+            hasTrailingSlash ? pluginLocationLen - 1 : pluginLocationLen,
+            pluginLocation);
+  }
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "resolved pluginLocation is '%s'\n", resolvedPluginLocation);
+  return resolvedPluginLocation;
+}
+
 static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
                                         char *pluginIdentifier,
-                                        char *pluginLocation,
-                                        char *relativeTo) {
+                                        char *resolvedPluginLocation) {
   JsonObject *pluginDefinition = NULL;
   char path[1024];
   char errorBuffer[512];
-  int pluginLocationLen = strlen(pluginLocation);
-  int needsSlash = (pluginLocation[pluginLocationLen - 1] != '/');
   
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s begin identifier %s location %s\n", __FUNCTION__, pluginIdentifier, pluginLocation);
-  if (relativeTo == NULL || (pluginLocation[0] == '/')) {
-    sprintf(path, "%s%s%s", pluginLocation, needsSlash ? "/" : "", "pluginDefinition.json");
-  } else {
-    int relativeLength = strlen(relativeTo);
-    int relativeNeedsSlash = (relativeTo[relativeLength - 1] != '/');
-    sprintf(path, "%s%s%s%s%s",
-            relativeTo, relativeNeedsSlash ? "/" : "",
-            pluginLocation, needsSlash ? "/" : "",
-            "pluginDefinition.json");
-  }
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s begin identifier %s location %s\n", __FUNCTION__, pluginIdentifier, resolvedPluginLocation);
+  sprintf(path, "%s/%s", resolvedPluginLocation, "pluginDefinition.json");
   Json *pluginDefinitionJson = jsonParseFile(slh, path, errorBuffer, sizeof (errorBuffer));
   if (pluginDefinitionJson) {
     dumpJson(pluginDefinitionJson);
@@ -770,20 +798,17 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
               char *identifier = jsonObjectGetString(jsonObject, "identifier");
               char *pluginLocation = jsonObjectGetString(jsonObject, "pluginLocation");
               char *relativeTo = jsonObjectGetString(jsonObject, "relativeTo");
-              if (relativeTo != NULL && relativeTo[0] == '$') {
-#ifdef METTLE
-                printf("relativeTo env var plugin resolution unimplemented in metal\n");
-#else
-                char *varValue = getenv(relativeTo+1);
-                if (varValue != NULL) { relativeTo = varValue; }
-#endif
-              }
+              char *resolvedPluginLocation = resolvePluginLocation(slh, pluginLocation, relativeTo);
               int pluginLogLevel = checkLoggingVerbosity(serverConfigFile, identifier, slh);
-              if (identifier && pluginLocation) {
-                JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, pluginLocation, relativeTo);
+              if (identifier && resolvedPluginLocation) {
+                JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, resolvedPluginLocation);
                 if (pluginDefinition) {
-                  WebPlugin *plugin = makeWebPlugin(pluginLocation, pluginDefinition, internalAPIMap,
-                                                    &idMultiplier, pluginLogLevel);
+                  Storage *remoteStorage = NULL;
+                  if (apimlStorageSettings) {
+                    remoteStorage = makeApimlStorage(apimlStorageSettings, identifier);
+                  }
+                  WebPlugin *plugin = makeWebPlugin2(resolvedPluginLocation, pluginDefinition, internalAPIMap,
+                                                    &idMultiplier, pluginLogLevel, remoteStorage);
                   if (plugin != NULL) {
                     initalizeWebPlugin(plugin, server);
                     //zlux does this, so don't bother doing it twice.
@@ -1028,7 +1053,100 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
     *outAddress = address;
     *outSettings = settings;
   }
-  return httpsSettingsFound;
+  return isHttpsConfigured;
+}
+
+#define NODE_MEDIATION_LAYER_SERVER_PREFIX   "ZWED_node_mediationLayer_server_"
+#define ENV_NODE_MEDIATION_LAYER_SERVER_KEY(key) NODE_MEDIATION_LAYER_SERVER_PREFIX key
+
+// Returns false if gateway host and port not found
+static bool readGatewaySettings(JsonObject *serverConfig,
+                                JsonObject *envConfig,
+                                char **outGatewayHost,
+                                int *outGatewayPort
+                               ) {
+  char *gatewayHost = jsonObjectGetString(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("gatewayHostname"));
+  char *hostname = jsonObjectGetString(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("hostname"));
+  int gatewayPort = jsonObjectGetNumber(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("gatewayPort"));
+  if (gatewayHost && gatewayPort) {
+    *outGatewayHost = gatewayHost;
+    *outGatewayPort = gatewayPort;
+    return true;
+  }
+
+  JsonObject *nodeSettings = jsonObjectGetObject(serverConfig, "node");
+  if (!nodeSettings) {
+    return false;
+  }
+  JsonObject *mediationLayerSettings = jsonObjectGetObject(nodeSettings, "mediationLayer");
+  if (!mediationLayerSettings) {
+    return false;
+  }
+  JsonObject *serverSettings = jsonObjectGetObject(mediationLayerSettings, "server");
+  if (!serverSettings) {
+    return false;
+  }
+  if (!gatewayHost) {
+    gatewayHost = jsonObjectGetString(serverSettings, "gatewayHostname");
+  }
+  if (!gatewayHost) {
+    gatewayHost = hostname;
+  }
+  if (!gatewayHost) {
+    gatewayHost = jsonObjectGetString(serverSettings, "hostname");
+  }
+  if (!gatewayPort) {
+    gatewayPort = jsonObjectGetNumber(serverSettings, "gatewayPort");
+  }
+  if (!gatewayHost || !gatewayPort) {
+    return false;
+  }
+  *outGatewayHost = gatewayHost;
+  *outGatewayPort = gatewayPort;
+  return true;
+}
+
+#define NODE_MEDIATION_LAYER_PREFIX   "ZWED_node_mediationLayer_"
+#define ENV_NODE_MEDIATION_LAYER_KEY(key) NODE_MEDIATION_LAYER_PREFIX key
+#define NODE_MEDIATION_LAYER_CACHING_SERVICE_PREFIX   NODE_MEDIATION_LAYER_PREFIX "cachingService_"
+#define NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(key) NODE_MEDIATION_LAYER_CACHING_SERVICE_PREFIX key
+#define ENABLED_KEY "enabled"
+
+static bool isCachingServiceEnabled(JsonObject *serverConfig, JsonObject *envConfig) {
+  bool mediationLayerEnabledFound = jsonObjectHasKey(envConfig, ENV_NODE_MEDIATION_LAYER_KEY(ENABLED_KEY));
+  bool mediationLayerEnabled = false;
+  if (mediationLayerEnabledFound) {
+    mediationLayerEnabled = jsonObjectGetBoolean(envConfig, ENV_NODE_MEDIATION_LAYER_KEY(ENABLED_KEY));
+    if (!mediationLayerEnabled) {
+      return false;
+    }
+  }
+  JsonObject *nodeSettings = jsonObjectGetObject(serverConfig, "node");
+  JsonObject *mediationLayerSettings = NULL;
+  JsonObject *cachingServiceSettings = NULL;
+  if (nodeSettings) {
+    mediationLayerSettings = jsonObjectGetObject(nodeSettings, "mediationLayer");
+  }
+  if (mediationLayerSettings) {
+    cachingServiceSettings = jsonObjectGetObject(mediationLayerSettings, "cachingService");
+  }
+  if (!mediationLayerEnabled) {
+    if (!mediationLayerSettings) {
+      return false;
+    }
+    mediationLayerEnabled = jsonObjectGetBoolean(mediationLayerSettings, ENABLED_KEY);
+    if (!mediationLayerEnabled) {
+      return false;
+    }
+  }
+  bool cachingServiceEnabledFound = jsonObjectGetBoolean(envConfig, NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(ENABLED_KEY));
+  if (cachingServiceEnabledFound) {
+    return jsonObjectGetBoolean(envConfig, NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(ENABLED_KEY));
+  }
+  if (!cachingServiceSettings) {
+    return false;
+  }
+  return jsonObjectGetBoolean(cachingServiceSettings, ENABLED_KEY);
 }
 
 static int validateAddress(char *address, InetAddr **inetAddress, int *requiredTLSFlag) {
