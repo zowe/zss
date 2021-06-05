@@ -79,6 +79,8 @@
 #ifdef USE_ZOWE_TLS
 #include "tls.h"
 #endif // USE_ZOWE_TLS
+#include "storage.h"
+#include "storageApiml.h"
 
 #define PRODUCT "ZLUX"
 #ifndef PRODUCT_MAJOR_VERSION
@@ -120,10 +122,12 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
                                         char *pluginIdentifier,
                                         char *resolvedPluginLocation);
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
-                                                  const char *serverConfigFile);
+                                                  const char *serverConfigFile, ApimlStorageSettings *apimlStorageSettings);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts, const char *key);
 static InternalAPIMap *makeInternalAPIMap(void);
+static bool readGatewaySettings(JsonObject *serverConfig, JsonObject *envConfig, char **outGatewayHost, int *outGatewayPort);
+static bool isCachingServiceEnabled(JsonObject *serverConfig, JsonObject *envConfig);
 static int authHandlerFunction();
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
@@ -761,7 +765,8 @@ static int checkLoggingVerbosity(const char *serverConfigFile, char *pluginIdent
 }
 
 static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLivedHeap *slh, char *dirname,
-                                                  const char *serverConfigFile) {
+                                                  const char *serverConfigFile,
+                                                  ApimlStorageSettings *apimlStorageSettings) {
   int pluginDefinitionCount = 0;
   int returnCode;
   int reasonCode;
@@ -870,6 +875,40 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
   return webPluginListHead;
 }
 
+static ApimlStorageSettings *readApimlStorageSettings(ShortLivedHeap *slh, JsonObject *serverConfig, JsonObject *envConfig, TlsEnvironment *tlsEnv) {
+  char *host = NULL;
+  int port = 0;
+  bool configured = false;
+
+  do {
+    if (!isCachingServiceEnabled(serverConfig, envConfig)) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Caching Service disabled\n");
+      break;
+    }
+    if (!readGatewaySettings(serverConfig, envConfig, &host, &port)) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Gateway settings not found\n");
+      break;
+    }
+    if (!tlsEnv) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "TLS settings not found\n");
+      break;
+    }
+    configured = true;
+  } while(0);
+
+  if (!configured) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_CACHE_NOT_CFG_MSG);
+    return NULL;
+  }
+  ApimlStorageSettings *settings = (ApimlStorageSettings*)SLHAlloc(slh, sizeof(*settings));
+  memset(settings, 0, sizeof(*settings));
+  settings->host = host;
+  settings->port = port;
+  settings->tlsEnv = tlsEnv;
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_CACHE_SETTINGS_MSG settings->host, settings->port);
+  return settings;
+}
+
 static const char defaultConfigPath[] = "../defaults/serverConfig/server.json";
 
 static
@@ -923,6 +962,7 @@ static void initLoggingComponents(void) {
   logConfigureComponent(NULL, LOG_COMP_DATASERVICE, "ZSS dataservices", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+  logConfigureComponent(NULL, LOG_COMP_ID_APIML_STORAGE, "APIML Storage", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_START_VER_MSG, productVersion);
 }
 
@@ -1002,7 +1042,7 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
                                    JsonObject *envConfig,
                                    char **outAddress,
                                    int *outPort,
-                                   TlsSettings **outSettings
+                                   TlsEnvironment **outTlsEnv
                                   ) {
   int port = jsonObjectGetNumber(envConfig, ENV_AGENT_HTTPS_KEY(PORT_KEY));
   char *address = jsonObjectGetString(envConfig, ENV_AGENT_HTTPS_KEY(IP_ADDRESSES_KEY));
@@ -1047,11 +1087,24 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
   if (!address) {
     address = "127.0.0.1";
   }
-  bool httpsSettingsFound = port && settings->keyring;
-  if (httpsSettingsFound) {
+  bool isHttpsConfigured = port && settings->keyring;
+  if (settings->keyring) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
+              settings->keyring,
+              settings->label ? settings->label : "(no label)",
+              settings->password ? "****" : "(no password)",
+              settings->stash ? settings->stash : "(no stash)");
+    TlsEnvironment *tlsEnv = NULL;
+    int rc = tlsInit(&tlsEnv, settings);
+    if (rc != 0) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_TLS_INIT_MSG, rc, tlsStrError(rc));
+    } else {
+      *outTlsEnv = tlsEnv;
+    }
+  }
+  if (isHttpsConfigured) {
     *outPort = port;
     *outAddress = address;
-    *outSettings = settings;
   }
   return isHttpsConfigured;
 }
@@ -1526,8 +1579,14 @@ int main(int argc, char **argv){
     int port = 0;
     char *address = NULL;
     TlsSettings *tlsSettings = NULL;
-    bool httpsSettingsFound = readAgentHttpsSettings(slh, mvdSettings, envSettings, &address, &port, &tlsSettings);
-    if (!httpsSettingsFound) {
+    TlsEnvironment *tlsEnv = NULL;
+    bool isHttpsConfigured = readAgentHttpsSettings(slh, mvdSettings, envSettings, &address, &port, &tlsEnv);
+    if (isHttpsConfigured && !tlsEnv) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_HTTPS_INVALID_MSG);
+      zssStatus = ZSS_STATUS_ERROR;
+      goto out_term_stcbase;
+    }
+    if (!isHttpsConfigured) {
       readAgentAddressAndPort(mvdSettings, envSettings, &address, &port);
     }
     InetAddr *inetAddress = NULL;
@@ -1538,21 +1597,9 @@ int main(int argc, char **argv){
       goto out_term_stcbase;
     }
 
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port, httpsSettingsFound ? "https" : "http");
-    if (httpsSettingsFound) {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
-              tlsSettings->keyring,
-              tlsSettings->label ? tlsSettings->label : "(no label)",
-              tlsSettings->password ? "****" : "(no password)",
-              tlsSettings->stash ? tlsSettings->stash : "(no stash)");
-      TlsEnvironment *env = NULL;
-      int rc = tlsInit(&env, tlsSettings);
-      if (rc != 0) {
-        zssStatus = ZSS_STATUS_ERROR;
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_TLS_INIT_MSG, rc, tlsStrError(rc));
-        goto out_term_stcbase;
-      }
-      server = makeSecureHttpServer(base, inetAddress, port, env, requiredTLSFlag, &returnCode, &reasonCode);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port,  isHttpsConfigured ? "https" : "http");
+    if (isHttpsConfigured) {
+      server = makeSecureHttpServer(base, inetAddress, port, tlsEnv, requiredTLSFlag, &returnCode, &reasonCode);
     } else {
       server = makeHttpServer2(base, inetAddress, port, requiredTLSFlag, &returnCode, &reasonCode);
     }
@@ -1561,11 +1608,12 @@ int main(int argc, char **argv){
         zssStatus = ZSS_STATUS_ERROR;
         goto out_term_stcbase;
       }
+      ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettings(slh, mvdSettings, envSettings, tlsEnv);
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
       initializeAuthHandlers(server);
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
-      readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile);
+      readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile, apimlStorageSettings);
       installCertificateService(server);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
