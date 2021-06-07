@@ -65,7 +65,7 @@
  *    }
  */
 
-int serveAuthCheck(HttpService *service, HttpResponse *response);
+static int serveAuthCheck(HttpService *service, HttpResponse *response);
 
 int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char* entity, int access);
 
@@ -179,8 +179,6 @@ int serveAuthCheck(HttpService *service, HttpResponse *res) {
   char *uri = safeMalloc(1024, "uri");
   snprintf(uri, 1024, "%s", req->uri); 
   destructivelyNativize(uri);
-  // TODO: Remove printf's for a merge
-  printf("\n\n\nBegin with this URI %s\n\n\n", uri);
   ZISAuthServiceStatus reqStatus = {0};
   CrossMemoryServerName *privilegedServerName;
   const char *userName = req->username, *class = SAF_CLASS;
@@ -194,17 +192,10 @@ int serveAuthCheck(HttpService *service, HttpResponse *res) {
     respondWithError(res, HTTP_STATUS_BAD_REQUEST, "Unexpected access level");
     return 0;
   }
-  printf("\n\n\naccessStr - %s : entity - %s : rc - %d : parsedFile - %s\n\n\n", accessStr, entity, rc, req->parsedFile);
-  
-  // printf("\n\nquery: user %s, class %s, entity %s, access %d accessStr %s\n", userName, class,
-      // entity, access, accessStr);
   privilegedServerName = getConfiguredProperty(service->server,
       HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   rc = zisCheckEntity(privilegedServerName, userName, class, entity, access,
       &reqStatus);
-  printf("\n\n\nRESULTS OF ZISCHECKENTITY privilegedServerName - %s : userName - %s : class - %s : entity - %s : access - %d: reqstatus - %s : rc - %d\n\n\n", privilegedServerName, userName, class, entity, access,
-      &reqStatus, rc);
-  
   respond(res, rc, &reqStatus);
   return 0;
 }
@@ -221,8 +212,6 @@ int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, ch
   }
   rc = zisCheckEntity(privilegedServerName, userName, Class, entity, access,
       &reqStatus);
-  printf("\n\n\nRESULTS OF serveAuthCheckByParams privilegedServerName - %s : userName - %s : class - %s : entity - %s : access - %d: reqstatus - %s : rc - %d\n\n\n", privilegedServerName, userName, Class, entity, access,
-      &reqStatus, rc);
   return rc;
 }
 
@@ -426,8 +415,6 @@ static const char* makeProfileName(
   }
   return profileName;
 }
-
-/* Method goes here to do the same thing serveAuthCheck is doing except w/o input HttpService */
 
 void respondWithJsonStatus(HttpResponse *response, const char *status, int statusCode, const char *statusMessage) {
     jsonPrinter *out = respondWithJsonPrinter(response);
