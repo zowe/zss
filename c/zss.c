@@ -346,17 +346,37 @@ static int nativeWithSessionTokenAuth(HttpConversation *conversation, HttpReques
   return -1;
 }
 
+/* Future custom ZSS authorization handlers go here */
 static void initializeAuthHandlers(HttpServer *server) {
-  void *handler =  server->authHandler;
-  char arr[][1024] = {
-   "NATIVE_WITH_SESSION_TOKEN", // TODO: authHandlers needs to be an array
-  };
-  //int size = sizeof arr / sizeof arr[0];
+  // void *handler =  server->authHandler;
+  // char arr[][1024] = {
+   // "NATIVE_WITH_SESSION_TOKEN", // TODO: authHandlers needs to be an array
+  // };
+  
   
   /* NATIVE_WITH_SESSION_TOKEN */ 
-  server->authHandler->type = "NATIVE_WITH_SESSION_TOKEN"; // TODO: Needs to come from constants in httpserver.h
-  server->authHandler->authFunction = &nativeWithSessionTokenAuth;
-}
+  server->authHandler[0] = (HttpAuthHandler*)safeMalloc31(sizeof(HttpAuthHandler),"HttpAuthHandler");
+  server->authHandler[0]->type = "NATIVE_WITH_SESSION_TOKEN"; // TODO: Needs to come from constants in httpserver.h
+  server->authHandler[0]->authFunction = &nativeWithSessionTokenAuth;
+  // int size = sizeof server->authHandler / sizeof server->authHandler[0];
+  
+  // if (server->authHandler[0] == NULL) {
+    // printf("\n\n\n\nFIRST NULL %d %s %s\n\n\n\n", size, server->authHandler[0], server->authHandler[1]);
+
+  // }
+  // if (server->authHandler[1] == NULL) {
+    // printf("\n\n\n\nAFTER FIRST NULL %d %s %s\n\n\n\n", size, server->authHandler[0]->type, server->authHandler[1]);
+
+  // }
+  // if (server->authHandler[0]->type == NULL) {
+    // printf("\n\n\n\nSECOND NULL %d %s %s\n\n\n\n", size, server->authHandler[0]->type, server->authHandler[1]);
+
+  // }
+  // if (server->authHandler[1]->type == NULL) {
+    // printf("\n\n\n\nTHIRD NULL %d %s %s\n\n\n\n", size, server->authHandler[0]->type, server->authHandler[1]);
+
+  // }
+  }
 
 static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings,
                                 JsonObject *envSettings, hashtable *htUsers,
