@@ -336,10 +336,7 @@ static int nativeWithSessionTokenAuth(HttpConversation *conversation, HttpReques
     destructivelyNativize(uri);
     destructivelyNativize(method);
     char *profileName = safeMalloc(1024, "profileName");
-    // TODO: Remove printf's (not ready for merge)
-    printf("\n\n\nURI, METHOD, PROFILENAME PRE CONVERSION: %s - %s - %s - (old) %s\n\n", uri, method, profileName, request->uri);
     getProfileNameFromRequest(profileName, uri, method, -1);
-    printf("\n\n\nURI, METHOD, PROFILENAME POST CONVERSION %s - %s - %s\n\n", uri, method, profileName);
     int rc = serveAuthCheckByParams(service, request->username, "ZOWE", profileName, 2);
     return rc;
   }
