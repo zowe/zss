@@ -38,6 +38,7 @@
 
 #define SAF_CLASS "ZOWE"
 #define JSON_ERROR_BUFFER_SIZE 1024
+#define CHAR_BUFFER_SIZE 1024
 #define SAF_SUB_URL_SIZE 16
 
 #define SAF_PASSWORD_RESET_RC_OK                0
@@ -81,14 +82,14 @@ static const char* makeProfileName(
   const char *serviceName,
   const char *method,
   const char *scope,
-  char subUrl[SAF_SUB_URL_SIZE][JSON_ERROR_BUFFER_SIZE]);
+  char subUrl[SAF_SUB_URL_SIZE][CHAR_BUFFER_SIZE]);
   
 static void setProfileNameAttribs(
   char *pluginID,
   char *serviceName,
   char *type,
   char *scope,
-  char subUrl[SAF_SUB_URL_SIZE][JSON_ERROR_BUFFER_SIZE]);
+  char subUrl[SAF_SUB_URL_SIZE][CHAR_BUFFER_SIZE]);
 
 int installAuthCheckService(HttpServer *server) {
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "begin %s\n",
@@ -224,12 +225,12 @@ int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, ch
 
 const char* getProfileNameFromRequest(char *profileName, char *url, char *method, int instanceID, HttpResponse *response) {
   char type[8]; // core || config || service
-  char productCode[JSON_ERROR_BUFFER_SIZE];
-  char rootServiceName[JSON_ERROR_BUFFER_SIZE];
-  char subUrl[SAF_SUB_URL_SIZE][JSON_ERROR_BUFFER_SIZE];
-  char scope[JSON_ERROR_BUFFER_SIZE];
-  char placeHolder1[JSON_ERROR_BUFFER_SIZE], pluginID[JSON_ERROR_BUFFER_SIZE], placeHolder2[JSON_ERROR_BUFFER_SIZE], 
-    serviceName[JSON_ERROR_BUFFER_SIZE], placeHolder3[JSON_ERROR_BUFFER_SIZE];
+  char productCode[CHAR_BUFFER_SIZE];
+  char rootServiceName[CHAR_BUFFER_SIZE];
+  char subUrl[SAF_SUB_URL_SIZE][CHAR_BUFFER_SIZE];
+  char scope[CHAR_BUFFER_SIZE];
+  char placeHolder1[CHAR_BUFFER_SIZE], pluginID[CHAR_BUFFER_SIZE], placeHolder2[CHAR_BUFFER_SIZE], 
+    serviceName[CHAR_BUFFER_SIZE], placeHolder3[CHAR_BUFFER_SIZE];
   char regexStr[] = "^/[A-Za-z0-9]*/plugins/";
   
   regex_t regex;
@@ -265,17 +266,17 @@ const char* getProfileNameFromRequest(char *profileName, char *url, char *method
     while( token != NULL ) {
       if (rootServiceName == NULL)
       {
-        snprintf(rootServiceName, JSON_ERROR_BUFFER_SIZE, token);
+        snprintf(rootServiceName, CHAR_BUFFER_SIZE, token);
       } else {
         if (subUrlIndex < SAF_SUB_URL_SIZE) {
-          snprintf(subUrl[subUrlIndex], JSON_ERROR_BUFFER_SIZE, token);
+          snprintf(subUrl[subUrlIndex], CHAR_BUFFER_SIZE, token);
         }
       }
       subUrlIndex++;
       token = strtok_r(NULL, "/", &context);
     }
-    snprintf(productCode, JSON_ERROR_BUFFER_SIZE, "ZLUX");
-    snprintf(type, JSON_ERROR_BUFFER_SIZE, "core");
+    snprintf(productCode, CHAR_BUFFER_SIZE, "ZLUX");
+    snprintf(type, CHAR_BUFFER_SIZE, "core");
   }
   else if (!value) {
     char *context = NULL;
@@ -285,25 +286,25 @@ const char* getProfileNameFromRequest(char *profileName, char *url, char *method
     while( token != NULL ) {
       switch(subUrlIndex) {
         case 0:
-          snprintf(productCode, JSON_ERROR_BUFFER_SIZE, token);
+          snprintf(productCode, CHAR_BUFFER_SIZE, token);
           break;
         case 1:
-          snprintf(placeHolder1, JSON_ERROR_BUFFER_SIZE, token);
+          snprintf(placeHolder1, CHAR_BUFFER_SIZE, token);
           break;
         case 2:
-          snprintf(pluginID, JSON_ERROR_BUFFER_SIZE, token);
+          snprintf(pluginID, CHAR_BUFFER_SIZE, token);
           break;
         case 3:
-          snprintf(placeHolder2, JSON_ERROR_BUFFER_SIZE, token);
+          snprintf(placeHolder2, CHAR_BUFFER_SIZE, token);
           break;
         case 4:
-          snprintf(serviceName, JSON_ERROR_BUFFER_SIZE, token);
+          snprintf(serviceName, CHAR_BUFFER_SIZE, token);
           break;
         case 5:
-          snprintf(placeHolder3, JSON_ERROR_BUFFER_SIZE, token);
+          snprintf(placeHolder3, CHAR_BUFFER_SIZE, token);
           break;
         default:
-          snprintf(subUrl[subUrlIndex-6], JSON_ERROR_BUFFER_SIZE, token); // subtract 6 from maximum index to begin init subUrl array at 0
+          snprintf(subUrl[subUrlIndex-6], CHAR_BUFFER_SIZE, token); // subtract 6 from maximum index to begin init subUrl array at 0
       }
       
       subUrlIndex++;
@@ -329,7 +330,7 @@ const char* getProfileNameFromRequest(char *profileName, char *url, char *method
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "RegEx match failed.");
   }
-  snprintf(profileName, JSON_ERROR_BUFFER_SIZE, makeProfileName(type, 
+  snprintf(profileName, CHAR_BUFFER_SIZE, makeProfileName(type, 
     productCode, 
     instanceID, 
     pluginID, 
@@ -350,15 +351,15 @@ static void setProfileNameAttribs(
   char *serviceName,
   char *type,
   char *scope,
-  char subUrl[SAF_SUB_URL_SIZE][JSON_ERROR_BUFFER_SIZE]) {
+  char subUrl[SAF_SUB_URL_SIZE][CHAR_BUFFER_SIZE]) {
   if ((strcmp(pluginID, "ORG.ZOWE.CONFIGJS") == 0) && (strcmp(serviceName, "DATA") == 0))
   {
-    snprintf(type, JSON_ERROR_BUFFER_SIZE, "config");
-    snprintf(pluginID, JSON_ERROR_BUFFER_SIZE, subUrl[0]);
-    snprintf(scope, JSON_ERROR_BUFFER_SIZE, subUrl[1]);
+    snprintf(type, CHAR_BUFFER_SIZE, "config");
+    snprintf(pluginID, CHAR_BUFFER_SIZE, subUrl[0]);
+    snprintf(scope, CHAR_BUFFER_SIZE, subUrl[1]);
     
   } else {
-    snprintf(type, JSON_ERROR_BUFFER_SIZE, "service");
+    snprintf(type, CHAR_BUFFER_SIZE, "service");
   }
 }
 
@@ -371,8 +372,8 @@ static const char* makeProfileName(
   const char *serviceName,
   const char *method,
   const char *scope,
-  char subUrl[SAF_SUB_URL_SIZE][JSON_ERROR_BUFFER_SIZE]) {
-  char *profileName = safeMalloc(JSON_ERROR_BUFFER_SIZE, "profileNameInner");
+  char subUrl[SAF_SUB_URL_SIZE][CHAR_BUFFER_SIZE]) {
+  char *profileName = safeMalloc(CHAR_BUFFER_SIZE, "profileNameInner");
   if (profileName == NULL) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_SEVERE,
            "safeMalloc failed. Not enough memory");
@@ -393,7 +394,7 @@ static const char* makeProfileName(
            "Broken SAF query. Missing method.");
     return NULL;
   }
-  // char someString[JSON_ERROR_BUFFER_SIZE] = { snprintf(*someString, JSON_ERROR_BUFFER_SIZE, type) };
+  // char someString[CHAR_BUFFER_SIZE] = { snprintf(*someString, CHAR_BUFFER_SIZE, type) };
   if (strcmp(type, "service") == 0) {
     if (pluginID == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
@@ -405,7 +406,7 @@ static const char* makeProfileName(
        "Broken SAF query. Missing service name.");
       return NULL;
     }
-    snprintf(profileName, JSON_ERROR_BUFFER_SIZE, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
+    snprintf(profileName, CHAR_BUFFER_SIZE, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
   } else if (strcmp(type, "config") == 0) {
     if (pluginID == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
@@ -417,19 +418,19 @@ static const char* makeProfileName(
        "Broken SAF query. Missing scope.");
       return NULL;
     }
-    snprintf(profileName, JSON_ERROR_BUFFER_SIZE, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
+    snprintf(profileName, CHAR_BUFFER_SIZE, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
   } else if (strcmp(type, "core") == 0) {
     if (rootServiceName == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing root service name.");
       return NULL;
     }
-    snprintf(profileName, JSON_ERROR_BUFFER_SIZE, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
+    snprintf(profileName, CHAR_BUFFER_SIZE, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
   }
   // Child endpoints housed via subUrl
   int index = 0;
   while (index < SAF_SUB_URL_SIZE && strcmp(subUrl[index], "") != 0) {
-    snprintf(profileName, JSON_ERROR_BUFFER_SIZE, "%s.%s", profileName, subUrl[index]);
+    snprintf(profileName, CHAR_BUFFER_SIZE, "%s.%s", profileName, subUrl[index]);
     index++;
   }
   return profileName;
