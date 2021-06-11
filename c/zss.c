@@ -101,6 +101,8 @@ static JsonObject *MVD_SETTINGS = NULL;
 static int traceLevel = 0;
 
 #define JSON_ERROR_BUFFER_SIZE 1024
+#define ZOWE_PROFILE_NAME_LEN 246
+
 
 #define DEFAULT_TLS_CIPHERS               \
   TLS_DHE_RSA_WITH_AES_128_GCM_SHA256     \
@@ -328,18 +330,24 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
 static int nativeWithSessionTokenAuth(HttpConversation *conversation, HttpRequest *request, HttpService *service, HttpResponse *response) {
   if (conversation->parser) {
     HttpRequestParser *parser = conversation->parser;
-    char *method = safeMalloc(1024, "method");
-    char *uri = safeMalloc(1024, "uri");
-    char *username = safeMalloc(1024, "username");
-    snprintf(uri, 1024, "%s", request->uri); 
-    snprintf(method, 1024, "%s", request->method); 
-    destructivelyNativize(uri);
+    char *method = safeMalloc(JSON_ERROR_BUFFER_SIZE, "method");
+    char *uri = safeMalloc(JSON_ERROR_BUFFER_SIZE, "uri");
+    char *username = safeMalloc(JSON_ERROR_BUFFER_SIZE, "username");
+    snprintf(uri, JSON_ERROR_BUFFER_SIZE, "%s", stringListPrint(request->parsedFile, 0, 1000, "/", 0)); 
+    snprintf(method, JSON_ERROR_BUFFER_SIZE, "%s", request->method); 
     destructivelyNativize(method);
-    char *profileName = safeMalloc(1024, "profileName");
+    char *profileName = safeMalloc(JSON_ERROR_BUFFER_SIZE, "profileName");
     getProfileNameFromRequest(profileName, uri, method, -1, response);
+    if (strlen(profileName) > ZOWE_PROFILE_NAME_LEN) {
+      char *errMsg = safeMalloc(JSON_ERROR_BUFFER_SIZE, "errMsg");
+      snprintf(errMsg, JSON_ERROR_BUFFER_SIZE, "Generated SAF query longer than %d", ZOWE_PROFILE_NAME_LEN); 
+      respondWithError(response, HTTP_STATUS_BAD_REQUEST, errMsg);
+      return -2;
+    }
     int rc = serveAuthCheckByParams(service, request->username, "ZOWE", profileName, 2);
     return rc;
   }
+  respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Conversation object corrupt");
   return -1;
 }
 
