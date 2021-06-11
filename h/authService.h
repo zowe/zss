@@ -28,8 +28,29 @@
 
 int installAuthCheckService(HttpServer *server);
 void installZosPasswordService(HttpServer *server);
-const char* getProfileNameFromRequest(char *profileName, char *url, char *method, int instanceID);
-static int serveAuthCheck(HttpService *service, HttpResponse *res);
+
+/**
+ * @brief The function uses makeProfileName function to generate profile name for SAF query
+ * @param profileName Generated profile name goes here
+ * @param url Refers to the URL used to generate query
+ * @param instanceID Refers to instanceID for query. If none specified, or negative, then 0
+ * @param HttpResponse Describes the HttpResponse object to return if error encountered
+ *
+ * @return Return generated profile name or NULL if error
+ */
+const char* getProfileNameFromRequest(char *profileName, char *url, char *method, int instanceID, HttpResponse *response);
+
+/**
+ * @brief The function satisfies RBAC, by first checking if RBAC is enabled, then executing
+ * a ZIS check.
+ * @param service The calling HttpService
+ * @param userName Username to use in ZIS check
+ * @param Class Class to use in ZIS check i.e. "ZOWE"
+ * @param entity Describes the SAF query itself i.e. "ZLUX.0.COR.GET.SERVER.AGENT.CONFIG"
+ * @param access Describes the access type i.e. "READ"
+ *
+ * @return Return code where != 0 is a failed RBAC check
+ */
 int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char *entity, int access);
 
 

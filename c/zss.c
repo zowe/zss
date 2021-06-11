@@ -325,7 +325,7 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
 }
 #endif /* __ZOWE_OS_ZOS */
 
-static int nativeWithSessionTokenAuth(HttpConversation *conversation, HttpRequest *request, HttpService *service) {
+static int nativeWithSessionTokenAuth(HttpConversation *conversation, HttpRequest *request, HttpService *service, HttpResponse *response) {
   if (conversation->parser) {
     HttpRequestParser *parser = conversation->parser;
     char *method = safeMalloc(1024, "method");
@@ -336,7 +336,7 @@ static int nativeWithSessionTokenAuth(HttpConversation *conversation, HttpReques
     destructivelyNativize(uri);
     destructivelyNativize(method);
     char *profileName = safeMalloc(1024, "profileName");
-    getProfileNameFromRequest(profileName, uri, method, -1);
+    getProfileNameFromRequest(profileName, uri, method, -1, response);
     int rc = serveAuthCheckByParams(service, request->username, "ZOWE", profileName, 2);
     return rc;
   }
@@ -703,7 +703,7 @@ static void installLoginService(HttpServer *server) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
   HttpService *httpService = makeGeneratedService("com.rs.mvd.login", "/login/**");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
   httpService->serviceFunction = serveLoginWithSessionToken;
   httpService->authExtractionFunction = extractAuthorizationFromJson;
   registerHttpService(server, httpService);
