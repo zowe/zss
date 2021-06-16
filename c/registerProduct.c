@@ -12,9 +12,17 @@
 
 #define  cvtsmcaAddr ((char *__ptr32 *__ptr32 *)0)[4][49]  /* smca field address in CVT */
 #define  ifaargs_xrequest_register 1                       /* register request          */
+#define  defaultVersion 1                                  /* Version default is 1      */
+#define  defaultDomain  1                                  /* Domain default is 1       */
+#define  defaultScope   1                                  /* Scope default is 1        */
+
 #define  RC_ZSS_PREG_NULL_X1 1                             /* smf option null rc 1      */
 #define  RC_ZSS_PREG_NULL_X2 2                             /* smf option null rc 2      */
+#define  RC_ZSS_PREG_NULL_X5 5                             /* storage alloc = null rc 5 */
+#define  RC_ZSS_PREG_NULL_X6 6                             /* storage alloc = null rc 6 */
+#define  RC_ZSS_PREG_NULL_X7 7                             /* storage alloc = null rc 7 */
 #define  ZSS_SMCA_Option_null 0                            /* smf option null           */
+
 #include <stdlib.h>
 #include <assert.h>
 #include "logging.h"
@@ -46,21 +54,23 @@ typedef struct IFAARGS {
   char *__ptr32 endtime_addr;
 } IFAARGS_t;
 
-unsigned long long productRegistration(const char *major_version,
-                              const char *pid,
-                              const char *product_owner,
-                              const char *product_name,
-                              const char *feature_name){
+int productRegistration(const char *major_version,
+                        const char *pid,
+                        const char *product_owner,
+                        const char *product_name){
 
   /* Creates buffers for registration product info */
 
-  char str_product_owner[17];
-  char str_feature_name[17];
-  char str_product_name[17];
-  char str_pid[9];
-  char version[9];
-  unsigned long long ifausage_rc = 0;
   IFAARGS_t *arg;
+
+  const char MODULE_REGISTER_USAGE[sizeof(arg->id) + 1] = "IFAUSAGE";
+  const char PROD_QUAL[sizeof(arg->prodqual) + 1] = "NONE    ";
+
+  char str_product_owner[sizeof(arg->prodowner) + 1];
+  char str_product_name[sizeof(arg->prodname) + 1];
+  char str_pid[sizeof(arg->prodid) + 1];
+  char version[sizeof(arg->prodvers) + 1];
+  int ifausage_rc = 0;
 
   char *smcaOpt = cvtsmcaAddr;
   if (ZSS_SMCA_Option_null == smcaOpt) {
@@ -72,40 +82,54 @@ unsigned long long productRegistration(const char *major_version,
 
   /* Left justify with space padding */
 
-  snprintf(str_product_owner, sizeof(str_product_owner), "%-16s",
-           product_owner);
-  snprintf(str_feature_name, sizeof(str_feature_name), "%-16s", feature_name);
-  snprintf(str_product_name, sizeof(str_product_name), "%-16s", product_name);
-  snprintf(str_pid, sizeof(str_pid), "%-8s", pid);
-  snprintf(version, sizeof(version), "%-8s", major_version);
+  snprintf(str_product_owner, sizeof(str_product_owner),
+           "%-*s", sizeof(str_product_owner), product_owner);
+  snprintf(str_product_name, sizeof(str_product_name),
+           "%-*s", sizeof(str_product_name), product_name);
+  snprintf(str_pid, sizeof(str_pid),
+           "%-*s", sizeof(str_pid), pid);
+  snprintf(version, sizeof(version),
+           "%-*s", sizeof(version), major_version);
 
   /* Register Product with IFAUSAGE */
 
   arg = (IFAARGS_t *)__malloc31(sizeof(IFAARGS_t));
 
-  assert(arg);
+  if (arg == NULL) {
+    return RC_ZSS_PREG_NULL_X5;
+  }
+
+
   memset(arg, 0, sizeof(IFAARGS_t));
-  memcpy(arg->id, MODULE_REGISTER_USAGE, 8);
+  memcpy(arg->id, MODULE_REGISTER_USAGE, sizeof(arg->id));
+
   arg->listlen = sizeof(IFAARGS_t);
-  arg->version = 1;
+  arg->version = defaultVersion;
   arg->request = ifaargs_xrequest_register;
 
   /* Insert properties */
 
-  memcpy(arg->prodowner, str_product_owner, 16);
-  memcpy(arg->prodname, str_product_name, 16);
-  memcpy(arg->prodvers, version, 8);
-  memcpy(arg->prodqual, "NONE    ", 8);
-  memcpy(arg->prodid, str_pid, 8);
-  arg->domain = 1;
-  arg->scope = 1;
+  memcpy(arg->prodowner, str_product_owner, sizeof(arg->prodowner));
+  memcpy(arg->prodname, str_product_name, sizeof(arg->prodname));
+  memcpy(arg->prodvers, version, sizeof(arg->prodvers));
+  memcpy(arg->prodqual, PROD_QUAL, sizeof(arg->prodqual));
+  memcpy(arg->prodid, str_pid, sizeof(arg->prodid));
 
+  arg->domain = defaultDomain;
+  arg->scope  = defaultScope;
 
   arg->prtoken_addr = (char *__ptr32)__malloc31(sizeof(char *__ptr32));
-  assert(arg->prtoken_addr);
+  if (arg->prtoken_addr == NULL) {
+    return RC_ZSS_PREG_NULL_X6;
+  }
+
   arg->begtime_addr = (char *__ptr32)__malloc31(sizeof(char *__ptr32));
-  assert(arg->begtime_addr);
+  if (arg->prtoken_addr == NULL) {
+    return RC_ZSS_PREG_NULL_X7;
+  }
+
   /* Load 25 (IFAUSAGE) into reg15 and call via SVC */
+
   asm(" svc 109\n" : "=NR:r15"(ifausage_rc) : "NR:r1"(arg), "NR:r15"(25) :);
   free(arg->prtoken_addr);
   free(arg->begtime_addr);
@@ -116,7 +140,7 @@ unsigned long long productRegistration(const char *major_version,
 }
 
 void registerProduct(char *productReg, char *productPID, char *productVer,
-                     char *productOwner, char *productName, char *productFeature){
+                     char *productOwner, char *productName){
 
   if (productReg != NULL) {
     if (strncasecmp(productReg, "ENABLE", 6) == 0) {
@@ -132,13 +156,12 @@ void registerProduct(char *productReg, char *productPID, char *productVer,
     return;
   }
 
-  unsigned long long rc = productRegistration(productVer,
-                                     productPID,
-                                     productOwner,
-                                     productName,
-                                     productFeature);
+  int rc = productRegistration(productVer,
+                               productPID,
+                               productOwner,
+                               productName);
 
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Product Registration RC = %llu\n", rc);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Product Registration RC = %d\n", rc);
 
 }
 

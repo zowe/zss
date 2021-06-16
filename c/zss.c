@@ -1310,7 +1310,6 @@ int main(int argc, char **argv){
   char productVer[COMMON_PATH_MAX];
   char productOwner[COMMON_PATH_MAX];
   char productName[COMMON_PATH_MAX];
-  char productFeature[COMMON_PATH_MAX];
   char *tempString;
   hashtable *htUsers;
   hashtable *htGroups;
@@ -1349,7 +1348,6 @@ int main(int argc, char **argv){
     checkAndSetVariable(mvdSettings, "productPID", productPID, COMMON_PATH_MAX);
     checkAndSetVariable(mvdSettings, "productOwner", productOwner, COMMON_PATH_MAX);
     checkAndSetVariable(mvdSettings, "productName", productName, COMMON_PATH_MAX);
-    checkAndSetVariable(mvdSettings, "productFeature", productFeature, COMMON_PATH_MAX);
     
     char *serverTimeoutsDir;
     char *serverTimeoutsDirSuffix;
@@ -1386,8 +1384,6 @@ int main(int argc, char **argv){
     checkAndSetVariableWithEnvOverride(mvdSettings, "productPID", envSettings, "ZWED_productPID", productPID, COMMON_PATH_MAX);
     checkAndSetVariableWithEnvOverride(mvdSettings, "productOwner", envSettings, "ZWED_productOwner", productOwner, COMMON_PATH_MAX);
     checkAndSetVariableWithEnvOverride(mvdSettings, "productName", envSettings, "ZWED_productName", productName, COMMON_PATH_MAX);
-    checkAndSetVariableWithEnvOverride(mvdSettings, "productFeature", envSettings, "ZWED_productFeature", productFeature, COMMON_PATH_MAX);
-
 
     HttpServer *server = NULL;
     int port = 0;
@@ -1405,7 +1401,7 @@ int main(int argc, char **argv){
       goto out_term_stcbase;
     }
 
-    registerProduct(productReg, productPID, productVer, productOwner, productName, productFeature);
+    registerProduct(productReg, productPID, productVer, productOwner, productName);
 
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port, httpsSettingsFound ? "https" : "http");
     if (httpsSettingsFound) {
