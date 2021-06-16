@@ -283,8 +283,8 @@ static int issueRACFCommand(char *command, OMVSSegment *omvs)
 
   if (radminRC != RC_RADMIN_OK)
   {
-#ifdef DEBUG
-    printf("error: radminRC: %d, safRC: %d, racfRC: %d, racfRSN: %d\n", radminRC, status.safRC, status.racfRC, status.racfRSN);
+#ifndef DEBUG
+    printf("error: radminRC: %d, safRC: %d, racfRC: %d, racfRSN: %d\n", radminRC, status.apiStatus.safRC, status.apiStatus.racfRC, status.apiStatus.racfRSN);
 #endif
     return radminRC;
   }
