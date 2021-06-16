@@ -71,7 +71,7 @@ static int serveAuthCheck(HttpService *service, HttpResponse *response);
 
 int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char* entity, int access);
 
-const char* getProfileNameFromRequest(char *profileName, char *url, const char *method, int instanceID, HttpResponse *response);
+const char* getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID, HttpResponse *response);
 
 static const char* makeProfileName(
   const char *type,
@@ -223,7 +223,7 @@ int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, ch
   return rc;
 }
 
-const char* getProfileNameFromRequest(char *profileName, char *url, char *method, int instanceID, HttpResponse *response) {
+const char* getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID, HttpResponse *response) {
   char type[8]; // core || config || service
   char productCode[STRING_BUFFER_SIZE];
   char rootServiceName[STRING_BUFFER_SIZE];
@@ -231,35 +231,25 @@ const char* getProfileNameFromRequest(char *profileName, char *url, char *method
   char scope[STRING_BUFFER_SIZE];
   char placeHolder1[STRING_BUFFER_SIZE], pluginID[STRING_BUFFER_SIZE], placeHolder2[STRING_BUFFER_SIZE], 
     serviceName[STRING_BUFFER_SIZE], placeHolder3[STRING_BUFFER_SIZE];
-  char regexStr[] = "^/[A-Za-z0-9]*/plugins/";
+  char url[STRING_BUFFER_SIZE];   
+  char urlSegment[STRING_BUFFER_SIZE];   
   
-  regex_t regex;
-  int value;
-  value = regcomp(&regex, regexStr, REG_EXTENDED);
-  
+  snprintf(url, STRING_BUFFER_SIZE, "%s", stringListPrint(parsedFile, 0, 1000, "/", 0));
+  snprintf(urlSegment, STRING_BUFFER_SIZE, "%s", stringListPrint(parsedFile, 1, 1, "/", 0));
   if (profileName == NULL) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_SEVERE,
            "safeMalloc failed. Not enough memory");
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Not enough memory");
     return NULL;
   }
-  if (value == 0) {
-    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
-           "RegEx compiled successfully.");
-  } else {
-    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
-           "RegEx compilation error %s.", regexStr);
-    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "RegEx compilation error");
-    return NULL;
-  }
-  value = regexec(&regex, url, 0, NULL, 0);
   strupcase(url);
+  strupcase(urlSegment);
   if (instanceID < 0) { // Set instanceID
     instanceID = 0;
   }
-  if (value == REG_NOMATCH) {
+  if (strcmp(urlSegment, "PLUGINS") != 0) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
-           "RegEx didn't match.");
+           "parsedFile urlSegment check didn't match.");
     char *context = NULL;
     char *token = strtok_r(url, "/", &context);
     int subUrlIndex = -1;
@@ -277,8 +267,7 @@ const char* getProfileNameFromRequest(char *profileName, char *url, char *method
     }
     snprintf(productCode, STRING_BUFFER_SIZE, "ZLUX");
     snprintf(type, STRING_BUFFER_SIZE, "core");
-  }
-  else if (!value) {
+  } else {
     char *context = NULL;
     char *token = strtok_r(url, "/", &context);
     int subUrlIndex;
@@ -324,11 +313,7 @@ const char* getProfileNameFromRequest(char *profileName, char *url, char *method
       }
     }
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
-           "RegEx match OK.");
-  }
-  else {
-    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           "RegEx match failed.");
+           "parsedFile urlSegment check OK.");
   }
   snprintf(profileName, STRING_BUFFER_SIZE, makeProfileName(type, 
     productCode, 
@@ -339,9 +324,6 @@ const char* getProfileNameFromRequest(char *profileName, char *url, char *method
     method,
     scope,
     subUrl));
-  
-  /* Free memory allocated to the pattern buffer by regcomp() */
-  regfree(&regex);
   
   return profileName;
 }

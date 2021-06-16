@@ -332,13 +332,11 @@ static int nativeWithSessionTokenAuth(HttpConversation *conversation, HttpReques
   if (conversation->parser) {
     HttpRequestParser *parser = conversation->parser;
     char *method = safeMalloc(STRING_BUFFER_SIZE, "method");
-    char *uri = safeMalloc(STRING_BUFFER_SIZE, "uri");
     char *username = safeMalloc(STRING_BUFFER_SIZE, "username");
-    snprintf(uri, STRING_BUFFER_SIZE, "%s", stringListPrint(request->parsedFile, 0, 1000, "/", 0)); 
     snprintf(method, STRING_BUFFER_SIZE, "%s", request->method); 
     destructivelyNativize(method);
     char *profileName = safeMalloc(STRING_BUFFER_SIZE, "profileName");
-    getProfileNameFromRequest(profileName, uri, method, -1, response);
+    getProfileNameFromRequest(profileName, request->parsedFile, method, -1, response);
     if (strlen(profileName) > ZOWE_PROFILE_NAME_LEN) {
       char *errMsg = safeMalloc(JSON_ERROR_BUFFER_SIZE, "errMsg");
       snprintf(errMsg, STRING_BUFFER_SIZE, "Generated SAF query longer than %d", ZOWE_PROFILE_NAME_LEN); 
