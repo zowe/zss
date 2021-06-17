@@ -38,6 +38,7 @@
 #define LOG_COMP_ID_SECURITY      0x008F000300030000
 #define LOG_COMP_ID_UNIXFILE      0x008F000300040000
 #define LOG_COMP_ID_DATASERVICE   0x008F000300050000
+#define LOG_COMP_ID_APIML_STORAGE 0x008F000300060000
 
 bool isLogLevelValid(int level);
 
@@ -323,6 +324,24 @@ bool isLogLevelValid(int level);
 #endif
 #define ZSS_LOG_ENV_SETTINGS_MSG_TEXT        "Failed to process environment variables\n"
 #define ZSS_LOG_ENV_SETTINGS_MSG             ZSS_LOG_ENV_SETTINGS_MSG_ID" "ZSS_LOG_ENV_SETTINGS_MSG_TEXT
+
+#ifndef ZSS_LOG_CACHE_SETTINGS_MSG_ID
+#define ZSS_LOG_CACHE_SETTINGS_MSG_ID        ZSS_LOG_MSG_PRFX"1063I"
+#endif
+#define ZSS_LOG_CACHE_SETTINGS_MSG_TEXT      "Caching Service settings: gateway host '%s', port %d\n",
+#define ZSS_LOG_CACHE_SETTINGS_MSG           ZSS_LOG_CACHE_SETTINGS_MSG_ID" "ZSS_LOG_CACHE_SETTINGS_MSG_TEXT
+
+#ifndef ZSS_LOG_CACHE_NOT_CFG_MSG_ID
+#define ZSS_LOG_CACHE_NOT_CFG_MSG_ID         ZSS_LOG_MSG_PRFX"1064I"
+#endif
+#define ZSS_LOG_CACHE_NOT_CFG_MSG_TEXT       "Caching Service not configured\n"
+#define ZSS_LOG_CACHE_NOT_CFG_MSG            ZSS_LOG_CACHE_NOT_CFG_MSG_ID" "ZSS_LOG_CACHE_NOT_CFG_MSG_TEXT
+
+#ifndef ZSS_LOG_HTTPS_INVALID_MSG_ID
+#define ZSS_LOG_HTTPS_INVALID_MSG_ID          ZSS_LOG_MSG_PRFX"1065E"
+#endif
+#define ZSS_LOG_HTTPS_INVALID_MSG_TEXT        "Failed to configure https server, check agent https settings\n"
+#define ZSS_LOG_HTTPS_INVALID_MSG             ZSS_LOG_HTTPS_INVALID_MSG_ID" "ZSS_LOG_HTTPS_INVALID_MSG_TEXT
 
 /* Unixfile */
 
