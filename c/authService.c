@@ -232,10 +232,16 @@ const char* getProfileNameFromRequest(char *profileName, StringList *parsedFile,
   char placeHolder1[STRING_BUFFER_SIZE], pluginID[STRING_BUFFER_SIZE], placeHolder2[STRING_BUFFER_SIZE], 
     serviceName[STRING_BUFFER_SIZE], placeHolder3[STRING_BUFFER_SIZE];
   char url[STRING_BUFFER_SIZE];   
-  char urlSegment[STRING_BUFFER_SIZE];   
+  char urlSegment[STRING_BUFFER_SIZE];
+  char upperSegment[STRING_BUFFER_SIZE];
+  int subUrlIndex = 0;
   
-  snprintf(url, STRING_BUFFER_SIZE, "%s", stringListPrint(parsedFile, 0, 1000, "/", 0));
+  snprintf(url, STRING_BUFFER_SIZE, "%s", stringListPrint(parsedFile, subUrlIndex, 1000, "/", 0));
   snprintf(urlSegment, STRING_BUFFER_SIZE, "%s", stringListPrint(parsedFile, 1, 1, "/", 0));
+  StringListElt *pathSegment = firstStringListElt(parsedFile);
+  // TODO: Remove printf's (not ready for merge)
+    printf("\n\n\nURI, METHOD, PROFILENAME PRE CONVERSION: %s - %s - %s -%s\n\n", url, method, profileName, pathSegment->string);
+    
   if (profileName == NULL) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_SEVERE,
            "safeMalloc failed. Not enough memory");
@@ -250,55 +256,82 @@ const char* getProfileNameFromRequest(char *profileName, StringList *parsedFile,
   if (strcmp(urlSegment, "PLUGINS") != 0) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
            "parsedFile urlSegment check didn't match.");
-    char *context = NULL;
-    char *token = strtok_r(url, "/", &context);
-    int subUrlIndex = -1;
-    while( token != NULL ) {
+    subUrlIndex = -1;
+    while (pathSegment != NULL) {
+      snprintf(upperSegment, STRING_BUFFER_SIZE, "%s", pathSegment->string);
+      strupcase(upperSegment);
       if (rootServiceName == NULL)
       {
-        snprintf(rootServiceName, STRING_BUFFER_SIZE, token);
+        snprintf(rootServiceName, STRING_BUFFER_SIZE, upperSegment);
       } else {
         if (subUrlIndex < SAF_SUB_URL_SIZE) {
-          snprintf(subUrl[subUrlIndex], STRING_BUFFER_SIZE, token);
+          snprintf(subUrl[subUrlIndex], STRING_BUFFER_SIZE, upperSegment);
         }
       }
       subUrlIndex++;
-      token = strtok_r(NULL, "/", &context);
+      pathSegment = pathSegment->next;
     }
     snprintf(productCode, STRING_BUFFER_SIZE, "ZLUX");
     snprintf(type, STRING_BUFFER_SIZE, "core");
   } else {
-    char *context = NULL;
-    char *token = strtok_r(url, "/", &context);
-    int subUrlIndex;
     subUrlIndex = 0;
-    while( token != NULL ) {
+    
+    while (pathSegment != NULL) {
+      snprintf(upperSegment, STRING_BUFFER_SIZE, "%s", pathSegment->string);
+      strupcase(upperSegment);
       switch(subUrlIndex) {
         case 0:
-          snprintf(productCode, STRING_BUFFER_SIZE, token);
+          snprintf(productCode, STRING_BUFFER_SIZE, upperSegment);
           break;
         case 1:
-          snprintf(placeHolder1, STRING_BUFFER_SIZE, token);
+          snprintf(placeHolder1, STRING_BUFFER_SIZE, upperSegment);
           break;
         case 2:
-          snprintf(pluginID, STRING_BUFFER_SIZE, token);
+          snprintf(pluginID, STRING_BUFFER_SIZE, upperSegment);
           break;
         case 3:
-          snprintf(placeHolder2, STRING_BUFFER_SIZE, token);
+          snprintf(placeHolder2, STRING_BUFFER_SIZE, upperSegment);
           break;
         case 4:
-          snprintf(serviceName, STRING_BUFFER_SIZE, token);
+          snprintf(serviceName, STRING_BUFFER_SIZE, upperSegment);
           break;
         case 5:
-          snprintf(placeHolder3, STRING_BUFFER_SIZE, token);
+          snprintf(placeHolder3, STRING_BUFFER_SIZE, upperSegment);
           break;
         default:
-          snprintf(subUrl[subUrlIndex-6], STRING_BUFFER_SIZE, token); // subtract 6 from maximum index to begin init subUrl array at 0
+          snprintf(subUrl[subUrlIndex-6], STRING_BUFFER_SIZE, upperSegment); // subtract 6 from maximum index to begin init subUrl array at 0
       }
-      
       subUrlIndex++;
-      token = strtok_r(NULL, "/", &context);
+      pathSegment = pathSegment->next;
     }
+    
+    // while( token != NULL ) {
+      // switch(subUrlIndex) {
+        // case 0:
+          // snprintf(productCode, STRING_BUFFER_SIZE, token);
+          // break;
+        // case 1:
+          // snprintf(placeHolder1, STRING_BUFFER_SIZE, token);
+          // break;
+        // case 2:
+          // snprintf(pluginID, STRING_BUFFER_SIZE, token);
+          // break;
+        // case 3:
+          // snprintf(placeHolder2, STRING_BUFFER_SIZE, token);
+          // break;
+        // case 4:
+          // snprintf(serviceName, STRING_BUFFER_SIZE, token);
+          // break;
+        // case 5:
+          // snprintf(placeHolder3, STRING_BUFFER_SIZE, token);
+          // break;
+        // default:
+          // snprintf(subUrl[subUrlIndex-6], STRING_BUFFER_SIZE, token); // subtract 6 from maximum index to begin init subUrl array at 0
+      // }
+      
+      // subUrlIndex++;
+      // token = strtok_r(NULL, "/", &context);
+    // }
     setProfileNameAttribs(pluginID, serviceName, type, scope, subUrl);
     char* ch; 
     char* chReplace;
@@ -324,6 +357,8 @@ const char* getProfileNameFromRequest(char *profileName, StringList *parsedFile,
     method,
     scope,
     subUrl));
+    
+  printf("\n\n\nURI, METHOD, PROFILENAME POST CONVERSION %s - %s - %s\n\n", url, method, profileName);
   
   return profileName;
 }
