@@ -26,6 +26,8 @@
 #include "httpserver.h"
 #include "dataservice.h"
 
+#define ZOWE_PROFILE_NAME_LEN 246
+
 int installAuthCheckService(HttpServer *server);
 void installZosPasswordService(HttpServer *server);
 
@@ -36,9 +38,9 @@ void installZosPasswordService(HttpServer *server);
  * @param instanceID Refers to instanceID for query. If none specified, or negative, then 0
  * @param HttpResponse Describes the HttpResponse object to return if error encountered
  *
- * @return Return generated profile name or NULL if error
+ * @return Return non-zero if error
  */
-const char* getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID, HttpResponse *response);
+int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID, HttpResponse *response);
 
 /**
  * @brief The function satisfies RBAC, by first checking if RBAC is enabled, then executing

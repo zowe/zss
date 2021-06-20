@@ -19,7 +19,6 @@
 #include <iconv.h>
 #include <dirent.h>
 #include <pthread.h>
-#include <regex.h> 
 
 #include "authService.h"
 #include "zowetypes.h"
@@ -69,11 +68,10 @@
 
 static int serveAuthCheck(HttpService *service, HttpResponse *response);
 
-int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char* entity, int access);
+int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char* entity, int access);
 
-const char* getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID, HttpResponse *response);
-
-static const char* makeProfileName(
+static int makeProfileName(
+  char *profileName,
   const char *type,
   const char *productCode, 
   int instanceID, 
@@ -208,7 +206,7 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
   return 0;
 }
 
-int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char *entity, int access) {
+int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char *entity, int access) {
   int rc = 0;
   JsonObject *dataserviceAuth = jsonObjectGetObject(service->server->sharedServiceMem, "dataserviceAuthentication");
   int rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
@@ -218,31 +216,25 @@ int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, ch
   if (!rbacParm) {
     return rc; // When rbac isn't enabled, we don't try to check the auth query
   }
-  rc = zisCheckEntity(privilegedServerName, userName, Class, entity, access,
+  rc = zisCheckEntity(privilegedServerName, userName, class, entity, access,
       &reqStatus);
   return rc;
 }
 
-const char* getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID, HttpResponse *response) {
-  char type[8]; // core || config || service
+int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID, HttpResponse *response) {
+  char type[STRING_BUFFER_SIZE]; // core || config || service
   char productCode[STRING_BUFFER_SIZE];
   char rootServiceName[STRING_BUFFER_SIZE];
-  char subUrl[SAF_SUB_URL_SIZE][STRING_BUFFER_SIZE];
+  char subUrl[SAF_SUB_URL_SIZE][STRING_BUFFER_SIZE] = {0};
   char scope[STRING_BUFFER_SIZE];
-  char placeHolder1[STRING_BUFFER_SIZE], pluginID[STRING_BUFFER_SIZE], placeHolder2[STRING_BUFFER_SIZE], 
-    serviceName[STRING_BUFFER_SIZE], placeHolder3[STRING_BUFFER_SIZE];
+  char pluginID[STRING_BUFFER_SIZE]; 
+  char serviceName[STRING_BUFFER_SIZE];
   char urlSegment[STRING_BUFFER_SIZE];
   int subUrlIndex = 0;
   
   snprintf(urlSegment, STRING_BUFFER_SIZE, "%s", stringListPrint(parsedFile, 1, 1, "/", 0));
   StringListElt *pathSegment = firstStringListElt(parsedFile);
 
-  if (profileName == NULL) {
-    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_SEVERE,
-           "safeMalloc failed. Not enough memory");
-    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Not enough memory");
-    return NULL;
-  }
   strupcase(urlSegment);
   if (instanceID < 0) { // Set instanceID
     instanceID = 0;
@@ -278,44 +270,39 @@ const char* getProfileNameFromRequest(char *profileName, StringList *parsedFile,
           snprintf(productCode, STRING_BUFFER_SIZE, urlSegment);
           break;
         case 1:
-          snprintf(placeHolder1, STRING_BUFFER_SIZE, urlSegment);
           break;
         case 2:
           snprintf(pluginID, STRING_BUFFER_SIZE, urlSegment);
           break;
         case 3:
-          snprintf(placeHolder2, STRING_BUFFER_SIZE, urlSegment);
           break;
         case 4:
           snprintf(serviceName, STRING_BUFFER_SIZE, urlSegment);
           break;
         case 5:
-          snprintf(placeHolder3, STRING_BUFFER_SIZE, urlSegment);
           break;
-        default:
-          snprintf(subUrl[subUrlIndex-6], STRING_BUFFER_SIZE, urlSegment); // subtract 6 from maximum index to begin init subUrl array at 0
+        default: {
+            int adjustedSubUrlIndex = subUrlIndex - 6;  // subtract 6 from maximum index to begin init subUrl array at 0
+            if (adjustedSubUrlIndex < SAF_SUB_URL_SIZE) {
+              snprintf(subUrl[adjustedSubUrlIndex], STRING_BUFFER_SIZE, urlSegment);
+            }
+          }
       }
       subUrlIndex++;
       pathSegment = pathSegment->next;
     }
     
     setProfileNameAttribs(pluginID, serviceName, type, scope, subUrl);
-    char* ch; 
-    char* chReplace;
-    ch = ".";
-    chReplace = "_";
-    int index = 0;
-    for (index = 0; index <= strlen(pluginID); index++)
-  	{
-  		if (pluginID[index] == *ch)  
-      {
-        pluginID[index] = *chReplace;
+    int pluginIDLen = strlen(pluginID);
+    for (int index = 0; index < pluginIDLen; index++) {
+  		if (pluginID[index] == '.') {
+        pluginID[index] = '_';
       }
     }
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
            "parsedFile urlSegment check OK.");
   }
-  snprintf(profileName, STRING_BUFFER_SIZE, makeProfileName(type, 
+  return makeProfileName(profileName, type, 
     productCode, 
     instanceID, 
     pluginID, 
@@ -323,9 +310,7 @@ const char* getProfileNameFromRequest(char *profileName, StringList *parsedFile,
     serviceName,
     method,
     scope,
-    subUrl));
-    
-  return profileName;
+    subUrl);
 }
 
 static void setProfileNameAttribs(
@@ -345,7 +330,8 @@ static void setProfileNameAttribs(
   }
 }
 
-static const char* makeProfileName(
+static int makeProfileName(
+  char *profileName,
   const char *type,
   const char *productCode, 
   int instanceID, 
@@ -355,67 +341,63 @@ static const char* makeProfileName(
   const char *method,
   const char *scope,
   char subUrl[SAF_SUB_URL_SIZE][STRING_BUFFER_SIZE]) {
-  char *profileName = safeMalloc(STRING_BUFFER_SIZE, "profileNameInner");
-  if (profileName == NULL) {
-    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_SEVERE,
-           "safeMalloc failed. Not enough memory");
-    return NULL;
-  }
-  if (productCode == NULL) {
-    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           "Broken SAF query. Missing product code.");
-    return NULL;
-  }
   if (instanceID == -1) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "Broken SAF query. Missing instance ID.");
-    return NULL;
+    return -1;
   }
   if (method == NULL) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
            "Broken SAF query. Missing method.");
-    return NULL;
+    return -1;
   }
   // char someString[STRING_BUFFER_SIZE] = { snprintf(*someString, STRING_BUFFER_SIZE, type) };
   if (strcmp(type, "service") == 0) {
     if (pluginID == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing plugin ID.");
-      return NULL;
+      return -1;
     }
     if (serviceName == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing service name.");
-      return NULL;
+      return -1;
     }
-    snprintf(profileName, STRING_BUFFER_SIZE, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
+    snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
   } else if (strcmp(type, "config") == 0) {
     if (pluginID == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing plugin ID.");
-      return NULL;
+      return -1;
     }
     if (scope == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing scope.");
-      return NULL;
+      return -1;
     }
-    snprintf(profileName, STRING_BUFFER_SIZE, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
+    snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
   } else if (strcmp(type, "core") == 0) {
     if (rootServiceName == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing root service name.");
-      return NULL;
+      return -1;
     }
-    snprintf(profileName, STRING_BUFFER_SIZE, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
+    snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
   }
   // Child endpoints housed via subUrl
   int index = 0;
+  int pos = strlen(profileName);
   while (index < SAF_SUB_URL_SIZE && strcmp(subUrl[index], "") != 0) {
-    snprintf(profileName, STRING_BUFFER_SIZE, "%s.%s", profileName, subUrl[index]);
+    if (pos > ZOWE_PROFILE_NAME_LEN) {
+      char errMsg[256];
+      snprintf(errMsg, sizeof(errMsg), "Generated SAF query longer than %d", ZOWE_PROFILE_NAME_LEN);
+      zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING, errMsg);
+      return -1;
+    }
+    pos += snprintf(profileName + pos, ZOWE_PROFILE_NAME_LEN + 1 - pos, ".%s", subUrl[index]);
     index++;
   }
-  return profileName;
+  return 0;
 }
 
 void respondWithJsonStatus(HttpResponse *response, const char *status, int statusCode, const char *statusMessage) {

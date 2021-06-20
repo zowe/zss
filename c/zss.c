@@ -102,8 +102,6 @@ static int traceLevel = 0;
 
 #define JSON_ERROR_BUFFER_SIZE 1024
 #define STRING_BUFFER_SIZE 1024
-#define ZOWE_PROFILE_NAME_LEN 246
-
 
 #define DEFAULT_TLS_CIPHERS               \
   TLS_DHE_RSA_WITH_AES_128_GCM_SHA256     \
@@ -330,23 +328,16 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
 
 static int nativeWithSessionTokenAuth(HttpConversation *conversation, HttpRequest *request, HttpService *service, HttpResponse *response) {
   if (conversation->parser) {
+    int rc = 0;
     HttpRequestParser *parser = conversation->parser;
-    char *method = safeMalloc(STRING_BUFFER_SIZE, "method");
-    char *username = safeMalloc(STRING_BUFFER_SIZE, "username");
-    snprintf(method, STRING_BUFFER_SIZE, "%s", request->method); 
-    destructivelyNativize(method);
-    char *profileName = safeMalloc(STRING_BUFFER_SIZE, "profileName");
-    getProfileNameFromRequest(profileName, request->parsedFile, method, -1, response);
-    if (strlen(profileName) > ZOWE_PROFILE_NAME_LEN) {
-      char *errMsg = safeMalloc(JSON_ERROR_BUFFER_SIZE, "errMsg");
-      snprintf(errMsg, STRING_BUFFER_SIZE, "Generated SAF query longer than %d", ZOWE_PROFILE_NAME_LEN); 
-      respondWithError(response, HTTP_STATUS_BAD_REQUEST, errMsg);
-      return -2;
+    char profileName[ZOWE_PROFILE_NAME_LEN+1] = {0};
+    rc = getProfileNameFromRequest(profileName, request->parsedFile, request->method, -1, response);
+    if (rc != 0) {
+      return -1;
     }
-    int rc = serveAuthCheckByParams(service, request->username, "ZOWE", profileName, 2);
+    rc = serveAuthCheckByParams(service, request->username, "ZOWE", profileName, 2);
     return rc;
   }
-  respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Conversation object corrupt");
   return -1;
 }
 
