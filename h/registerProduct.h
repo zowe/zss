@@ -23,6 +23,10 @@
  * @param productOwner This should contain the max 16 bytes product owner. e.g. 'IBM CORP'
  * @param productName  This should contain the max 16 bytes product name. e.g. 'IBM Z Dist Zowe'
  *
+ * @const char arrays:
+ *   MODULE_REGISTER_USAGE (8 byes) this must be "IFAUSAGE"
+ *   PROD_QUAL - product qualifier (8 bytes)  is "NONE    "
+ *
  * @return One of the RC_ZSS_PREG_NULL_xx return codes or the return code from SVC 109.
  */
 

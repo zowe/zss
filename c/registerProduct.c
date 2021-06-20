@@ -28,6 +28,7 @@
 #include "logging.h"
 #include "zssLogging.h"
 #include "registerProduct.h"
+#include "alloc.h"
 
 typedef struct IFAARGS {
   int prefix;
@@ -44,8 +45,8 @@ typedef struct IFAARGS {
   char scope;
   char rsv0001;
   char flags;
-  char *__ptr32 prtoken_addr;
-  char *__ptr32 begtime_addr;
+  uint32_t *__ptr32 prtoken_addr;
+  uint32_t *__ptr32 begtime_addr;
   char *__ptr32 data_addr;
   char xformat;
   char rsv0002[3];
@@ -93,47 +94,49 @@ int productRegistration(const char *major_version,
 
   /* Register Product with IFAUSAGE */
 
-  arg = (IFAARGS_t *)__malloc31(sizeof(IFAARGS_t));
+  /* arg = (IFAARGS_t *)__malloc31(sizeof(IFAARGS_t)); */
 
-  if (arg == NULL) {
+  ALLOC_STRUCT31(
+    STRUCT31_NAME(parms31),
+    STRUCT31_FIELDS(
+      IFAARGS_t arg; // gives you sizeof(IFAARGS_t) bytes on the stack
+      uint32_t prtoken; // gives you 4 bytes on the stack
+      uint32_t begtime; // gives you 4 bytes on the stack
+    )
+  );
+
+  parms31->arg.prtoken_addr = &parms31->prtoken;
+  parms31->arg.begtime_addr = &parms31->begtime;
+
+  if (parms31 == NULL) {
     return RC_ZSS_PREG_NULL_X5;
   }
 
+  memset(parms31, 0, sizeof(IFAARGS_t));
+  memcpy(parms31->arg.id, MODULE_REGISTER_USAGE, sizeof(parms31->arg.id));
 
-  memset(arg, 0, sizeof(IFAARGS_t));
-  memcpy(arg->id, MODULE_REGISTER_USAGE, sizeof(arg->id));
-
-  arg->listlen = sizeof(IFAARGS_t);
-  arg->version = defaultVersion;
-  arg->request = ifaargs_xrequest_register;
+  parms31->arg.listlen = sizeof(IFAARGS_t);
+  parms31->arg.version = defaultVersion;
+  parms31->arg.request = ifaargs_xrequest_register;
 
   /* Insert properties */
 
-  memcpy(arg->prodowner, str_product_owner, sizeof(arg->prodowner));
-  memcpy(arg->prodname, str_product_name, sizeof(arg->prodname));
-  memcpy(arg->prodvers, version, sizeof(arg->prodvers));
-  memcpy(arg->prodqual, PROD_QUAL, sizeof(arg->prodqual));
-  memcpy(arg->prodid, str_pid, sizeof(arg->prodid));
+  memcpy(parms31->arg.prodowner, str_product_owner, sizeof(parms31->arg.prodowner));
+  memcpy(parms31->arg.prodname, str_product_name, sizeof(parms31->arg.prodname));
+  memcpy(parms31->arg.prodvers, version, sizeof(parms31->arg.prodvers));
+  memcpy(parms31->arg.prodqual, PROD_QUAL, sizeof(parms31->arg.prodqual));
+  memcpy(parms31->arg.prodid, str_pid, sizeof(parms31->arg.prodid));
 
-  arg->domain = defaultDomain;
-  arg->scope  = defaultScope;
-
-  arg->prtoken_addr = (char *__ptr32)__malloc31(sizeof(char *__ptr32));
-  if (arg->prtoken_addr == NULL) {
-    return RC_ZSS_PREG_NULL_X6;
-  }
-
-  arg->begtime_addr = (char *__ptr32)__malloc31(sizeof(char *__ptr32));
-  if (arg->prtoken_addr == NULL) {
-    return RC_ZSS_PREG_NULL_X7;
-  }
+  parms31->arg.domain = defaultDomain;
+  parms31->arg.scope  = defaultScope;
 
   /* Load 25 (IFAUSAGE) into reg15 and call via SVC */
 
-  asm(" svc 109\n" : "=NR:r15"(ifausage_rc) : "NR:r1"(arg), "NR:r15"(25) :);
-  free(arg->prtoken_addr);
-  free(arg->begtime_addr);
-  free(arg);
+  asm(" svc 109\n" : "=NR:r15"(ifausage_rc) : "NR:r1"(&parms31->arg), "NR:r15"(25) :);
+
+  FREE_STRUCT31(
+    STRUCT31_NAME(parms31)
+  );
 
   return ifausage_rc;
 
@@ -144,15 +147,15 @@ void registerProduct(char *productReg, char *productPID, char *productVer,
 
   if (productReg != NULL) {
     if (strncasecmp(productReg, "ENABLE", 6) == 0) {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Product Registration is enabled.\n");
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PROD_REG_ENABLED_MSG);
     }
     else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Product Registration is disabled.\n");
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PROD_REG_DISABLED_MSG);
       return;
     }
   }
   else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Product Registration is disabled.\n");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PROD_REG_DISABLED_MSG);
     return;
   }
 
@@ -161,7 +164,12 @@ void registerProduct(char *productReg, char *productPID, char *productVer,
                                productOwner,
                                productName);
 
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "Product Registration RC = %d\n", rc);
+  if (rc == 0) {
+	zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PROD_REG_RC_0_MSG);
+  }
+  else {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PROD_REG_RC_MSG, rc);
+  }
 
 }
 
