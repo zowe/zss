@@ -351,7 +351,7 @@ static int makeProfileName(
            "Broken SAF query. Missing method.");
     return -1;
   }
-  // char someString[STRING_BUFFER_SIZE] = { snprintf(*someString, STRING_BUFFER_SIZE, type) };
+  int pos = 0;
   if (strcmp(type, "service") == 0) {
     if (pluginID == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
@@ -363,7 +363,7 @@ static int makeProfileName(
        "Broken SAF query. Missing service name.");
       return -1;
     }
-    snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
+    pos = snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
   } else if (strcmp(type, "config") == 0) {
     if (pluginID == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
@@ -375,27 +375,29 @@ static int makeProfileName(
        "Broken SAF query. Missing scope.");
       return -1;
     }
-    snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
+    pos = snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
   } else if (strcmp(type, "core") == 0) {
     if (rootServiceName == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing root service name.");
       return -1;
     }
-    snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
+    pos = snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
   }
   // Child endpoints housed via subUrl
   int index = 0;
-  int pos = strlen(profileName);
   while (index < SAF_SUB_URL_SIZE && strcmp(subUrl[index], "") != 0) {
     if (pos > ZOWE_PROFILE_NAME_LEN) {
-      char errMsg[256];
-      snprintf(errMsg, sizeof(errMsg), "Generated SAF query longer than %d", ZOWE_PROFILE_NAME_LEN);
-      zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING, errMsg);
-      return -1;
+      break;
     }
     pos += snprintf(profileName + pos, ZOWE_PROFILE_NAME_LEN + 1 - pos, ".%s", subUrl[index]);
     index++;
+  }
+  if (pos > ZOWE_PROFILE_NAME_LEN) {
+    char errMsg[256];
+    snprintf(errMsg, sizeof(errMsg), "Generated SAF query longer than %d\n", ZOWE_PROFILE_NAME_LEN);
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING, errMsg);
+    return -1;
   }
   return 0;
 }

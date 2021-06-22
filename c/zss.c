@@ -331,7 +331,10 @@ static int nativeWithSessionTokenAuth(HttpConversation *conversation, HttpReques
     int rc = 0;
     HttpRequestParser *parser = conversation->parser;
     char profileName[ZOWE_PROFILE_NAME_LEN+1] = {0};
-    rc = getProfileNameFromRequest(profileName, request->parsedFile, request->method, -1, response);
+    char method[16];
+    snprintf(method, sizeof(method), "%s", request->method);
+    destructivelyNativize(method);
+    rc = getProfileNameFromRequest(profileName, request->parsedFile, method, -1, response);
     if (rc != 0) {
       return -1;
     }
