@@ -140,8 +140,8 @@ int productRegistration(const char *major_version,
 
 }
 
-void registerProduct(char *productReg, char *productPID, char *productVer,
-                     char *productOwner, char *productName){
+void registerProduct(const char *productReg, const char *productPID, const char *productVer,
+                     const char *productOwner, const char *productName){
 
   if (productReg != NULL) {
     if (strncasecmp(productReg, "ENABLE", 6) == 0) {
