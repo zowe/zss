@@ -94,8 +94,6 @@ int productRegistration(const char *major_version,
 
   /* Register Product with IFAUSAGE */
 
-  /* arg = (IFAARGS_t *)__malloc31(sizeof(IFAARGS_t)); */
-
   ALLOC_STRUCT31(
     STRUCT31_NAME(parms31),
     STRUCT31_FIELDS(
@@ -105,15 +103,15 @@ int productRegistration(const char *major_version,
     )
   );
 
-  parms31->arg.prtoken_addr = &parms31->prtoken;
-  parms31->arg.begtime_addr = &parms31->begtime;
-
   if (parms31 == NULL) {
     return RC_ZSS_PREG_NULL_X5;
   }
 
   memset(parms31, 0, sizeof(IFAARGS_t));
   memcpy(parms31->arg.id, MODULE_REGISTER_USAGE, sizeof(parms31->arg.id));
+
+  parms31->arg.prtoken_addr = &parms31->prtoken;
+  parms31->arg.begtime_addr = &parms31->begtime;
 
   parms31->arg.listlen = sizeof(IFAARGS_t);
   parms31->arg.version = defaultVersion;
