@@ -129,7 +129,6 @@ static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts,
 static InternalAPIMap *makeInternalAPIMap(void);
 static bool readGatewaySettings(JsonObject *serverConfig, JsonObject *envConfig, char **outGatewayHost, int *outGatewayPort);
 static bool isCachingServiceEnabled(JsonObject *serverConfig, JsonObject *envConfig);
-static int authHandlerFunction();
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -326,22 +325,21 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
 }
 #endif /* __ZOWE_OS_ZOS */
 
-static int nativeWithSessionTokenAuth(HttpConversation *conversation, HttpRequest *request, HttpService *service, HttpResponse *response) {
-  if (conversation->parser) {
-    int rc = 0;
-    HttpRequestParser *parser = conversation->parser;
-    char profileName[ZOWE_PROFILE_NAME_LEN+1] = {0};
-    char method[16];
-    snprintf(method, sizeof(method), "%s", request->method);
-    destructivelyNativize(method);
-    rc = getProfileNameFromRequest(profileName, request->parsedFile, method, -1, response);
-    if (rc != 0) {
-      return -1;
-    }
-    rc = serveAuthCheckByParams(service, request->username, "ZOWE", profileName, 2);
-    return rc;
+static int nativeWithSessionTokenAuth(HttpService *service, HttpRequest *request, HttpResponse *response) {
+  int rc = 0;
+  char profileName[ZOWE_PROFILE_NAME_LEN+1] = {0};
+  char method[16];
+  snprintf(method, sizeof(method), "%s", request->method);
+  destructivelyNativize(method);
+  rc = getProfileNameFromRequest(profileName, request->parsedFile, method, -1, response);
+  if (rc != 0) {
+    return FALSE;
   }
-  return -1;
+  rc = serveAuthCheckByParams(service, request->username, "ZOWE", profileName, 2);
+  if (rc != 0) {
+    return FALSE;
+  }
+  return TRUE;
 }
 
 /* Future custom ZSS authorization handlers go here */
