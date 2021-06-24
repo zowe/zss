@@ -343,6 +343,34 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_HTTPS_INVALID_MSG_TEXT        "Failed to configure https server, check agent https settings\n"
 #define ZSS_LOG_HTTPS_INVALID_MSG             ZSS_LOG_HTTPS_INVALID_MSG_ID" "ZSS_LOG_HTTPS_INVALID_MSG_TEXT
 
+/* registerProduct */
+
+#ifndef ZSS_LOG_PROD_REG_ENABLED_MSG_ID
+#define ZSS_LOG_PROD_REG_ENABLED_MSG_ID       ZSS_LOG_MSG_PRFX"1100I"
+#endif
+#define ZSS_LOG_PROD_REG_ENABLED_MSG_TEXT     "Product Registration is enabled.\n"
+#define ZSS_LOG_PROD_REG_ENABLED_MSG          ZSS_LOG_PROD_REG_ENABLED_MSG_ID" "ZSS_LOG_PROD_REG_ENABLED_MSG_TEXT
+
+#ifndef ZSS_LOG_PROD_REG_DISABLED_MSG_ID
+#define ZSS_LOG_PROD_REG_DISABLED_MSG_ID      ZSS_LOG_MSG_PRFX"1101I"
+#endif
+#define ZSS_LOG_PROD_REG_DISABLED_MSG_TEXT    "Product Registration is disabled.\n"
+#define ZSS_LOG_PROD_REG_DISABLED_MSG         ZSS_LOG_PROD_REG_DISABLED_MSG_ID" "ZSS_LOG_PROD_REG_DISABLED_MSG_TEXT
+
+#ifndef ZSS_LOG_PROD_REG_RC_0_MSG_ID
+#define ZSS_LOG_PROD_REG_RC_0_MSG_ID          ZSS_LOG_MSG_PRFX"1102I"
+#endif
+#define ZSS_LOG_PROD_REG_RC_0_MSG_TEXT        "Product Registration RC = 0.\n"
+#define ZSS_LOG_PROD_REG_RC_0_MSG             ZSS_LOG_PROD_REG_RC_0_MSG_ID" "ZSS_LOG_PROD_REG_RC_0_MSG_TEXT
+
+#ifndef ZSS_LOG_PROD_REG_RC_MSG_ID
+#define ZSS_LOG_PROD_REG_RC_MSG_ID            ZSS_LOG_MSG_PRFX"1103W"
+#endif
+#define ZSS_LOG_PROD_REG_RC_MSG_TEXT          "Product Registration RC = %d\n"
+#define ZSS_LOG_PROD_REG_RC_MSG               ZSS_LOG_PROD_REG_RC_MSG_ID" "ZSS_LOG_PROD_REG_RC_MSG_TEXT
+
+
+
 /* Unixfile */
 
 #ifndef ZSS_LOG_UNABLE_MSG_ID
