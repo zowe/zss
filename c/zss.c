@@ -554,6 +554,7 @@ static char* resolvePluginLocation(ShortLivedHeap *slh, const char *pluginLocati
     if (varValue) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "relativeTo '%s' resolves to '%s'\n", relativeTo, varValue);
       relativeTo = varValue;
+      relativeToLen = strlen(relativeTo);
     } else {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "unable to resolve relativeTo '%s', env var not set\n", relativeTo, varValue);
     }

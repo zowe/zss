@@ -4,6 +4,10 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `1.23.0`
+
+- Bugfix: `relativeTo` parsing may have failed depending upon path length and contents, leading to skipped plugin loading.
+
 ## `1.22.0`
 
 ### New features and enhancements
