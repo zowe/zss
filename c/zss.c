@@ -31,7 +31,6 @@
 #include <errno.h>
 #include <pthread.h>
 #include <signal.h>
-
 #endif
 
 #include "zowetypes.h"
@@ -74,7 +73,7 @@
 #include "serverStatusService.h"
 #include "rasService.h"
 #include "certificateService.h"
-
+#include "registerProduct.h"
 #include "jwt.h"
 #ifdef USE_ZOWE_TLS
 #include "tls.h"
@@ -106,17 +105,11 @@ static int traceLevel = 0;
 
 #define DEFAULT_TLS_CIPHERS               \
   TLS_DHE_RSA_WITH_AES_128_GCM_SHA256     \
-  TLS_DHE_RSA_WITH_AES_128_CBC_SHA256     \
   TLS_DHE_RSA_WITH_AES_256_GCM_SHA384     \
-  TLS_DHE_RSA_WITH_AES_256_CBC_SHA256     \
   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 \
-  TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256 \
   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 \
-  TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384 \
   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256   \
-  TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256   \
-  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384   \
-  TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
+  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
 
 static int stringEndsWith(char *s, char *suffix);
 static void dumpJson(Json *json);
@@ -584,6 +577,7 @@ static char* resolvePluginLocation(ShortLivedHeap *slh, const char *pluginLocati
     if (varValue) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "relativeTo '%s' resolves to '%s'\n", relativeTo, varValue);
       relativeTo = varValue;
+      relativeToLen = strlen(relativeTo);
     } else {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "unable to resolve relativeTo '%s', env var not set\n", relativeTo, varValue);
     }
@@ -1507,6 +1501,11 @@ int main(int argc, char **argv){
   char groupsDir[COMMON_PATH_MAX];
   char usersDir[COMMON_PATH_MAX];
   char pluginsDir[COMMON_PATH_MAX];
+  char productReg[COMMON_PATH_MAX];
+  char productPID[COMMON_PATH_MAX];
+  char productVer[COMMON_PATH_MAX];
+  char productOwner[COMMON_PATH_MAX];
+  char productName[COMMON_PATH_MAX];
   char *tempString;
   hashtable *htUsers;
   hashtable *htGroups;
@@ -1540,6 +1539,11 @@ int main(int argc, char **argv){
     checkAndSetVariable(mvdSettings, "instanceDir", instanceDir, COMMON_PATH_MAX);
     checkAndSetVariable(mvdSettings, "groupsDir", groupsDir, COMMON_PATH_MAX);
     checkAndSetVariable(mvdSettings, "usersDir", usersDir, COMMON_PATH_MAX);
+    checkAndSetVariable(mvdSettings, "productReg", productReg, COMMON_PATH_MAX);
+    checkAndSetVariable(mvdSettings, "productVer", productVer, COMMON_PATH_MAX);
+    checkAndSetVariable(mvdSettings, "productPID", productPID, COMMON_PATH_MAX);
+    checkAndSetVariable(mvdSettings, "productOwner", productOwner, COMMON_PATH_MAX);
+    checkAndSetVariable(mvdSettings, "productName", productName, COMMON_PATH_MAX);
     
     char *serverTimeoutsDir;
     char *serverTimeoutsDirSuffix;
@@ -1570,6 +1574,12 @@ int main(int argc, char **argv){
    
     /* This one IS used*/
     checkAndSetVariableWithEnvOverride(mvdSettings, "pluginsDir", envSettings, "ZWED_pluginsDir", pluginsDir, COMMON_PATH_MAX);
+        /* and these 5 are also used */
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productReg", envSettings, "ZWED_productReg", productReg, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productVer", envSettings, "ZWED_productVer", productVer, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productPID", envSettings, "ZWED_productPID", productPID, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productOwner", envSettings, "ZWED_productOwner", productOwner, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productName", envSettings, "ZWED_productName", productName, COMMON_PATH_MAX);
 
     HttpServer *server = NULL;
     int port = 0;
@@ -1592,6 +1602,7 @@ int main(int argc, char **argv){
       zssStatus = ZSS_STATUS_ERROR;
       goto out_term_stcbase;
     }
+    registerProduct(productReg, productPID, productVer, productOwner, productName);
 
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port,  isHttpsConfigured ? "https" : "http");
     if (isHttpsConfigured) {
