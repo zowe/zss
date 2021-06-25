@@ -50,10 +50,11 @@ int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *m
  * @param Class Class to use in ZIS check i.e. "ZOWE"
  * @param entity Describes the SAF query itself i.e. "ZLUX.0.COR.GET.SERVER.AGENT.CONFIG"
  * @param access Describes the access type i.e. "READ"
+ * @param envSettings JSON object that holds environment variables, if any
  *
  * @return Return code where != 0 is a failed RBAC check
  */
-int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char *entity, int access);
+int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char *entity, int access, JsonObject *envSettings);
 
 
 #endif

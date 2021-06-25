@@ -68,7 +68,7 @@
 
 static int serveAuthCheck(HttpService *service, HttpResponse *response);
 
-int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char* entity, int access);
+int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char* entity, int access, JsonObject *envSettings);
 
 static int makeProfileName(
   char *profileName,
@@ -206,10 +206,17 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
   return 0;
 }
 
-int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char *entity, int access) {
+int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char *entity, int access, JsonObject *envSettings) {
   int rc = 0;
-  JsonObject *dataserviceAuth = jsonObjectGetObject(service->server->sharedServiceMem, "dataserviceAuthentication");
-  int rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
+  int rbacParm;
+  Json *rbacObj = jsonObjectGetPropertyValue(envSettings, "ZWED_dataserviceAuthentication_rbac");
+  if (rbacObj == NULL) { // Env variable doesn't exist, so check server config
+    JsonObject *dataserviceAuth = jsonObjectGetObject(service->server->sharedServiceMem, "dataserviceAuthentication");
+    rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
+  } else { // Use env variable value
+    rbacParm = jsonAsBoolean(rbacObj);
+  }
+  
   CrossMemoryServerName *privilegedServerName = getConfiguredProperty(service->server,
       HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   ZISAuthServiceStatus reqStatus = {0};
