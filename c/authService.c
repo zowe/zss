@@ -225,6 +225,8 @@ int serveAuthCheckByParams(HttpService *service, char *userName, char *class, ch
   }
   rc = zisCheckEntity(privilegedServerName, userName, class, entity, access,
       &reqStatus);
+  zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
+           "RBAC check occurred for entity '%s' class '%s' access '%d' , rc: %d", entity, class, access, rc);
   return rc;
 }
 
@@ -406,6 +408,8 @@ static int makeProfileName(
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING, errMsg);
     return -1;
   }
+  zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
+           "Finished generating profileName: %s", profileName);
   return 0;
 }
 
