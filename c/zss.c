@@ -338,12 +338,7 @@ static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpRes
 
 /* Future custom ZSS authorization handlers go here */
 static void initializeAuthHandlers(HttpServer *server) {
-  
-  /* NATIVE_WITH_SESSION_TOKEN */ 
-  server->authHandler[0] = (HttpAuthHandler*)safeMalloc31(sizeof(HttpAuthHandler),"HttpAuthHandler");
-  server->authHandler[0]->type = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
-  server->authHandler[0]->authFunction = &rbacAuthorization;
-
+  registerHttpAuthorizationHandler(server, SERVICE_AUTHORIZATION_TYPE_DEFAULT, rbacAuthorization);
 }
 
 static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings,
@@ -699,7 +694,7 @@ static void installLoginService(HttpServer *server) {
 
   HttpService *httpService = makeGeneratedService("com.rs.mvd.login", "/login/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
-  httpService->authFlags = SERVICE_AUTH_FLAG_SKIP_AUTHORIZATION;
+  httpService->authorizationType = SERVICE_AUTHORIZATION_TYPE_NONE;
   httpService->serviceFunction = serveLoginWithSessionToken;
   httpService->authExtractionFunction = extractAuthorizationFromJson;
   registerHttpService(server, httpService);
