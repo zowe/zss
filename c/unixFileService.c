@@ -1099,7 +1099,8 @@ static int serveTableOfContents(HttpService *service, HttpResponse *response) {
 void installUnixFileContentsService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("UnixFileContents",
       "/unixfile/contents/**");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authFlags = SERVICE_AUTH_FLAG_SKIP_AUTHORIZATION;
   httpService->serviceFunction = serveUnixFileContents;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
@@ -1118,7 +1119,8 @@ void installUnixFileContentsService(HttpServer *server) {
 void installUnixFileRenameService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("UnixFileRename",
       "/unixfile/rename/**");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authFlags = SERVICE_AUTH_FLAG_SKIP_AUTHORIZATION;
   httpService->serviceFunction = serveUnixFileRename;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
@@ -1128,7 +1130,8 @@ void installUnixFileRenameService(HttpServer *server) {
 void installUnixFileCopyService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("UnixFileCopy",
       "/unixfile/copy/**");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authFlags = SERVICE_AUTH_FLAG_SKIP_AUTHORIZATION;
   httpService->serviceFunction = serveUnixFileCopy;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
@@ -1138,7 +1141,8 @@ void installUnixFileCopyService(HttpServer *server) {
 void installUnixFileMakeDirectoryService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("UnixFileMkdir",
       "/unixfile/mkdir/**");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authFlags = SERVICE_AUTH_FLAG_SKIP_AUTHORIZATION;
   httpService->serviceFunction = serveUnixFileMakeDirectory;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
@@ -1148,7 +1152,8 @@ void installUnixFileMakeDirectoryService(HttpServer *server) {
 void installUnixFileTouchService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("UnixFileTouch",
       "/unixfile/touch/**");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authFlags = SERVICE_AUTH_FLAG_SKIP_AUTHORIZATION;
   httpService->serviceFunction = serveUnixFileTouch;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
@@ -1158,7 +1163,8 @@ void installUnixFileTouchService(HttpServer *server) {
 void installUnixFileMetadataService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("unixFileMetadata",
       "/unixfile/metadata/**");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authFlags = SERVICE_AUTH_FLAG_SKIP_AUTHORIZATION;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveUnixFileMetadata;
@@ -1168,7 +1174,8 @@ void installUnixFileMetadataService(HttpServer *server) {
 void installUnixFileChangeOwnerService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("unixFileMetadata",
       "/unixfile/chown/**");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authFlags = SERVICE_AUTH_FLAG_SKIP_AUTHORIZATION;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveUnixFileChangeOwner;
@@ -1178,7 +1185,8 @@ void installUnixFileChangeOwnerService(HttpServer *server) {
 void installUnixFileChangeTagService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("UnixFileChtag",
       "/unixfile/chtag/**");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authFlags = SERVICE_AUTH_FLAG_SKIP_AUTHORIZATION;
   httpService->serviceFunction = serveUnixFileChangeTag;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
@@ -1188,7 +1196,8 @@ void installUnixFileChangeTagService(HttpServer *server) {
 void installUnixFileChangeModeService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("UnixFileChmod",
       "/unixfile/chmod/**");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authFlags = SERVICE_AUTH_FLAG_SKIP_AUTHORIZATION;
   httpService->serviceFunction = serveUnixFileChangeMode;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
@@ -1198,7 +1207,8 @@ void installUnixFileChangeModeService(HttpServer *server) {
 void installUnixFileTableOfContentsService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("unixFileMetadata",
       "/unixfile/");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authFlags = SERVICE_AUTH_FLAG_SKIP_AUTHORIZATION;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveTableOfContents;

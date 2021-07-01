@@ -53,7 +53,8 @@ static int issueRACFCommand(char *command, OMVSSegment *omvs);
 int installOMVSService(HttpServer *server)
 {
   HttpService *httpService = makeGeneratedService("OMVS_Service", "/omvs/**");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authFlags = SERVICE_AUTH_FLAG_SKIP_AUTHORIZATION;
   httpService->serviceFunction = &serveOMVSSegment;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
