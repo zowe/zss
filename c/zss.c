@@ -337,8 +337,20 @@ static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpRes
 }
 
 /* Future custom ZSS authorization handlers go here */
-static void initializeAuthHandlers(HttpServer *server) {
-  registerHttpAuthorizationHandler(server, SERVICE_AUTHORIZATION_TYPE_DEFAULT, rbacAuthorization);
+static void registerAuthorizationHandlers(HttpServer *server, JsonObject *mvdSettings, JsonObject *envSettings) {
+  int rbacParm = FALSE;
+  Json *rbacObj = jsonObjectGetPropertyValue(envSettings, "ZWED_dataserviceAuthentication_rbac");
+  if (rbacObj == NULL) {
+    JsonObject *dataserviceAuth = jsonObjectGetObject(mvdSettings, "dataserviceAuthentication");
+    if (dataserviceAuth) {
+      rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
+    }
+  } else {
+    rbacParm = jsonAsBoolean(rbacObj);
+  }
+  if (rbacParm) {
+    registerHttpAuthorizationHandler(server, SERVICE_AUTHORIZATION_TYPE_DEFAULT, rbacAuthorization);
+  }
 }
 
 static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings,
@@ -1614,7 +1626,7 @@ int main(int argc, char **argv){
       ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettings(slh, mvdSettings, envSettings, tlsEnv);
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
-      initializeAuthHandlers(server);
+      registerAuthorizationHandlers(server, mvdSettings, envSettings);
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
       readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile, apimlStorageSettings);
       installCertificateService(server);

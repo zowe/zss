@@ -208,21 +208,10 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
 
 int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char *entity, int access, JsonObject *envSettings) {
   int rc = 0;
-  int rbacParm;
-  Json *rbacObj = jsonObjectGetPropertyValue(envSettings, "ZWED_dataserviceAuthentication_rbac");
-  if (rbacObj == NULL) { // Env variable doesn't exist, so check server config
-    JsonObject *dataserviceAuth = jsonObjectGetObject(service->server->sharedServiceMem, "dataserviceAuthentication");
-    rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
-  } else { // Use env variable value
-    rbacParm = jsonAsBoolean(rbacObj);
-  }
   
   CrossMemoryServerName *privilegedServerName = getConfiguredProperty(service->server,
       HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   ZISAuthServiceStatus reqStatus = {0};
-  if (!rbacParm) {
-    return rc; // When rbac isn't enabled, we don't try to check the auth query
-  }
   rc = zisCheckEntity(privilegedServerName, userName, class, entity, access,
       &reqStatus);
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
