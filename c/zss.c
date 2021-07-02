@@ -319,18 +319,25 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
 }
 #endif /* __ZOWE_OS_ZOS */
 
-static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpResponse *response) {
+typedef struct RbacAuthorizationData_t {
+  int instanceId;
+} RbacAuthorizationData;
+
+static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpResponse *response, void *userData) {
   if (request->username != NULL) {
     // would a check for (service->authType != SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN) be better?
     return TRUE;
   }
 
+  RbacAuthorizationData *rbacData = userData;
+
   char method[16];
   snprintf(method, sizeof(method), "%s", request->method);
   destructivelyNativize(method);
 
+
   char profileName[ZOWE_PROFILE_NAME_LEN+1] = {0};
-  int rc = getProfileNameFromRequest(profileName, request->parsedFile, method, -1);
+  int rc = getProfileNameFromRequest(profileName, request->parsedFile, method, rbacData->instanceId);
   if (rc != 0) {
     return FALSE;
   }
@@ -343,8 +350,7 @@ static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpRes
   return TRUE;
 }
 
-/* Future custom ZSS authorization handlers go here */
-static void registerAuthorizationHandlers(HttpServer *server, JsonObject *mvdSettings, JsonObject *envSettings) {
+static bool isRbacEnabled(JsonObject *mvdSettings, JsonObject *envSettings) {
   int rbacParm = FALSE;
   Json *rbacObj = jsonObjectGetPropertyValue(envSettings, "ZWED_dataserviceAuthentication_rbac");
   if (rbacObj == NULL) {
@@ -355,8 +361,27 @@ static void registerAuthorizationHandlers(HttpServer *server, JsonObject *mvdSet
   } else {
     rbacParm = jsonAsBoolean(rbacObj);
   }
-  if (rbacParm) {
-    registerHttpAuthorizationHandler(server, SERVICE_AUTHORIZATION_TYPE_DEFAULT, rbacAuthorization);
+  return rbacParm;
+}
+
+static int getZoweInstanceId() {
+  char *instance = getenv("ZOWE_INSTANCE");
+  if (!instance) {
+    return 0;
+  }
+  return atoi(instance);
+}
+
+/* Future custom ZSS authorization handlers go here */
+static void registerAuthorizationHandlers(HttpServer *server, JsonObject *mvdSettings, JsonObject *envSettings) {
+  bool rbacEnabled = isRbacEnabled(mvdSettings, envSettings);
+  if (!rbacEnabled) {
+    return;
+  }
+  RbacAuthorizationData *rbacData = (RbacAuthorizationData*) safeMalloc(sizeof(*rbacData), "Rbac Authorization Data");
+  if (rbacData) {
+    rbacData->instanceId = getZoweInstanceId();
+    registerHttpAuthorizationHandler(server, SERVICE_AUTHORIZATION_TYPE_DEFAULT, rbacAuthorization, rbacData);
   }
 }
 
