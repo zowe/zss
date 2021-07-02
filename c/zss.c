@@ -374,8 +374,7 @@ static int getZoweInstanceId() {
 }
 
 /* Future custom ZSS authorization handlers go here */
-static void registerAuthorizationHandlers(HttpServer *server, JsonObject *mvdSettings, JsonObject *envSettings) {
-  bool rbacEnabled = isRbacEnabled(mvdSettings, envSettings);
+static void registerAuthorizationHandlers(HttpServer *server, bool rbacEnabled) {
   if (!rbacEnabled) {
     return;
   }
@@ -1659,7 +1658,8 @@ int main(int argc, char **argv){
       ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettings(slh, mvdSettings, envSettings, tlsEnv);
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
-      registerAuthorizationHandlers(server, mvdSettings, envSettings);
+      bool rbacEnabled = isRbacEnabled(mvdSettings, envSettings);
+      registerAuthorizationHandlers(server, rbacEnabled);
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
       readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile, apimlStorageSettings);
       installCertificateService(server);
@@ -1682,7 +1682,7 @@ int main(int argc, char **argv){
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);
-      installServerStatusService(server, MVD_SETTINGS, productVersion);
+      installServerStatusService(server, MVD_SETTINGS, rbacEnabled, productVer);
       installZosPasswordService(server);
       installRASService(server);
 #endif
