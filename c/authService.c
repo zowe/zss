@@ -68,8 +68,6 @@
 
 static int serveAuthCheck(HttpService *service, HttpResponse *response);
 
-int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char* entity, int access, JsonObject *envSettings);
-
 static int makeProfileName(
   char *profileName,
   const char *type,
@@ -206,7 +204,7 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
   return 0;
 }
 
-int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char *entity, int access, JsonObject *envSettings) {
+int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char *entity, int access) {
   int rc = 0;
   
   CrossMemoryServerName *privilegedServerName = getConfiguredProperty(service->server,
@@ -219,7 +217,7 @@ int serveAuthCheckByParams(HttpService *service, char *userName, char *class, ch
   return rc;
 }
 
-int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID, HttpResponse *response) {
+int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID) {
   char type[STRING_BUFFER_SIZE]; // core || config || service
   char productCode[STRING_BUFFER_SIZE];
   char rootServiceName[STRING_BUFFER_SIZE];

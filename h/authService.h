@@ -36,11 +36,10 @@ void installZosPasswordService(HttpServer *server);
  * @param profileName Generated profile name goes here
  * @param parsedFile Refers to the StringList object which contains URL stripped of args
  * @param instanceID Refers to instanceID for query. If none specified, or negative, then 0
- * @param HttpResponse Describes the HttpResponse object to return if error encountered
  *
  * @return Return non-zero if error
  */
-int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID, HttpResponse *response);
+int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID);
 
 /**
  * @brief The function satisfies RBAC, by first checking if RBAC is enabled, then executing
@@ -54,7 +53,7 @@ int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *m
  *
  * @return Return code where != 0 is a failed RBAC check
  */
-int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char *entity, int access, JsonObject *envSettings);
+int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char *entity, int access);
 
 
 #endif

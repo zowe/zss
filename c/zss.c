@@ -320,19 +320,26 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
 #endif /* __ZOWE_OS_ZOS */
 
 static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpResponse *response) {
-  int rc = 0;
-  char profileName[ZOWE_PROFILE_NAME_LEN+1] = {0};
+  if (request->username != NULL) {
+    // would a check for (service->authType != SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN) be better?
+    return TRUE;
+  }
+
   char method[16];
   snprintf(method, sizeof(method), "%s", request->method);
   destructivelyNativize(method);
-  rc = getProfileNameFromRequest(profileName, request->parsedFile, method, -1, response);
+
+  char profileName[ZOWE_PROFILE_NAME_LEN+1] = {0};
+  int rc = getProfileNameFromRequest(profileName, request->parsedFile, method, -1);
   if (rc != 0) {
     return FALSE;
   }
-  rc = serveAuthCheckByParams(service, request->username, "ZOWE", profileName, 2, ENV_SETTINGS);
+
+  rc = serveAuthCheckByParams(service, request->username, "ZOWE", profileName, 2);
   if (rc != 0) {
     return FALSE;
   }
+
   return TRUE;
 }
 
