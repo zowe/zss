@@ -324,7 +324,8 @@ typedef struct RbacAuthorizationData_t {
 } RbacAuthorizationData;
 
 static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpResponse *response, void *userData) {
-  if (request->username != NULL) {
+  if (request->username == NULL) {
+    // username is required to perform RBAC check
     // would a check for (service->authType != SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN) be better?
     return TRUE;
   }
