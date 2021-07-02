@@ -343,8 +343,8 @@ static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpRes
     return FALSE;
   }
 
-  rc = serveAuthCheckByParams(service, request->username, "ZOWE", profileName, 2);
-  if (rc != 0) {
+  rc = verifyAccessToSafProfile(service->server, request->username, SAF_CLASS, profileName, SAF_AUTH_ATTR_READ);
+  if (rc != RC_ZIS_SRVC_OK) {
     return FALSE;
   }
 

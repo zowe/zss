@@ -35,7 +35,6 @@
 #include "httpserver.h"
 #include "zssLogging.h"
 
-#define SAF_CLASS "ZOWE"
 #define JSON_ERROR_BUFFER_SIZE 1024
 #define STRING_BUFFER_SIZE 1024
 #define SAF_SUB_URL_SIZE 16
@@ -204,11 +203,10 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
   return 0;
 }
 
-int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char *entity, int access) {
+int verifyAccessToSafProfile(HttpServer *server, char *userName, char *class, char *entity, int access) {
   int rc = 0;
   
-  CrossMemoryServerName *privilegedServerName = getConfiguredProperty(service->server,
-      HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
+  CrossMemoryServerName *privilegedServerName = getConfiguredProperty(server, HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   ZISAuthServiceStatus reqStatus = {0};
   rc = zisCheckEntity(privilegedServerName, userName, class, entity, access,
       &reqStatus);

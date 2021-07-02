@@ -26,6 +26,7 @@
 #include "httpserver.h"
 #include "dataservice.h"
 
+#define SAF_CLASS "ZOWE"
 #define ZOWE_PROFILE_NAME_LEN 246
 
 int installAuthCheckService(HttpServer *server);
@@ -42,18 +43,17 @@ void installZosPasswordService(HttpServer *server);
 int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID);
 
 /**
- * @brief The function satisfies RBAC, by first checking if RBAC is enabled, then executing
- * a ZIS check.
- * @param service The calling HttpService
+ * @brief The function verifies access to a SAF profile.
+ * @param server HTTP Server
  * @param userName Username to use in ZIS check
- * @param Class Class to use in ZIS check i.e. "ZOWE"
+ * @param class Class to use in ZIS check i.e. "ZOWE"
  * @param entity Describes the SAF query itself i.e. "ZLUX.0.COR.GET.SERVER.AGENT.CONFIG"
  * @param access Describes the access type i.e. "READ"
  * @param envSettings JSON object that holds environment variables, if any
  *
- * @return Return code where != 0 is a failed RBAC check
+ * @return Return code where != 0 if failed
  */
-int serveAuthCheckByParams(HttpService *service, char *userName, char *Class, char *entity, int access);
+int verifyAccessToSafProfile(HttpServer *server, char *userName, char *class, char *entity, int access);
 
 
 #endif
