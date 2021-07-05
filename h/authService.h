@@ -51,7 +51,7 @@ int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *m
  * @param access Describes the access type i.e. "READ"
  * @param envSettings JSON object that holds environment variables, if any
  *
- * @return Return code where != 0 if failed
+ * @return Return non-zero if failed
  */
 int verifyAccessToSafProfile(HttpServer *server, char *userName, char *class, char *entity, int access);
 

@@ -336,7 +336,6 @@ static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpRes
   snprintf(method, sizeof(method), "%s", request->method);
   destructivelyNativize(method);
 
-
   char profileName[ZOWE_PROFILE_NAME_LEN+1] = {0};
   int rc = getProfileNameFromRequest(profileName, request->parsedFile, method, rbacData->instanceId);
   if (rc != 0) {
@@ -344,7 +343,7 @@ static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpRes
   }
 
   rc = verifyAccessToSafProfile(service->server, request->username, SAF_CLASS, profileName, SAF_AUTH_ATTR_READ);
-  if (rc != RC_ZIS_SRVC_OK) {
+  if (rc != 0) {
     return FALSE;
   }
 
