@@ -3355,7 +3355,7 @@ void installSecurityManagementServices(HttpServer *server) {
       makeIntParamSpec("traceLevel", SERVICE_ARG_OPTIONAL, 0, 0, 0, 0,
       makeStringParamSpec("dryRun", SERVICE_ARG_OPTIONAL, NULL
       )));
-  classMgmtService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  classMgmtService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
   classMgmtService->serviceFunction = &serveClassManagement;
   classMgmtService->runInSubtask = TRUE;
   classMgmtService->doImpersonation = TRUE;
@@ -3369,7 +3369,7 @@ void installSecurityManagementServices(HttpServer *server) {
       makeIntParamSpec("traceLevel", SERVICE_ARG_OPTIONAL, 0, 0, 0, 0,
       makeStringParamSpec("dryRun", SERVICE_ARG_OPTIONAL, NULL
       )));
-  userProfileService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  userProfileService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
   userProfileService->serviceFunction = &serveUserProfile;
   userProfileService->runInSubtask = TRUE;
   userProfileService->doImpersonation = TRUE;
@@ -3383,7 +3383,7 @@ void installSecurityManagementServices(HttpServer *server) {
       makeIntParamSpec("traceLevel", SERVICE_ARG_OPTIONAL, 0, 0, 0, 0,
       makeStringParamSpec("dryRun", SERVICE_ARG_OPTIONAL, NULL
       )));
-  groupMgmtService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  groupMgmtService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
   groupMgmtService->serviceFunction = &serveGroupManagement;
   groupMgmtService->runInSubtask = TRUE;
   groupMgmtService->doImpersonation = TRUE;
@@ -3396,7 +3396,7 @@ void installSecurityManagementServices(HttpServer *server) {
       makeIntParamSpec("count", SERVICE_ARG_OPTIONAL, 0, 0, 0, 0,
       makeIntParamSpec("traceLevel", SERVICE_ARG_OPTIONAL, 0, 0, 0, 0, NULL
       ));
-  accessService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  accessService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
   accessService->serviceFunction = &serveAccessInfo;
   accessService->runInSubtask = TRUE;
   accessService->doImpersonation = TRUE;

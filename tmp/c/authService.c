@@ -68,7 +68,7 @@
 
 static int serveAuthCheck(HttpService *service, HttpResponse *response);
 
-int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char* entity, int access, JsonObject *envSettings);
+int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char* entity, int access);
 
 static int makeProfileName(
   char *profileName,
@@ -206,17 +206,10 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
   return 0;
 }
 
-int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char *entity, int access, JsonObject *envSettings) {
+int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char *entity, int access) {
   int rc = 0;
-  int rbacParm;
-  Json *rbacObj = jsonObjectGetPropertyValue(envSettings, "ZWED_dataserviceAuthentication_rbac");
-  if (rbacObj == NULL) { // Env variable doesn't exist, so check server config
-    JsonObject *dataserviceAuth = jsonObjectGetObject(service->server->sharedServiceMem, "dataserviceAuthentication");
-    rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
-  } else { // Use env variable value
-    rbacParm = jsonAsBoolean(rbacObj);
-  }
-  
+  JsonObject *dataserviceAuth = jsonObjectGetObject(service->server->sharedServiceMem, "dataserviceAuthentication");
+  int rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
   CrossMemoryServerName *privilegedServerName = getConfiguredProperty(service->server,
       HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   ZISAuthServiceStatus reqStatus = {0};
@@ -225,8 +218,6 @@ int serveAuthCheckByParams(HttpService *service, char *userName, char *class, ch
   }
   rc = zisCheckEntity(privilegedServerName, userName, class, entity, access,
       &reqStatus);
-  zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
-           "RBAC check occurred for entity '%s' class '%s' access '%d' , rc: %d", entity, class, access, rc);
   return rc;
 }
 
@@ -408,8 +399,6 @@ static int makeProfileName(
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING, errMsg);
     return -1;
   }
-  zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
-           "Finished generating profileName: %s", profileName);
   return 0;
 }
 

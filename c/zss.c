@@ -97,9 +97,11 @@
 char productVersion[40];
 
 static JsonObject *MVD_SETTINGS = NULL;
+static JsonObject *ENV_SETTINGS = NULL;
 static int traceLevel = 0;
 
 #define JSON_ERROR_BUFFER_SIZE 1024
+#define STRING_BUFFER_SIZE 1024
 
 #define DEFAULT_TLS_CIPHERS               \
   TLS_DHE_RSA_WITH_AES_128_GCM_SHA256     \
@@ -317,10 +319,38 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
 }
 #endif /* __ZOWE_OS_ZOS */
 
+static int nativeWithSessionTokenAuth(HttpService *service, HttpRequest *request, HttpResponse *response) {
+  int rc = 0;
+  char profileName[ZOWE_PROFILE_NAME_LEN+1] = {0};
+  char method[16];
+  snprintf(method, sizeof(method), "%s", request->method);
+  destructivelyNativize(method);
+  rc = getProfileNameFromRequest(profileName, request->parsedFile, method, -1, response);
+  if (rc != 0) {
+    return FALSE;
+  }
+  rc = serveAuthCheckByParams(service, request->username, "ZOWE", profileName, 2, ENV_SETTINGS);
+  if (rc != 0) {
+    return FALSE;
+  }
+  return TRUE;
+}
+
+/* Future custom ZSS authorization handlers go here */
+static void initializeAuthHandlers(HttpServer *server) {
+  
+  /* NATIVE_WITH_SESSION_TOKEN */ 
+  server->authHandler[0] = (HttpAuthHandler*)safeMalloc31(sizeof(HttpAuthHandler),"HttpAuthHandler");
+  server->authHandler[0]->type = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  server->authHandler[0]->authFunction = &nativeWithSessionTokenAuth;
+
+}
+
 static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings,
                                 JsonObject *envSettings, hashtable *htUsers,
                                 hashtable *htGroups, int defaultSessionTimeout){
   MVD_SETTINGS = mvdSettings;
+  ENV_SETTINGS = envSettings;
   /* Disabled because this server is not being used by end users, but called by other servers
    * HttpService *mainService = makeGeneratedService("main", "/");
    * mainService->serviceFunction = serveMainPage;
@@ -668,7 +698,7 @@ static void installLoginService(HttpServer *server) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
   HttpService *httpService = makeGeneratedService("com.rs.mvd.login", "/login/**");
-  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
   httpService->serviceFunction = serveLoginWithSessionToken;
   httpService->authExtractionFunction = extractAuthorizationFromJson;
   registerHttpService(server, httpService);
@@ -1588,6 +1618,7 @@ int main(int argc, char **argv){
       ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettings(slh, mvdSettings, envSettings, tlsEnv);
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
+      initializeAuthHandlers(server);
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
       readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile, apimlStorageSettings);
       installCertificateService(server);
