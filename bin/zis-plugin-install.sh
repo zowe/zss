@@ -10,7 +10,6 @@
 ZIS_PREFIX=${ZIS_PREFIX:-$USER.DEV}
 ZIS_PARMLIB=${ZIS_PARMLIB:-$ZIS_PREFIX.PARMLIB}
 ZIS_PARMLIB_MEMBER=${ZIS_PARMLIB_MEMBER:-ZWESIP00}
-ZIS_LOADLIB=${ZIS_LOADLIB:-$ZIS_PREFIX.LOADLIB}
 ZIS_PLUGINLIB=${ZIS_PLUGINLIB:-$ZIS_PREFIX.PLUGINLIB}
 
 mktemp1()
@@ -49,7 +48,7 @@ handle-failure()
 {
   >&2  echo "Installing plugin $PLUGINID failed. Make sure no running ZIS instance"\
             "or any other process (e.g. ISPF Editor) has locked $ZIS_PARMLIB"\
-            "or $ZIS_LOADLIB"
+            "or $ZIS_PLUGINLIB"
   exit 255
 }  
 
@@ -70,8 +69,8 @@ add-plugin-to-libs()
     cp -T -v $TMPFILE "//'$ZIS_PARMLIB($ZIS_PARMLIB_MEMBER)'"
   fi
   
-  >&2 echo "Installing plugin $LMODFILE to $ZIS_LOADLIB($LMODNAME) and $ZIS_PARMLIB"
-  cp -X -v $LMODFILE "//'$ZIS_LOADLIB'" 
+  >&2 echo "Installing plugin $LMODFILE to $ZIS_PLUGINLIB($LMODNAME) and $ZIS_PARMLIB"
+  cp -X -v $LMODFILE "//'$ZIS_PLUGINLIB'" 
 
 )}
 
@@ -94,7 +93,7 @@ deploy-loadlib() {
 
   cp -X -v $loadlib_dir/* "//'$ZIS_PLUGINLIB'"
   if [ $? -ne 0 ]; then
-    >&2  echo "error: failed to update LOADLIB. Make sure no running ZIS" \
+    >&2  echo "error: failed to update PLUGINLIB. Make sure no running ZIS" \
               "instance or any other process (e.g. ISPF Editor) has locked" \
                "$ZIS_PLUGINLIB."
     return 8
