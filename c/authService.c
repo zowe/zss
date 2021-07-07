@@ -204,7 +204,7 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
   return 0;
 }
 
-int verifyAccessToSafProfile(HttpServer *server, char *userName, char *class, char *entity, int access) {
+int verifyAccessToSafProfile(HttpServer *server, const char *userName, const char *class, const char *entity, int access) {
   CrossMemoryServerName *privilegedServerName = getConfiguredProperty(server, HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   ZISAuthServiceStatus reqStatus = {0};
 
@@ -310,7 +310,7 @@ int getProfileNameFromRequest(char *profileName, int profileNameBufSize, StringL
 
 static void setProfileNameAttribs(
   char *pluginID,
-  char *serviceName,
+  const char *serviceName,
   char *type,
   char *scope,
   char subUrl[SAF_SUB_URL_SIZE][STRING_BUFFER_SIZE]) {
