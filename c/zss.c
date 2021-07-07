@@ -337,7 +337,7 @@ static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpRes
   destructivelyNativize(method);
 
   char profileName[ZOWE_PROFILE_NAME_LEN+1] = {0};
-  int rc = getProfileNameFromRequest(profileName, request->parsedFile, method, rbacData->instanceId);
+  int rc = getProfileNameFromRequest(profileName, sizeof(profileName), request->parsedFile, method, rbacData->instanceId);
   if (rc != 0) {
     return FALSE;
   }

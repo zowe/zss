@@ -69,6 +69,7 @@ static int serveAuthCheck(HttpService *service, HttpResponse *response);
 
 static int makeProfileName(
   char *profileName,
+  int profileNameBufSize,
   const char *type,
   const char *productCode, 
   int instanceID, 
@@ -214,7 +215,7 @@ int verifyAccessToSafProfile(HttpServer *server, char *userName, char *class, ch
   return (rc != RC_ZIS_SRVC_OK) ? -1 : 0;
 }
 
-int getProfileNameFromRequest(char *profileName, StringList *parsedFile, const char *method, int instanceID) {
+int getProfileNameFromRequest(char *profileName, int profileNameBufSize, StringList *parsedFile, const char *method, int instanceID) {
   char type[STRING_BUFFER_SIZE]; // core || config || service
   char productCode[STRING_BUFFER_SIZE];
   char rootServiceName[STRING_BUFFER_SIZE];
@@ -295,7 +296,8 @@ int getProfileNameFromRequest(char *profileName, StringList *parsedFile, const c
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
            "parsedFile urlSegment check OK.\n");
   }
-  return makeProfileName(profileName, type, 
+  return makeProfileName(profileName, profileNameBufSize,
+    type,
     productCode, 
     instanceID, 
     pluginID, 
@@ -325,6 +327,7 @@ static void setProfileNameAttribs(
 
 static int makeProfileName(
   char *profileName,
+  int profileNameBufSize,
   const char *type,
   const char *productCode, 
   int instanceID, 
@@ -356,7 +359,7 @@ static int makeProfileName(
        "Broken SAF query. Missing service name.\n");
       return -1;
     }
-    pos = snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
+    pos = snprintf(profileName, profileNameBufSize, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
   } else if (strcmp(type, "config") == 0) {
     if (pluginID == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
@@ -368,27 +371,27 @@ static int makeProfileName(
        "Broken SAF query. Missing scope.\n");
       return -1;
     }
-    pos = snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
+    pos = snprintf(profileName, profileNameBufSize, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
   } else if (strcmp(type, "core") == 0) {
     if (rootServiceName == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
        "Broken SAF query. Missing root service name.\n");
       return -1;
     }
-    pos = snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
+    pos = snprintf(profileName, profileNameBufSize, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
   }
   // Child endpoints housed via subUrl
   int index = 0;
   while (index < SAF_SUB_URL_SIZE && strcmp(subUrl[index], "") != 0) {
-    if (pos > ZOWE_PROFILE_NAME_LEN) {
+    if (pos >= profileNameBufSize) {
       break;
     }
-    pos += snprintf(profileName + pos, ZOWE_PROFILE_NAME_LEN + 1 - pos, ".%s", subUrl[index]);
+    pos += snprintf(profileName + pos, profileNameBufSize - pos, ".%s", subUrl[index]);
     index++;
   }
-  if (pos > ZOWE_PROFILE_NAME_LEN) {
+  if (pos >= profileNameBufSize) {
     char errMsg[256];
-    snprintf(errMsg, sizeof(errMsg), "Generated SAF query longer than %d\n", ZOWE_PROFILE_NAME_LEN);
+    snprintf(errMsg, sizeof(errMsg), "Generated SAF query longer than %d\n", profileNameBufSize - 1);
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING, errMsg);
     return -1;
   }

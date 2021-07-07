@@ -35,12 +35,13 @@ void installZosPasswordService(HttpServer *server);
 /**
  * @brief The function uses makeProfileName function to generate profile name for SAF query
  * @param profileName Generated profile name goes here
+ * @param profileNameBufSize Size of profileName buffer including terminating '\0'
  * @param parsedFile Refers to the StringList object which contains URL stripped of args
  * @param instanceID Refers to instanceID for query. If none specified, or negative, then 0
  *
  * @return Return non-zero if error
  */
-int getProfileNameFromRequest(char *profileName, StringList *parsedFile, const char *method, int instanceID);
+int getProfileNameFromRequest(char *profileName, int profileNameBufSize, StringList *parsedFile, const char *method, int instanceID);
 
 /**
  * @brief The function verifies access to a SAF profile.
