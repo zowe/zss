@@ -39,6 +39,7 @@
 #include "httpserver.h"
 #include "logging.h"
 #include "zssLogging.h"
+#include "serviceUtils.h"
 #include "serverStatusService.h"
 
 #ifdef __ZOWE_OS_ZOS
@@ -49,7 +50,7 @@ static inline bool strne(const char *a, const char *b) {
   return a != NULL && b != NULL && strcmp(a, b) != 0;
 }
 
-void installServerStatusService(HttpServer *server, JsonObject *serverSettings, char* productVer) {
+void installServerStatusService(HttpServer *server, JsonObject *serverSettings, bool rbacEnabled, char* productVer) {
   HttpService *httpService = makeGeneratedService("Server_Status_Service", "/server/agent/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->authFlags |= SERVICE_AUTH_FLAG_OPTIONAL;
@@ -61,6 +62,7 @@ void installServerStatusService(HttpServer *server, JsonObject *serverSettings, 
     context->serverConfig = serverSettings;
     context->productVersion[sizeof(context->productVersion) - 1] = '\0';
     strncpy(context->productVersion, productVer, sizeof(context->productVersion) - 1);
+    context->rbacEnabled = rbacEnabled;
   }
   httpService->userPointer = context;
   registerHttpService(server, httpService);
@@ -243,10 +245,9 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
   ServerAgentContext *context = service->userPointer;
   //This service is conditional on RBAC being enabled because it is a 
   //sensitive URL that only RBAC authorized users should be able to get full access
-  JsonObject *dataserviceAuth = jsonObjectGetObject(context->serverConfig, "dataserviceAuthentication");
-  int rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
+  bool rbacEnabled = context->rbacEnabled;
   int isAuthenticated = response->request->authenticated;
-  bool allowFullAccess = isAuthenticated && rbacParm;
+  bool allowFullAccess = isAuthenticated && rbacEnabled;
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
     if (!allowFullAccess && statusEndPointRequireAuthAndRBAC(l1)) {
@@ -254,7 +255,7 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
         respondWithError(response, HTTP_STATUS_UNAUTHORIZED, "Not Authorized");
         return -1;
       }
-      if (!rbacParm) {
+      if (!rbacEnabled) {
         respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Set dataserviceAuthentication.rbac to true in server configuration");
         return -1;
       }
