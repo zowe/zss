@@ -214,7 +214,7 @@ int verifyAccessToSafProfile(HttpServer *server, char *userName, char *class, ch
   return (rc != RC_ZIS_SRVC_OK) ? -1 : 0;
 }
 
-int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID) {
+int getProfileNameFromRequest(char *profileName, StringList *parsedFile, const char *method, int instanceID) {
   char type[STRING_BUFFER_SIZE]; // core || config || service
   char productCode[STRING_BUFFER_SIZE];
   char rootServiceName[STRING_BUFFER_SIZE];
@@ -225,7 +225,7 @@ int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *m
   char urlSegment[STRING_BUFFER_SIZE];
   int subUrlIndex = 0;
   
-  snprintf(urlSegment, STRING_BUFFER_SIZE, "%s", stringListPrint(parsedFile, 1, 1, "/", 0));
+  snprintf(urlSegment, sizeof(urlSegment), "%s", stringListPrint(parsedFile, 1, 1, "/", 0));
   StringListElt *pathSegment = firstStringListElt(parsedFile);
 
   strupcase(urlSegment);

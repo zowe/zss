@@ -40,7 +40,7 @@ void installZosPasswordService(HttpServer *server);
  *
  * @return Return non-zero if error
  */
-int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID);
+int getProfileNameFromRequest(char *profileName, StringList *parsedFile, const char *method, int instanceID);
 
 /**
  * @brief The function verifies access to a SAF profile.
