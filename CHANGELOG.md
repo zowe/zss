@@ -7,6 +7,7 @@ All notable changes to the ZSS package will be documented in this file.
 ## `1.23.0`
 
 - Bugfix: `relativeTo` parsing may have failed depending upon path length and contents, leading to skipped plugin loading.
+- Enhancement: Disable impersonation for OMVS Service.
 
 ## `1.22.0`
 
