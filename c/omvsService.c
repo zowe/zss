@@ -55,8 +55,8 @@ int installOMVSService(HttpServer *server)
   HttpService *httpService = makeGeneratedService("OMVS_Service", "/omvs/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = &serveOMVSSegment;
-  httpService->runInSubtask = TRUE;
-  httpService->doImpersonation = TRUE;
+  httpService->runInSubtask = FALSE;
+  httpService->doImpersonation = FALSE;
   registerHttpService(server, httpService);
 
   return 0;
