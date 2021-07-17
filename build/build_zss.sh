@@ -72,6 +72,7 @@ if c89 \
   -DUSE_ZOWE_TLS=1 \
   -DHTTPSERVER_BPX_IMPERSONATION=1 \
   -DAPF_AUTHORIZED=0 \
+  -DJWT_DEBUG=1 \
   -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
   -Wc,agg,exp,list\(\),so\(\),off,xref \
   -Wl,ac=1,dll \
