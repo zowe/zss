@@ -4,11 +4,19 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `1.23.0`
+
+- Bugfix: `relativeTo` parsing may have failed depending upon path length and contents, leading to skipped plugin loading.
+- Enhancement: Disable impersonation for OMVS Service.
+
 ## `1.22.0`
 
 ### New features and enhancements
 
 - Bugfix: Dataset contents API doesn't skip empty records while reading a dataset 
+- Enhancement: Plugins can push state out to the Caching Service for high availability storage via a storage API, available to dataservices as `remoteStorage`
+- Enhancement: Plugins can push state out to the In-Memory Storage via a storage API, available to dataservices as `localStorage`
+- Bugfix: ZSS now takes into account `relativeTo` attribute when loading plugin dlls
 
 ## `1.21.0`
 

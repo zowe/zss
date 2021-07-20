@@ -10,7 +10,7 @@
 ZIS_PREFIX=${ZIS_PREFIX:-$USER.DEV}
 ZIS_PARMLIB=${ZIS_PARMLIB:-$ZIS_PREFIX.PARMLIB}
 ZIS_PARMLIB_MEMBER=${ZIS_PARMLIB_MEMBER:-ZWESIP00}
-ZIS_LOADLIB=${ZIS_LOADLIB:-$ZIS_PREFIX.LOADLIB}
+ZIS_PLUGINLIB=${ZIS_PLUGINLIB:-${ZIS_LOADLIB:-$ZIS_PREFIX.PLUGINLIB}}
 
 mktemp1()
 {
@@ -48,7 +48,7 @@ handle-failure()
 {
   >&2  echo "Installing plugin $PLUGINID failed. Make sure no running ZIS instance"\
             "or any other process (e.g. ISPF Editor) has locked $ZIS_PARMLIB"\
-            "or $ZIS_LOADLIB"
+            "or $ZIS_PLUGINLIB"
   exit 255
 }  
 
@@ -69,17 +69,18 @@ add-plugin-to-libs()
     cp -T -v $TMPFILE "//'$ZIS_PARMLIB($ZIS_PARMLIB_MEMBER)'"
   fi
   
-  >&2 echo "Installing plugin $LMODFILE to $ZIS_LOADLIB($LMODNAME) and $ZIS_PARMLIB"
-  cp -X -v $LMODFILE "//'$ZIS_LOADLIB'" 
+  >&2 echo "Installing plugin $LMODFILE to $ZIS_PLUGINLIB($LMODNAME) and $ZIS_PARMLIB"
+  cp -X -v $LMODFILE "//'$ZIS_PLUGINLIB'" 
+
 )}
 
 trap "exit 1" ERR
 
 #################################################
-# Deploy the load libraries into the ZIS LOADLIB.
+# Deploy the load libraries into the ZIS PLUIGINLIB.
 #
 # Globals:
-#   ZIS_LOADLIB
+#   ZIS_PLUGINLIB
 # Arguments:
 #   $1 directory with the load libraries to be
 #      deployed
@@ -90,15 +91,15 @@ deploy-loadlib() {
 
   loadlib_dir=$1
 
-  cp -X -v $loadlib_dir/* "//'$ZIS_LOADLIB'"
+  cp -X -v $loadlib_dir/* "//'$ZIS_PLUGINLIB'"
   if [ $? -ne 0 ]; then
-    >&2  echo "error: failed to update LOADLIB. Make sure no running ZIS" \
+    >&2  echo "error: failed to update PLUGINLIB. Make sure no running ZIS" \
               "instance or any other process (e.g. ISPF Editor) has locked" \
-               "$ZIS_LOADLIB."
+               "$ZIS_PLUGINLIB."
     return 8
   fi
 
-  echo "info: copied load libraries from $loadlib_dir to $ZIS_LOADLIB"
+  echo "info: copied load libraries from $loadlib_dir to $ZIS_PLUGINLIB"
 
   return 0
 }
@@ -197,8 +198,8 @@ Environment variables:
         ZIS_PARMLIB_MEMBER: PARMLIB member to be updated. The default value is
           ZWESIP00. If ZIS_PARMLIB_MEMBER is set then it overrides the default
           value.
-        ZIS_LOADLIB: LOADLIB destination. The default value is
-          <ZIS_PREFIX>.LOADLIB. If ZIS_LOADLIB is set then it overrides
+        ZIS_PLUGINLIB: PLUGINLIB destination. The default value is
+          <ZIS_PREFIX>.PLUGINLIB. If ZIS_PLUGINLIB is set then it overrides
           the default value.
 EOF
 }
