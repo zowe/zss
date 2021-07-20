@@ -164,7 +164,7 @@ handle-simple-install() {
 # Returns:
 #   0 on success, 8 on error.
 #################################################
-handle-extended-intall() {(
+handle-extended-install() {(
 
   loadlib_dir=$1
   samplib_dir=$2
@@ -172,16 +172,15 @@ handle-extended-intall() {(
   deploy-loadlib $loadlib_dir
   loadlib_rc=$?
   if [ $loadlib_rc -ne 0 ]; then
-    return $loadlib_rc
+    exit $loadlib_rc
   fi
 
   deploy-samplib $samplib_dir
   samplib_rc=$?
   if [ $samplib_rc -ne 0 ]; then
-    return $samplib_rc
+    exit $samplib_rc
   fi
-
-  return 0
+  exit 0
 )}
 
 print-usage() {
@@ -226,7 +225,7 @@ elif [ $1 = "extended-install" ]; then
     exit 1
   fi
 
-  handle-extended-intall $2 $3
+  handle-extended-install $2 $3
   exit $?
 
 else
