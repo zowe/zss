@@ -141,6 +141,7 @@ if c89 \
   ${ZSS}/c/envService.c \
   ${ZSS}/c/zosDiscovery.c \
   ${ZSS}/c/securityService.c \
+  ${ZSS}/c/registerProduct.c \
   ${ZSS}/c/zis/client.c \
   ${ZSS}/c/serverStatusService.c \
   ${ZSS}/c/rasService.c \
