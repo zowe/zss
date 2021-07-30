@@ -121,7 +121,7 @@ if ! c89 \
   ${ZSS}/c/rasService.c \
   ${GSKLIB} ;
 then
-  extattr +p ${{ZSS}/bin/zssServer64
+  extattr +p ${ZSS}/bin/zssServer64
   echo "Build successful"
   exit 0
 else
