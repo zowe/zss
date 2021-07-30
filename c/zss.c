@@ -453,10 +453,10 @@ static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts,
       if (!strcmp(key, "groups")) {
         int gid = groupIdGet(userKey, &rc, &rsn);
         if (rc == 0) {
-          htPut(ht, POINTER_FROM_INT(gid), (void*)timeoutValue);
+          htPut(ht, POINTER_FROM_INT(gid), POINTER_FROM_INT(timeoutValue));
         }
       } else {
-        htPut(ht, userKey, (void*)timeoutValue);
+        htPut(ht, userKey, POINTER_FROM_INT(timeoutValue));
       }
 
       property = jsonObjectGetNextProperty(property);
@@ -1479,8 +1479,8 @@ int main(int argc, char **argv){
   char productOwner[COMMON_PATH_MAX];
   char productName[COMMON_PATH_MAX];
   char *tempString;
-  hashtable *htUsers;
-  hashtable *htGroups;
+  hashtable *htUsers = NULL;
+  hashtable *htGroups = NULL;
   
   if (argc >= 1){
     if (0 == strcmp("default", argv[1])) {
