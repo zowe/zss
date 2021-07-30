@@ -1179,6 +1179,7 @@ static int zisCallServiceInternal(const CrossMemoryServerName *serverName,
   CrossMemoryServerGlobalArea *cmsGA = NULL;
   int getGlobalAreaRC = cmsGetGlobalArea(serverName, &cmsGA);
   if (getGlobalAreaRC != RC_CMS_OK) {
+    printf("gonna die!\n");
     return RC_ZIS_SRVC_GLOBAL_AREA_NULL;
   }
 
@@ -1227,12 +1228,18 @@ static int zisCallServiceInternal(const CrossMemoryServerName *serverName,
   int cmsRC = cmsCallService3(cmsGA, routerServiceID, &routerParmList,
                               cmsFlags, &routerRC);
 
+  if (cmsRC || routerRC){
+    printf("ZIS.client fail: cmsRC %d routerRC %d\n",cmsRC,routerRC);
+  }
   if (cmsRC != RC_CMS_OK) {
     status->cmsRC = cmsRC;
     return RC_ZIS_SRVC_CMS_FAILED;
   }
 
-  if (routerRC != RC_ZIS_SRVC_OK) {
+  if (routerRC == RC_ZIS_SRVC_SPECIFIC_AUTH_FAILED){
+    status->serviceRC = routerRC;
+    return RC_ZIS_SRVC_SPECIFIC_AUTH_FAILED;
+  } else if (routerRC != RC_ZIS_SRVC_OK) {
     status->serviceRC = routerRC;
     return RC_ZIS_SRVC_SERVICE_FAILED;
   }

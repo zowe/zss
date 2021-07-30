@@ -1203,7 +1203,8 @@ static int validateConfigPermissionsInner(const char *path) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
       ZSS_LOG_CANT_STAT_CONFIG_MSG,path,returnCode, reasonCode);
     return 8;
-  } else if (((stat.fileType == BPXSTA_FILETYPE_DIRECTORY) && (stat.flags3 & FORBIDDEN_GROUP_DIR_PERMISSION)) 
+  } 
+  /* else if (((stat.fileType == BPXSTA_FILETYPE_DIRECTORY) && (stat.flags3 & FORBIDDEN_GROUP_DIR_PERMISSION)) 
       || ((stat.fileType != BPXSTA_FILETYPE_DIRECTORY) && (stat.flags3 & FORBIDDEN_GROUP_FILE_PERMISSION))
       || (stat.flags3 & FORBIDDEN_OTHER_PERMISSION)) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
@@ -1212,6 +1213,7 @@ static int validateConfigPermissionsInner(const char *path) {
       ZSS_LOG_ENSURE_PERMISS_MSG);
     return 8;
   }
+  */
   return 0;
 }
 
@@ -1645,4 +1647,5 @@ out_term_stcbase:
   
   Copyright Contributors to the Zowe Project.
 */
+
 

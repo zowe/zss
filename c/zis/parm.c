@@ -315,6 +315,9 @@ static void freeReadBuffer(IEFPRMLBHeader *readBuffer) {
 
 int zisReadParmlib(ZISParmSet *parms, const char *ddname, const char *member,
                    ZISParmStatus *readStatus) {
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, "JOE: read the parms ddname=%s member=%s!\n",
+	  ddname,member);
+
 
   /* handle DD and member names */
   char ddnameSpacePadded[8];

@@ -55,6 +55,23 @@ ZISService zisCreateSpaceSwitchService(
 
 }
 
+int zisServiceUseSpecificAuth(ZISService *service, 
+			      char *className,
+			      char *entityName){
+  int cLen = strlen(className);
+  int eLen = strlen(entityName);
+  if (cLen > 8){
+    return 12;
+  }
+  if (eLen > 255){
+    return 12;
+  }
+  memset(service->safClassName,' ',8);
+  memcpy(service->safClassName,className,cLen);
+  strcpy(service->safEntityName,entityName);
+  service->flags |= ZIS_SERVICE_FLAG_SPECIFIC_AUTH;
+}
+
 ZISService zisCreateCurrentPrimaryService(
     ZISServiceName name,
     ZISServiceInitFunction *initFunction,
@@ -93,6 +110,9 @@ ZISServiceAnchor *zisCreateServiceAnchor(const struct ZISPlugin_tag *plugin,
   if (service->flags & ZIS_SERVICE_FLAG_SPACE_SWITCH) {
     anchor->flags |= ZIS_SERVICE_ANCHOR_FLAG_SPACE_SWITCH;
   }
+  if (service->flags & ZIS_SERVICE_FLAG_SPECIFIC_AUTH) {
+    anchor->flags |= ZIS_SERVICE_ANCHOR_FLAG_SPECIFIC_AUTH;
+  }
 
   *(ZISPluginName *)anchor->path.pluginName = plugin->name;
   anchor->path.serviceName = service->name;
@@ -100,6 +120,8 @@ ZISServiceAnchor *zisCreateServiceAnchor(const struct ZISPlugin_tag *plugin,
   anchor->pluginAnchor = plugin->anchor;
   anchor->serve = service->serve;
   anchor->serviceVersion = service->serviceVersion;
+  memcpy(anchor->safClassName,service->safClassName,8);
+  memcpy(anchor->safEntityName,service->safEntityName,256);
 
   return anchor;
 }
@@ -121,6 +143,9 @@ void zisUpdateServiceAnchor(ZISServiceAnchor *anchor,
   anchor->flags = service->flags;
   anchor->serve = service->serve;
   anchor->serviceVersion = service->serviceVersion;
+  memcpy(anchor->safClassName,service->safClassName,8);
+  memcpy(anchor->safEntityName,service->safEntityName,256);
+
 
 }
 

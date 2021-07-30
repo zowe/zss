@@ -62,7 +62,8 @@ struct ZISServiceAnchor_tag {
   unsigned int subpool : 8;
   unsigned short size;
   int flags;
-#define ZIS_SERVICE_ANCHOR_FLAG_SPACE_SWITCH 0x00000001
+#define ZIS_SERVICE_ANCHOR_FLAG_SPACE_SWITCH  0x00000001
+#define ZIS_SERVICE_ANCHOR_FLAG_SPECIFIC_AUTH 0x00000002
   int state;
 #define ZIS_SERVICE_ANCHOR_STATE_ACTIVE 0x00000001
 
@@ -76,6 +77,8 @@ struct ZISServiceAnchor_tag {
   PAD_LONG(2, ZISServiceServeFunction *serve);
 
   ZISServiceData serviceData;
+  char safClassName[8];
+  char safEntityName[256];
 
 };
 
@@ -88,6 +91,7 @@ struct ZISService_tag {
   int flags;
 #define ZIS_SERVICE_FLAG_NONE           0x00000000
 #define ZIS_SERVICE_FLAG_SPACE_SWITCH   0x00000001
+#define ZIS_SERVICE_FLAG_SPECIFIC_AUTH  0x00000002
 
   PAD_LONG(0, ZISServiceAnchor *anchor);
 
@@ -100,7 +104,9 @@ struct ZISService_tag {
   unsigned int serviceVersion;
 #define ZIS_SERVICE_ANY_VERSION  0xFFFFFFFF
 
-  char reserved[436];
+  char safClassName[8];
+  char safEntityName[256];  /* room for 255 chars plus null term */
+  char reserved[176];
 
 };
 
@@ -135,6 +141,11 @@ ZISService zisCreateCurrentPrimaryService(
     unsigned int version
 );
 
+int zisServiceUseSpecificAuth(ZISService *service, 
+			      char *className,
+			      char *entityName);
+
+
 struct ZISPlugin_tag;
 
 ZISServiceAnchor *zisCreateServiceAnchor(const struct ZISPlugin_tag *plugin,
@@ -155,7 +166,8 @@ void zisUpdateServiceAnchor(ZISServiceAnchor *anchor,
 #define RC_ZIS_SRVC_BAD_ROUTER_VERSION  13
 #define RC_ZIS_SRVC_SERVICE_NOT_FOUND   14
 #define RC_ZIS_SRVC_BAD_SERVICE_VERSION 15
-#define RC_ZIS_SRVC_SERVICE_INACTIVE    16
+#define RC_ZIS_SRVC_SERVICE_INACTIVE     16
+#define RC_ZIS_SRVC_SPECIFIC_AUTH_FAILED 17
 
 #define ZIS_MAX_GEN_SRVC_RC             32
 
