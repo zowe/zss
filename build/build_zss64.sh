@@ -21,7 +21,6 @@ COMMON="../../deps/zowe-common-c"
 GSKDIR=/usr/lpp/gskssl
 GSKINC="${GSKDIR}/include"
 GSKLIB="${GSKDIR}/lib/GSKSSL64.x"
-ROOT="/u/zossteam/jdevlin/repos"
 
 echo "********************************************************************************"
 echo "Building ZSS..."
@@ -33,7 +32,9 @@ date_stamp=$(date +%Y%m%d)
 echo "Version: $major.$minor.$micro"
 echo "Date stamp: $date_stamp"
 
-c89 \
+export _C89_ACCEPTABLE_RC=0
+
+if ! c89 \
   -DPRODUCT_MAJOR_VERSION="$major" \
   -DPRODUCT_MINOR_VERSION="$minor" \
   -DPRODUCT_REVISION="$micro" \
@@ -51,6 +52,7 @@ c89 \
   -I ${COMMON}/jwt/jwt \
   -I ${COMMON}/jwt/rscrypto \
   -I ${ZSS}/h \
+  -I ${GSKINC} \
   -o ${ZSS}/bin/zssServer64 \
   ${COMMON}/c/alloc.c \
   ${COMMON}/c/bpxskt.c \
@@ -78,9 +80,7 @@ c89 \
   ${COMMON}/c/logging.c \
   ${COMMON}/c/nametoken.c \
   ${COMMON}/c/zos.c \
-  ${COMMON}/c/impersonation.c \
   ${COMMON}/c/pdsutil.c \
-  ${COMMON}/c/pause-element.c \
   ${COMMON}/c/qsam.c \
   ${COMMON}/c/radmin.c \
   ${COMMON}/c/rawfd.c \
@@ -91,6 +91,7 @@ c89 \
   ${COMMON}/c/signalcontrol.c \
   ${COMMON}/c/socketmgmt.c \
   ${COMMON}/c/stcbase.c \
+  ${COMMON}/c/storage.c \
   ${COMMON}/c/storage_mem.c \
   ${COMMON}/c/timeutls.c \
   ${COMMON}/c/tls.c \
@@ -119,10 +120,13 @@ c89 \
   ${ZSS}/c/serverStatusService.c \
   ${ZSS}/c/rasService.c \
   ${GSKLIB} ;
-
-
-cp ${ZSS}/bin/zssServer64 ${ROOT}/zlux-app-server/bin/zssServer64
-extattr +p ${ROOT}/zlux-app-server/bin/zssServer64
-
-echo "Build successful"
-
+then
+  extattr +p ${{ZSS}/bin/zssServer64
+  echo "Build successful"
+  exit 0
+else
+  # remove zssServer in case the linker had RC=4 and produced the binary
+  rm -f ${ZSS}/bin/zssServer64
+  echo "Build failed"
+  exit 8
+fi
