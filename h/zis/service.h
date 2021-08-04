@@ -77,8 +77,9 @@ struct ZISServiceAnchor_tag {
   PAD_LONG(2, ZISServiceServeFunction *serve);
 
   ZISServiceData serviceData;
-  char safClassName[8];
+  char safClassName[9];
   char safEntityName[256];
+  char reserved1[7];
 
 };
 
@@ -104,9 +105,9 @@ struct ZISService_tag {
   unsigned int serviceVersion;
 #define ZIS_SERVICE_ANY_VERSION  0xFFFFFFFF
 
-  char safClassName[8];
-  char safEntityName[256];  /* room for 255 chars plus null term */
-  char reserved[176];
+  char safClassName[8 + 1];  /* room for 8 chars plus null term */
+  char safEntityName[255 + 1];  /* room for 255 chars plus null term */
+  char reserved[175];
 
 };
 
@@ -141,9 +142,17 @@ ZISService zisCreateCurrentPrimaryService(
     unsigned int version
 );
 
-int zisServiceUseSpecificAuth(ZISService *service, 
-			      char *className,
-			      char *entityName);
+/**
+ * Adds class and entity names to a service.
+ *
+ * @param service The service to be used with the class and entity.
+ * @param className The class name to be used.
+ * @param entityName The entity name to be used.
+ * @return 0 in case of success, -1 if the class or entity name is too long.
+ */
+int zisServiceUseSpecificAuth(ZISService *service,
+                              const char *className,
+                              const char *entityName);
 
 
 struct ZISPlugin_tag;

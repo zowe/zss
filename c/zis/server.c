@@ -124,12 +124,12 @@ static int zisRouteService(struct CrossMemoryServerGlobalArea_tag *globalArea,
   }
 
   if (serviceAnchor->flags & ZIS_SERVICE_ANCHOR_FLAG_SPECIFIC_AUTH){
-    bool authorized = cmsTestAuth(globalArea,serviceAnchor->safClassName,serviceAnchor->safEntityName);
+    bool authorized = cmsTestAuth(globalArea, serviceAnchor->safClassName,
+                                  serviceAnchor->safEntityName);
     if (!authorized){
       return RC_ZIS_SRVC_SPECIFIC_AUTH_FAILED;
     }
   }
-  authWTOPrintf("about to call service %32.32s\n",(char*)servicePath);
   return serviceAnchor->serve(globalArea,
                               serviceAnchor,
                               &serviceAnchor->serviceData,
@@ -384,9 +384,11 @@ static int callPluginInit(ZISContext *context, ZISPlugin *plugin,
     if (recoveryRC == RC_RCV_OK) {
 
       if (plugin->init != NULL) {
-	zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, "JOE: before init plugin\n");
+        zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+                "About to init plugin \'%.4s\'\n", plugin->nickname.text);
         int initRC = plugin->init(context, plugin, anchor);
-	zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, "JOE: plugin was init()-ed, rc=%d\n",initRC);
+        zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+                "Plugin init()-ed, rc=%d\n", initRC);
         if (initRC != RC_ZIS_OK) {
           zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
                   ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in init RC = %d",
@@ -544,7 +546,9 @@ static int installServices(ZISContext *context, ZISPlugin *plugin,
 
   CrossMemoryMap *serviceTable = context->zisAnchor->serviceTable;
 
-  zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, "JOE plugin serviceCount=%d\n",plugin->serviceCount);
+  zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
+          "Plugin \'%.4s\' serviceCount=%d\n",
+          plugin->nickname.text, plugin->serviceCount);
   for (unsigned int i = 0; i < plugin->serviceCount; i++) {
 
     ZISService *service = &plugin->services[i];
@@ -976,8 +980,9 @@ static void visitPluginParm(const char *name, const char *value,
     return;
   }
   const char *pluginName = name + strlen("ZWES.PLUGIN.");
-  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,"JOE: visitPluginParm %s value=%s\n",
-	  pluginName,value);
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+          "visitPluginParm %s value=%s\n",
+          pluginName, value);
   if (value == NULL) {
     zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
             ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" module name not provided",
@@ -1132,7 +1137,7 @@ static void printStopMessage(int status) {
 }
 
 static void deployPlugins(ZISContext *context) {
-  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, "JOE: deploy the ZIS plugins !\n");
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG, "Deploy the ZIS plugins\n");
   zisIterateParms(context->parms, visitPluginParm, context);
 }
 

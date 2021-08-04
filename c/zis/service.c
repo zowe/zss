@@ -55,21 +55,27 @@ ZISService zisCreateSpaceSwitchService(
 
 }
 
-int zisServiceUseSpecificAuth(ZISService *service, 
-			      char *className,
-			      char *entityName){
+/*
+ * Adds class and entity names to a service.
+ */
+int zisServiceUseSpecificAuth(ZISService *service,
+                              const char *className,
+                              const char *entityName) {
+
   int cLen = strlen(className);
   int eLen = strlen(entityName);
-  if (cLen > 8){
-    return 12;
+  if (cLen + 1 > sizeof(service->safClassName)) {
+    return -1;
   }
-  if (eLen > 255){
-    return 12;
+  if (eLen + 1 > sizeof(service->safEntityName)) {
+    return -1;
   }
-  memset(service->safClassName,' ',8);
-  memcpy(service->safClassName,className,cLen);
-  strcpy(service->safEntityName,entityName);
+
+  strcpy(service->safClassName, className);
+  strcpy(service->safEntityName, entityName);
   service->flags |= ZIS_SERVICE_FLAG_SPECIFIC_AUTH;
+
+  return 0;
 }
 
 ZISService zisCreateCurrentPrimaryService(
@@ -120,8 +126,10 @@ ZISServiceAnchor *zisCreateServiceAnchor(const struct ZISPlugin_tag *plugin,
   anchor->pluginAnchor = plugin->anchor;
   anchor->serve = service->serve;
   anchor->serviceVersion = service->serviceVersion;
-  memcpy(anchor->safClassName,service->safClassName,8);
-  memcpy(anchor->safEntityName,service->safEntityName,256);
+  memcpy(anchor->safClassName, service->safClassName,
+         sizeof(anchor->safClassName));
+  memcpy(anchor->safEntityName, service->safEntityName,
+         sizeof(anchor->safEntityName));
 
   return anchor;
 }
@@ -143,9 +151,10 @@ void zisUpdateServiceAnchor(ZISServiceAnchor *anchor,
   anchor->flags = service->flags;
   anchor->serve = service->serve;
   anchor->serviceVersion = service->serviceVersion;
-  memcpy(anchor->safClassName,service->safClassName,8);
-  memcpy(anchor->safEntityName,service->safEntityName,256);
-
+  memcpy(anchor->safClassName, service->safClassName,
+         sizeof(anchor->safClassName));
+  memcpy(anchor->safEntityName, service->safEntityName,
+         sizeof(anchor->safEntityName));
 
 }
 
