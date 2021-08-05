@@ -89,18 +89,13 @@ static int serveOMVSSegment(HttpService *service, HttpResponse *response)
   sprintf(command, "LISTUSER (%s) OMVS", request->username);
 
   OMVSSegment *__ptr32 omvs = (OMVSSegment*__ptr32)safeMalloc31(sizeof(OMVSSegment),"OMVSSegment31");
-  printf("JOE OMVS Segment 0x%p\n",omvs);
   /* If the request method is GET */
   if(!strcmp(request->method, methodGET))
   {
     /* Issue the RACF command that
      * gets the OMVS segment.
      */
-    printf("JOE before issueRACFCommand\n");
-    fflush(stdout);
     int status = issueRACFCommand(command, omvs);
-    printf("JOE after issueRACFCommand status=0x%x\n",status);
-    fflush(stdout);
     if (status != 0)
     {
       setResponseStatus(response, 500, "Internal Server Error");

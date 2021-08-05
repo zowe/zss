@@ -21,7 +21,6 @@ COMMON="../../deps/zowe-common-c"
 GSKDIR=/usr/lpp/gskssl
 GSKINC="${GSKDIR}/include"
 GSKLIB="${GSKDIR}/lib/GSKSSL64.x"
-ROOT="/u/zossteam/jdevlin/repos"
 
 echo "********************************************************************************"
 echo "Building ZSS..."
