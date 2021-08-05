@@ -21,6 +21,7 @@ COMMON="../../deps/zowe-common-c"
 GSKDIR=/usr/lpp/gskssl
 GSKINC="${GSKDIR}/include"
 GSKLIB="${GSKDIR}/lib/GSKSSL64.x"
+ROOT="/u/zossteam/jdevlin/repos"
 
 echo "********************************************************************************"
 echo "Building ZSS..."
@@ -80,6 +81,7 @@ if ! c89 \
   ${COMMON}/c/logging.c \
   ${COMMON}/c/nametoken.c \
   ${COMMON}/c/zos.c \
+  ${COMMON}/c/pause-element.c \
   ${COMMON}/c/pdsutil.c \
   ${COMMON}/c/qsam.c \
   ${COMMON}/c/radmin.c \
