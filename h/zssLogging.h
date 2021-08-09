@@ -513,6 +513,13 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG_TEXT  "Group-mgmt query string is invalid, ending request...\n"
 #define ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG       ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG_ID" "ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG_TEXT
 
+/* PassTicket */
+#ifndef ZSS_LOG_PASSTICKET_GEN_FAILED_MSG_ID
+#define ZSS_LOG_PASSTICKET_GEN_FAILED_MSG_ID    ZSS_LOG_MSG_PRFX"1500E"
+#endif
+#define ZSS_LOG_PASSTICKET_GEN_FAILED_MSG_TEXT  "Failed to generate PassTicket - userId='%s', applId='%s', %s\n"
+#define ZSS_LOG_PASSTICKET_GEN_FAILED_MSG       ZSS_LOG_PASSTICKET_GEN_FAILED_MSG_ID" "ZSS_LOG_PASSTICKET_GEN_FAILED_MSG_TEXT
+
 #endif /* MVD_H_ZSSLOGGING_H_ */
 
 
