@@ -26,8 +26,8 @@
 #include "serviceUtils.h"
 
 #define TICKET_LEN 8
-#define APPLICATION_NAME_KEY "applicationName"
-#define APPLICATION_NAME_LEN 8
+#define APP_NAME_KEY "applicationName"
+#define APP_NAME_KEY_LEN 8
 
 #ifdef _LP64
 #pragma linkage(IRRSGS64, OS)
@@ -49,8 +49,8 @@ typedef struct PassTicketResult_tag {
 } PassTicketResult;
 
 static int servePassTicket(HttpService *service, HttpResponse *response);
-static void respondWithPassTicket(HttpResponse *response, const char *applicationName, const char *ticket);
-static int generatePassTicket(const char *applicationName, const char *userId, PassTicketResult *result);
+static void respondWithPassTicket(HttpResponse *response, const char *appName, const char *userId, const char *ticket);
+static int generatePassTicket(const char *appName, const char *userId, PassTicketResult *result);
 static void respondWithPassTicketError(HttpResponse *response, int code, const char *status, const char *fmt, ...);
 static void stringifyPassTicketAPIStatus(PassTicketAPIStatus *status, char *buffer, size_t bufferSize);
 
@@ -67,40 +67,41 @@ int installPassTicketService(HttpServer *server) {
 
 static int servePassTicket(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
-  char applicationName[APPLICATION_NAME_LEN + 1] = {0};
+  char appName[APP_NAME_KEY_LEN + 1] = {0};
   PassTicketResult passTicketResult = {0};
   char errorBuf[1024] = {0};
+  const char *userId = request->username;
 
   if (0 != strcmp(request->method, methodPOST)) {
     respondWithPassTicketError(response, HTTP_STATUS_METHOD_NOT_FOUND, "Method Not Allowed", "Only POST method allowed");
     return 0;
   }
 
-  if (0 != getApplicationName(request, applicationName, sizeof(applicationName), errorBuf, sizeof(errorBuf))) {
-    respondWithPassTicketError(response, HTTP_STATUS_BAD_REQUEST, "Bad Request", "Failed to get %s - %s", APPLICATION_NAME_KEY, errorBuf);
+  if (0 != getApplicationName(request, appName, sizeof(appName), errorBuf, sizeof(errorBuf))) {
+    respondWithPassTicketError(response, HTTP_STATUS_BAD_REQUEST, "Bad Request", "Failed to get %s - %s", APP_NAME_KEY, errorBuf);
     return 0;
   }
 
-  if (0 != generatePassTicket(applicationName, request->username, &passTicketResult)) {
+  if (0 != generatePassTicket(appName, userId, &passTicketResult)) {
     stringifyPassTicketAPIStatus(&passTicketResult.status, errorBuf, sizeof(errorBuf));
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PASSTICKET_GEN_FAILED_MSG, request->username, applicationName, errorBuf);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PASSTICKET_GEN_FAILED_MSG, userId, appName, errorBuf);
     respondWithPassTicketError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Internal Server Error", "Failed to generate PassTicket");
     return 0;
   }
 
-  respondWithPassTicket(response, applicationName, passTicketResult.ticket);
+  respondWithPassTicket(response, appName, userId, passTicketResult.ticket);
   return 0;
 }
 
-static void respondWithPassTicket(HttpResponse *response, const char *applicationName, const char *ticket) {
+static void respondWithPassTicket(HttpResponse *response, const char *appName, const char *userId, const char *ticket) {
   HttpRequest *request = response->request;
   jsonPrinter *p = respondWithJsonPrinter(response);
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(p);
-  jsonAddString(p, "userId", request->username);
-  jsonAddString(p, APPLICATION_NAME_KEY, (char*)applicationName);
+  jsonAddString(p, "userId", (char*)userId);
+  jsonAddString(p, APP_NAME_KEY, (char*)appName);
   jsonAddString(p, "ticket", (char*)ticket);
   jsonEnd(p);
   finishResponse(response);
@@ -114,28 +115,28 @@ typedef struct StringBlock_tag {
     void *address;
 } StringBlock;
 
-static int generatePassTicket(const char *applicationName, const char *userId, PassTicketResult *result) {
+static int generatePassTicket(const char *appName, const char *userId, PassTicketResult *result) {
   uint8_t workArea[1024];
   void *fnParm[4];
   StringBlock userBlock = {0};
   StringBlock applBlock = {0};
   StringBlock ticketBlock = {0};
 
-  userBlock.length     = strlen(userId);
-  userBlock.address    = (void*)userId;
-  applBlock.length     = strlen(applicationName);
-  applBlock.address    = (void*)applicationName;
-  ticketBlock.length   = TICKET_LEN;
-  ticketBlock.address  = result->ticket;
+  userBlock.length = strlen(userId);
+  userBlock.address = (void*)userId;
+  applBlock.length = strlen(appName);
+  applBlock.address = (void*)appName;
+  ticketBlock.length = TICKET_LEN;
+  ticketBlock.address = result->ticket;
 
   uint32_t nParms = 12;
   uint32_t alet1 = 0;
   uint32_t alet2 = 0;
   uint32_t alet3 = 0;
   uint32_t optionWord = 0; /* reserved */
-  uint16_t fnCode = 3;     /* Passticket function */
-  uint32_t subFnCode = 1;  /* Generate passticket */
-  uint32_t fnParmCount  = 4;
+  uint16_t fnCode = 3;     /* PassTicket function */
+  uint32_t subFnCode = 1;  /* Generate PassTicket */
+  uint32_t fnParmCount = 4;
   fnParm[0] = &subFnCode;
   fnParm[1] = &ticketBlock;
   fnParm[2] = &userBlock;
@@ -162,7 +163,9 @@ static int generatePassTicket(const char *applicationName, const char *userId, P
          , PASS_AS_DOUBLE_WORD(NULL) // finish the list for safety in 31bit mode
 #endif
           );
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "passticket generation safRc=%d, racfRc=%d, racfReason=%d\n", result->status.safRC, result->status.racfRC, result->status.racfRSN);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2,
+          "passticket generation safRc=%d, racfRc=%d, racfReason=%d\n",
+          result->status.safRC, result->status.racfRC, result->status.racfRSN);
   int rc = (0 == result->status.safRC) ? 0 : -1;
   if (rc == 0) {
     result->ticket[TICKET_LEN] = '\0';
@@ -191,19 +194,23 @@ static void respondWithPassTicketError(HttpResponse *response, int code, const c
 }
 
 static void stringifyPassTicketAPIStatus(PassTicketAPIStatus *status, char *buffer, size_t bufferSize) {
-  const char *errorMessage = NULL;
+  char message[512] = {0};
   uint32_t safRC = status->safRC;
   uint32_t racfRC = status->racfRC;
   uint32_t racfRSN = status->racfRSN;
   if (safRC == 8 && racfRC == 8 && racfRSN == 16) {
-    errorMessage = "Not authorized to generate PassTicket";
+    snprintf (message, sizeof(message),
+              "Server userid not authorized to generate PassTicket. "
+              "Check that server userid has UPDATE access to IRRPTAUTH.<applId>.<userId> profile");
   } else if (safRC == 8 && racfRC == 16 && racfRSN == 28) {
-    errorMessage = "PassTicket generation failure. Verify that the secured signon (PassTicket) function and application ID is configured properly";
+    snprintf (message, sizeof(message),
+              "PassTicket generation failure. "
+              "Verify that the secured signon (PassTicket) function and application ID is configured properly");
   }
-  snprintf (buffer, bufferSize, "safRc=%d, racfRc=%d, racfReason=%d %s", safRC, racfRC, racfRSN, errorMessage ? errorMessage : "");
+  snprintf (buffer, bufferSize, "safRc=%d, racfRc=%d, racfReason=%d %s", safRC, racfRC, racfRSN, message);
 }
 
-static int getApplicationName(HttpRequest *request, char *applicationNameBuf, size_t applicationNameBufSize, char *errorBuf, size_t errorBufSize) {
+static int getApplicationName(HttpRequest *request, char *appNameBuf, size_t appNameBufSize, char *errorBuf, size_t errorBufSize) {
   char *body = request->contentBody;
   size_t len = body ? strlen(body) : 0;
   if (len == 0) {
@@ -231,23 +238,23 @@ static int getApplicationName(HttpRequest *request, char *applicationNameBuf, si
     return -1;
   }
 
-  char *appName = jsonObjectGetString(jsonBodyObject, APPLICATION_NAME_KEY);
+  char *appName = jsonObjectGetString(jsonBodyObject, APP_NAME_KEY);
   if (!appName) {
-    snprintf (errorBuf, errorBufSize, "%s key not found in JSON POST body", APPLICATION_NAME_KEY);
+    snprintf (errorBuf, errorBufSize, "%s key not found in JSON POST body", APP_NAME_KEY);
     return -1;
   }
 
   size_t appNameLen = strlen(appName);
-  if (appNameLen > APPLICATION_NAME_LEN) {
-    snprintf (errorBuf, errorBufSize, "%s is too long", APPLICATION_NAME_KEY);
+  if (appNameLen > APP_NAME_KEY_LEN) {
+    snprintf (errorBuf, errorBufSize, "%s is too long", APP_NAME_KEY);
     return -1;
   }
   if (appNameLen == 0) {
-    snprintf (errorBuf, errorBufSize, "%s is empty", APPLICATION_NAME_KEY);
+    snprintf (errorBuf, errorBufSize, "%s is empty", APP_NAME_KEY);
     return -1;
   }
 
-  snprintf (applicationNameBuf, applicationNameBufSize, "%s", appName);
+  snprintf (appNameBuf, appNameBufSize, "%s", strupcase(appName));
 
   return 0;
 }
