@@ -146,6 +146,7 @@ if c89 \
   ${ZSS}/c/serverStatusService.c \
   ${ZSS}/c/rasService.c \
   ${ZSS}/c/userInfoService.c \
+  ${ZSS}/c/passTicketService.c \
   ${GSKLIB} ;
 then
   extattr +p ${ZSS}/bin/zssServer
