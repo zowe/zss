@@ -8,6 +8,7 @@ All notable changes to the ZSS package will be documented in this file.
 
 - Bugfix: Fix `zis-plugin-install.sh` script to properly exit on error with extended-install
 - Enhancement: Add an endpoint for user info
+- Enhancement: Add an endpoint for PassTicket generation
 
 ## `1.23.0`
 
