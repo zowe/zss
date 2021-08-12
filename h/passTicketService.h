@@ -13,19 +13,6 @@
 #ifndef __PASS_TICKET_SERVICE_H__
 #define __PASS_TICKET_SERVICE_H__
 
-#include "zowetypes.h"
-#include "alloc.h"
-#include "utils.h"
-#ifdef __ZOWE_OS_ZOS
-#include "zos.h"
-#endif
-#include "logging.h"
-#include "json.h"
-#include "bpxnet.h"
-#include "socketmgmt.h"
-#include "httpserver.h"
-#include "dataservice.h"
-
 int installPassTicketService(HttpServer *server);
 
 #endif // __PASS_TICKET_SERVICE_H__
