@@ -57,7 +57,8 @@ struct ZISServiceAnchor_tag {
   char eyecatcher[8];
 #define ZIS_SERVICE_ANCHOR_EYECATCHER "ZISSVCAN"
   int version;
-#define ZIS_SERVICE_ANCHOR_VERSION 1
+#define ZIS_SERVICE_ANCHOR_VERSION 2
+#define ZIS_SERVICE_ANCHOR_VERSION_SAF_SUPPORT 2
   int key : 8;
   unsigned int subpool : 8;
   unsigned short size;
@@ -66,6 +67,7 @@ struct ZISServiceAnchor_tag {
 #define ZIS_SERVICE_ANCHOR_FLAG_SPECIFIC_AUTH 0x00000002
   int state;
 #define ZIS_SERVICE_ANCHOR_STATE_ACTIVE 0x00000001
+#define ZIS_SERVICE_ANCHOR_STATE_DISCARDED 0x00000002
 
   ZISServicePath path;
   unsigned int serviceVersion;
@@ -88,7 +90,7 @@ struct ZISService_tag {
   char eyecatcher[8];
 #define ZIS_SERVICE_EYECATCHER "ZISSRVCE"
   int version;
-#define ZIS_SERVICE_VERSION 1
+#define ZIS_SERVICE_VERSION 2
   int flags;
 #define ZIS_SERVICE_FLAG_NONE           0x00000000
 #define ZIS_SERVICE_FLAG_SPACE_SWITCH   0x00000001
@@ -107,7 +109,7 @@ struct ZISService_tag {
 
   char safClassName[8 + 1];  /* room for 8 chars plus null term */
   char safEntityName[255 + 1];  /* room for 255 chars plus null term */
-  char reserved[175];
+  char reserved[171];
 
 };
 

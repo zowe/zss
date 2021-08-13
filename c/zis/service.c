@@ -151,10 +151,15 @@ void zisUpdateServiceAnchor(ZISServiceAnchor *anchor,
   anchor->flags = service->flags;
   anchor->serve = service->serve;
   anchor->serviceVersion = service->serviceVersion;
-  memcpy(anchor->safClassName, service->safClassName,
-         sizeof(anchor->safClassName));
-  memcpy(anchor->safEntityName, service->safEntityName,
-         sizeof(anchor->safEntityName));
+
+  // copy the SAF fields only if the anchor supports them
+  if (service->flags & ZIS_SERVICE_FLAG_SPECIFIC_AUTH &&
+      anchor->version >= ZIS_SERVICE_ANCHOR_VERSION_SAF_SUPPORT) {
+    memcpy(anchor->safClassName, service->safClassName,
+           sizeof(anchor->safClassName));
+    memcpy(anchor->safEntityName, service->safEntityName,
+           sizeof(anchor->safEntityName));
+  }
 
 }
 
