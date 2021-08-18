@@ -316,7 +316,8 @@ static ZISServiceAnchor *findServiceAnchor(const ZISPluginAnchor *pluginAnchor,
 
   while (currAnchor) {
     if (!memcmp(name, &currAnchor->path.serviceName, sizeof(ZISServiceName)) &&
-        currAnchor->version <= ZIS_SERVER_ANCHOR_VERSION) {
+        currAnchor->version <= ZIS_SERVICE_ANCHOR_VERSION &&
+        !(currAnchor->state & ZIS_SERVICE_ANCHOR_STATE_DISCARDED)) {
       return currAnchor;
     }
     currAnchor = currAnchor->next;
@@ -325,6 +326,9 @@ static ZISServiceAnchor *findServiceAnchor(const ZISPluginAnchor *pluginAnchor,
   return NULL;
 }
 
+static void discardServiceAnchor(ZISServiceAnchor *anchor) {
+  anchor->state |= ZIS_SERVICE_ANCHOR_STATE_DISCARDED;
+}
 
 static int cleanPluginAnchor(ZISPluginAnchor *anchor) {
 
@@ -541,6 +545,18 @@ static int callServiceTerm(ZISContext *context, ZISPlugin *plugin,
   return status;
 }
 
+static bool isServiceAnchorCompatible(const ZISService *service,
+                                      const ZISServiceAnchor *anchor) {
+
+  // check the SAF fields
+  bool hasSAF = service->flags & ZIS_SERVICE_FLAG_SPECIFIC_AUTH;
+  if (hasSAF && anchor->version < ZIS_SERVICE_ANCHOR_VERSION_SAF_SUPPORT) {
+    return false;
+  }
+
+  return true;
+}
+
 static int installServices(ZISContext *context, ZISPlugin *plugin,
                            ZISPluginAnchor *pluginAnchor) {
 
@@ -554,6 +570,18 @@ static int installServices(ZISContext *context, ZISPlugin *plugin,
     ZISService *service = &plugin->services[i];
 
     ZISServiceAnchor *anchor = findServiceAnchor(pluginAnchor, &service->name);
+
+    zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
+            "Anchor found @ 0x%p\n", anchor);
+    zowedump(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG, anchor, anchor->size);
+
+    if (anchor && !isServiceAnchorCompatible(service, anchor)) {
+      discardServiceAnchor(anchor);
+      zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
+              "Anchor 0x%p has been discarded\n", anchor);
+      anchor = NULL;
+    }
+
     if (anchor == NULL) {
       anchor = zisCreateServiceAnchor(plugin, service);
       if (anchor == NULL) {
