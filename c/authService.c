@@ -35,10 +35,9 @@
 #include "httpserver.h"
 #include "zssLogging.h"
 
-#define SAF_CLASS "ZOWE"
-#define JSON_ERROR_BUFFER_SIZE 1024
-#define STRING_BUFFER_SIZE 1024
-#define SAF_SUB_URL_SIZE 16
+#define JSON_ERROR_BUFFER_SIZE                  1024
+#define STRING_BUFFER_SIZE                      1024
+#define SAF_SUB_URL_SIZE                        32
 
 #define SAF_PASSWORD_RESET_RC_OK                0
 #define SAF_PASSWORD_RESET_RC_WRONG_PASSWORD    111
@@ -47,7 +46,10 @@
 #define SAF_PASSWORD_RESET_RC_NO_NEW_PASSSWORD  168
 #define SAF_PASSWORD_RESET_RC_WRONG_FORMAT      169
 
-#define RESPONSE_MESSAGE_LENGTH             100
+#define RESPONSE_MESSAGE_LENGTH                 100
+
+#define SAF_PLUGIN_ID                           "ORG.ZOWE.CONFIGJS"
+#define SAF_SERVICE_NAME                        "DATA"
 
 /*
  * A handler performing the SAF_AUTH check: checks if the user has the
@@ -68,10 +70,9 @@
 
 static int serveAuthCheck(HttpService *service, HttpResponse *response);
 
-int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char* entity, int access, JsonObject *envSettings);
-
 static int makeProfileName(
   char *profileName,
+  int profileNameBufSize,
   const char *type,
   const char *productCode, 
   int instanceID, 
@@ -206,31 +207,18 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
   return 0;
 }
 
-int serveAuthCheckByParams(HttpService *service, char *userName, char *class, char *entity, int access, JsonObject *envSettings) {
-  int rc = 0;
-  int rbacParm;
-  Json *rbacObj = jsonObjectGetPropertyValue(envSettings, "ZWED_dataserviceAuthentication_rbac");
-  if (rbacObj == NULL) { // Env variable doesn't exist, so check server config
-    JsonObject *dataserviceAuth = jsonObjectGetObject(service->server->sharedServiceMem, "dataserviceAuthentication");
-    rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
-  } else { // Use env variable value
-    rbacParm = jsonAsBoolean(rbacObj);
-  }
-  
-  CrossMemoryServerName *privilegedServerName = getConfiguredProperty(service->server,
-      HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
+int verifyAccessToSafProfile(HttpServer *server, const char *userName, const char *class, const char *entity, const int access) {
+  CrossMemoryServerName *privilegedServerName = getConfiguredProperty(server, HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   ZISAuthServiceStatus reqStatus = {0};
-  if (!rbacParm) {
-    return rc; // When rbac isn't enabled, we don't try to check the auth query
-  }
-  rc = zisCheckEntity(privilegedServerName, userName, class, entity, access,
-      &reqStatus);
+
+  int rc = zisCheckEntity(privilegedServerName, userName, class, entity, access, &reqStatus);
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
-           "RBAC check occurred for entity '%s' class '%s' access '%d' , rc: %d", entity, class, access, rc);
-  return rc;
+          "verifyAccessToSafProfile entity '%s' class '%s' access '%d' , rc: %d\n", entity, class, access, rc);
+
+  return (rc != RC_ZIS_SRVC_OK) ? -1 : 0;
 }
 
-int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *method, int instanceID, HttpResponse *response) {
+int getProfileNameFromRequest(char *profileName, const int profileNameBufSize, StringList *parsedFile, const char *method, int instanceID) {
   char type[STRING_BUFFER_SIZE]; // core || config || service
   char productCode[STRING_BUFFER_SIZE];
   char rootServiceName[STRING_BUFFER_SIZE];
@@ -241,7 +229,7 @@ int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *m
   char urlSegment[STRING_BUFFER_SIZE];
   int subUrlIndex = 0;
   
-  snprintf(urlSegment, STRING_BUFFER_SIZE, "%s", stringListPrint(parsedFile, 1, 1, "/", 0));
+  snprintf(urlSegment, sizeof(urlSegment), "%s", stringListPrint(parsedFile, 1, 1, "/", 0));
   StringListElt *pathSegment = firstStringListElt(parsedFile);
 
   strupcase(urlSegment);
@@ -250,50 +238,50 @@ int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *m
   }
   if (strcmp(urlSegment, "PLUGINS") != 0) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
-           "parsedFile urlSegment check didn't match.");
+           "parsedFile urlSegment check didn't match.\n");
     subUrlIndex = -1;
     while (pathSegment != NULL) {
-      snprintf(urlSegment, STRING_BUFFER_SIZE, "%s", pathSegment->string);
+      snprintf(urlSegment, sizeof(urlSegment), "%s", pathSegment->string);
       strupcase(urlSegment);
       if (rootServiceName == NULL)
       {
-        snprintf(rootServiceName, STRING_BUFFER_SIZE, urlSegment);
-      } else {
+        snprintf(rootServiceName, sizeof(rootServiceName), urlSegment);
+      } else { //If URL subsections > SAF_SUB_URL_SIZE, we trim them from profile name (by not appending them)
         if (subUrlIndex < SAF_SUB_URL_SIZE) {
-          snprintf(subUrl[subUrlIndex], STRING_BUFFER_SIZE, urlSegment);
+          snprintf(subUrl[subUrlIndex], sizeof(subUrl), urlSegment);
         }
       }
       subUrlIndex++;
       pathSegment = pathSegment->next;
     }
-    snprintf(productCode, STRING_BUFFER_SIZE, "ZLUX");
-    snprintf(type, STRING_BUFFER_SIZE, "core");
+    snprintf(productCode, sizeof(productCode), "ZLUX");
+    snprintf(type, sizeof(type), "core");
   } else {
     subUrlIndex = 0;
     
     while (pathSegment != NULL) {
-      snprintf(urlSegment, STRING_BUFFER_SIZE, "%s", pathSegment->string);
+      snprintf(urlSegment, sizeof(urlSegment), "%s", pathSegment->string);
       strupcase(urlSegment);
       switch(subUrlIndex) {
         case 0:
-          snprintf(productCode, STRING_BUFFER_SIZE, urlSegment);
+          snprintf(productCode, sizeof(productCode), urlSegment);
           break;
         case 1:
           break;
         case 2:
-          snprintf(pluginID, STRING_BUFFER_SIZE, urlSegment);
+          snprintf(pluginID, sizeof(pluginID), urlSegment);
           break;
         case 3:
           break;
         case 4:
-          snprintf(serviceName, STRING_BUFFER_SIZE, urlSegment);
+          snprintf(serviceName, sizeof(serviceName), urlSegment);
           break;
         case 5:
           break;
         default: {
             int adjustedSubUrlIndex = subUrlIndex - 6;  // subtract 6 from maximum index to begin init subUrl array at 0
             if (adjustedSubUrlIndex < SAF_SUB_URL_SIZE) {
-              snprintf(subUrl[adjustedSubUrlIndex], STRING_BUFFER_SIZE, urlSegment);
+              snprintf(subUrl[adjustedSubUrlIndex], sizeof(subUrl), urlSegment);
             }
           }
       }
@@ -309,9 +297,10 @@ int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *m
       }
     }
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
-           "parsedFile urlSegment check OK.");
+           "parsedFile urlSegment check OK.\n");
   }
-  return makeProfileName(profileName, type, 
+  return makeProfileName(profileName, profileNameBufSize,
+    type,
     productCode, 
     instanceID, 
     pluginID, 
@@ -324,23 +313,24 @@ int getProfileNameFromRequest(char *profileName, StringList *parsedFile, char *m
 
 static void setProfileNameAttribs(
   char *pluginID,
-  char *serviceName,
+  const char *serviceName,
   char *type,
   char *scope,
   char subUrl[SAF_SUB_URL_SIZE][STRING_BUFFER_SIZE]) {
-  if ((strcmp(pluginID, "ORG.ZOWE.CONFIGJS") == 0) && (strcmp(serviceName, "DATA") == 0))
+  if ((strcmp(pluginID, SAF_PLUGIN_ID) == 0) && (strcmp(serviceName, SAF_SERVICE_NAME) == 0))
   {
-    snprintf(type, STRING_BUFFER_SIZE, "config");
-    snprintf(pluginID, STRING_BUFFER_SIZE, subUrl[0]);
-    snprintf(scope, STRING_BUFFER_SIZE, subUrl[1]);
+    snprintf(type, sizeof(type), "config");
+    snprintf(pluginID, sizeof(pluginID), subUrl[0]);
+    snprintf(scope, sizeof(scope), subUrl[1]);
     
   } else {
-    snprintf(type, STRING_BUFFER_SIZE, "service");
+    snprintf(type, sizeof(type), "service");
   }
 }
 
 static int makeProfileName(
   char *profileName,
+  const int profileNameBufSize,
   const char *type,
   const char *productCode, 
   int instanceID, 
@@ -352,64 +342,69 @@ static int makeProfileName(
   char subUrl[SAF_SUB_URL_SIZE][STRING_BUFFER_SIZE]) {
   if (instanceID == -1) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           "Broken SAF query. Missing instance ID.");
+           "Broken SAF query. Missing instance ID.\n");
     return -1;
   }
   if (method == NULL) {
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-           "Broken SAF query. Missing method.");
+           "Broken SAF query. Missing method.\n");
     return -1;
   }
   int pos = 0;
   if (strcmp(type, "service") == 0) {
     if (pluginID == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-       "Broken SAF query. Missing plugin ID.");
+       "Broken SAF query. Missing plugin ID.\n");
       return -1;
     }
     if (serviceName == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-       "Broken SAF query. Missing service name.");
+       "Broken SAF query. Missing service name.\n");
       return -1;
     }
-    pos = snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
+    pos = snprintf(profileName, profileNameBufSize, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
   } else if (strcmp(type, "config") == 0) {
     if (pluginID == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-       "Broken SAF query. Missing plugin ID.");
+       "Broken SAF query. Missing plugin ID.\n");
       return -1;
     }
     if (scope == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-       "Broken SAF query. Missing scope.");
+       "Broken SAF query. Missing scope.\n");
       return -1;
     }
-    pos = snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
+    pos = snprintf(profileName, profileNameBufSize, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
   } else if (strcmp(type, "core") == 0) {
     if (rootServiceName == NULL) {
       zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
-       "Broken SAF query. Missing root service name.");
+       "Broken SAF query. Missing root service name.\n");
       return -1;
     }
-    pos = snprintf(profileName, ZOWE_PROFILE_NAME_LEN + 1, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
+    pos = snprintf(profileName, profileNameBufSize, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
+  } else if (pos < 0) {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+     "Internal string encoding error.\n");
+    return -1;
   }
   // Child endpoints housed via subUrl
   int index = 0;
   while (index < SAF_SUB_URL_SIZE && strcmp(subUrl[index], "") != 0) {
-    if (pos > ZOWE_PROFILE_NAME_LEN) {
+    if (pos >= profileNameBufSize) {
       break;
     }
-    pos += snprintf(profileName + pos, ZOWE_PROFILE_NAME_LEN + 1 - pos, ".%s", subUrl[index]);
+    pos += snprintf(profileName + pos, profileNameBufSize - pos, ".%s", subUrl[index]);
     index++;
   }
-  if (pos > ZOWE_PROFILE_NAME_LEN) {
+  if (pos >= profileNameBufSize) {
     char errMsg[256];
-    snprintf(errMsg, sizeof(errMsg), "Generated SAF query longer than %d\n", ZOWE_PROFILE_NAME_LEN);
+    snprintf(errMsg, sizeof(errMsg), "Generated SAF query longer than %d\n", profileNameBufSize - 1);
     zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING, errMsg);
     return -1;
   }
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
-           "Finished generating profileName: %s", profileName);
+           "Finished generating profileName: %s\n", profileName);
+  printf("\n\n\n\n GENERATED NAME: %s \n\n\n\n", profileName);
   return 0;
 }
 

@@ -3355,7 +3355,8 @@ void installSecurityManagementServices(HttpServer *server) {
       makeIntParamSpec("traceLevel", SERVICE_ARG_OPTIONAL, 0, 0, 0, 0,
       makeStringParamSpec("dryRun", SERVICE_ARG_OPTIONAL, NULL
       )));
-  classMgmtService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  classMgmtService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  classMgmtService->authorizationType = SERVICE_AUTHORIZATION_TYPE_NONE;
   classMgmtService->serviceFunction = &serveClassManagement;
   classMgmtService->runInSubtask = TRUE;
   classMgmtService->doImpersonation = TRUE;
@@ -3369,7 +3370,8 @@ void installSecurityManagementServices(HttpServer *server) {
       makeIntParamSpec("traceLevel", SERVICE_ARG_OPTIONAL, 0, 0, 0, 0,
       makeStringParamSpec("dryRun", SERVICE_ARG_OPTIONAL, NULL
       )));
-  userProfileService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  userProfileService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  userProfileService->authorizationType = SERVICE_AUTHORIZATION_TYPE_NONE;
   userProfileService->serviceFunction = &serveUserProfile;
   userProfileService->runInSubtask = TRUE;
   userProfileService->doImpersonation = TRUE;
@@ -3383,7 +3385,8 @@ void installSecurityManagementServices(HttpServer *server) {
       makeIntParamSpec("traceLevel", SERVICE_ARG_OPTIONAL, 0, 0, 0, 0,
       makeStringParamSpec("dryRun", SERVICE_ARG_OPTIONAL, NULL
       )));
-  groupMgmtService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  groupMgmtService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  groupMgmtService->authorizationType = SERVICE_AUTHORIZATION_TYPE_NONE;
   groupMgmtService->serviceFunction = &serveGroupManagement;
   groupMgmtService->runInSubtask = TRUE;
   groupMgmtService->doImpersonation = TRUE;
@@ -3396,7 +3399,8 @@ void installSecurityManagementServices(HttpServer *server) {
       makeIntParamSpec("count", SERVICE_ARG_OPTIONAL, 0, 0, 0, 0,
       makeIntParamSpec("traceLevel", SERVICE_ARG_OPTIONAL, 0, 0, 0, 0, NULL
       ));
-  accessService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN_NO_RBAC;
+  accessService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  accessService->authorizationType = SERVICE_AUTHORIZATION_TYPE_NONE;
   accessService->serviceFunction = &serveAccessInfo;
   accessService->runInSubtask = TRUE;
   accessService->doImpersonation = TRUE;
