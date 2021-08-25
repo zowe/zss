@@ -394,9 +394,13 @@ def dataset_contents(dataset):
                             member['records'] = request.get_data()['records']
         else:
             if dataset == "MOCK.ETAG":
+                request_data = request.get_json()
                 for data in global_datasets:
                     if data['name'] == "MOCK.ETAG":
-                        print("data:", data)
+                        if request_data and 'etag' in request_data:
+                            if request_data['etag'] == data['etag']:
+                                return {"msg": "etag match, successful write"}, 200
+                            
                         if request.headers.get('etag') != data['etag']:
                             return {"error": "etag mismatch"}, 400
                         else:
