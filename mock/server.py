@@ -40,6 +40,22 @@ global_datasets = [
         }
     },
     {
+        "name":"MOCK.ETAG",
+        "csiEntryType":"A",
+        "volser":"TSP121",
+        "recfm": {
+            "recordLength":"F",
+            "isBlocked":True,
+            "carriageControl":"unknown"
+        },
+        "dsorg": {
+            "organization":"sequential",
+            "maxRecordLen":150,
+            "totalBlockSize":1500
+        },
+        "etag": "12345678"
+    },
+    {
         "name":"MOCK.JCLLIB.TEST",
         "csiEntryType":"A",
         "volser":"TSP121",
@@ -356,12 +372,18 @@ def dataset_contents(dataset):
                     }
         else:
             for data in global_datasets:
+                resp_data = {
+                    "records": x.get('records', []) for x in global_datasets if x['name'] == dataset
+                }
                 if dataset == data['name']:
                     if data['volser'] == "MIGRAT":
                         data['volser'] = genVolserId()
-            return {
-                "records": x.get('records', []) for x in global_datasets if x['name'] == dataset
-            }
+                if data['name'] == "MOCK.ETAG":
+                    resp_data['etag'] = data['etag']
+                    resp = make_response(resp_data)
+                    resp.headers['etag'] = data['etag']
+                    return resp
+            return make_response(resp_data)
     elif request.method == 'POST':
         if dataset.endswith(')'):
             dataset_names = dataset.replace(")","").split("(")
@@ -370,6 +392,15 @@ def dataset_contents(dataset):
                     for member in data['name']['members']:
                         if dataset_names[1] == member['name']:
                             member['records'] = request.get_data()['records']
+        else:
+            if dataset == "MOCK.ETAG":
+                for data in global_datasets:
+                    if data['name'] == "MOCK.ETAG":
+                        print("data:", data)
+                        if request.headers.get('etag') != data['etag']:
+                            return {"error": "etag mismatch"}, 400
+                        else:
+                            return {"msg": "etag match, successful write"}, 200
     elif request.method == 'DELETE':
         if dataset.endswith(')'):
             dataset_names = dataset.replace(")","").split("(")
