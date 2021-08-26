@@ -21,7 +21,7 @@ app = Flask(__name__)
 
 global_username = "mock"
 global_password = "pass"
-global_password_expired = True
+global_password_expired = False
 
 global_datasets = [
     {
@@ -357,8 +357,11 @@ def dataset_contents(dataset):
         else:
             for data in global_datasets:
                 if dataset == data['name']:
-                    if data['volser'] == "MIGRAT":
-                        data['volser'] = genVolserId()
+                    try:
+                        if data['volser'] == "MIGRAT":
+                            data['volser'] = genVolserId()
+                    except KeyError:
+                        break
             return {
                 "records": x.get('records', []) for x in global_datasets if x['name'] == dataset
             }
@@ -381,14 +384,17 @@ def dataset_contents(dataset):
             global_datasets = [x for x in global_datasets if x['name'] != dataset]
             return {"msg": "Data set " + dataset + " was deleted successfully"}
 
-@app.route('/VSAMdatasetContents/<path:dataset>', methods=['DELETE', 'POST'])
+@app.route('/VSAMdatasetContents/<path:dataset>', methods=['GET', 'DELETE', 'POST'])
 def VSAMdataset_contents(dataset):
     global global_datasets
     if request.method == 'GET':
         for data in global_datasets:
             if dataset == data['name']:
-                if data['volser'] == "MIGRAT":
-                    data['volser'] = genVolserId()
+                try:
+                    if data['volser'] == "MIGRAT":
+                        data['volser'] = genVolserId()
+                except KeyError:
+                    break
         return {
             "records": x.get('records', []) for x in global_datasets if x['name'] == dataset
         }
