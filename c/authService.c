@@ -404,7 +404,6 @@ static int makeProfileName(
   }
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
            "Finished generating profileName: %s\n", profileName);
-  printf("\n\n\n\n GENERATED NAME: %s \n\n\n\n", profileName);
   return 0;
 }
 
