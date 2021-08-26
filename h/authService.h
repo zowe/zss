@@ -54,7 +54,7 @@ int getProfileNameFromRequest(char *profileName, int profileNameBufSize, StringL
  *
  * @return Return non-zero if failed
  */
-int verifyAccessToSafProfile(HttpServer *server, const char *userName, const char *class, const char *entity, int access);
+int verifyAccessToSafProfile(HttpServer *server, const char *userName, const char *entity, int access);
 
 
 #endif

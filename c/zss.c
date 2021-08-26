@@ -342,7 +342,7 @@ static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpRes
     return FALSE;
   }
 
-  rc = verifyAccessToSafProfile(service->server, request->username, SAF_CLASS, profileName, SAF_AUTH_ATTR_READ);
+  rc = verifyAccessToSafProfile(service->server, request->username, profileName, SAF_AUTH_ATTR_READ);
   if (rc != 0) {
     return FALSE;
   }

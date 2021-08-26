@@ -207,9 +207,10 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
   return 0;
 }
 
-int verifyAccessToSafProfile(HttpServer *server, const char *userName, const char *class, const char *entity, const int access) {
+int verifyAccessToSafProfile(HttpServer *server, const char *userName, const char *entity, const int access) {
   CrossMemoryServerName *privilegedServerName = getConfiguredProperty(server, HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   ZISAuthServiceStatus reqStatus = {0};
+  const char *class = SAF_CLASS;
 
   int rc = zisCheckEntity(privilegedServerName, userName, class, entity, access, &reqStatus);
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
