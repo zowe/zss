@@ -75,6 +75,7 @@ HTTPS_PREFIX="ZWED_agent_https_"
 if [ "${ZOWE_ZSS_SERVER_TLS}" = "false" ]
 then
   # HTTP
+  export ZWED_agent_https_enabled=false
   export "ZWED_agent_http_port=${ZOWE_ZSS_SERVER_PORT}"
 else
   # HTTPS

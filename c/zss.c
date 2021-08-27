@@ -993,6 +993,7 @@ static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envCon
 #define LABEL_KEY        "label"
 #define STASH_KEY        "stash"
 #define PASSWORD_KEY     "password"
+#define HTTPS_ENABLED_KEY "enabled"
 
 #define AGENT_HTTPS_PREFIX       "ZWED_agent_https_"
 #define ENV_AGENT_HTTPS_KEY(key) AGENT_HTTPS_PREFIX key
@@ -1047,7 +1048,8 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
   if (!address) {
     address = "127.0.0.1";
   }
-  bool isHttpsConfigured = port && settings->keyring;
+  bool isHttpsDesired = strcmp(jsonObjectGetString(agentHttps, HTTPS_ENABLED_KEY), "false") != 0;
+  bool isHttpsConfigured = port && settings->keyring && isHttpsDesired;
   if (settings->keyring) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
               settings->keyring,

@@ -7,6 +7,8 @@ All notable changes to the ZSS package will be documented in this file.
 ## `1.24.0`
 
 - Bugfix: Fix `zis-plugin-install.sh` script to properly exit on error with extended-install
+- Bugfix: Value of ZOWE_ZSS_SERVER_TLS was being ignored when server.json had https content which it had by default in previous versions
+
 
 ## `1.23.0`
 
