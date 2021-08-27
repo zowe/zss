@@ -368,6 +368,7 @@ TraceDefinition traceDefs[] = {
   {"_zss.httpSocketTrace", setHttpSocketTrace},
   {"_zss.httpCloseConversationTrace", setHttpCloseConversationTrace},
   {"_zss.httpAuthTrace", setHttpAuthTrace},
+  {"_zss.jwtTrace", setJwtTrace},
 #ifdef __ZOWE_OS_LINUX
   /* TODO: move this somewhere else... no impact for z/OS Zowe currently. */
   {"DefaultCCSID", setFileInfoCCSID}, /* not a trace setting */
