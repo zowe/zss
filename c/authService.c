@@ -98,6 +98,7 @@ int installAuthCheckService(HttpServer *server) {
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = &serveAuthCheck;
   httpService->runInSubtask = FALSE;
+  httpService->authorizationType = SERVICE_AUTHORIZATION_TYPE_NONE;
   registerHttpService(server, httpService);
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "end %s\n",
 //  __FUNCTION__);
