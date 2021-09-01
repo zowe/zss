@@ -370,7 +370,9 @@ def dataset_contents(dataset):
                     return {
                         "records" : x.get('records', []) for x in data['members'] if x['name'] == dataset_names[1]
                     }
-        else:
+        elif dataset == '':
+            return {"error": "Invalid dataset name"}, 400
+        else :
             for data in global_datasets:
                 resp_data = {
                     "records": x.get('records', []) for x in global_datasets if x['name'] == dataset
@@ -380,12 +382,15 @@ def dataset_contents(dataset):
                         if data['volser'] == "MIGRAT":
                             data['volser'] = genVolserId()
                     except KeyError:
-                        break
-                if data['name'] == "MOCK.ETAG":
-                    resp_data['etag'] = data['etag']
-                    resp = make_response(resp_data)
-                    resp.headers['etag'] = data['etag']
-                    return resp
+                        pass
+                try:
+                    if dataset == "MOCK.ETAG":
+                        resp_data['etag'] = data['etag']
+                        resp = make_response(resp_data)
+                        resp.headers['etag'] = data['etag']
+                        return resp
+                except KeyError:
+                    pass
             return make_response(resp_data)
     elif request.method == 'POST':
         if dataset.endswith(')'):
@@ -403,8 +408,11 @@ def dataset_contents(dataset):
                         if request_data and 'etag' in request_data:
                             if request_data['etag'] == data['etag']:
                                 return {"msg": "etag match, successful write"}, 200
-                            
-                        if request.headers.get('etag') != data['etag']:
+                        if request.args.get('force') == 'true':
+                            return {"msg": "force on, successful write"}, 200
+                        elif not request.headers.get('etag'):
+                            return {"msg": "no etag found, successful write"}, 200
+                        elif request.headers.get('etag') != data['etag']:
                             return {"error": "etag mismatch"}, 400
                         else:
                             return {"msg": "etag match, successful write"}, 200
@@ -429,7 +437,7 @@ def VSAMdataset_contents(dataset):
                     if data['volser'] == "MIGRAT":
                         data['volser'] = genVolserId()
                 except KeyError:
-                    break
+                    pass
         return {
             "records": x.get('records', []) for x in global_datasets if x['name'] == dataset
         }
