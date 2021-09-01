@@ -408,8 +408,11 @@ def dataset_contents(dataset):
                         if request_data and 'etag' in request_data:
                             if request_data['etag'] == data['etag']:
                                 return {"msg": "etag match, successful write"}, 200
-                            
-                        if request.headers.get('etag') != data['etag']:
+                        if request.args.get('force') == 'true':
+                            return {"msg": "force on, successful write"}, 200
+                        elif not request.headers.get('etag'):
+                            return {"msg": "no etag found, successful write"}, 200
+                        elif request.headers.get('etag') != data['etag']:
                             return {"error": "etag mismatch"}, 400
                         else:
                             return {"msg": "etag match, successful write"}, 200
