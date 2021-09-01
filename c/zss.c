@@ -1047,7 +1047,13 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
   if (!address) {
     address = "127.0.0.1";
   }
-  bool isHttpsConfigured = port && settings->keyring;
+
+  const char *useTlsParam = getenv("ZOWE_ZSS_SERVER_TLS");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Environment variable ZOWE_ZSS_SERVER_TLS is %s\n",
+          useTlsParam ? useTlsParam : "not set");
+
+  bool forceHttp = useTlsParam && (0 == strcmp(useTlsParam, "false"));
+  bool isHttpsConfigured = !forceHttp && port && settings->keyring;
   if (settings->keyring) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
               settings->keyring,
