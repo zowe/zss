@@ -370,7 +370,9 @@ def dataset_contents(dataset):
                     return {
                         "records" : x.get('records', []) for x in data['members'] if x['name'] == dataset_names[1]
                     }
-        else:
+        elif dataset == '':
+            return {"error": "Invalid dataset name"}, 400
+        else :
             for data in global_datasets:
                 resp_data = {
                     "records": x.get('records', []) for x in global_datasets if x['name'] == dataset
@@ -380,12 +382,15 @@ def dataset_contents(dataset):
                         if data['volser'] == "MIGRAT":
                             data['volser'] = genVolserId()
                     except KeyError:
-                        break
-                if data['name'] == "MOCK.ETAG":
-                    resp_data['etag'] = data['etag']
-                    resp = make_response(resp_data)
-                    resp.headers['etag'] = data['etag']
-                    return resp
+                        pass
+                try:
+                    if dataset == "MOCK.ETAG":
+                        resp_data['etag'] = data['etag']
+                        resp = make_response(resp_data)
+                        resp.headers['etag'] = data['etag']
+                        return resp
+                except KeyError:
+                    pass
             return make_response(resp_data)
     elif request.method == 'POST':
         if dataset.endswith(')'):
@@ -429,7 +434,7 @@ def VSAMdataset_contents(dataset):
                     if data['volser'] == "MIGRAT":
                         data['volser'] = genVolserId()
                 except KeyError:
-                    break
+                    pass
         return {
             "records": x.get('records', []) for x in global_datasets if x['name'] == dataset
         }
