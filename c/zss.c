@@ -74,6 +74,7 @@
 #include "rasService.h"
 #include "certificateService.h"
 #include "registerProduct.h"
+#include "userInfoService.h"
 #include "jwt.h"
 #ifdef USE_ZOWE_TLS
 #include "tls.h"
@@ -1619,6 +1620,7 @@ int main(int argc, char **argv){
       installServerStatusService(server, MVD_SETTINGS, productVersion);
       installZosPasswordService(server);
       installRASService(server);
+      installUserInfoService(server);
 #endif
       installLoginService(server);
       installLogoutService(server);
