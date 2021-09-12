@@ -47,5 +47,7 @@
 //ZWESIS01 EXEC PGM=ZWESIS01,REGION=&RGN,
 //         PARM='NAME=&NAME,MEM=&MEM'
 //STEPLIB  DD   DSNAME=ZWES.SISLOAD,DISP=SHR
+//* APF authorize pluginlib and uncomment below to use as plugin DS  */
+//*         DD   DSNAME=ZWES.SISPLUG,DISP=SHR                        */
 //PARMLIB  DD   DSNAME=ZWES.SISSAMP,DISP=SHR
 //SYSPRINT DD   SYSOUT=*
