@@ -81,6 +81,7 @@
 #endif // USE_ZOWE_TLS
 #include "storage.h"
 #include "storageApiml.h"
+#include "passTicketService.h"
 
 #define PRODUCT "ZLUX"
 #ifndef PRODUCT_MAJOR_VERSION
@@ -1622,6 +1623,7 @@ int main(int argc, char **argv){
       installZosPasswordService(server);
       installRASService(server);
       installUserInfoService(server);
+      installPassTicketService(server);
 #endif
       installLoginService(server);
       installLogoutService(server);
