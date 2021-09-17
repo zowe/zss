@@ -6,7 +6,7 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## `1.25.0`
 
-- Bugfix: unixfile copy API now returns valid error status.
+- Bugfix: Unixfile copy API now returns valid error status.
 
 ## `1.24.0`
 
