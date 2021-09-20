@@ -30,7 +30,7 @@ else
   ZSS_SCRIPT_DIR=$(cd `dirname $0` && pwd)
   . ${ZSS_SCRIPT_DIR}/../../app-server/share/zlux-app-server/bin/convert-env.sh
   yamlConverter="${ZSS_SCRIPT_DIR}/../../app-server/share/zlux-server-framework/utils/yamlConfig.js"
-  env_converted_from_yaml=$(node $yamlConverter zss 2>/dev/null)
+  env_converted_from_yaml=$(node $yamlConverter 2>/dev/null)
   if [ -n "$env_converted_from_yaml" ]; then
     eval "$env_converted_from_yaml"
   fi
