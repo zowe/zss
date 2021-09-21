@@ -64,6 +64,31 @@ if [ ! -f "$currentJsonConfigPath" ]; then
 fi
 
 APP_WORKSPACE_DIR=${INSTANCE_DIR}/workspace/app-server
+
+#SSO
+if [ -z "$ZWED_agent_jwt_fallback" ]
+then
+  if [ -n $SSO_FALLBACK_TO_NATIVE_AUTH ]
+  then
+    export ZWED_agent_jwt_fallback=$SSO_FALLBACK_TO_NATIVE_AUTH
+  fi
+fi
+if [ -z "$ZWED_agent_jwt_token_name" ]
+then
+  if [ -n $PKCS11_TOKEN_NAME ]
+  then
+    export ZWED_agent_jwt_token_name=$PKCS11_TOKEN_NAME
+  fi
+fi
+if [ -z "$ZWED_agent_jwt_token_label" ]
+then
+  if [ -n $PKCS11_TOKEN_LABEL ]
+  then
+    export ZWED_agent_jwt_token_label=$PKCS11_TOKEN_LABEL
+  fi
+fi
+
+
 if [ "${ZOWE_ZSS_SERVER_TLS}" = "false" ]; then
   PROTOCOL="http"
 else
