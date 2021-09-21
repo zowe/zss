@@ -8,6 +8,7 @@ All notable changes to the ZSS package will be documented in this file.
 
 - Enhancement: Add an endpoint for PassTicket generation
 - Enhancement: Add an endpoint for user info
+- Bugfix: Unixfile API returns valid error status
 
 ## `1.24.0`
 
