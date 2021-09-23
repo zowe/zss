@@ -12,9 +12,6 @@
 # - ROOT_DIR
 # - WORKSPACE_DIR
 
-# this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
-export ZLUX_ROOT_DIR=$(cd ../../../app-server/share; pwd)
-
 cd ${ROOT_DIR}/components/app-server/share/zlux-app-server/bin
 . ./convert-env.sh
 
@@ -106,3 +103,6 @@ then
     export ZWED_privilegedServerName=$ZOWE_ZSS_XMEM_SERVER_NAME
   fi 
 fi
+
+# this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
+export ZLUX_ROOT_DIR=${ROOT_DIR}/components/app-server/share
