@@ -102,16 +102,19 @@ static int handleEntityCheck(AuthServiceParmList *parmList,
   int rcvRC = 0;
   int rc = RC_ZIS_AUTHSRV_OK;
 
-  AuthClass class = {0};
-  size_t classLength = strlen(parmList->classNullTerm);
-  if (classLength == 0) {
-    int getClassRC = getDefaultClassValue(globalArea, &class);
-    if (getClassRC != RC_ZIS_AUTHSRV_OK) {
-      return getClassRC;
-    }
-  } else {
-    memcpy(class.valueNullTerm, parmList->classNullTerm, classLength);
+  AuthClass defaultClass = {0};
+  int getClassRC = getDefaultClassValue(globalArea, &defaultClass);
+  if (getClassRC != RC_ZIS_AUTHSRV_OK) {
+    return getClassRC;
   }
+
+  size_t classLength = strlen(parmList->classNullTerm);
+  if (classLength != 0) {
+    if (strcmp(parmList->classNullTerm, defaultClass.valueNullTerm) != 0) {
+      return RC_ZIS_AUTHSRV_CUSTOM_CLASS_NOT_ALLOWED;
+    }
+  }
+  AuthClass class = defaultClass;
 
   CMS_DEBUG(globalArea, "handleEntityCheck(): user = %s, entity = %s, class = %s,"
       " access = %x\n", parmList->userIDNullTerm, parmList->entityNullTerm,
@@ -257,15 +260,13 @@ static int handleAccessRetrieval(AuthServiceParmList *parmList,
     return getClassRC;
   }
 
-  AuthClass class = {0};
   size_t classLength = strlen(parmList->classNullTerm);
   if (classLength != 0) {
-    if (strcmp(class.valueNullTerm, defaultClass.valueNullTerm) != 0) {
+    if (strcmp(parmList->classNullTerm, defaultClass.valueNullTerm) != 0) {
       return RC_ZIS_AUTHSRV_CUSTOM_CLASS_NOT_ALLOWED;
     }
-  } else {
-    class = defaultClass;
   }
+  AuthClass class = defaultClass;
 
   CMS_DEBUG2(globalArea, traceLevel,
              "handleAccessRetrieval(): user=\'%s\', entity=\'%s\', "
