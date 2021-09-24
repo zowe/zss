@@ -14,7 +14,6 @@ All notable changes to the ZSS package will be documented in this file.
 ## `1.24.0`
 
 - Bugfix: Fix `zis-plugin-install.sh` script to properly exit on error with extended-install
-- Enhancement: Add an endpoint for PassTicket generation
 - Bugfix: When builtin TLS was enabled, a small leak occurred when closing sockets.
 
 ## `1.23.0`
