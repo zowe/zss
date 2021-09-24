@@ -98,6 +98,7 @@ int installAuthCheckService(HttpServer *server) {
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = &serveAuthCheck;
   httpService->runInSubtask = FALSE;
+  httpService->authorizationType = SERVICE_AUTHORIZATION_TYPE_NONE;
   registerHttpService(server, httpService);
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "end %s\n",
 //  __FUNCTION__);
@@ -320,12 +321,12 @@ static void setProfileNameAttribs(
   char subUrl[SAF_SUB_URL_SIZE][STRING_BUFFER_SIZE]) {
   if ((strcmp(pluginID, SAF_PLUGIN_ID) == 0) && (strcmp(serviceName, SAF_SERVICE_NAME) == 0))
   {
-    snprintf(type, sizeof(type), "config");
-    snprintf(pluginID, sizeof(pluginID), subUrl[0]);
-    snprintf(scope, sizeof(scope), subUrl[1]);
+    snprintf(type, STRING_BUFFER_SIZE, "config");
+    snprintf(pluginID, STRING_BUFFER_SIZE, subUrl[0]);
+    snprintf(scope, STRING_BUFFER_SIZE, subUrl[1]);
     
   } else {
-    snprintf(type, sizeof(type), "service");
+    snprintf(type, STRING_BUFFER_SIZE, "service");
   }
 }
 
