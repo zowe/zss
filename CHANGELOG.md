@@ -8,8 +8,9 @@ All notable changes to the ZSS package will be documented in this file.
 
 - Enhancement: Add an endpoint for PassTicket generation
 - Enhancement: Add an endpoint for user info
-- Bugfix: Unixfile API returns valid error status
 - Bugfix: Unixfile Copy and Rename directory API doesn't support forceOverwrite query
+- Bugfix: Unixfile Copy and Rename API doesn't support distinct error status response
+- Bugfix: Dataset contents API returns invalid error status for undefined length dataset update request
 
 ## `1.24.0`
 
