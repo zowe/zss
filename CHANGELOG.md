@@ -10,6 +10,8 @@ All notable changes to the ZSS package will be documented in this file.
 - Enhancement: Add an endpoint for user info
 - Bugfix: Unixfile Copy and Rename API doesn't support distinct error status response
 - Bugfix: Dataset contents API returns invalid error status for undefined length dataset update request
+- Bugfix: Unixfile API returns valid error status
+- Bugfix: Unixfile Copy service incorrectly processed files tagged as binary and mixed
 
 ## `1.24.0`
 
