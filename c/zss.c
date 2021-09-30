@@ -727,6 +727,43 @@ static int checkLoggingVerbosity(const char *serverConfigFile, char *pluginIdent
   return ZOWE_LOG_INFO;
 }
 
+static void checkAndSetServiceLoglevel(const char *serverConfigFile, const char *pluginIdentifier, 
+                                       uint64 loggingIdentifier, ShortLivedHeap *slh) {
+  char errorBuffer[1024] = {0};
+  int logLevel = ZOWE_LOG_NA;
+  int identifierLength = strlen(pluginIdentifier);
+  char identifierBuffer[identifierLength+1];
+  memset(&identifierBuffer, 0, sizeof(identifierBuffer));
+  strncpy(identifierBuffer, pluginIdentifier, identifierLength);
+  for (int i = 0; i < identifierLength; i++) {
+    if (identifierBuffer[i] == '/') {
+        identifierBuffer[i] = '.';
+    }
+  } 
+
+  Json *json = jsonParseFile(slh, serverConfigFile, errorBuffer, sizeof(errorBuffer));
+  if (json) {
+    if (jsonIsObject(json)) {
+      JsonObject *jsonObject = jsonAsObject(json);
+      JsonObject *logLevels = jsonObjectGetObject(jsonObject, "logLevels");
+      if (logLevels != NULL) {
+        JsonProperty *property = jsonObjectGetFirstProperty(logLevels);
+        while (property != NULL) {
+          if (!strcmp(jsonPropertyGetKey(property), identifierBuffer)) {
+            logLevel = jsonObjectGetNumber(logLevels, identifierBuffer);
+            break;
+          }
+          property = jsonObjectGetNextProperty(property);
+        }
+      }
+    }
+  }
+
+  if (logLevel <= ZOWE_LOG_DEBUG3 || logLevel >= ZOWE_LOG_ALWAYS) {
+    logSetLevel(NULL, loggingIdentifier, logLevel);
+  }
+}
+
 static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLivedHeap *slh, char *dirname,
                                                   const char *serverConfigFile,
                                                   ApimlStorageSettings *apimlStorageSettings) {
@@ -805,6 +842,8 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
                           htPut(server->loggingIdsByName,
                                 key,
                                 &(plugin->dataServices[i]->loggingIdentifier));
+                          checkAndSetServiceLoglevel(serverConfigFile, plugin->dataServices[i]->identifier, 
+                                                     plugin->dataServices[i]->loggingIdentifier, slh);
                         }
                       }
                     }
