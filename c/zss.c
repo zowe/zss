@@ -117,7 +117,7 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
                                         char *pluginIdentifier,
                                         char *resolvedPluginLocation);
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
-                                                  JsonObject *serverConfig, JsonObject *envConfig, ApimlStorageSettings *apimlStorageSettings);
+                                                  JsonObject *serverConfig, ApimlStorageSettings *apimlStorageSettings);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts, const char *key);
 static InternalAPIMap *makeInternalAPIMap(void);
@@ -698,43 +698,19 @@ static void installWebPluginDefintionsService(WebPluginListElt *webPlugins, Http
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
 }
 
-#define ENV_LOGLEVELS_PREFIX "ZWED_logLevels_"
-
-static int getLogLevelsFromEnv(JsonObject *envConfig, const char *identifier) {
-  int i = 0, j = 0;
-  int logLevel = ZOWE_LOG_SEVERE;
-  char envKey[2048] = {0};
-  j = snprintf(envKey, strlen(ENV_LOGLEVELS_PREFIX)+1, "%s", ENV_LOGLEVELS_PREFIX);
-  for (i = 0; identifier[i]; i++)
-  {
-    if (identifier[i] == '.') {
-      envKey[j++] = '_'; envKey[j++] = '_'; envKey[j++] = '_';
-    } else {
-      envKey[j++] = identifier[i];
-    }
-  }  
-  envKey[j] = '\0';
-
-  logLevel = jsonObjectGetNumber(envConfig, envKey);
-  return logLevel;
-}
-
-static int checkLoggingVerbosity(JsonObject *serverConfig, JsonObject *envConfig, char *pluginIdentifier) {
+static int checkLoggingVerbosity(JsonObject *serverConfig, char *pluginIdentifier) {
   char errorBuffer[1024] = {0};
   int logLevel = ZOWE_LOG_SEVERE;
 
-  logLevel = getLogLevelsFromEnv(envConfig, pluginIdentifier);
-  if (!logLevel) {
-    JsonObject *logLevels = jsonObjectGetObject(serverConfig, "logLevels");
-    if (logLevels != NULL) {
-      JsonProperty *property = jsonObjectGetFirstProperty(logLevels);
-      while (property != NULL) {
-        if (!strcmp(jsonPropertyGetKey(property), pluginIdentifier)) {
-          logLevel = jsonObjectGetNumber(logLevels, pluginIdentifier);
-          break;
-        }
-        property = jsonObjectGetNextProperty(property);
+  JsonObject *logLevels = jsonObjectGetObject(serverConfig, "logLevels");
+  if (logLevels != NULL) {
+    JsonProperty *property = jsonObjectGetFirstProperty(logLevels);
+    while (property != NULL) {
+      if (!strcmp(jsonPropertyGetKey(property), pluginIdentifier)) {
+        logLevel = jsonObjectGetNumber(logLevels, pluginIdentifier);
+        break;
       }
+      property = jsonObjectGetNextProperty(property);
     }
   }
 
@@ -760,24 +736,20 @@ static char *formatDataServiceIdentifier(const char *unformattedIdentifier, size
 }
 
 static void checkAndSetDataServiceLoglevel(JsonObject * serverConfig,
-                                           JsonObject * envConfig, 
                                            char *dataServiceIdentifier, 
                                            uint64 loggingIdentifier) {
   char errorBuffer[1024] = {0};
   int logLevel = ZOWE_LOG_SEVERE;
 
-  logLevel = getLogLevelsFromEnv(envConfig, dataServiceIdentifier);
-  if (!logLevel) {
-    JsonObject *logLevels = jsonObjectGetObject(serverConfig, "logLevels");
-    if (logLevels != NULL) {
-      JsonProperty *property = jsonObjectGetFirstProperty(logLevels);
-      while (property != NULL) {
-        if (!strcmp(jsonPropertyGetKey(property), dataServiceIdentifier)) {
-          logLevel = jsonObjectGetNumber(logLevels, dataServiceIdentifier);
-          break;
-        }
-        property = jsonObjectGetNextProperty(property);
+  JsonObject *logLevels = jsonObjectGetObject(serverConfig, "logLevels");
+  if (logLevels != NULL) {
+    JsonProperty *property = jsonObjectGetFirstProperty(logLevels);
+    while (property != NULL) {
+      if (!strcmp(jsonPropertyGetKey(property), dataServiceIdentifier)) {
+        logLevel = jsonObjectGetNumber(logLevels, dataServiceIdentifier);
+        break;
       }
+      property = jsonObjectGetNextProperty(property);
     }
   }
 
@@ -787,7 +759,7 @@ static void checkAndSetDataServiceLoglevel(JsonObject * serverConfig,
 }
 
 static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLivedHeap *slh, char *dirname,
-                                                  JsonObject *serverConfig, JsonObject *envConfig,
+                                                  JsonObject *serverConfig,
                                                   ApimlStorageSettings *apimlStorageSettings) {
   int pluginDefinitionCount = 0;
   int returnCode;
@@ -826,7 +798,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
               char *pluginLocation = jsonObjectGetString(jsonObject, "pluginLocation");
               char *relativeTo = jsonObjectGetString(jsonObject, "relativeTo");
               char *resolvedPluginLocation = resolvePluginLocation(slh, pluginLocation, relativeTo);
-              int pluginLogLevel = checkLoggingVerbosity(serverConfig, envConfig, identifier);
+              int pluginLogLevel = checkLoggingVerbosity(serverConfig, identifier);
               if (identifier && resolvedPluginLocation) {
                 JsonObject *pluginDefinition = readPluginDefinition(slh, identifier, resolvedPluginLocation);
                 if (pluginDefinition) {
@@ -864,7 +836,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
                           char *dataServiceIdentifier = formatDataServiceIdentifier(plugin->dataServices[i]->identifier, 
                                                                                     identifierLength, '.');  
                           if (dataServiceIdentifier) {                                                              
-                            checkAndSetDataServiceLoglevel(serverConfig, envConfig, dataServiceIdentifier, 
+                            checkAndSetDataServiceLoglevel(serverConfig, dataServiceIdentifier, 
                                                           plugin->dataServices[i]->loggingIdentifier);     
                             safeFree(dataServiceIdentifier, identifierLength);
                           }                                                
@@ -1661,7 +1633,7 @@ int main(int argc, char **argv){
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
-      readWebPluginDefinitions(server, slh, pluginsDir, mvdSettings, envSettings, apimlStorageSettings);
+      readWebPluginDefinitions(server, slh, pluginsDir, mvdSettings, apimlStorageSettings);
       installCertificateService(server);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
