@@ -700,17 +700,17 @@ static void installWebPluginDefintionsService(WebPluginListElt *webPlugins, Http
 
 #define ENV_LOGLEVELS_PREFIX "ZWED_logLevels_"
 
-static int getLogLevelsFromEnv(JsonObject *envConfig, char *Identifier) {
+static int getLogLevelsFromEnv(JsonObject *envConfig, char *identifier) {
   int i = 0, j = 0;
   int logLevel = ZOWE_LOG_SEVERE;
   char envKey[2048] = {0};
   j = snprintf(envKey, strlen(ENV_LOGLEVELS_PREFIX)+1, "%s", ENV_LOGLEVELS_PREFIX);
-  for (int i = 0; Identifier[i]; i++)
+  for (i = 0; identifier[i]; i++)
   {
-    if (Identifier[i] == '.') {
+    if (identifier[i] == '.') {
       envKey[j++] = '_'; envKey[j++] = '_'; envKey[j++] = '_';
     } else {
-      envKey[j++] = Identifier[i];
+      envKey[j++] = identifier[i];
     }
   }  
   envKey[j] = '\0';
@@ -744,14 +744,14 @@ static int checkLoggingVerbosity(JsonObject *serverConfig, JsonObject *envConfig
   return ZOWE_LOG_INFO;
 }
 
-static char *formatDataServiceIdentifier(const char *unformattedIdentifier, size_t identifierLength, char Separator)
+static char *formatDataServiceIdentifier(const char *unformattedIdentifier, size_t identifierLength, char idNameSeparator)
 {
   char *dataServiceIdentifier = safeMalloc31(identifierLength, "dataServiceIdentifier");
   memset(dataServiceIdentifier, 0, identifierLength);
   strncpy(dataServiceIdentifier, unformattedIdentifier, identifierLength);
   for (int i = 0; dataServiceIdentifier[i]; i++) {
     if (dataServiceIdentifier[i] == '/') {
-      dataServiceIdentifier[i] = Separator;
+      dataServiceIdentifier[i] = idNameSeparator;
     }
   }
   return dataServiceIdentifier;
