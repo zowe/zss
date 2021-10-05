@@ -12,6 +12,7 @@ All notable changes to the ZSS package will be documented in this file.
 - Bugfix: Dataset contents API returns invalid error status for undefined length dataset update request
 - Bugfix: Unixfile API returns valid error status
 - Bugfix: Unixfile Copy service incorrectly processed files tagged as binary and mixed
+- Bugfix: `safAuth` doesn't validate NULL entity
 
 ## `1.24.0`
 
