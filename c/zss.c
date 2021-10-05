@@ -700,7 +700,7 @@ static void installWebPluginDefintionsService(WebPluginListElt *webPlugins, Http
 
 #define ENV_LOGLEVELS_PREFIX "ZWED_logLevels_"
 
-static int getLogLevelsFromEnv(JsonObject *envConfig, char *identifier) {
+static int getLogLevelsFromEnv(JsonObject *envConfig, const char *identifier) {
   int i = 0, j = 0;
   int logLevel = ZOWE_LOG_SEVERE;
   char envKey[2048] = {0};
@@ -746,12 +746,14 @@ static int checkLoggingVerbosity(JsonObject *serverConfig, JsonObject *envConfig
 
 static char *formatDataServiceIdentifier(const char *unformattedIdentifier, size_t identifierLength, char idNameSeparator)
 {
-  char *dataServiceIdentifier = safeMalloc31(identifierLength, "dataServiceIdentifier");
-  memset(dataServiceIdentifier, 0, identifierLength);
-  strncpy(dataServiceIdentifier, unformattedIdentifier, identifierLength);
-  for (int i = 0; dataServiceIdentifier[i]; i++) {
-    if (dataServiceIdentifier[i] == '/') {
-      dataServiceIdentifier[i] = idNameSeparator;
+  char *dataServiceIdentifier = safeMalloc(identifierLength, "dataServiceIdentifier");
+  if (dataServiceIdentifier) {
+    memset(dataServiceIdentifier, 0, identifierLength);
+    strncpy(dataServiceIdentifier, unformattedIdentifier, identifierLength);
+    for (int i = 0; dataServiceIdentifier[i]; i++) {
+      if (dataServiceIdentifier[i] == '/') {
+        dataServiceIdentifier[i] = idNameSeparator;
+      }
     }
   }
   return dataServiceIdentifier;
@@ -853,15 +855,19 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
                           size_t identifierLength = strlen(plugin->dataServices[i]->identifier) + 1;
                           char *key = formatDataServiceIdentifier(plugin->dataServices[i]->identifier, 
                                                                   identifierLength, ':');
-                          htPut(server->loggingIdsByName,
-                                key,
-                                &(plugin->dataServices[i]->loggingIdentifier));
+                          if (key) {                                        
+                            htPut(server->loggingIdsByName,
+                                  key,
+                                  &(plugin->dataServices[i]->loggingIdentifier));
+                            safeFree(key, identifierLength);      
+                          }
                           char *dataServiceIdentifier = formatDataServiceIdentifier(plugin->dataServices[i]->identifier, 
-                                                                                    identifierLength, '.');      
-                          checkAndSetDataServiceLoglevel(serverConfig, envConfig, dataServiceIdentifier, 
-                                                         plugin->dataServices[i]->loggingIdentifier);     
-                          safeFree31(key, identifierLength);
-                          safeFree31(dataServiceIdentifier, identifierLength);                                                
+                                                                                    identifierLength, '.');  
+                          if (dataServiceIdentifier) {                                                              
+                            checkAndSetDataServiceLoglevel(serverConfig, envConfig, dataServiceIdentifier, 
+                                                          plugin->dataServices[i]->loggingIdentifier);     
+                            safeFree(dataServiceIdentifier, identifierLength);
+                          }                                                
                         }
                       }
                     }
