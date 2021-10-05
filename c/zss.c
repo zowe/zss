@@ -827,11 +827,11 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
                           size_t identifierLength = strlen(plugin->dataServices[i]->identifier) + 1;
                           char *key = formatDataServiceIdentifier(plugin->dataServices[i]->identifier, 
                                                                   identifierLength, ':');
-                          if (key) {                                        
+                          if (key) {
                             htPut(server->loggingIdsByName,
                                   key,
                                   &(plugin->dataServices[i]->loggingIdentifier));
-                            safeFree(key, identifierLength);      
+                            safeFree(key, identifierLength);
                           }
                           char *dataServiceIdentifier = formatDataServiceIdentifier(plugin->dataServices[i]->identifier, 
                                                                                     identifierLength, '.');  
