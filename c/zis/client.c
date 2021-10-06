@@ -174,8 +174,10 @@ int zisCheckEntity(const CrossMemoryServerName *serverName,
     return RC_ZIS_SRVC_SERVICE_FAILED;
   }
   strncpy(parmList.classNullTerm, class, sizeof(parmList.classNullTerm));
-  if (strlen(entity) >= sizeof (parmList.entityNullTerm)) {
-    status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
+  size_t entityLen = strlen(entity);
+  if (!entityLen || entityLen >= sizeof (parmList.entityNullTerm)) {
+    entityLen == 0 ? (status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_SHORT): 
+                     (status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG);
     return RC_ZIS_SRVC_SERVICE_FAILED;;
   }
   strncpy(parmList.entityNullTerm, entity, sizeof(parmList.entityNullTerm));
