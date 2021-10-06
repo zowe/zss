@@ -699,9 +699,7 @@ static void installWebPluginDefintionsService(WebPluginListElt *webPlugins, Http
 }
 
 static int checkLoggingVerbosity(JsonObject *serverConfig, char *pluginIdentifier) {
-  char errorBuffer[1024] = {0};
   int logLevel = ZOWE_LOG_INFO;
-
   JsonObject *logLevels = jsonObjectGetObject(serverConfig, "logLevels");
   if (logLevels != NULL) {
     JsonProperty *property = jsonObjectGetFirstProperty(logLevels);
