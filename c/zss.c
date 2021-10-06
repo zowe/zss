@@ -700,7 +700,7 @@ static void installWebPluginDefintionsService(WebPluginListElt *webPlugins, Http
 
 static int checkLoggingVerbosity(JsonObject *serverConfig, char *pluginIdentifier) {
   char errorBuffer[1024] = {0};
-  int logLevel = ZOWE_LOG_SEVERE;
+  int logLevel = ZOWE_LOG_INFO;
 
   JsonObject *logLevels = jsonObjectGetObject(serverConfig, "logLevels");
   if (logLevels != NULL) {
@@ -738,8 +738,7 @@ static char *formatDataServiceIdentifier(const char *unformattedIdentifier, size
 static void checkAndSetDataServiceLoglevel(JsonObject * serverConfig,
                                            char *dataServiceIdentifier, 
                                            uint64 loggingIdentifier) {
-  char errorBuffer[1024] = {0};
-  int logLevel = ZOWE_LOG_SEVERE;
+  int logLevel = ZOWE_LOG_INFO;
 
   JsonObject *logLevels = jsonObjectGetObject(serverConfig, "logLevels");
   if (logLevels != NULL) {
@@ -747,14 +746,13 @@ static void checkAndSetDataServiceLoglevel(JsonObject * serverConfig,
     while (property != NULL) {
       if (!strcmp(jsonPropertyGetKey(property), dataServiceIdentifier)) {
         logLevel = jsonObjectGetNumber(logLevels, dataServiceIdentifier);
+        if (logLevel <= ZOWE_LOG_DEBUG3 || logLevel >= ZOWE_LOG_ALWAYS) {
+          logSetLevel(NULL, loggingIdentifier, logLevel);
+        }        
         break;
       }
       property = jsonObjectGetNextProperty(property);
     }
-  }
-
-  if (logLevel <= ZOWE_LOG_DEBUG3 || logLevel >= ZOWE_LOG_ALWAYS) {
-    logSetLevel(NULL, loggingIdentifier, logLevel);
   }
 }
 
