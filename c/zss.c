@@ -63,6 +63,7 @@
 #include "authService.h"
 #include "securityService.h"
 #include "zis/client.h"
+#include "jcsi.h"
 #endif
 
 #include "zssLogging.h"
@@ -1615,6 +1616,7 @@ int main(int argc, char **argv){
       installUnixFileChangeModeService(server);
       installUnixFileTableOfContentsService(server); /* This needs to be registered last */
 #ifdef __ZOWE_OS_ZOS
+      loadCsi();
       installVSAMDatasetContentsService(server);
       installDatasetMetadataService(server);
       installDatasetContentsService(server);
