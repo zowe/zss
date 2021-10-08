@@ -73,6 +73,88 @@ static JsonObject *returnJsonObj(ShortLivedHeap *slh, char buf[]) {
   return envSettingsJsonObject;
 }
 
+static char checkValidHex(const char h)
+{
+  if (h >= '0' && h <= '9') {
+    return h - '0';
+  } else if (h >= 'a' && h <= 'f') {
+    return h - 'a' + 10;
+  } else if (h >= 'A' && h <= 'F') {
+    return h - 'A' +10;
+  } else {
+    return 0;
+  }
+}
+
+static char convertHexToChar(const char h1, const char h2)
+{
+  char decodedChar = 0;
+  char hexCheck1 = checkValidHex(h1);
+  char hexCheck2 = checkValidHex(h2);
+  if (hexCheck1 && hexCheck2) {
+    decodedChar = (hexCheck1 << 4) | hexCheck2;
+    a2e(&decodedChar,1);
+  }
+  return decodedChar;
+}
+
+#define MAX_ENCODED_UNDER_SCORE_COUNT 4
+static void decodeEnvKey(const char *envKey, const size_t keyLen, char *decodedKey)
+{
+  int _count = 0, j = 0, skipPrint = 0;
+  char decodedChar = 0;  
+
+  for (int i=0; envKey[i]; i++) {
+    if (envKey[i] == '_') {
+      if (i+3 < keyLen && envKey[i+1] == 'x') { 
+        decodedChar = convertHexToChar(envKey[i+2],envKey[i+3]); 
+        if(decodedChar) {
+          i = i+3;
+        } 
+      }
+
+      if(!decodedChar && _count < MAX_ENCODED_UNDER_SCORE_COUNT) {
+        _count++;
+        if(i+1 < keyLen) {
+          continue;
+        } else { 
+          skipPrint = 1; //last char in key, print _count tracked char and skip last char as it is already added to _count
+        }   
+      } 
+    }
+
+    if(_count > 0) {
+      switch (_count) {
+        case 1:
+        case 2:
+          decodedKey[j++] = '_';
+          break;
+        case 3:
+          decodedKey[j++] = '-';
+          break;
+        case 4:
+          decodedKey[j++] = '.';
+          break;
+      }
+    }
+
+    if(decodedChar == 0) {
+      if (!skipPrint) {
+        if (envKey[i] == '_' && _count == MAX_ENCODED_UNDER_SCORE_COUNT) {
+          i--;
+        } else { 
+          decodedKey[j++] = envKey[i];
+        }
+      }
+    } else {
+        decodedKey[j++] = decodedChar;
+    }
+
+    _count=0; decodedChar=0; skipPrint=0;
+  }
+  decodedKey[j] = '\0';  
+}
+
 static JsonObject *envVarsToObject(const char *prefix) {
   int i=0;
   int j=0;
@@ -94,7 +176,11 @@ static JsonObject *envVarsToObject(const char *prefix) {
       char* buffer = splitEnvKeyValue(environ[i], array);
       if(array[1]!=NULL) {
         j++;
-        foo = returnJSONRow(array[0], array[1]);
+        size_t envKeyLen = strlen(array[0]);
+        char envKey[envKeyLen+1];
+        memset(envKey, '\0', envKeyLen+1);
+        decodeEnvKey(array[0], envKeyLen, envKey);
+        foo = returnJSONRow(envKey, array[1]);
         if(foo!=NULL) {
           if(j>1) {
             pos += snprintf(envJsonStr + pos, sizeof(envJsonStr) - pos, ", ");
