@@ -159,7 +159,7 @@ int zisCheckEntity(const CrossMemoryServerName *serverName,
                    const char *userName, const char *class, const char *entity,
                    int access, ZISAuthServiceStatus *status) {
   AuthServiceParmList parmList = {0};
-
+  
   memcpy(&parmList.eyecatcher[0], ZIS_AUTH_SERVICE_PARMLIST_EYECATCHER,
       sizeof(parmList.eyecatcher));
   parmList.fc = ZIS_AUTH_SERVICE_PARMLIST_FC_ENTITY_CHECK;
@@ -174,9 +174,14 @@ int zisCheckEntity(const CrossMemoryServerName *serverName,
     return RC_ZIS_SRVC_SERVICE_FAILED;
   }
   strncpy(parmList.classNullTerm, class, sizeof(parmList.classNullTerm));
-  if (strlen(entity) >= sizeof (parmList.entityNullTerm)) {
+  size_t entityLen = strlen(entity);
+  if (entityLen == 0) {
+    status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_SHORT;
+    return RC_ZIS_SRVC_SERVICE_FAILED;
+  }
+  if (entityLen >= sizeof (parmList.entityNullTerm)) {
     status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
-    return RC_ZIS_SRVC_SERVICE_FAILED;;
+    return RC_ZIS_SRVC_SERVICE_FAILED;
   }
   strncpy(parmList.entityNullTerm, entity, sizeof(parmList.entityNullTerm));
   return authRequest(serverName, &parmList, status);
