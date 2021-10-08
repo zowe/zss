@@ -407,15 +407,15 @@ def dataset_contents(dataset):
                     if data['name'] == "MOCK.ETAG":
                         if request_data and 'etag' in request_data:
                             if request_data['etag'] == data['etag']:
-                                return {"msg": "etag match, successful write"}, 200
+                                return {"msg": "Updated dataset //'MOCK.ETAG' with 4 records", "etag": "0E906ACEE13CF3C797C8049E66CC42DCB503FA18"}, 200
                         if request.args.get('force') == 'true':
-                            return {"msg": "force on, successful write"}, 200
+                            return {"msg": "Updated dataset //'MOCK.ETAG' with 4 records", "etag": "0E906ACEE13CF3C797C8049E66CC42DCB503FA18"}, 200
                         elif not request.headers.get('etag'):
-                            return {"msg": "no etag found, successful write"}, 200
+                            return "No etag given", 400
                         elif request.headers.get('etag') != data['etag']:
-                            return {"error": "etag mismatch"}, 400
+                            return "Provided etag did not match system etag. To write, read the dataset again and resolve the difference, then retry.", 400
                         else:
-                            return {"msg": "etag match, successful write"}, 200
+                            return {"msg": "Updated dataset //'MOCK.ETAG' with 4 records", "etag": "0E906ACEE13CF3C797C8049E66CC42DCB503FA18"}, 200
     elif request.method == 'DELETE':
         if dataset.endswith(')'):
             dataset_names = dataset.replace(")","").split("(")
