@@ -159,7 +159,7 @@ int zisCheckEntity(const CrossMemoryServerName *serverName,
                    const char *userName, const char *class, const char *entity,
                    int access, ZISAuthServiceStatus *status) {
   AuthServiceParmList parmList = {0};
-  
+
   memcpy(&parmList.eyecatcher[0], ZIS_AUTH_SERVICE_PARMLIST_EYECATCHER,
       sizeof(parmList.eyecatcher));
   parmList.fc = ZIS_AUTH_SERVICE_PARMLIST_FC_ENTITY_CHECK;
