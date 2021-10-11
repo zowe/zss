@@ -25,10 +25,16 @@ struct JwkSettings_tag {
   char *path;
 };
 
-#define JWK_STATUS_OK                  0
-#define JWK_STATUS_HTTP_ERROR          1
-#define JWK_STATUS_RESPONSE_ERROR      2
-#define JWK_STATUS_JSON_RESPONSE_ERROR 3
+#define JWK_STATUS_OK                    0
+#define JWK_STATUS_HTTP_ERROR            1
+#define JWK_STATUS_RESPONSE_ERROR        2
+#define JWK_STATUS_JSON_RESPONSE_ERROR   3
+#define JWK_STATUS_INVALID_FORMAT_ERROR  4
+#define JWK_STATUS_NOT_RSA_KEY           5
+#define JWK_STATUS_RSA_FACTORS_NOT_FOUND 6
+#define JWK_STATUS_INVALID_BASE64_URL    7
+#define JWK_STATUS_INVALID_BASE64        8
+#define JWK_STATUS_INVALID_PUBLIC_KEY    9
 
 #endif // JWK_H
 

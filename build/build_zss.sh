@@ -19,7 +19,7 @@ ZSS="../.."
 COMMON="../../deps/zowe-common-c"
 GSKDIR=/usr/lpp/gskssl
 GSKINC="${GSKDIR}/include"
-GSKLIB="${GSKDIR}/lib/GSKSSL.x"
+GSKLIB="${GSKDIR}/lib/GSKSSL.x ${GSKDIR}/lib/GSKCMS31.x"
 
 
 echo "********************************************************************************"
