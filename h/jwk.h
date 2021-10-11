@@ -8,16 +8,16 @@
   Copyright Contributors to the Zowe Project.
 */
 
-#ifndef JWT_SECRET_H
-#define JWT_SECRET_H
+#ifndef JWK_H
+#define JWK_H
 
 #include "tls.h"
 
-typedef struct JwtSecretSettings_tag JwtSecretSettings;
+typedef struct JwkSettings_tag JwkSettings;
 
-char *obtainJwtSecret(JwtSecretSettings *settings);
+Json *obtainJwk(JwkSettings *settings);
 
-struct JwtSecretSettings_tag {
+struct JwkSettings_tag {
   TlsEnvironment *tlsEnv;
   char *host;
   int port;
@@ -25,11 +25,12 @@ struct JwtSecretSettings_tag {
   char *path;
 };
 
-#define JWT_SECRET_STATUS_OK             0
-#define JWT_SECRET_STATUS_HTTP_ERROR     1
-#define JWT_SECRET_STATUS_RESPONSE_ERROR 2
+#define JWK_STATUS_OK                  0
+#define JWK_STATUS_HTTP_ERROR          1
+#define JWK_STATUS_RESPONSE_ERROR      2
+#define JWK_STATUS_JSON_RESPONSE_ERROR 3
 
-#endif // JWT_SECRET_H
+#endif // JWK_H
 
 /*
   This program and the accompanying materials are

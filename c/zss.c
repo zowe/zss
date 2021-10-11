@@ -82,7 +82,7 @@
 #include "storage.h"
 #include "storageApiml.h"
 #include "passTicketService.h"
-#include "jwtsecret.h"
+#include "jwk.h"
 
 #define PRODUCT "ZLUX"
 #ifndef PRODUCT_MAJOR_VERSION
@@ -927,7 +927,7 @@ static void initLoggingComponents(void) {
   logConfigureComponent(NULL, LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_APIML_STORAGE, "APIML Storage", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
-  logConfigureComponent(NULL, LOG_COMP_ID_JWT_SECRET, "JWT Secret", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_DEBUG2);
+  logConfigureComponent(NULL, LOG_COMP_ID_JWK, "JWT Secret", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_DEBUG2);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_START_VER_MSG, productVersion);
 }
 
@@ -1630,13 +1630,13 @@ int main(int argc, char **argv){
       installLoginService(server);
       installLogoutService(server);
       printZISStatus(server);
-      JwtSecretSettings jwtSettings = {0};
+      JwkSettings jwtSettings = {0};
       jwtSettings.port = 56564;
       jwtSettings.host = "rs28.rocketsoftware.com";
-      jwtSettings.path = "/ui/v1/zlux/jwtsecret";
+      jwtSettings.path = "/gateway/api/v1/auth/keys/public/current";
       jwtSettings.timeoutSeconds = 10;
       jwtSettings.tlsEnv = tlsEnv;
-      const char *jwtSecret = obtainJwtSecret(&jwtSettings);
+      Json *jwk = obtainJwk(&jwtSettings);
       mainHttpLoop(server);
 
     } else{
