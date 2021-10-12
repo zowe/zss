@@ -16,6 +16,8 @@
 #include "alloc.h"
 #include "json.h"
 
+#define CHECK_VALID_HEX_FAILED 100
+
 extern char **environ;
 
 static bool isNumber(const char s[]) 
@@ -73,25 +75,25 @@ static JsonObject *returnJsonObj(ShortLivedHeap *slh, char buf[]) {
   return envSettingsJsonObject;
 }
 
-static char checkValidHex(const char h)
+static char checkValidHex(char h)
 {
   if (h >= '0' && h <= '9') {
     return h - '0';
   } else if (h >= 'a' && h <= 'f') {
     return h - 'a' + 10;
   } else if (h >= 'A' && h <= 'F') {
-    return h - 'A' +10;
+    return h - 'A' + 10;
   } else {
-    return 0;
+    return CHECK_VALID_HEX_FAILED;
   }
 }
 
-static char convertHexToChar(const char h1, const char h2)
+static char convertHexToChar(char h1, char h2)
 {
   char decodedChar = 0;
   char hexCheck1 = checkValidHex(h1);
   char hexCheck2 = checkValidHex(h2);
-  if (hexCheck1 && hexCheck2) {
+  if (hexCheck1!=CHECK_VALID_HEX_FAILED && hexCheck2!=CHECK_VALID_HEX_FAILED) {
     decodedChar = (hexCheck1 << 4) | hexCheck2;
     a2e(&decodedChar,1);
   }
@@ -101,7 +103,7 @@ static char convertHexToChar(const char h1, const char h2)
 #define MAX_ENCODED_UNDER_SCORE_COUNT 4
 static void decodeEnvKey(const char *envKey, const size_t keyLen, char *decodedKey)
 {
-  int _count = 0, j = 0, skipPrint = 0;
+  int count = 0, j = 0, skipPrint = 0;
   char decodedChar = 0;  
 
   for (int i=0; envKey[i]; i++) {
@@ -113,18 +115,18 @@ static void decodeEnvKey(const char *envKey, const size_t keyLen, char *decodedK
         } 
       }
 
-      if(!decodedChar && _count < MAX_ENCODED_UNDER_SCORE_COUNT) {
-        _count++;
+      if(!decodedChar && count < MAX_ENCODED_UNDER_SCORE_COUNT) {
+        count++;
         if(i+1 < keyLen) {
           continue;
         } else { 
-          skipPrint = 1; //last char in key, print _count tracked char and skip last char as it is already added to _count
+          skipPrint = 1; //last char in key, print count tracked char and skip last char as it is already added to count
         }   
       } 
     }
 
-    if(_count > 0) {
-      switch (_count) {
+    if(count > 0) {
+      switch (count) {
         case 1:
         case 2:
           decodedKey[j++] = '_';
@@ -140,7 +142,7 @@ static void decodeEnvKey(const char *envKey, const size_t keyLen, char *decodedK
 
     if(decodedChar == 0) {
       if (!skipPrint) {
-        if (envKey[i] == '_' && _count == MAX_ENCODED_UNDER_SCORE_COUNT) {
+        if (envKey[i] == '_' && count == MAX_ENCODED_UNDER_SCORE_COUNT) {
           i--;
         } else { 
           decodedKey[j++] = envKey[i];
@@ -150,7 +152,7 @@ static void decodeEnvKey(const char *envKey, const size_t keyLen, char *decodedK
         decodedKey[j++] = decodedChar;
     }
 
-    _count=0; decodedChar=0; skipPrint=0;
+    count=0; decodedChar=0; skipPrint=0;
   }
   decodedKey[j] = '\0';  
 }
