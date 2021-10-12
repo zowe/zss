@@ -16,7 +16,7 @@
 #include "alloc.h"
 #include "json.h"
 
-#define CHECK_VALID_HEX_FAILED 100
+#define RC_CHECK_VALID_HEX_FAILED 100
 
 extern char **environ;
 
@@ -84,7 +84,7 @@ static char checkValidHex(char h)
   } else if (h >= 'A' && h <= 'F') {
     return h - 'A' + 10;
   } else {
-    return CHECK_VALID_HEX_FAILED;
+    return RC_CHECK_VALID_HEX_FAILED;
   }
 }
 
@@ -93,7 +93,7 @@ static char convertHexToChar(char h1, char h2)
   char decodedChar = 0;
   char hexCheck1 = checkValidHex(h1);
   char hexCheck2 = checkValidHex(h2);
-  if (hexCheck1!=CHECK_VALID_HEX_FAILED && hexCheck2!=CHECK_VALID_HEX_FAILED) {
+  if (hexCheck1!=RC_CHECK_VALID_HEX_FAILED && hexCheck2!=RC_CHECK_VALID_HEX_FAILED) {
     decodedChar = (hexCheck1 << 4) | hexCheck2;
     a2e(&decodedChar,1);
   }
@@ -101,15 +101,15 @@ static char convertHexToChar(char h1, char h2)
 }
 
 #define MAX_ENCODED_UNDER_SCORE_COUNT 4
-static void decodeEnvKey(const char *envKey, const size_t keyLen, char *decodedKey)
+static void decodeEnvKey(const char *encodedKey, const size_t keyLen, char *decodedKey)
 {
   int count = 0, j = 0, skipPrint = 0;
   char decodedChar = 0;  
 
-  for (int i=0; envKey[i]; i++) {
-    if (envKey[i] == '_') {
-      if (i+3 < keyLen && envKey[i+1] == 'x') { 
-        decodedChar = convertHexToChar(envKey[i+2],envKey[i+3]); 
+  for (int i=0; encodedKey[i]; i++) {
+    if (encodedKey[i] == '_') {
+      if (i+3 < keyLen && encodedKey[i+1] == 'x') { 
+        decodedChar = convertHexToChar(encodedKey[i+2],encodedKey[i+3]); 
         if(decodedChar) {
           i = i+3;
         } 
@@ -142,10 +142,10 @@ static void decodeEnvKey(const char *envKey, const size_t keyLen, char *decodedK
 
     if(decodedChar == 0) {
       if (!skipPrint) {
-        if (envKey[i] == '_' && count == MAX_ENCODED_UNDER_SCORE_COUNT) {
+        if (encodedKey[i] == '_' && count == MAX_ENCODED_UNDER_SCORE_COUNT) {
           i--;
         } else { 
-          decodedKey[j++] = envKey[i];
+          decodedKey[j++] = encodedKey[i];
         }
       }
     } else {
