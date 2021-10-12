@@ -1636,7 +1636,11 @@ int main(int argc, char **argv){
       jwtSettings.path = "/gateway/api/v1/auth/keys/public/current";
       jwtSettings.timeoutSeconds = 10;
       jwtSettings.tlsEnv = tlsEnv;
-      Json *jwk = obtainJwk(&jwtSettings);
+      Jwk *jwk = obtainJwk(&jwtSettings);
+      if (jwk) {
+        int rc = 0;
+        httpServerInitJwtContextCustom(server, true, checkJwtSignature, jwk, &rc);
+      }
       mainHttpLoop(server);
 
     } else{

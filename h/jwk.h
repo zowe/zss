@@ -11,11 +11,13 @@
 #ifndef JWK_H
 #define JWK_H
 
+#include <gskcms.h>
 #include "tls.h"
 
 typedef struct JwkSettings_tag JwkSettings;
+typedef struct Jwk_tag Jwk;
 
-Json *obtainJwk(JwkSettings *settings);
+Jwk *obtainJwk(JwkSettings *settings);
 
 struct JwkSettings_tag {
   TlsEnvironment *tlsEnv;
@@ -23,6 +25,10 @@ struct JwkSettings_tag {
   int port;
   int timeoutSeconds;
   char *path;
+};
+
+struct Jwk_tag {
+  x509_public_key_info publicKey;
 };
 
 #define JWK_STATUS_OK                    0
@@ -35,6 +41,11 @@ struct JwkSettings_tag {
 #define JWK_STATUS_INVALID_BASE64_URL    7
 #define JWK_STATUS_INVALID_BASE64        8
 #define JWK_STATUS_INVALID_PUBLIC_KEY    9
+
+int checkJwtSignature(JwsAlgorithm algorithm,
+                      int sigLen, const uint8_t signature[],
+                      int msgLen, const uint8_t message[],
+                      void *userData);
 
 #endif // JWK_H
 

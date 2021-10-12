@@ -21,13 +21,15 @@
 #include "charsets.h"
 #include "httpclient.h"
 #include "zssLogging.h"
+#include "jwt.h"
 #include "jwk.h"
 
 static Json *receiveResponse(HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut);
 static Json *doRequest(HttpClientSettings *clientSettings, TlsEnvironment *tlsEnv, char *path, int *statusOut);
 static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *statusOut);
 
-Json *obtainJwk(JwkSettings *settings) {
+Jwk *obtainJwk(JwkSettings *settings) {
+  Jwk *jwk = NULL;
   int status = 0;
   if (!settings) {
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "jwt settings are NULL\n");
@@ -38,15 +40,18 @@ Json *obtainJwk(JwkSettings *settings) {
   clientSettings.port = settings->port;
   clientSettings.recvTimeoutSeconds = (settings->timeoutSeconds > 0) ? settings->timeoutSeconds : 10;
 
-  Json *jwk = doRequest(&clientSettings, settings->tlsEnv, settings->path, &status);
+  Json *jwkJson = doRequest(&clientSettings, settings->tlsEnv, settings->path, &status);
   if (status) {
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to obtain JWK, rc = %d\n", status);
     return NULL;
   }
-  if (jwk) {
+  if (jwkJson) {
     x509_public_key_info publicKey;
-    int status = 0;
-    getPublicKey(jwk, &publicKey, &status);
+    getPublicKey(jwkJson, &publicKey, &status);
+    if (status == 0) {
+      jwk = (Jwk*)safeMalloc(sizeof(Jwk), "JWK");
+      jwk->publicKey = publicKey;
+    }
   }
   return jwk; 
 }
@@ -221,4 +226,36 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
   }
 
   *statusOut = JWK_STATUS_OK;
+}
+
+int checkJwtSignature(JwsAlgorithm algorithm,
+                      int sigLen, const uint8_t signature[],
+                      int msgLen, const uint8_t message[],
+                      void *userData) {
+  Jwk *jwk = userData;
+
+  if (algorithm == JWS_ALGORITHM_none) {
+    if (sigLen == 0) {
+      return RC_JWT_INSECURE;
+    } else {
+      return RC_JWT_INVALID_SIGLEN;
+    }
+  }
+
+  x509_algorithm_type alg = x509_alg_unknown;
+  gsk_buffer msgBuffer = { .length = msgLen, .data = (void*)message };
+  gsk_buffer sigBuffer = { .length = sigLen, .data = (void*)signature };
+
+  switch (algorithm) {
+    case JWS_ALGORITHM_RS256:
+      alg = x509_alg_sha256WithRsaEncryption;
+      break;
+  }
+  int gskStatus = gsk_verify_data_signature(alg, &jwk->publicKey, 0, &msgBuffer, &sigBuffer);
+  if (gskStatus != 0) {
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to verify signature with status %d - %s\n",
+            gskStatus, gsk_strerror(gskStatus));
+    return RC_JWT_SIG_MISMATCH;
+  }
+  return RC_JWT_OK;
 }
