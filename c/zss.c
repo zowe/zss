@@ -1631,8 +1631,8 @@ int main(int argc, char **argv){
       installLogoutService(server);
       printZISStatus(server);
       JwkSettings jwtSettings = {0};
-      jwtSettings.port = 56564;
-      jwtSettings.host = "rs28.rocketsoftware.com";
+      jwtSettings.port = apimlStorageSettings->port;
+      jwtSettings.host = apimlStorageSettings->host;
       jwtSettings.path = "/gateway/api/v1/auth/keys/public/current";
       jwtSettings.timeoutSeconds = 10;
       jwtSettings.tlsEnv = tlsEnv;
