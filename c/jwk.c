@@ -213,23 +213,23 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
   }
 
   char modulus[modulusBase64Size];
-  int decodedLen = decodeBase64(modulusBase64, modulus);
-  if (decodedLen <= 0) {
+  int modulusLen = decodeBase64(modulusBase64, modulus);
+  if (modulusLen <= 0) {
     *statusOut = JWK_STATUS_INVALID_BASE64;
     return;    
   }
-  modulus[decodedLen] = '\0';
+  modulus[modulusLen] = '\0';
 
   char exponent[exponentBase64Size];
-  decodedLen = decodeBase64(exponentBase64, exponent);
-  if (decodedLen <= 0) {
+  int exponentLen = decodeBase64(exponentBase64, exponent);
+  if (exponentLen <= 0) {
     *statusOut = JWK_STATUS_INVALID_BASE64;
     return;    
   }
-  exponent[decodedLen] = '\0';
+  exponent[exponentLen] = '\0';
 
-  gsk_buffer modulusBuffer = { .data = (void*)modulus, .length = strlen(modulus) };
-  gsk_buffer exponentBuffer = { .data = (void*)exponent, .length = strlen(exponent) };
+  gsk_buffer modulusBuffer = { .data = (void*)modulus, .length = modulusLen };
+  gsk_buffer exponentBuffer = { .data = (void*)exponent, .length = exponentLen };
   int status = gsk_construct_public_key_rsa(&modulusBuffer, &exponentBuffer, publicKeyOut);
   if (status != 0) {
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to create public key: %s\n", gsk_strerror(status));
