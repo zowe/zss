@@ -18,7 +18,9 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <pthread.h>
 #include <string.h>
+#include <errno.h>
 #include <gskcms.h>
 #include <gskssl.h>
 #include <gsktypes.h>
@@ -29,45 +31,85 @@
 #include "collections.h"
 #include "json.h"
 #include "tls.h"
+#include "httpserver.h"
 #include "charsets.h"
 #include "httpclient.h"
 #include "zssLogging.h"
 #include "jwt.h"
 #include "jwk.h"
 
-static Json *receiveResponse(HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut);
-static Json *doRequest(HttpClientSettings *clientSettings, TlsEnvironment *tlsEnv, char *path, int *statusOut);
+static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut);
+static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, TlsEnvironment *tlsEnv, char *path, int *statusOut);
 static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *statusOut);
+static int obtainJwk(JwkContext *context);
+static void *obtainJwkInBackground(void *data);
+static int checkJwtSignature(JwsAlgorithm algorithm, int sigLen, const uint8_t signature[], int msgLen, const uint8_t message[], void *userData);
 
-Jwk *obtainJwk(JwkSettings *settings) {
-  Jwk *jwk = NULL;
-  int status = 0;
-  if (!settings) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "jwt settings are NULL\n");
-    return NULL;
+void configureJwt(HttpServer *server, JwkSettings *jwkSettings) {
+  fprintf (stdout, "begin %s jwkSettings 0x%p\n", __FUNCTION__, jwkSettings);
+  if (!jwkSettings) {
+    return;
   }
+  JwkContext *jwkContext = (JwkContext*)safeMalloc(sizeof(*jwkContext), "Jwk Context");
+  if (!jwkContext) {
+    return;
+  }
+  jwkContext->settings = jwkSettings;
+  jwkContext->slh = makeShortLivedHeap(0x40000, 0x40);
+  int rc = 0;
+  httpServerInitJwtContextCustom(server, jwkSettings->fallback, checkJwtSignature, jwkContext, &rc);
+  pthread_t threadId;
+  if (pthread_create(&threadId, NULL, obtainJwkInBackground, jwkContext) != 0) {
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to create JWK thread - %s\n", strerror(errno));
+  };
+}
+
+static void *obtainJwkInBackground(void *data) {
+  fprintf (stdout, "begin %s\n", __FUNCTION__);
+  int maxAttempts = 10000;
+  JwkContext *context = data;
+    for (int i = 0; i < maxAttempts; i++) {
+      fprintf (stdout, "begin attempt %d\n", i);
+      int status = obtainJwk(context);
+      SLHFree(context->slh);
+      if (status == 0) {
+        fprintf (stdout, "got jwk %d\n", i);
+        zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "jwk received\n");
+        context->isPublicKeyInitialized = true;
+        break;
+      } else {
+        context->slh = makeShortLivedHeap(0x40000, 0x40);
+        zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to obtain jwk, repeat again\n");
+        sleep(2);
+    }
+  }
+}
+
+static int obtainJwk(JwkContext *context) {
+  JwkSettings *settings = context->settings;
+  int status = 0;
+
   HttpClientSettings clientSettings = {0};
   clientSettings.host = settings->host;
   clientSettings.port = settings->port;
   clientSettings.recvTimeoutSeconds = (settings->timeoutSeconds > 0) ? settings->timeoutSeconds : 10;
 
-  Json *jwkJson = doRequest(&clientSettings, settings->tlsEnv, settings->path, &status);
+  Json *jwkJson = doRequest(context->slh, &clientSettings, settings->tlsEnv, settings->path, &status);
   if (status) {
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to obtain JWK, rc = %d\n", status);
-    return NULL;
+    return status;
   }
   if (jwkJson) {
     x509_public_key_info publicKey;
     getPublicKey(jwkJson, &publicKey, &status);
     if (status == 0) {
-      jwk = (Jwk*)safeMalloc(sizeof(Jwk), "JWK");
-      jwk->publicKey = publicKey;
+      context->publicKey = publicKey;
     }
   }
-  return jwk; 
+  return status; 
 }
 
-static Json *doRequest(HttpClientSettings *clientSettings, TlsEnvironment *tlsEnv, char *path, int *statusOut) {
+static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, TlsEnvironment *tlsEnv, char *path, int *statusOut) {
   int status = 0;
   HttpClientContext *httpClientContext = NULL;
   HttpClientSession *session = NULL;
@@ -102,7 +144,7 @@ static Json *doRequest(HttpClientSettings *clientSettings, TlsEnvironment *tlsEn
       *statusOut = JWK_STATUS_HTTP_ERROR;
       break;
     }
-    jsonBody = receiveResponse(httpClientContext, session, &status);
+    jsonBody = receiveResponse(slh, httpClientContext, session, &status);
     if (status) {
       *statusOut = status;
       break;
@@ -123,10 +165,9 @@ static Json *doRequest(HttpClientSettings *clientSettings, TlsEnvironment *tlsEn
   return jsonBody;
 }
 
-static Json *receiveResponse(HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut) {
+static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut) {
   bool done = false;
   Json *jsonBody = NULL;
-  ShortLivedHeap *slh = session->slh;
   while (!done) {
     int status = httpClientSessionReceiveNative(httpClientContext, session, 1024);
     if (status != 0) {
@@ -239,11 +280,14 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
   *statusOut = JWK_STATUS_OK;
 }
 
-int checkJwtSignature(JwsAlgorithm algorithm,
+static int checkJwtSignature(JwsAlgorithm algorithm,
                       int sigLen, const uint8_t signature[],
                       int msgLen, const uint8_t message[],
                       void *userData) {
-  Jwk *jwk = userData;
+  JwkContext *context = userData;
+  if (!context->isPublicKeyInitialized) {
+    return RC_JWT_PUBLIC_KEY_NOT_CONFIGURED;
+  }
 
   if (algorithm == JWS_ALGORITHM_none) {
     if (sigLen == 0) {
@@ -262,7 +306,7 @@ int checkJwtSignature(JwsAlgorithm algorithm,
       alg = x509_alg_sha256WithRsaEncryption;
       break;
   }
-  int gskStatus = gsk_verify_data_signature(alg, &jwk->publicKey, 0, &msgBuffer, &sigBuffer);
+  int gskStatus = gsk_verify_data_signature(alg, &context->publicKey, 0, &msgBuffer, &sigBuffer);
   if (gskStatus != 0) {
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to verify signature with status %d - %s\n",
             gskStatus, gsk_strerror(gskStatus));

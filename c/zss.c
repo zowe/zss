@@ -931,30 +931,9 @@ static JwkSettings *readJwkSettings(ShortLivedHeap *slh, JsonObject *serverConfi
   settings->tlsEnv = tlsEnv;
   settings->timeoutSeconds = 10;
   settings->path = "/gateway/api/v1/auth/keys/public/current";
+  settings->fallback = true;
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_JWK_URL_MSG, settings->host, settings->port, settings->path);
   return settings;
-}
-
-static void configureJwt(HttpServer *server, JwkSettings *jwkSettings, int maxAttempts) {
-  fprintf (stdout, "begin %s jwkSettings 0x%p maxAttempts %d\n", __FUNCTION__, jwkSettings, maxAttempts);
-  if (!jwkSettings) {
-    return;
-  }
-
-  for (int i = 0; i < maxAttempts; i++) {
-    Jwk *jwk = obtainJwk(jwkSettings);
-    if (jwk) {
-      fprintf (stdout, "jwk received\n");
-      fflush(stdout);
-      int rc = 0;
-      httpServerInitJwtContextCustom(server, true, checkJwtSignature, jwk, &rc);
-      break;
-    } else {
-      fprintf (stdout, "failed to obtain jwk, repeat again\n");
-      fflush(stdout);
-      sleep(2);
-    }
-  }
 }
 
 static const char defaultConfigPath[] = "../defaults/serverConfig/server.json";
@@ -1686,7 +1665,7 @@ int main(int argc, char **argv){
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
       readWebPluginDefinitions(server, slh, pluginsDir, mvdSettings, apimlStorageSettings);
       JwkSettings *jwkSettings = readJwkSettings(slh, mvdSettings, envSettings, tlsEnv);
-      configureJwt(server, jwkSettings, 1000);
+      configureJwt(server, jwkSettings);
       installCertificateService(server);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);

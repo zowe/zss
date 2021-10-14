@@ -15,9 +15,8 @@
 #include "tls.h"
 
 typedef struct JwkSettings_tag JwkSettings;
-typedef struct Jwk_tag Jwk;
+typedef struct JwkContext_tag JwkContext;
 
-Jwk *obtainJwk(JwkSettings *settings);
 
 struct JwkSettings_tag {
   TlsEnvironment *tlsEnv;
@@ -25,10 +24,14 @@ struct JwkSettings_tag {
   int port;
   int timeoutSeconds;
   char *path;
+  bool fallback;
 };
 
-struct Jwk_tag {
+struct JwkContext_tag {
   x509_public_key_info publicKey;
+  bool isPublicKeyInitialized;
+  JwkSettings *settings;
+  ShortLivedHeap *slh;
 };
 
 #define JWK_STATUS_OK                    0
@@ -42,10 +45,7 @@ struct Jwk_tag {
 #define JWK_STATUS_INVALID_BASE64        8
 #define JWK_STATUS_INVALID_PUBLIC_KEY    9
 
-int checkJwtSignature(JwsAlgorithm algorithm,
-                      int sigLen, const uint8_t signature[],
-                      int msgLen, const uint8_t message[],
-                      void *userData);
+void configureJwt(HttpServer *server, JwkSettings *jwkSettings);
 
 #endif // JWK_H
 
