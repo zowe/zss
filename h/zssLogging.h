@@ -344,6 +344,12 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_HTTPS_INVALID_MSG_TEXT        "Failed to configure https server, check agent https settings\n"
 #define ZSS_LOG_HTTPS_INVALID_MSG             ZSS_LOG_HTTPS_INVALID_MSG_ID" "ZSS_LOG_HTTPS_INVALID_MSG_TEXT
 
+#ifndef ZSS_LOG_JWK_URL_MSG_ID
+#define ZSS_LOG_JWK_URL_MSG_ID          ZSS_LOG_MSG_PRFX"1066I"
+#endif
+#define ZSS_LOG_JWK_URL_MSG_TEXT        "JWK URL is http://%s:%d%s\n"
+#define ZSS_LOG_JWK_URL_MSG             ZSS_LOG_JWK_URL_MSG_ID" "ZSS_LOG_JWK_URL_MSG_TEXT
+
 /* registerProduct */
 
 #ifndef ZSS_LOG_PROD_REG_ENABLED_MSG_ID

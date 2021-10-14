@@ -873,6 +873,60 @@ static ApimlStorageSettings *readApimlStorageSettings(ShortLivedHeap *slh, JsonO
   return settings;
 }
 
+static JwkSettings *readJwkSettings(ShortLivedHeap *slh, JsonObject *serverConfig, JsonObject *envConfig, TlsEnvironment *tlsEnv) {
+  char *host = NULL;
+  int port = 0;
+  bool configured = false;
+
+  do {
+    if (!readGatewaySettings(serverConfig, envConfig, &host, &port)) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Gateway settings not found\n");
+      break;
+    }
+    if (!tlsEnv) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "TLS settings not found\n");
+      break;
+    }
+    configured = true;
+  } while(0);
+
+  if (!configured) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "JWK URL not configured");
+    return NULL;
+  }
+  JwkSettings *settings = (JwkSettings*)SLHAlloc(slh, sizeof(*settings));
+  memset(settings, 0, sizeof(*settings));
+  settings->host = host;
+  settings->port = port;
+  settings->tlsEnv = tlsEnv;
+  settings->timeoutSeconds = 10;
+  settings->path = "/gateway/api/v1/auth/keys/public/current";
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_JWK_URL_MSG, settings->host, settings->port, settings->path);
+  return settings;
+}
+
+static void configureJwt(HttpServer *server, JwkSettings *jwkSettings, int maxAttempts) {
+  fprintf (stdout, "begin %s jwkSettings 0x%p maxAttempts %d\n", __FUNCTION__, jwkSettings, maxAttempts);
+  if (!jwkSettings) {
+    return;
+  }
+
+  for (int i = 0; i < maxAttempts; i++) {
+    Jwk *jwk = obtainJwk(jwkSettings);
+    if (jwk) {
+      fprintf (stdout, "jwk received\n");
+      fflush(stdout);
+      int rc = 0;
+      httpServerInitJwtContextCustom(server, true, checkJwtSignature, jwk, &rc);
+      break;
+    } else {
+      fprintf (stdout, "failed to obtain jwk, repeat again\n");
+      fflush(stdout);
+      sleep(2);
+    }
+  }
+}
+
 static const char defaultConfigPath[] = "../defaults/serverConfig/server.json";
 
 static
@@ -927,7 +981,7 @@ static void initLoggingComponents(void) {
   logConfigureComponent(NULL, LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_APIML_STORAGE, "APIML Storage", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
-  logConfigureComponent(NULL, LOG_COMP_ID_JWK, "JWT Secret", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_DEBUG2);
+  logConfigureComponent(NULL, LOG_COMP_ID_JWK, "JWK", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_DEBUG2);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_START_VER_MSG, productVersion);
 }
 
@@ -1601,6 +1655,8 @@ int main(int argc, char **argv){
       initializePluginIDHashTable(server);
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
       readWebPluginDefinitions(server, slh, pluginsDir, serverConfigFile, apimlStorageSettings);
+      JwkSettings *jwkSettings = readJwkSettings(slh, mvdSettings, envSettings, tlsEnv);
+      configureJwt(server, jwkSettings, 1000);
       installCertificateService(server);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
@@ -1630,24 +1686,6 @@ int main(int argc, char **argv){
       installLoginService(server);
       installLogoutService(server);
       printZISStatus(server);
-      JwkSettings jwtSettings = {0};
-      jwtSettings.port = apimlStorageSettings->port;
-      jwtSettings.host = apimlStorageSettings->host;
-      jwtSettings.path = "/gateway/api/v1/auth/keys/public/current";
-      jwtSettings.timeoutSeconds = 10;
-      jwtSettings.tlsEnv = tlsEnv;
-      for (;;) {
-        Jwk *jwk = obtainJwk(&jwtSettings);
-        if (jwk) {
-          fprintf (stdout, "jwk received\n");
-          int rc = 0;
-          httpServerInitJwtContextCustom(server, true, checkJwtSignature, jwk, &rc);
-          break;
-        } else {
-          fprintf (stdout, "failed to obtain jwk, repeat again\n");
-          sleep(2000);
-        }
-      }
       mainHttpLoop(server);
 
     } else{
