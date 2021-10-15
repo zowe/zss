@@ -43,7 +43,7 @@ static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, 
 static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *statusOut);
 static int obtainJwk(JwkContext *context);
 static void *obtainJwkInBackground(void *data);
-static int checkJwtSignature(JwsAlgorithm algorithm, int sigLen, const uint8_t signature[], int msgLen, const uint8_t message[], void *userData);
+static int checkJwtSignature(JwsAlgorithm algorithm, int sigLen, const uint8_t *signature, int msgLen, const uint8_t *message, void *userData);
 
 void configureJwt(HttpServer *server, JwkSettings *jwkSettings) {
   fprintf (stdout, "begin %s jwkSettings 0x%p\n", __FUNCTION__, jwkSettings);
@@ -281,12 +281,12 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
 }
 
 static int checkJwtSignature(JwsAlgorithm algorithm,
-                      int sigLen, const uint8_t signature[],
-                      int msgLen, const uint8_t message[],
+                      int sigLen, const uint8_t *signature,
+                      int msgLen, const uint8_t *message,
                       void *userData) {
   JwkContext *context = userData;
   if (!context->isPublicKeyInitialized) {
-    return RC_JWT_PUBLIC_KEY_NOT_CONFIGURED;
+    return RC_JWT_NOT_CONFIGURED;
   }
 
   if (algorithm == JWS_ALGORITHM_none) {
