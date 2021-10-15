@@ -16,7 +16,7 @@
 #include "alloc.h"
 #include "json.h"
 
-#define RC_CHECK_VALID_HEX_FAILED 100
+#define RC_CHECK_VALID_HEX_FAILED (char)-1
 
 extern char **environ;
 

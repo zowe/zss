@@ -701,17 +701,22 @@ static void installWebPluginDefintionsService(WebPluginListElt *webPlugins, Http
 #define ENV_LOGLEVELS_PREFIX "ZWED_logLevels_"
 static int getLogLevelsFromEnv(JsonObject *envConfig, const char *identifier) {
   int len = strlen(ENV_LOGLEVELS_PREFIX) + strlen(identifier) + 1;
-  int logLevel = ZOWE_LOG_SEVERE;
+  int logLevel = ZOWE_LOG_NA;
   char envKey[len];
   memset(envKey,'\0',len);
   snprintf(envKey, len, "%s%s", ENV_LOGLEVELS_PREFIX, identifier);
-  logLevel = jsonObjectGetNumber(envConfig, envKey);
+  if(jsonObjectHasKey(envConfig, envKey)) {
+    logLevel = jsonObjectGetNumber(envConfig, envKey);
+    if (logLevel > ZOWE_LOG_DEBUG3 || logLevel < ZOWE_LOG_ALWAYS) {
+      logLevel = ZOWE_LOG_NA;
+    } 
+  }
   return logLevel;
 }
 
 static int checkLoggingVerbosity(JsonObject *serverConfig, JsonObject *envConfig, char *pluginIdentifier) {
   int logLevel = getLogLevelsFromEnv(envConfig, pluginIdentifier);
-  if (!logLevel) {
+  if (logLevel == ZOWE_LOG_NA) {
     JsonObject *logLevels = jsonObjectGetObject(serverConfig, "logLevels");
     if (logLevels != NULL) {
       JsonProperty *property = jsonObjectGetFirstProperty(logLevels);
@@ -725,7 +730,7 @@ static int checkLoggingVerbosity(JsonObject *serverConfig, JsonObject *envConfig
     }
   }
 
-  if (logLevel <= ZOWE_LOG_DEBUG3 || logLevel >= ZOWE_LOG_ALWAYS) {
+  if (logLevel <= ZOWE_LOG_DEBUG3 && logLevel >= ZOWE_LOG_ALWAYS) {
     return logLevel;
   }  
   return ZOWE_LOG_INFO;
@@ -751,22 +756,20 @@ static void checkAndSetDataServiceLoglevel(JsonObject * serverConfig,
                                            char *dataServiceIdentifier, 
                                            uint64 loggingIdentifier) {
   int logLevel = getLogLevelsFromEnv(envConfig, dataServiceIdentifier);
-  if (!logLevel) {
+  if (logLevel == ZOWE_LOG_NA) {
     JsonObject *logLevels = jsonObjectGetObject(serverConfig, "logLevels");
     if (logLevels != NULL) {
       JsonProperty *property = jsonObjectGetFirstProperty(logLevels);
       while (property != NULL) {
         if (!strcmp(jsonPropertyGetKey(property), dataServiceIdentifier)) {
-          logLevel = jsonObjectGetNumber(logLevels, dataServiceIdentifier);
-          if (logLevel <= ZOWE_LOG_DEBUG3 || logLevel >= ZOWE_LOG_ALWAYS) {
-            logSetLevel(NULL, loggingIdentifier, logLevel);
-          }        
+          logLevel = jsonObjectGetNumber(logLevels, dataServiceIdentifier);   
           break;
         }
         property = jsonObjectGetNextProperty(property);
       }
     }
-  } else if (logLevel <= ZOWE_LOG_DEBUG3 || logLevel >= ZOWE_LOG_ALWAYS) {
+  }
+  if (logLevel <= ZOWE_LOG_DEBUG3 && logLevel >= ZOWE_LOG_ALWAYS) {
     logSetLevel(NULL, loggingIdentifier, logLevel);
   }
 }
