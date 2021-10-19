@@ -4,6 +4,10 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `1.26.0`
+
+- Enhancement: Add support for continuations in the ZIS PARMLIB member
+
 ## `1.25.0`
 
 - Enhancement: Add an endpoint for PassTicket generation
