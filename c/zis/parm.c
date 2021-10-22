@@ -189,8 +189,8 @@ static const char *getTrimmedSlice(const char *string, unsigned int length,
     resultLength--;
   }
 
-  for (unsigned int i = length - 1; i >= 0; i--) {
-    if (string[i] != ' ' || resultLength == 0) {
+  for (unsigned int i = length - 1; ; i--) {
+    if (resultLength == 0 || string[i] != ' ') {
       break;
     }
     resultLength--;
