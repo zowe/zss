@@ -101,7 +101,7 @@ static int jwkTaskMain(RLETask *task) {
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to init http context\n");
       break;
     } else {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to get JWK - %s, retry in %d seconds\n",
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_RETRY_MSG,
               jwkGetStrStatus(status), retryIntervalSeconds);
       sleep(retryIntervalSeconds);
     }
