@@ -35,20 +35,46 @@ static int handleVerifyPassword(AuthServiceParmList *parmList,
   int safRC = 0, racfRC = 0, racfRsn = 0;
   int deleteSAFRC = 0, deleteRACFRC = 0, deleteRACFRsn = 0;
   int rc = RC_ZIS_AUTHSRV_OK;
+  Idta *idta = NULL;
+  int options = VERIFY_CREATE;
+
+  if (parmList->options & ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT) {
+    idta = (Idta *) safeMalloc31(sizeof(Idta), "Idta structure");
+    memset(idta, 0, sizeof(Idta));
+    memcpy(idta->id, "IDTA", 4);
+    idta->version = IDTA_VERSION_0001;
+    idta->length = sizeof(Idta);
+    idta->idt_type = IDTA_JWT_IDT_Type;
+    idta->idt_buffer_ptr = parmList->safIdt;
+    idta->idt_buffer_len = sizeof(parmList->safIdt);
+    idta->idt_len = parmList->safIdtLen;
+    idta->idt_prop_in = IDTA_End_User_IDT;
+    options |= VERIFY_GENERATE_IDT;
+  }
 
   CMS_DEBUG(globalArea, "handleVerifyPassword(): username = %s, password = %s\n",
       parmList->userIDNullTerm, "******");
-  safRC = safVerify(VERIFY_CREATE, parmList->userIDNullTerm,
-      parmList->passwordNullTerm, &acee, &racfRC, &racfRsn);
+  safRC = safVerify(options, parmList->userIDNullTerm,
+      parmList->passwordNullTerm, &acee, &racfRC, &racfRsn, idta);
   CMS_DEBUG(globalArea, "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
       "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
+  if (idta != NULL) {
+    CMS_DEBUG(globalArea, "IDTA token: gen_rc = %d, prop_out = %X, prop_in = %X "
+      "token length = %d\n", idta->idt_gen_rc, idta->idt_prop_out, idta->idt_prop_in,
+      idta->idt_len);
+  }
+
   if (safRC != 0) {
     rc = RC_ZIS_AUTHSRV_SAF_ERROR;
     goto acee_deleted;
   }
 
+  if (idta != NULL) {
+    parmList->safIdtLen = idta->idt_len;
+  }
+
   deleteSAFRC = safVerify(VERIFY_DELETE, NULL, NULL, &acee, &deleteRACFRC,
-      &deleteRACFRsn);
+      &deleteRACFRsn, NULL);
   CMS_DEBUG(globalArea, "safVerify(VERIFY_DELETE) safStatus = %d, RACF RC = %d, "
       "RSN = %d, ACEE=0x%p\n", deleteSAFRC, deleteRACFRC, deleteRACFRsn,
       acee);
@@ -59,6 +85,10 @@ acee_deleted:
 
   FILL_SAF_STATUS(&parmList->safStatus, safRC, racfRC, racfRsn);
   CMS_DEBUG(globalArea, "handleVerifyPassword() done\n");
+  if (idta != NULL) {
+    safeFree(idta, sizeof(Idta));
+    idta = NULL;
+  }
   return rc;
 }
 
@@ -120,7 +150,7 @@ static int handleEntityCheck(AuthServiceParmList *parmList,
       " access = %x\n", parmList->userIDNullTerm, parmList->entityNullTerm,
       class.valueNullTerm, parmList->access);
   safRC = safVerify(VERIFY_CREATE | VERIFY_WITHOUT_PASSWORD,
-      parmList->userIDNullTerm, NULL, &acee, &racfRC, &racfRsn);
+      parmList->userIDNullTerm, NULL, &acee, &racfRC, &racfRsn, NULL);
   CMS_DEBUG(globalArea, "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
       "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
   if (safRC != 0) {
@@ -151,7 +181,7 @@ static int handleEntityCheck(AuthServiceParmList *parmList,
   recoveryPop();
 recovery_removed:
 
-  safRC  = safVerify(VERIFY_DELETE, NULL, NULL, &acee, &racfRC, &racfRsn);
+  safRC  = safVerify(VERIFY_DELETE, NULL, NULL, &acee, &racfRC, &racfRsn, NULL);
   CMS_DEBUG(globalArea, "safVerify(VERIFY_DELETE) safStatus = %d, RACF RC = %d, "
       "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
   if (safRC != 0) {
@@ -183,7 +213,7 @@ static int getAccessType(const CrossMemoryServerGlobalArea *globalArea,
   safRC = safVerify(VERIFY_CREATE |
                     VERIFY_WITHOUT_PASSWORD |
                     VERIFY_WITHOUT_LOG,
-                    (char *)idNullTerm, NULL, &acee, &racfRC, &racfRsn);
+                    (char *)idNullTerm, NULL, &acee, &racfRC, &racfRsn, NULL);
 
   CMS_DEBUG2(globalArea, traceLevel,
              "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
@@ -228,7 +258,7 @@ static int getAccessType(const CrossMemoryServerGlobalArea *globalArea,
   }
 
   safRC  = safVerify(VERIFY_DELETE | VERIFY_WITHOUT_LOG, NULL, NULL, &acee,
-                     &racfRC, &racfRsn);
+                     &racfRC, &racfRsn, NULL);
 
   CMS_DEBUG2(globalArea, traceLevel,
              "safVerify(VERIFY_DELETE) safStatus = %d, RACF RC = %d, "

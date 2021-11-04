@@ -27,6 +27,9 @@
 #include "zis/client.h"
 #include "zis/service.h"
 #include "zis/server.h"
+#ifdef __ZOWE_OS_ZOS
+#include "zos.h"
+#endif
 
 CrossMemoryServerName zisGetDefaultServerName() {
   return CMS_DEFAULT_SERVER_NAME;
@@ -131,6 +134,50 @@ static int authRequest(const CrossMemoryServerName *serverName,
       break;
     }
   }
+  return rc;
+}
+
+/*
+ *   safIdt - a buffer for SAF IDT token. The buffer must be ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1 bytes long.
+ */
+int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
+                                const char *userName, const char *password,
+                                const char *safIdt,
+                                ZISAuthServiceStatus *status) {
+  AuthServiceParmList parmList = {0};
+
+  memcpy(&parmList.eyecatcher[0], ZIS_AUTH_SERVICE_PARMLIST_EYECATCHER,
+      sizeof(parmList.eyecatcher));
+  parmList.fc = ZIS_AUTH_SERVICE_PARMLIST_FC_VERIFY_PASSWORD;
+
+  if (strlen(userName) >= sizeof (parmList.userIDNullTerm)) {
+    status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
+    return RC_ZIS_SRVC_SERVICE_FAILED;
+  }
+  strncpy(parmList.userIDNullTerm, userName, sizeof(parmList.userIDNullTerm));
+
+  if (strlen(password) >= sizeof (parmList.passwordNullTerm)) {
+    status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
+    return RC_ZIS_SRVC_SERVICE_FAILED;
+  }
+  strncpy(parmList.passwordNullTerm, password, sizeof(parmList.passwordNullTerm));
+
+  parmList.options |= ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT;
+  parmList.safIdtLen = strlen(safIdt);
+
+  if (strlen(safIdt) >= sizeof(parmList.safIdt)) {
+    status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
+    return RC_ZIS_SRVC_SERVICE_FAILED;
+  }
+  memcpy((void *)parmList.safIdt, (void *)safIdt, strlen(safIdt));
+
+  int rc = authRequest(serverName, &parmList, status);
+
+  if (parmList.safIdtLen > 0) {
+    memset((void *)safIdt, 0, ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1);
+    memcpy((void *)safIdt, (void *)parmList.safIdt, parmList.safIdtLen);
+  }
+
   return rc;
 }
 
