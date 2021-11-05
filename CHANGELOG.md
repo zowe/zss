@@ -4,10 +4,19 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `1.26.0`
+
+- Enhancement: Add support for continuations in the ZIS PARMLIB member
+
 ## `1.25.0`
 
 - Enhancement: Add an endpoint for PassTicket generation
 - Enhancement: Add an endpoint for user info
+- Enhancement: Added method to read and set loglevel of dataservices
+- Bugfix: Unixfile Copy and Rename API doesn't support distinct error status response
+- Bugfix: Dataset contents API returns invalid error status for undefined length dataset update request
+- Bugfix: Unixfile Copy service incorrectly processed files tagged as binary and mixed
+- Bugfix: Unixfile Copy and Rename directory API doesn't support forceOverwrite query
 
 ## `1.24.0`
 
