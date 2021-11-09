@@ -540,13 +540,13 @@ def unixfile_copy(subpath):
         #Get directory/file that to be copied while also checking if it even exists
         for x in range(0, len(subpath)):
             if(subpath[x] not in directory["contents"]):
-                return {"msg": "File not found."}, 404
+                return {"msg": "Directory/File not found."}, 404
             directory = directory["contents"][subpath[x]]
         if(newNames[len(newNames)-1] not in currPath or overwrite):
             currPath[newNames[len(newNames)-1]] = directory
         else:
-            return{"msg": "Directory already exists"}, 403
-        return {"msg": "Successfully copied a directory"}, 200
+            return{"msg": "Directory/File already exists"}, 403
+        return {"msg": "Successfully copied the directory/file"}, 200
 
 if __name__ == '__main__':
     app.run(debug=True)
