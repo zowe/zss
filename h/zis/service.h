@@ -57,14 +57,17 @@ struct ZISServiceAnchor_tag {
   char eyecatcher[8];
 #define ZIS_SERVICE_ANCHOR_EYECATCHER "ZISSVCAN"
   int version;
-#define ZIS_SERVICE_ANCHOR_VERSION 1
+#define ZIS_SERVICE_ANCHOR_VERSION 2
+#define ZIS_SERVICE_ANCHOR_VERSION_SAF_SUPPORT 2
   int key : 8;
   unsigned int subpool : 8;
   unsigned short size;
   int flags;
-#define ZIS_SERVICE_ANCHOR_FLAG_SPACE_SWITCH 0x00000001
+#define ZIS_SERVICE_ANCHOR_FLAG_SPACE_SWITCH  0x00000001
+#define ZIS_SERVICE_ANCHOR_FLAG_SPECIFIC_AUTH 0x00000002
   int state;
 #define ZIS_SERVICE_ANCHOR_STATE_ACTIVE 0x00000001
+#define ZIS_SERVICE_ANCHOR_STATE_DISCARDED 0x00000002
 
   ZISServicePath path;
   unsigned int serviceVersion;
@@ -76,6 +79,9 @@ struct ZISServiceAnchor_tag {
   PAD_LONG(2, ZISServiceServeFunction *serve);
 
   ZISServiceData serviceData;
+  char safClassName[9];
+  char safEntityName[256];
+  char reserved1[7];
 
 };
 
@@ -84,10 +90,11 @@ struct ZISService_tag {
   char eyecatcher[8];
 #define ZIS_SERVICE_EYECATCHER "ZISSRVCE"
   int version;
-#define ZIS_SERVICE_VERSION 1
+#define ZIS_SERVICE_VERSION 2
   int flags;
 #define ZIS_SERVICE_FLAG_NONE           0x00000000
 #define ZIS_SERVICE_FLAG_SPACE_SWITCH   0x00000001
+#define ZIS_SERVICE_FLAG_SPECIFIC_AUTH  0x00000002
 
   PAD_LONG(0, ZISServiceAnchor *anchor);
 
@@ -100,7 +107,9 @@ struct ZISService_tag {
   unsigned int serviceVersion;
 #define ZIS_SERVICE_ANY_VERSION  0xFFFFFFFF
 
-  char reserved[436];
+  char safClassName[8 + 1];  /* room for 8 chars plus null term */
+  char safEntityName[255 + 1];  /* room for 255 chars plus null term */
+  char reserved[171];
 
 };
 
@@ -135,6 +144,19 @@ ZISService zisCreateCurrentPrimaryService(
     unsigned int version
 );
 
+/**
+ * Adds class and entity names to a service.
+ *
+ * @param service The service to be used with the class and entity.
+ * @param className The class name to be used.
+ * @param entityName The entity name to be used.
+ * @return 0 in case of success, -1 if the class or entity name is too long.
+ */
+int zisServiceUseSpecificAuth(ZISService *service,
+                              const char *className,
+                              const char *entityName);
+
+
 struct ZISPlugin_tag;
 
 ZISServiceAnchor *zisCreateServiceAnchor(const struct ZISPlugin_tag *plugin,
@@ -155,7 +177,8 @@ void zisUpdateServiceAnchor(ZISServiceAnchor *anchor,
 #define RC_ZIS_SRVC_BAD_ROUTER_VERSION  13
 #define RC_ZIS_SRVC_SERVICE_NOT_FOUND   14
 #define RC_ZIS_SRVC_BAD_SERVICE_VERSION 15
-#define RC_ZIS_SRVC_SERVICE_INACTIVE    16
+#define RC_ZIS_SRVC_SERVICE_INACTIVE     16
+#define RC_ZIS_SRVC_SPECIFIC_AUTH_FAILED 17
 
 #define ZIS_MAX_GEN_SRVC_RC             32
 

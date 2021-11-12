@@ -9,6 +9,7 @@
 build/tmp*/
 build/build.log
 bin/zssServer
+bin/zssServer64
 
 # workspace content should be updated by program
 .pax/*
