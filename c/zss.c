@@ -63,6 +63,7 @@
 #include "authService.h"
 #include "securityService.h"
 #include "zis/client.h"
+#include "jcsi.h"
 #endif
 
 #include "zssLogging.h"
@@ -459,10 +460,10 @@ static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts,
       if (!strcmp(key, "groups")) {
         int gid = groupIdGet(userKey, &rc, &rsn);
         if (rc == 0) {
-          htPut(ht, POINTER_FROM_INT(gid), (void*)timeoutValue);
+          htPut(ht, POINTER_FROM_INT(gid), POINTER_FROM_INT(timeoutValue));
         }
       } else {
-        htPut(ht, userKey, (void*)timeoutValue);
+        htPut(ht, userKey, POINTER_FROM_INT(timeoutValue));
       }
 
       property = jsonObjectGetNextProperty(property);
@@ -1346,7 +1347,8 @@ static int validateConfigPermissionsInner(const char *path) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
       ZSS_LOG_CANT_STAT_CONFIG_MSG,path,returnCode, reasonCode);
     return 8;
-  } else if (((stat.fileType == BPXSTA_FILETYPE_DIRECTORY) && (stat.flags3 & FORBIDDEN_GROUP_DIR_PERMISSION)) 
+  } 
+  /* else if (((stat.fileType == BPXSTA_FILETYPE_DIRECTORY) && (stat.flags3 & FORBIDDEN_GROUP_DIR_PERMISSION)) 
       || ((stat.fileType != BPXSTA_FILETYPE_DIRECTORY) && (stat.flags3 & FORBIDDEN_GROUP_FILE_PERMISSION))
       || (stat.flags3 & FORBIDDEN_OTHER_PERMISSION)) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
@@ -1355,6 +1357,7 @@ static int validateConfigPermissionsInner(const char *path) {
       ZSS_LOG_ENSURE_PERMISS_MSG);
     return 8;
   }
+  */
   return 0;
 }
 
@@ -1620,8 +1623,8 @@ int main(int argc, char **argv){
   char productOwner[COMMON_PATH_MAX];
   char productName[COMMON_PATH_MAX];
   char *tempString;
-  hashtable *htUsers;
-  hashtable *htGroups;
+  hashtable *htUsers = NULL;
+  hashtable *htGroups = NULL;
   
   if (argc >= 1){
     if (0 == strcmp("default", argv[1])) {
@@ -1745,6 +1748,7 @@ int main(int argc, char **argv){
       installUnixFileChangeModeService(server);
       installUnixFileTableOfContentsService(server); /* This needs to be registered last */
 #ifdef __ZOWE_OS_ZOS
+      loadCsi();
       installVSAMDatasetContentsService(server);
       installDatasetMetadataService(server);
       installDatasetContentsService(server);
@@ -1788,4 +1792,5 @@ out_term_stcbase:
   
   Copyright Contributors to the Zowe Project.
 */
+
 
