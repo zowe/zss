@@ -9,7 +9,15 @@
 build/tmp*/
 build/build.log
 bin/zssServer
+<<<<<<< Updated upstream
 bin/zssServer64
+=======
+build/*.u
+build/*.o
+build/*.s
+*.asm
+*.lst
+>>>>>>> Stashed changes
 
 # workspace content should be updated by program
 .pax/*

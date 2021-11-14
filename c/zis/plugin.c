@@ -119,6 +119,8 @@ ZISPlugin *zisCreatePlugin(ZISPluginName name,
   return plugin;
 }
 
+
+
 void zisDestroyPlugin(ZISPlugin *plugin) {
   safeFree((char *)plugin, plugin->size);
   plugin = NULL;

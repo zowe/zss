@@ -33,6 +33,8 @@ typedef struct ZISContext_tag {
   int cmsFlags;
 } ZISContext;
 
+#define ZIS_SERVER_ANCHOR_FLAG_DYNLINK 0x0001    /* supports dynamic linkage */
+
 typedef struct ZISServerAnchor_tag {
   char eyecatcher[8];
 #define ZIS_SERVER_ANCHOR_EYECATCHER "ZISSRVAN"
@@ -52,6 +54,7 @@ typedef struct ZISServerAnchor_tag {
   char reservred2[24];
 
 } ZISServerAnchor;
+
 
 typedef __packed struct ZISServiceRouterData_tag {
   char eyecatcher[8];

@@ -388,8 +388,10 @@ static int callPluginInit(ZISContext *context, ZISPlugin *plugin,
     if (recoveryRC == RC_RCV_OK) {
 
       if (plugin->init != NULL) {
+	TCB *tcb = getTCB();
         zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
-                "About to init plugin \'%.4s\'\n", plugin->nickname.text);
+                "About to init plugin \'%.4s\' in TCB=0x%p\n", 
+		plugin->nickname.text, tcb);
         int initRC = plugin->init(context, plugin, anchor);
         zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
                 "Plugin init()-ed, rc=%d\n", initRC);
@@ -400,7 +402,6 @@ static int callPluginInit(ZISContext *context, ZISPlugin *plugin,
           status = RC_ZIS_ERROR;
         }
       }
-
     } else {
       zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
               ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in init failed, "
@@ -583,7 +584,9 @@ static int installServices(ZISContext *context, ZISPlugin *plugin,
     }
 
     if (anchor == NULL) {
+
       anchor = zisCreateServiceAnchor(plugin, service);
+
       if (anchor == NULL) {
         zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE,
                 ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG, "service anchor");
@@ -1001,11 +1004,28 @@ static bool isDuplicatePlugin(ZISContext *context,
   return false;
 }
 
+typedef struct ContextAndState_tag {
+  ZISContext *context;
+  bool        lookingForDynamicPlugin;
+} ContextAndState;
+
 static void visitPluginParm(const char *name, const char *value,
                             void *userData) {
 
   if (strstr(name, "ZWES.PLUGIN.") != name) {
     return;
+  }
+  /* This little bit of magic forces ZWES.PLUGIN.DYNBASE to be installed first
+     if it exists in the PARMLIB */
+  ContextAndState *contextAndState = userData;
+  if (contextAndState->lookingForDynamicPlugin){
+    if (strcmp(name,"ZWES.PLUGIN.DYNBASE")){
+      return;
+    }
+  } else{
+    if (!strcmp(name,"ZWES.PLUGIN.DYNBASE")){
+      return;
+    }
   }
   const char *pluginName = name + strlen("ZWES.PLUGIN.");
   zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
@@ -1038,7 +1058,7 @@ static void visitPluginParm(const char *name, const char *value,
     return;
   }
 
-  ZISContext *context = userData;
+  ZISContext *context = contextAndState->context;
 
   if (isDuplicatePlugin(context, plugin)) {
     return;
@@ -1066,8 +1086,16 @@ ZISServerAnchor *createZISServerAnchor() {
   anchor->key = key;
   anchor->subpool = subpool;
   anchor->size = size;
+  
+  /* new feature bit for dynamic linking - Fall 2021 */
+  anchor->flags |= ZIS_SERVER_ANCHOR_FLAG_DYNLINK;
 
   return anchor;
+}
+
+static void updateZISServerAnchor(ZISServerAnchor *anchor){
+  /* new feature bit for dynamic linking - Fall 2021 */
+  anchor->flags |= ZIS_SERVER_ANCHOR_FLAG_DYNLINK;
 }
 
 static void removeZISServerAnchor(ZISServerAnchor **anchor) {
@@ -1092,6 +1120,8 @@ static int initGlobalResources(ZISContext *context) {
       return RC_ZIS_ERROR;
     }
     cmsGA->userServerAnchor = anchor;
+  } else{
+    updateZISServerAnchor(anchor);
   }
   context->zisAnchor = anchor;
 
@@ -1164,9 +1194,16 @@ static void printStopMessage(int status) {
   }
 }
 
+
+
 static void deployPlugins(ZISContext *context) {
   zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG, "Deploy the ZIS plugins\n");
-  zisIterateParms(context->parms, visitPluginParm, context);
+  ContextAndState contextAndState;
+  contextAndState.context = context;
+  contextAndState.lookingForDynamicPlugin = true;
+  zisIterateParms(context->parms, visitPluginParm, &contextAndState);
+  contextAndState.lookingForDynamicPlugin = false;
+  zisIterateParms(context->parms, visitPluginParm, &contextAndState);
 }
 
 static void terminatePlugins(ZISContext *context) {
@@ -1472,6 +1509,25 @@ static int run(STCBase *base, const ZISMainFunctionParms *mainParms) {
   initLoggin();
 
   printStartMessage();
+
+  TCB *tcb = getTCB();
+
+  RLEAnchor *rleAnchor = base->rleAnchor;
+  if (rleAnchor){
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
+	    "ZIS Server Start rleAnchor exists 0x%p in tcb=0x%p\n",rleAnchor,tcb);
+    zowedump(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
+	     (void*)rleAnchor,
+	     sizeof(RLEAnchor));
+    
+  } else{
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
+	    "ZIS Server Start rleAnchor does not exist\n");
+    rleAnchor = makeRLEAnchor();
+    initRLEEnvironment(rleAnchor);
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
+	    "ZIS Server start building rleAnchor\n");
+  }
 
   ZISContext context = makeContext(base);
 
