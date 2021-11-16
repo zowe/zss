@@ -1284,7 +1284,10 @@ static int zisCallServiceInternal(const CrossMemoryServerName *serverName,
     return RC_ZIS_SRVC_CMS_FAILED;
   }
 
-  if (routerRC != RC_ZIS_SRVC_OK) {
+  if (routerRC == RC_ZIS_SRVC_SPECIFIC_AUTH_FAILED){
+    status->serviceRC = routerRC;
+    return RC_ZIS_SRVC_SPECIFIC_AUTH_FAILED;
+  } else if (routerRC != RC_ZIS_SRVC_OK) {
     status->serviceRC = routerRC;
     return RC_ZIS_SRVC_SERVICE_FAILED;
   }
