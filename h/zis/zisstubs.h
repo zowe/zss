@@ -324,5 +324,68 @@
 
 /* zvt, xml, json  ? */
 
+// zss/h/zis/parm.h
+#define ZIS_STUB_ZISMAKPS 1000 /* zisMakeParmSet */
+#define ZIS_STUB_ZISREMPS 1001 /* zisRemoveParmSet */
+#define ZIS_STUB_ZISRDLIB 1002 /* zisReadParmlib */
+#define ZIS_STUB_ZISRDMPR 1003 /* zisReadMainParms */
+#define ZIS_STUB_ZISPUTPV 1004 /* zisPutParmValue */
+#define ZIS_STUB_ZISGETPV 1005 /* zisGetParmValue */
+#define ZIS_STUB_ZISLOADP 1006 /* zisLoadParmsToCMServer */
+#define ZIS_STUB_ZISITERP 1007 /* zisIterateParms */
+
+// zss/h/zis/plugin.h
+#define ZIS_STUB_ZISDESTP 1008 /* zisDestroyPlugin */
+
+// zowe-common-c/h/logging.h
+#define ZIS_STUB_ZOWEDUMP 1009 /* zowedump */
+
+// zowe-common-c/h/nametoken.h
+#define ZIS_STUB_NTPCREF 1010 /* nameTokenCreate */
+#define ZIS_STUB_NTPCRTPF 1011 /* nameTokenCreatePersistent */
+#define ZIS_STUB_NTPDELF 1012 /* nameTokenDelete */
+#define ZIS_STUB_NTPRETF 1013 /* nameTokenRetrieve */
+
+// zowe-common-c/h/crossmemory.h
+#define ZIS_STUB_CMSHEXDM 1014 /* cmsHexDump */
+
+// zss/h/zis/client.h
+#define ZIS_STUB_ZISCUSVC 1015 /* zisCallServiceUnchecked */
+
+// zowe-common-c/h/zos.h
+#define ZIS_STUB_SUPRMODE 1016 /* supervisorMode */
+#define ZIS_STUB_ZOSCLCKD 1017 /* isCallerLocked */
+#define ZIS_STUB_ZOSCSRB 1018 /* isCallerSRB */
+#define ZIS_STUB_GETASCBJ 1019 /* getASCBJobname */ 
+
+// zowe-common-c/h/utils.h
+#define ZIS_STUB_SLHFREE 1020 /* SLHFree */
+
+// zowe-common-c/h/bpxnet.h
+#define ZIS_STUB_SKTWRITE 1021 /* socketWrite */
+#define ZIS_STUB_SKTCLOSE 1022 /* socketClose */
+#define ZIS_STUB_SKTREAD 1023 /* socketRead */
+#define ZIS_STUB_TCPSERV 1024 /* tcpServer */
+#define ZIS_STUB_GETADDBN 1025 /* getAddressByName */
+
+
+// zowe-common-c/h/collections.h
+#define ZIS_STUB_QDEQUEUE 1026 /* qDequeue */
+#define ZIS_STUB_QENQUEUE 1027 /* qEnqueue */
+#define ZIS_STUB_MAKEQUEU 1028 /* makeQueue */
+
+// zowe-common-c/h/cellpool.h
+#define ZIS_STUB_CPFREE 1029 /* cellpoolFree */
+#define ZIS_STUB_CPGET 1030 /* cellpoolGet */
+#define ZIS_STUB_CPDELETE 1031 /* cellpoolDelete */
+#define ZIS_STUB_CPBUILD 1033 /* cellpoolBuild */
+
+// zowe-common-c/h/lpa.h
+#define ZIS_STUB_LPAADD 1034 /* lpaAdd */
+#define ZIS_STUB_LPADEL 1035 /* lpaDelete */
+
+// zowe-common-c/h/crossmemory.h
+#define ZIS_STUB_CMADDPRM 1036 /* cmsAddConfigParm */
+
 #endif
 

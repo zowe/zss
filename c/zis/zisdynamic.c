@@ -90,7 +90,8 @@ static int initZISDynamic(struct ZISContext_tag *context,
       rleAnchor->metalDynamicLinkageVector = stubVector;
     }
 
-        stubVector[ZIS_STUB_SHR64TKN] = (void*)shrmem64GetAddressSpaceToken;
+
+    stubVector[ZIS_STUB_SHR64TKN] = (void*)shrmem64GetAddressSpaceToken;
     stubVector[ZIS_STUB_SHR64ALC] = (void*)shrmem64Alloc;
     stubVector[ZIS_STUB_SHR64AL2] = (void*)shrmem64Alloc2;
     stubVector[ZIS_STUB_SHR64CAL] = (void*)shrmem64CommonAlloc;
@@ -331,6 +332,42 @@ static int initZISDynamic(struct ZISContext_tag *context,
     stubVector[ZIS_STUB_ZISDELGP] = (void*)zisDeleteGroup;
     stubVector[ZIS_STUB_ZISADDCN] = (void*)zisConnectToGroup;
     stubVector[ZIS_STUB_ZISREMCN] = (void*)zisRemoveFromGroup;
+    stubVector[ZIS_STUB_ZISMAKPS] = (void*)zisMakeParmSet;
+    stubVector[ZIS_STUB_ZISREMPS] = (void*)zisRemoveParmSet;
+    stubVector[ZIS_STUB_ZISRDLIB] = (void*)zisReadParmlib;
+    stubVector[ZIS_STUB_ZISRDMPR] = (void*)zisReadMainParms;
+    stubVector[ZIS_STUB_ZISPUTPV] = (void*)zisPutParmValue;
+    stubVector[ZIS_STUB_ZISGETPV] = (void*)zisGetParmValue;
+    stubVector[ZIS_STUB_ZISLOADP] = (void*)zisLoadParmsToCMServer;
+    stubVector[ZIS_STUB_ZISITERP] = (void*)zisIterateParms;
+    stubVector[ZIS_STUB_ZISDESTP] = (void*)zisDestroyPlugin;
+    stubVector[ZIS_STUB_ZOWEDUMP] = (void*)zowedump;
+    stubVector[ZIS_STUB_NTPCREF ] = (void*)nameTokenCreate;
+    stubVector[ZIS_STUB_NTPCRTPF] = (void*)nameTokenCreatePersistent;
+    stubVector[ZIS_STUB_NTPDELF ] = (void*)nameTokenDelete;
+    stubVector[ZIS_STUB_NTPRETF ] = (void*)nameTokenRetrieve;
+    stubVector[ZIS_STUB_CMSHEXDM] = (void*)cmsHexDump;
+    stubVector[ZIS_STUB_ZISCUSVC] = (void*)zisCallServiceUnchecked;
+    stubVector[ZIS_STUB_SUPRMODE] = (void*)supervisorMode;
+    stubVector[ZIS_STUB_ZOSCLCKD] = (void*)isCallerLocked;
+    stubVector[ZIS_STUB_ZOSCSRB ] = (void*)isCallerSRB;
+    stubVector[ZIS_STUB_GETASCBJ] = (void*)getASCBJobname;
+    stubVector[ZIS_STUB_SLHFREE ] = (void*)SLHFree;
+    stubVector[ZIS_STUB_SKTWRITE] = (void*)socketWrite;
+    stubVector[ZIS_STUB_SKTCLOSE] = (void*)socketClose;
+    stubVector[ZIS_STUB_SKTREAD ] = (void*)socketRead;
+    stubVector[ZIS_STUB_TCPSERV ] = (void*)tcpServer;
+    stubVector[ZIS_STUB_GETADDBN] = (void*)getAddressByName;
+    stubVector[ZIS_STUB_QDEQUEUE] = (void*)qDequeue;
+    stubVector[ZIS_STUB_QENQUEUE] = (void*)qEnqueue;
+    stubVector[ZIS_STUB_MAKEQUEU] = (void*)makeQueue;
+    stubVector[ZIS_STUB_CPFREE  ] = (void*)cellpoolFree;
+    stubVector[ZIS_STUB_CPGET   ] = (void*)cellpoolGet;
+    stubVector[ZIS_STUB_CPDELETE] = (void*)cellpoolDelete;
+    stubVector[ZIS_STUB_CPBUILD ] = (void*)cellpoolBuild;
+    stubVector[ZIS_STUB_LPAADD  ] = (void*)lpaAdd;
+    stubVector[ZIS_STUB_LPADEL  ] = (void*)lpaDelete;
+    stubVector[ZIS_STUB_CMADDPRM] = (void*)cmsAddConfigParm;
 
     installStatus = installDynamicLinkageVector(context,stubVector);
     setKey(oldKey);

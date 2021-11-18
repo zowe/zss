@@ -12,7 +12,7 @@ ASFLAGS=(-mgoff -mobject -mflag=nocont --TERM --RENT)
 
 LDFLAGS=(-V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus)
 
-xlc "${CFLAGS[@]}" -DCMS_CLIENT \
+xlc "${CFLAGS[@]}" -DRCVR_CPOOL_STATES \
 $COMMON/c/alloc.c \
 $COMMON/c/cmutils.c \
 $COMMON/c/collections.c \
@@ -33,9 +33,17 @@ $COMMON/c/shrmem64.c \
 $COMMON/c/zosfile.c \
 $COMMON/c/zos.c \
 $COMMON/c/zvt.c \
+$COMMON/c/cellpool.c \
+$COMMON/c/nametoken.c \
+$COMMON/c/lpa.c \
+$COMMON/c/mtlskt.c \
+$COMMON/c/stcbase.c \
+$COMMON/c/isgenq.c \
+$COMMON/c/resmgr.c \
 $ZSS/c/zis/plugin.c \
 $ZSS/c/zis/service.c \
 $ZSS/c/zis/client.c \
+$ZSS/c/zis/parm.c \
 $ZSS/c/zis/zisdynamic.c
 
 as "${ASFLAGS[@]}" -aegimrsx=alloc.asm alloc.s
@@ -57,15 +65,23 @@ as "${ASFLAGS[@]}" -aegimrsx=pause-element.asm pause-element.s
 as "${ASFLAGS[@]}" -aegimrsx=shrmem64.asm shrmem64.s
 as "${ASFLAGS[@]}" -aegimrsx=xlate.asm xlate.s
 as "${ASFLAGS[@]}" -aegimrsx=zvt.asm zvt.s
+as "${ASFLAGS[@]}" -aegimrsx=cellpool.asm cellpool.s
+as "${ASFLAGS[@]}" -aegimrsx=nametoken.asm nametoken.s
+as "${ASFLAGS[@]}" -aegimrsx=lpa.asm lpa.s
+as "${ASFLAGS[@]}" -aegimrsx=mtlskt.asm mtlskt.s
+as "${ASFLAGS[@]}" -aegimrsx=stcbase.asm stcbase.s
+as "${ASFLAGS[@]}" -aegimrsx=isgenq.asm isgenq.s
+as "${ASFLAGS[@]}" -aegimrsx=resmgr.asm resmgr.s
 as "${ASFLAGS[@]}" -aegimrsx=plugin.asm plugin.s
 as "${ASFLAGS[@]}" -aegimrsx=service.asm service.s
 as "${ASFLAGS[@]}" -aegimrsx=client.asm client.s
+as "${ASFLAGS[@]}" -aegimrsx=parm.asm parm.s
 as "${ASFLAGS[@]}" -aegimrsx=zisdynamic.asm zisdynamic.s
 
 export _LD_SYSLIB="//'SYS1.CSSLIB'://'CEE.SCEELKEX'://'CEE.SCEELKED'://'CEE.SCEERUN'://'CEE.SCEERUN2'://'CSF.SCSFMOD0'"
 
 ld "${LDFLAGS[@]}" -e getPluginDescriptor \
--o "//'$USER.DEV.LOADLIB(DYNAMIC1)'" \
+-o "//'$USER.DEV.OMDS.TEST.LOADLIB(DYNAMIC1)'" \
 alloc.o \
 cmutils.o \
 collections.o \
@@ -85,8 +101,16 @@ xlate.o \
 zos.o \
 zosfile.o \
 zvt.o \
+cellpool.o \
+nametoken.o \
+lpa.o \
+mtlskt.o \
+stcbase.o \
+isgenq.o \
+resmgr.o \
 plugin.o \
 service.o \
 client.o \
+parm.o \
 zisdynamic.o \
 > DYNAMIC1.link
