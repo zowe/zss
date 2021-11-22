@@ -521,6 +521,7 @@ def unixfile_rename(subpath):
 
 @app.route('/unixfile/copy/<path:subpath>', methods=['POST'])
 def unixfile_copy(subpath):
+    #Fix contents problemo
     if request.method == 'POST':
         directory = global_directory
         overwrite = request.args.get('forceOverwrite')
@@ -534,8 +535,8 @@ def unixfile_copy(subpath):
         #Get to one above the path of the destination the copy goes to
         for x in range(0, len(newNames)-1):
             if(newNames[x] not in currPath):
-                currPath[newNames[x]] = {}
-            currPath = currPath[newNames[x]]
+                currPath[newNames[x]] = {"contents": {}}
+            currPath = currPath[newNames[x]]["contents"]
         subpath = subpath.split("/")
         #Get directory/file that to be copied while also checking if it even exists
         for x in range(0, len(subpath)):
