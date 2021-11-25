@@ -1102,8 +1102,8 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
     address = "127.0.0.1";
   }
 
-  const char *useTlsParam = getenv("ZOWE_ZSS_SERVER_TLS");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Environment variable ZOWE_ZSS_SERVER_TLS is %s\n",
+  const char *useTlsParam = getenv("ZWES_SERVER_TLS");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Environment variable ZWES_SERVER_TLS is %s\n",
           useTlsParam ? useTlsParam : "not set");
 
   bool forceHttp = useTlsParam && (0 == strcmp(useTlsParam, "false"));
