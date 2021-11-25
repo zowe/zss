@@ -524,14 +524,16 @@ def unixfile_copy(subpath):
     #Fix contents problemo
     if request.method == 'POST':
         directory = global_directory
+        newName = request.args.get('newName')
+        if(newName is None or newName is ""):
+            return {"msg": "newName query parameter is missing."}, 400
+        newNames = newName.split("/")
+        currPath = directory["contents"]
         overwrite = request.args.get('forceOverwrite')
         if(overwrite is None or overwrite.lower() == "false"):
             overwrite = False
         else:
             overwrite = True
-        newName = request.args.get('newName')
-        newNames = newName.split("/")
-        currPath = directory["contents"]
         #Get to one above the path of the destination the copy goes to
         for x in range(0, len(newNames)-1):
             if(newNames[x] not in currPath):
