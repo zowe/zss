@@ -336,7 +336,10 @@ static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpRes
   RbacAuthorizationData *rbacData = userData;
 
   char method[16];
-  snprintf(method, sizeof(method), "%s", request->method);
+  if (snprintf(method, sizeof(method), "%s", request->method) >= sizeof(method)) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "HTTP method too long\n");
+    return FALSE;
+  };
   destructivelyNativize(method);
 
   char profileName[ZOWE_PROFILE_NAME_LEN+1] = {0};
@@ -367,7 +370,7 @@ static bool isRbacEnabled(JsonObject *mvdSettings, JsonObject *envSettings) {
   return rbacParm;
 }
 
-static int getZoweInstanceId() {
+static int getZoweInstanceId(void) {
   char *instance = getenv("ZOWE_INSTANCE");
   if (!instance) {
     return 0;
@@ -375,16 +378,22 @@ static int getZoweInstanceId() {
   return atoi(instance);
 }
 
-/* Future custom ZSS authorization handlers go here */
-static void registerAuthorizationHandlers(HttpServer *server, bool rbacEnabled) {
+/* Registers Authorization handlers, returns true on success, false on failure */
+static bool registerAuthorizationHandlers(HttpServer *server, bool rbacEnabled) {
   if (!rbacEnabled) {
-    return;
+    return true;
   }
   RbacAuthorizationData *rbacData = (RbacAuthorizationData*) safeMalloc(sizeof(*rbacData), "Rbac Authorization Data");
-  if (rbacData) {
-    rbacData->instanceId = getZoweInstanceId();
-    registerHttpAuthorizationHandler(server, SERVICE_AUTHORIZATION_TYPE_DEFAULT, rbacAuthorization, rbacData);
+  if (!rbacData) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "failed to allocate memory for RBAC Authorization data\n");
+    return false;
   }
+  rbacData->instanceId = getZoweInstanceId();
+  if (registerHttpAuthorizationHandler(server, SERVICE_AUTHORIZATION_TYPE_DEFAULT, rbacAuthorization, rbacData) == -1) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "failed to register RBAC authorization handler\n");
+    return false;
+  };
+  return true;
 }
 
 static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings,
@@ -1720,7 +1729,11 @@ int main(int argc, char **argv){
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
       bool rbacEnabled = isRbacEnabled(mvdSettings, envSettings);
-      registerAuthorizationHandlers(server, rbacEnabled);
+      if (!registerAuthorizationHandlers(server, rbacEnabled)) {
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_AUTH_HANDLER_REG_MSG);
+        zssStatus = ZSS_STATUS_ERROR;
+        goto out_term_stcbase;  
+      }
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
       readWebPluginDefinitions(server, slh, pluginsDir, mvdSettings, envSettings, apimlStorageSettings);
       installCertificateService(server);

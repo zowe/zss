@@ -187,7 +187,7 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
   int rc = 0, rsn = 0, safStatus = 0;
   ZISAuthServiceStatus reqStatus = {0};
   CrossMemoryServerName *privilegedServerName;
-  const char *userName = req->username, *class = SAF_CLASS;
+  const char *userName = req->username, *class = ZOWE_SAF_CLASS;
   rc = extractQuery(req->parsedFile, &entity, &accessStr);
   if (rc != 0) {
     respondWithError(res, HTTP_STATUS_BAD_REQUEST, "Broken auth query");
@@ -211,7 +211,7 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
 int verifyAccessToSafProfile(HttpServer *server, const char *userName, const char *entity, const int access) {
   CrossMemoryServerName *privilegedServerName = getConfiguredProperty(server, HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   ZISAuthServiceStatus reqStatus = {0};
-  const char *class = SAF_CLASS;
+  const char *class = ZOWE_SAF_CLASS;
 
   int rc = zisCheckEntity(privilegedServerName, userName, class, entity, access, &reqStatus);
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
@@ -221,15 +221,16 @@ int verifyAccessToSafProfile(HttpServer *server, const char *userName, const cha
 }
 
 int getProfileNameFromRequest(char *profileName, const int profileNameBufSize, StringList *parsedFile, const char *method, int instanceID) {
-  char type[STRING_BUFFER_SIZE]; // core || config || service
-  char productCode[STRING_BUFFER_SIZE];
-  char rootServiceName[STRING_BUFFER_SIZE];
+  char type[STRING_BUFFER_SIZE] = {0}; // core || config || service
+  char productCode[STRING_BUFFER_SIZE] = {0};
+  char rootServiceName[STRING_BUFFER_SIZE] = {0};
   char subUrl[SAF_SUB_URL_SIZE][STRING_BUFFER_SIZE] = {0};
-  char scope[STRING_BUFFER_SIZE];
-  char pluginID[STRING_BUFFER_SIZE]; 
-  char serviceName[STRING_BUFFER_SIZE];
-  char urlSegment[STRING_BUFFER_SIZE];
+  char scope[STRING_BUFFER_SIZE] = {0};
+  char pluginID[STRING_BUFFER_SIZE] = {0}; 
+  char serviceName[STRING_BUFFER_SIZE] = {0};
+  char urlSegment[STRING_BUFFER_SIZE] = {0};
   int subUrlIndex = 0;
+  bool isRootServiceNameInited = false;
   
   snprintf(urlSegment, sizeof(urlSegment), "%s", stringListPrint(parsedFile, 1, 1, "/", 0));
   StringListElt *pathSegment = firstStringListElt(parsedFile);
@@ -245,9 +246,9 @@ int getProfileNameFromRequest(char *profileName, const int profileNameBufSize, S
     while (pathSegment != NULL) {
       snprintf(urlSegment, sizeof(urlSegment), "%s", pathSegment->string);
       strupcase(urlSegment);
-      if (rootServiceName == NULL)
-      {
+      if (!isRootServiceNameInited) {
         snprintf(rootServiceName, sizeof(rootServiceName), urlSegment);
+        isRootServiceNameInited = true;
       } else { //If URL subsections > SAF_SUB_URL_SIZE, we trim them from profile name (by not appending them)
         if (subUrlIndex < SAF_SUB_URL_SIZE) {
           snprintf(subUrl[subUrlIndex], sizeof(subUrl), urlSegment);

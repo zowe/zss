@@ -26,7 +26,7 @@
 #include "httpserver.h"
 #include "dataservice.h"
 
-#define SAF_CLASS "ZOWE"
+#define ZOWE_SAF_CLASS "ZOWE"
 #define ZOWE_PROFILE_NAME_LEN 246
 
 int installAuthCheckService(HttpServer *server);
