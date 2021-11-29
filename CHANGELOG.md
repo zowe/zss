@@ -10,6 +10,7 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## `1.25.0`
 
+- Enhancement: Added RBAC capability via SAF checks
 - Enhancement: Add an endpoint for PassTicket generation
 - Enhancement: Add an endpoint for user info
 - Enhancement: Added method to read and set loglevel of dataservices
@@ -23,15 +24,12 @@ All notable changes to the ZSS package will be documented in this file.
 - Bugfix: Fix `zis-plugin-install.sh` script to properly exit on error with extended-install
 - Bugfix: When builtin TLS was enabled, a small leak occurred when closing sockets.
 
-
 ## `1.23.0`
 
 - Bugfix: `relativeTo` parsing may have failed depending upon path length and contents, leading to skipped plugin loading.
 - Enhancement: Disable impersonation for OMVS Service.
 
 ## `1.22.0`
-
-### New features and enhancements
 
 - Bugfix: Dataset contents API doesn't skip empty records while reading a dataset 
 - Enhancement: Plugins can push state out to the Caching Service for high availability storage via a storage API, available to dataservices as `remoteStorage`

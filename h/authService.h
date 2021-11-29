@@ -26,8 +26,36 @@
 #include "httpserver.h"
 #include "dataservice.h"
 
+#define ZOWE_SAF_CLASS "ZOWE"
+#define ZOWE_PROFILE_NAME_LEN 246
+
 int installAuthCheckService(HttpServer *server);
 void installZosPasswordService(HttpServer *server);
+
+/**
+ * @brief The function uses makeProfileName function to generate profile name for SAF query
+ * @param profileName Generated profile name goes here
+ * @param profileNameBufSize Size of profileName buffer including terminating '\0'
+ * @param parsedFile Refers to the StringList object which contains URL stripped of args
+ * @param instanceID Refers to instanceID for query. If none specified, or negative, then 0
+ *
+ * @return Return non-zero if error
+ */
+int getProfileNameFromRequest(char *profileName, int profileNameBufSize, StringList *parsedFile, const char *method, int instanceID);
+
+/**
+ * @brief The function verifies access to a SAF profile.
+ * @param server HTTP Server
+ * @param userName Username to use in ZIS check
+ * @param class Class to use in ZIS check i.e. "ZOWE"
+ * @param entity Describes the SAF query itself i.e. "ZLUX.0.COR.GET.SERVER.AGENT.CONFIG"
+ * @param access Describes the access type i.e. "READ"
+ * @param envSettings JSON object that holds environment variables, if any
+ *
+ * @return Return non-zero if failed
+ */
+int verifyAccessToSafProfile(HttpServer *server, const char *userName, const char *entity, int access);
+
 
 #endif
 

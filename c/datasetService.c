@@ -188,6 +188,7 @@ void installDatasetContentsService(HttpServer *server) {
 
   HttpService *httpService = makeGeneratedService("datasetContents", "/datasetContents/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authorizationType = SERVICE_AUTHORIZATION_TYPE_NONE;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveDatasetContents;
@@ -201,6 +202,7 @@ void installVSAMDatasetContentsService(HttpServer *server) {
 
   HttpService *httpService = makeGeneratedService("VSAMdatasetContents", "/VSAMdatasetContents/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authorizationType = SERVICE_AUTHORIZATION_TYPE_NONE;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveVSAMDatasetContents;
@@ -219,6 +221,7 @@ void installDatasetMetadataService(HttpServer *server) {
 
   HttpService *httpService = makeGeneratedService("datasetMetadata", "/datasetMetadata/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authorizationType = SERVICE_AUTHORIZATION_TYPE_NONE;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveDatasetMetadata;

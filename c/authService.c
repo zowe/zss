@@ -35,8 +35,9 @@
 #include "httpserver.h"
 #include "zssLogging.h"
 
-#define SAF_CLASS "ZOWE"
-#define JSON_ERROR_BUFFER_SIZE 1024
+#define JSON_ERROR_BUFFER_SIZE                  1024
+#define STRING_BUFFER_SIZE                      1024
+#define SAF_SUB_URL_SIZE                        32
 
 #define SAF_PASSWORD_RESET_RC_OK                0
 #define SAF_PASSWORD_RESET_RC_WRONG_PASSWORD    111
@@ -45,7 +46,10 @@
 #define SAF_PASSWORD_RESET_RC_NO_NEW_PASSSWORD  168
 #define SAF_PASSWORD_RESET_RC_WRONG_FORMAT      169
 
-#define RESPONSE_MESSAGE_LENGTH             100
+#define RESPONSE_MESSAGE_LENGTH                 100
+
+#define SAF_PLUGIN_ID                           "ORG.ZOWE.CONFIGJS"
+#define SAF_SERVICE_NAME                        "DATA"
 
 /*
  * A handler performing the SAF_AUTH check: checks if the user has the
@@ -66,6 +70,26 @@
 
 static int serveAuthCheck(HttpService *service, HttpResponse *response);
 
+static int makeProfileName(
+  char *profileName,
+  int profileNameBufSize,
+  const char *type,
+  const char *productCode, 
+  int instanceID, 
+  const char *pluginID, 
+  const char *rootServiceName, 
+  const char *serviceName,
+  const char *method,
+  const char *scope,
+  char subUrl[SAF_SUB_URL_SIZE][STRING_BUFFER_SIZE]);
+  
+static void setProfileNameAttribs(
+  char *pluginID,
+  char *serviceName,
+  char *type,
+  char *scope,
+  char subUrl[SAF_SUB_URL_SIZE][STRING_BUFFER_SIZE]);
+
 int installAuthCheckService(HttpServer *server) {
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "begin %s\n",
 //  __FUNCTION__);
@@ -74,6 +98,7 @@ int installAuthCheckService(HttpServer *server) {
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = &serveAuthCheck;
   httpService->runInSubtask = FALSE;
+  httpService->authorizationType = SERVICE_AUTHORIZATION_TYPE_NONE;
   registerHttpService(server, httpService);
 //  zowelog(NULL, 0, ZOWE_LOG_DEBUG2, "end %s\n",
 //  __FUNCTION__);
@@ -162,7 +187,7 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
   int rc = 0, rsn = 0, safStatus = 0;
   ZISAuthServiceStatus reqStatus = {0};
   CrossMemoryServerName *privilegedServerName;
-  const char *userName = req->username, *class = SAF_CLASS;
+  const char *userName = req->username, *class = ZOWE_SAF_CLASS;
   rc = extractQuery(req->parsedFile, &entity, &accessStr);
   if (rc != 0) {
     respondWithError(res, HTTP_STATUS_BAD_REQUEST, "Broken auth query");
@@ -173,13 +198,215 @@ static int serveAuthCheck(HttpService *service, HttpResponse *res) {
     respondWithError(res, HTTP_STATUS_BAD_REQUEST, "Unexpected access level");
     return 0;
   }
-  /* printf("query: user %s, class %s, entity %s, access %d\n", userName, class,
-      entity, access); */
+
   privilegedServerName = getConfiguredProperty(service->server,
       HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
   rc = zisCheckEntity(privilegedServerName, userName, class, entity, access,
       &reqStatus);
+
   respond(res, rc, &reqStatus);
+  return 0;
+}
+
+int verifyAccessToSafProfile(HttpServer *server, const char *userName, const char *entity, const int access) {
+  CrossMemoryServerName *privilegedServerName = getConfiguredProperty(server, HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
+  ZISAuthServiceStatus reqStatus = {0};
+  const char *class = ZOWE_SAF_CLASS;
+
+  int rc = zisCheckEntity(privilegedServerName, userName, class, entity, access, &reqStatus);
+  zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
+          "verifyAccessToSafProfile entity '%s' class '%s' access '%d' , rc: %d\n", entity, class, access, rc);
+
+  return (rc != RC_ZIS_SRVC_OK) ? -1 : 0;
+}
+
+int getProfileNameFromRequest(char *profileName, const int profileNameBufSize, StringList *parsedFile, const char *method, int instanceID) {
+  char type[STRING_BUFFER_SIZE] = {0}; // core || config || service
+  char productCode[STRING_BUFFER_SIZE] = {0};
+  char rootServiceName[STRING_BUFFER_SIZE] = {0};
+  char subUrl[SAF_SUB_URL_SIZE][STRING_BUFFER_SIZE] = {0};
+  char scope[STRING_BUFFER_SIZE] = {0};
+  char pluginID[STRING_BUFFER_SIZE] = {0}; 
+  char serviceName[STRING_BUFFER_SIZE] = {0};
+  char urlSegment[STRING_BUFFER_SIZE] = {0};
+  int subUrlIndex = 0;
+  bool isRootServiceNameInited = false;
+  
+  snprintf(urlSegment, sizeof(urlSegment), "%s", stringListPrint(parsedFile, 1, 1, "/", 0));
+  StringListElt *pathSegment = firstStringListElt(parsedFile);
+
+  strupcase(urlSegment);
+  if (instanceID < 0) { // Set instanceID
+    instanceID = 0;
+  }
+  if (strcmp(urlSegment, "PLUGINS") != 0) {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
+           "parsedFile urlSegment check didn't match.\n");
+    subUrlIndex = -1;
+    while (pathSegment != NULL) {
+      snprintf(urlSegment, sizeof(urlSegment), "%s", pathSegment->string);
+      strupcase(urlSegment);
+      if (!isRootServiceNameInited) {
+        snprintf(rootServiceName, sizeof(rootServiceName), urlSegment);
+        isRootServiceNameInited = true;
+      } else { //If URL subsections > SAF_SUB_URL_SIZE, we trim them from profile name (by not appending them)
+        if (subUrlIndex < SAF_SUB_URL_SIZE) {
+          snprintf(subUrl[subUrlIndex], sizeof(subUrl), urlSegment);
+        }
+      }
+      subUrlIndex++;
+      pathSegment = pathSegment->next;
+    }
+    snprintf(productCode, sizeof(productCode), "ZLUX");
+    snprintf(type, sizeof(type), "core");
+  } else {
+    subUrlIndex = 0;
+    
+    while (pathSegment != NULL) {
+      snprintf(urlSegment, sizeof(urlSegment), "%s", pathSegment->string);
+      strupcase(urlSegment);
+      switch(subUrlIndex) {
+        case 0:
+          snprintf(productCode, sizeof(productCode), urlSegment);
+          break;
+        case 1:
+          break;
+        case 2:
+          snprintf(pluginID, sizeof(pluginID), urlSegment);
+          break;
+        case 3:
+          break;
+        case 4:
+          snprintf(serviceName, sizeof(serviceName), urlSegment);
+          break;
+        case 5:
+          break;
+        default: {
+            int adjustedSubUrlIndex = subUrlIndex - 6;  // subtract 6 from maximum index to begin init subUrl array at 0
+            if (adjustedSubUrlIndex < SAF_SUB_URL_SIZE) {
+              snprintf(subUrl[adjustedSubUrlIndex], sizeof(subUrl), urlSegment);
+            }
+          }
+      }
+      subUrlIndex++;
+      pathSegment = pathSegment->next;
+    }
+    
+    setProfileNameAttribs(pluginID, serviceName, type, scope, subUrl);
+    int pluginIDLen = strlen(pluginID);
+    for (int index = 0; index < pluginIDLen; index++) {
+  		if (pluginID[index] == '.') {
+        pluginID[index] = '_';
+      }
+    }
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
+           "parsedFile urlSegment check OK.\n");
+  }
+  return makeProfileName(profileName, profileNameBufSize,
+    type,
+    productCode, 
+    instanceID, 
+    pluginID, 
+    rootServiceName,
+    serviceName,
+    method,
+    scope,
+    subUrl);
+}
+
+static void setProfileNameAttribs(
+  char *pluginID,
+  const char *serviceName,
+  char *type,
+  char *scope,
+  char subUrl[SAF_SUB_URL_SIZE][STRING_BUFFER_SIZE]) {
+  if ((strcmp(pluginID, SAF_PLUGIN_ID) == 0) && (strcmp(serviceName, SAF_SERVICE_NAME) == 0))
+  {
+    snprintf(type, STRING_BUFFER_SIZE, "config");
+    snprintf(pluginID, STRING_BUFFER_SIZE, subUrl[0]);
+    snprintf(scope, STRING_BUFFER_SIZE, subUrl[1]);
+    
+  } else {
+    snprintf(type, STRING_BUFFER_SIZE, "service");
+  }
+}
+
+static int makeProfileName(
+  char *profileName,
+  const int profileNameBufSize,
+  const char *type,
+  const char *productCode, 
+  int instanceID, 
+  const char *pluginID, 
+  const char *rootServiceName, 
+  const char *serviceName,
+  const char *method,
+  const char *scope,
+  char subUrl[SAF_SUB_URL_SIZE][STRING_BUFFER_SIZE]) {
+  if (instanceID == -1) {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+           "Broken SAF query. Missing instance ID.\n");
+    return -1;
+  }
+  if (method == NULL) {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+           "Broken SAF query. Missing method.\n");
+    return -1;
+  }
+  int pos = 0;
+  if (strcmp(type, "service") == 0) {
+    if (pluginID == NULL) {
+      zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+       "Broken SAF query. Missing plugin ID.\n");
+      return -1;
+    }
+    if (serviceName == NULL) {
+      zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+       "Broken SAF query. Missing service name.\n");
+      return -1;
+    }
+    pos = snprintf(profileName, profileNameBufSize, "%s.%d.SVC.%s.%s.%s", productCode, instanceID, pluginID, serviceName, method);
+  } else if (strcmp(type, "config") == 0) {
+    if (pluginID == NULL) {
+      zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+       "Broken SAF query. Missing plugin ID.\n");
+      return -1;
+    }
+    if (scope == NULL) {
+      zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+       "Broken SAF query. Missing scope.\n");
+      return -1;
+    }
+    pos = snprintf(profileName, profileNameBufSize, "%s.%d.CFG.%s.%s.%s", productCode, instanceID, pluginID, method, scope); 
+  } else if (strcmp(type, "core") == 0) {
+    if (rootServiceName == NULL) {
+      zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+       "Broken SAF query. Missing root service name.\n");
+      return -1;
+    }
+    pos = snprintf(profileName, profileNameBufSize, "%s.%d.COR.%s.%s", productCode, instanceID, method, rootServiceName); 
+  } else if (pos < 0) {
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING,
+     "Internal string encoding error.\n");
+    return -1;
+  }
+  // Child endpoints housed via subUrl
+  int index = 0;
+  while (index < SAF_SUB_URL_SIZE && strcmp(subUrl[index], "") != 0) {
+    if (pos >= profileNameBufSize) {
+      break;
+    }
+    pos += snprintf(profileName + pos, profileNameBufSize - pos, ".%s", subUrl[index]);
+    index++;
+  }
+  if (pos >= profileNameBufSize) {
+    char errMsg[256];
+    snprintf(errMsg, sizeof(errMsg), "Generated SAF query longer than %d\n", profileNameBufSize - 1);
+    zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_WARNING, errMsg);
+    return -1;
+  }
+  zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2,
+           "Finished generating profileName: %s\n", profileName);
   return 0;
 }
 

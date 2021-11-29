@@ -100,9 +100,11 @@
 char productVersion[40];
 
 static JsonObject *MVD_SETTINGS = NULL;
+static JsonObject *ENV_SETTINGS = NULL;
 static int traceLevel = 0;
 
 #define JSON_ERROR_BUFFER_SIZE 1024
+#define STRING_BUFFER_SIZE 1024
 
 #define DEFAULT_TLS_CIPHERS               \
   TLS_DHE_RSA_WITH_AES_128_GCM_SHA256     \
@@ -320,10 +322,85 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
 }
 #endif /* __ZOWE_OS_ZOS */
 
+typedef struct RbacAuthorizationData_t {
+  int instanceId;
+} RbacAuthorizationData;
+
+static int rbacAuthorization(HttpService *service, HttpRequest *request, HttpResponse *response, void *userData) {
+  if (request->username == NULL) {
+    // username is required to perform RBAC check
+    // would a check for (service->authType != SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN) be better?
+    return TRUE;
+  }
+
+  RbacAuthorizationData *rbacData = userData;
+
+  char method[16];
+  if (snprintf(method, sizeof(method), "%s", request->method) >= sizeof(method)) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "HTTP method too long\n");
+    return FALSE;
+  };
+  destructivelyNativize(method);
+
+  char profileName[ZOWE_PROFILE_NAME_LEN+1] = {0};
+  int rc = getProfileNameFromRequest(profileName, sizeof(profileName), request->parsedFile, method, rbacData->instanceId);
+  if (rc != 0) {
+    return FALSE;
+  }
+
+  rc = verifyAccessToSafProfile(service->server, request->username, profileName, SAF_AUTH_ATTR_READ);
+  if (rc != 0) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+static bool isRbacEnabled(JsonObject *mvdSettings, JsonObject *envSettings) {
+  int rbacParm = FALSE;
+  Json *rbacObj = jsonObjectGetPropertyValue(envSettings, "ZWED_dataserviceAuthentication_rbac");
+  if (rbacObj == NULL) {
+    JsonObject *dataserviceAuth = jsonObjectGetObject(mvdSettings, "dataserviceAuthentication");
+    if (dataserviceAuth) {
+      rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
+    }
+  } else {
+    rbacParm = jsonAsBoolean(rbacObj);
+  }
+  return rbacParm;
+}
+
+static int getZoweInstanceId(void) {
+  char *instance = getenv("ZOWE_INSTANCE");
+  if (!instance) {
+    return 0;
+  }
+  return atoi(instance);
+}
+
+/* Registers Authorization handlers, returns true on success, false on failure */
+static bool registerAuthorizationHandlers(HttpServer *server, bool rbacEnabled) {
+  if (!rbacEnabled) {
+    return true;
+  }
+  RbacAuthorizationData *rbacData = (RbacAuthorizationData*) safeMalloc(sizeof(*rbacData), "Rbac Authorization Data");
+  if (!rbacData) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "failed to allocate memory for RBAC Authorization data\n");
+    return false;
+  }
+  rbacData->instanceId = getZoweInstanceId();
+  if (registerHttpAuthorizationHandler(server, SERVICE_AUTHORIZATION_TYPE_DEFAULT, rbacAuthorization, rbacData) == -1) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "failed to register RBAC authorization handler\n");
+    return false;
+  };
+  return true;
+}
+
 static void loadWebServerConfig(HttpServer *server, JsonObject *mvdSettings,
                                 JsonObject *envSettings, hashtable *htUsers,
                                 hashtable *htGroups, int defaultSessionTimeout){
   MVD_SETTINGS = mvdSettings;
+  ENV_SETTINGS = envSettings;
   /* Disabled because this server is not being used by end users, but called by other servers
    * HttpService *mainService = makeGeneratedService("main", "/");
    * mainService->serviceFunction = serveMainPage;
@@ -673,6 +750,7 @@ static void installLoginService(HttpServer *server) {
 
   HttpService *httpService = makeGeneratedService("com.rs.mvd.login", "/login/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->authorizationType = SERVICE_AUTHORIZATION_TYPE_NONE;
   httpService->serviceFunction = serveLoginWithSessionToken;
   httpService->authExtractionFunction = extractAuthorizationFromJson;
   registerHttpService(server, httpService);
@@ -1650,6 +1728,12 @@ int main(int argc, char **argv){
       ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettings(slh, mvdSettings, envSettings, tlsEnv);
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
+      bool rbacEnabled = isRbacEnabled(mvdSettings, envSettings);
+      if (!registerAuthorizationHandlers(server, rbacEnabled)) {
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_AUTH_HANDLER_REG_MSG);
+        zssStatus = ZSS_STATUS_ERROR;
+        goto out_term_stcbase;  
+      }
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
       readWebPluginDefinitions(server, slh, pluginsDir, mvdSettings, envSettings, apimlStorageSettings);
       installCertificateService(server);
@@ -1673,7 +1757,7 @@ int main(int argc, char **argv){
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);
-      installServerStatusService(server, MVD_SETTINGS, productVersion);
+      installServerStatusService(server, MVD_SETTINGS, rbacEnabled, productVer);
       installZosPasswordService(server);
       installRASService(server);
       installUserInfoService(server);
