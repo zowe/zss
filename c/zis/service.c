@@ -55,6 +55,29 @@ ZISService zisCreateSpaceSwitchService(
 
 }
 
+/*
+ * Adds class and entity names to a service.
+ */
+int zisServiceUseSpecificAuth(ZISService *service,
+                              const char *className,
+                              const char *entityName) {
+
+  int cLen = strlen(className);
+  int eLen = strlen(entityName);
+  if (cLen + 1 > sizeof(service->safClassName)) {
+    return -1;
+  }
+  if (eLen + 1 > sizeof(service->safEntityName)) {
+    return -1;
+  }
+
+  strcpy(service->safClassName, className);
+  strcpy(service->safEntityName, entityName);
+  service->flags |= ZIS_SERVICE_FLAG_SPECIFIC_AUTH;
+
+  return 0;
+}
+
 ZISService zisCreateCurrentPrimaryService(
     ZISServiceName name,
     ZISServiceInitFunction *initFunction,
@@ -93,6 +116,9 @@ ZISServiceAnchor *zisCreateServiceAnchor(const struct ZISPlugin_tag *plugin,
   if (service->flags & ZIS_SERVICE_FLAG_SPACE_SWITCH) {
     anchor->flags |= ZIS_SERVICE_ANCHOR_FLAG_SPACE_SWITCH;
   }
+  if (service->flags & ZIS_SERVICE_FLAG_SPECIFIC_AUTH) {
+    anchor->flags |= ZIS_SERVICE_ANCHOR_FLAG_SPECIFIC_AUTH;
+  }
 
   *(ZISPluginName *)anchor->path.pluginName = plugin->name;
   anchor->path.serviceName = service->name;
@@ -100,6 +126,10 @@ ZISServiceAnchor *zisCreateServiceAnchor(const struct ZISPlugin_tag *plugin,
   anchor->pluginAnchor = plugin->anchor;
   anchor->serve = service->serve;
   anchor->serviceVersion = service->serviceVersion;
+  memcpy(anchor->safClassName, service->safClassName,
+         sizeof(anchor->safClassName));
+  memcpy(anchor->safEntityName, service->safEntityName,
+         sizeof(anchor->safEntityName));
 
   return anchor;
 }
@@ -121,6 +151,15 @@ void zisUpdateServiceAnchor(ZISServiceAnchor *anchor,
   anchor->flags = service->flags;
   anchor->serve = service->serve;
   anchor->serviceVersion = service->serviceVersion;
+
+  // copy the SAF fields only if the anchor supports them
+  if (service->flags & ZIS_SERVICE_FLAG_SPECIFIC_AUTH &&
+      anchor->version >= ZIS_SERVICE_ANCHOR_VERSION_SAF_SUPPORT) {
+    memcpy(anchor->safClassName, service->safClassName,
+           sizeof(anchor->safClassName));
+    memcpy(anchor->safEntityName, service->safEntityName,
+           sizeof(anchor->safEntityName));
+  }
 
 }
 
