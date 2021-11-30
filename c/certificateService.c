@@ -146,6 +146,11 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
     userMapCertificateStructure.functionCode = MAP_CERTIFICATE_TO_USERNAME;
     int rc;
 
+#ifdef _LP64 
+    rc = 12; /* This needs work to support 64-bit mode.
+		We will need to get a pointer to this routine w/o using linker
+		and SAM31 / SAM64 wrap this call. */
+#else
     rc = IRRSIM00(
         &userMapCertificateStructure.workarea, // WORKAREA
         &userMapCertificateStructure.safRcAlet  , // ALET
@@ -163,6 +168,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         &userMapCertificateStructure.distinguishedNameLength,
         &userMapCertificateStructure.registryNameLength
     );
+#endif
 
     jsonPrinter *p = respondWithJsonPrinter(response);
 
