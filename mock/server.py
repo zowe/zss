@@ -520,6 +520,7 @@ def unixfile_rename(subpath):
 
 
 #TODO: Add in created time
+#TODO: Add in parent and active directory support
 @app.route('/unixfile/copy/<path:subpath>', methods=['POST'])
 def unixfile_copy(subpath):
     #Fix contents problemo
