@@ -4,6 +4,11 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `2.0.0`
+
+- Breaking change: Cookie name now has a suffix which includes the port or if in an HA instance, the HA ID.
+
+
 ## `1.26.0`
 
 - Enhancement: Add support for continuations in the ZIS PARMLIB member

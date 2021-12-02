@@ -1042,16 +1042,14 @@ static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envCon
 }
 
 static char* generateCookieName(JsonObject *envConfig, int port) {
-  char *cookieName[256] = {0};
-  const zoweInstanceId = jsonObjectGetString(envConfig, "ZOWE_INSTANCE");
-  const haInstanceCount = jsonObjectGetNumber(envConfig, "ZWE_HA_INSTANCES_COUNT");
+  char cookieName[256] = {0};
+  char *zoweInstanceId = jsonObjectGetString(envConfig, "ZOWE_INSTANCE");
+  int haInstanceCount = jsonObjectGetNumber(envConfig, "ZWE_HA_INSTANCES_COUNT");
   if (haInstanceCount > 1) {
     snprintf(cookieName, sizeof(cookieName), "%s.%s", SESSION_TOKEN_COOKIE_NAME, zoweInstanceId);
   } else {
     snprintf(cookieName, sizeof(cookieName), "%s.%d", SESSION_TOKEN_COOKIE_NAME, port);
   }
-
-  const id = isHaMode ? zoweInstanceId : port;
  
   return cookieName;
 }
@@ -1657,9 +1655,11 @@ int main(int argc, char **argv){
     char *cookieName = generateCookieName(envSettings, port);
     
     if (isHttpsConfigured) {
-      server = makeSecureHttpServer2(base, inetAddress, port, tlsEnv, requiredTLSFlag, &returnCode, &reasonCode);
+      server = makeSecureHttpServer2(base, inetAddress, port, tlsEnv, requiredTLSFlag,
+                                     cookieName, &returnCode, &reasonCode);
     } else {
-      server = makeHttpServer3(base, inetAddress, port, requiredTLSFlag, &returnCode, &reasonCode);
+      server = makeHttpServer3(base, inetAddress, port, requiredTLSFlag,
+                               cookieName, &returnCode, &reasonCode);
     }
     if (server){
       if (0 != initializeJwtKeystoreIfConfigured(mvdSettings, server, envSettings)) {
