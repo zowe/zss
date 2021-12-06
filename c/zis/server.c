@@ -573,7 +573,9 @@ static int installServices(ZISContext *context, ZISPlugin *plugin,
 
     zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
             "Anchor found @ 0x%p\n", anchor);
-    zowedump(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG, anchor, anchor->size);
+    if (anchor) {
+      zowedump(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG, anchor, anchor->size);
+    }
 
     if (anchor && !isServiceAnchorCompatible(service, anchor)) {
       discardServiceAnchor(anchor);
