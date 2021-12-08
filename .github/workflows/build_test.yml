@@ -29,6 +29,8 @@ jobs:
     steps: 
       - name: '[Prep 1] Checkout'
         uses: actions/checkout@v2
+        with: 
+            submodules: true
 
       - name: '[Prep 2] Setup jFrog CLI'
         uses: jfrog/setup-jfrog-cli@v2
