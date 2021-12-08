@@ -47,7 +47,6 @@ jobs:
           pax-options: '-x os390 -pp'
           pax-ssh-username: ${{ secrets.SSH_MARIST_USERNAME }}
           pax-ssh-password: ${{ secrets.SSH_MARIST_RACF_PASSWORD }}
-          extra-files: 'zss.tar'
 
       - name: '[Publish] Publish'
         uses: zowe-actions/shared-actions/publish@main
