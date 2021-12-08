@@ -50,9 +50,9 @@ jobs:
           fi
           sed -e "s#{BUILD_BRANCH}#${CURRENT_BRANCH}#g" \
               -e "s#{BUILD_NUMBER}#${{ github.run_number }}#g" \
-              -e "s#{BUILD_COMMIT_HASH}#${COMMIT_HASH}#g" \
+              -e "s#{BUILD_COMMITHASH}#${COMMIT_HASH}#g" \
               -e "s#{BUILD_TIMESTAMP}#${CURRENT_TIME}#g" \
-              -e "s|{{build\.version}}|${ZSS_VERSION}|g" \
+              -e "s#{VERSION}#${ZSS_VERSION}#g" \
               manifest.template.yaml > manifest.json
           
           echo "Current manifest.json is:"
