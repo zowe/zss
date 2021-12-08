@@ -1042,15 +1042,16 @@ static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envCon
 }
 
 static char* generateCookieName(JsonObject *envConfig, int port) {
-  char cookieName[256] = {0};
+  int cookieLength=256;
+  char *cookieName = safeMalloc(cookieLength+1, "CookieName");
   char *zoweInstanceId = jsonObjectGetString(envConfig, "ZOWE_INSTANCE");
   int haInstanceCount = jsonObjectGetNumber(envConfig, "ZWE_HA_INSTANCES_COUNT");
   if (haInstanceCount > 1) {
-    snprintf(cookieName, sizeof(cookieName), "%s.%s", SESSION_TOKEN_COOKIE_NAME, zoweInstanceId);
+    snprintf(cookieName, cookieLength, "%s.%s", SESSION_TOKEN_COOKIE_NAME, zoweInstanceId);
   } else {
-    snprintf(cookieName, sizeof(cookieName), "%s.%d", SESSION_TOKEN_COOKIE_NAME, port);
+    snprintf(cookieName, cookieLength, "%s.%d", SESSION_TOKEN_COOKIE_NAME, port);
   }
- 
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cookie name set as %s\n",cookieName);
   return cookieName;
 }
 
