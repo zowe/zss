@@ -1,4 +1,3 @@
----
 name: zss
 # Component identifier. This identifier matches artifact path in Zowe Artifactory https://zowe.jfrog.io/.
 id: org.zowe.zss
