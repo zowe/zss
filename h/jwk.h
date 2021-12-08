@@ -38,13 +38,9 @@ struct JwkContext_tag {
 #define JWK_STATUS_RESPONSE_ERROR          2
 #define JWK_STATUS_JSON_RESPONSE_ERROR     3
 #define JWK_STATUS_UNRECOGNIZED_FMT_ERROR  4
-#define JWK_STATUS_NOT_RSA_KEY             5
-#define JWK_STATUS_RSA_FACTORS_NOT_FOUND   6
-#define JWK_STATUS_INVALID_BASE64_URL      7
-#define JWK_STATUS_INVALID_BASE64          8
-#define JWK_STATUS_PUBLIC_KEY_ERROR        9
-#define JWK_STATUS_HTTP_CONTEXT_ERROR      10
-#define JWK_STATUS_HTTP_REQUEST_ERROR      11
+#define JWK_STATUS_PUBLIC_KEY_ERROR        7
+#define JWK_STATUS_HTTP_CONTEXT_ERROR      8
+#define JWK_STATUS_HTTP_REQUEST_ERROR      9
 
 void configureJwt(HttpServer *server, JwkSettings *jwkSettings);
 const char *jwkGetStrStatus(int status);

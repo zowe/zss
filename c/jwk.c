@@ -45,7 +45,7 @@ static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, 
 static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *statusOut);
 static int getJwk(JwkContext *context);
 static int checkJwtSignature(JwsAlgorithm algorithm, int sigLen, const uint8_t *signature, int msgLen, const uint8_t *message, void *userData);
-static int decodeBase64Url(const char *data, char *resultBuf, int *statusOut);
+static bool decodeBase64Url(const char *data, char *resultBuf, int *lenOut);
 static int jwkTaskMain(RLETask *task);
 
 void configureJwt(HttpServer *server, JwkSettings *settings) {
@@ -97,8 +97,11 @@ static int jwkTaskMain(RLETask *task) {
     } else if (status == JWK_STATUS_UNRECOGNIZED_FMT_ERROR) {
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_UNRECOGNIZED_MSG);
       break;
+    } else if (status == JWK_STATUS_PUBLIC_KEY_ERROR) {
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG);
+      break;
     } else if (status == JWK_STATUS_HTTP_CONTEXT_ERROR) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to init http context\n");
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG);
       break;
     } else {
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_RETRY_MSG,
@@ -278,17 +281,17 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
   }
 
   char modulus[strlen(modulusBase64Url)+1];
-  int modulusLen = decodeBase64Url(modulusBase64Url, modulus, &status);
-  if (status != 0) {
+  int modulusLen = 0;
+  if (!decodeBase64Url(modulusBase64Url, modulus, &modulusLen)) {
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to decode modulus '%s'\n", modulusBase64Url);
     *statusOut = JWK_STATUS_UNRECOGNIZED_FMT_ERROR;
     return;
   }
 
   char exponent[strlen(exponentBase64Url)+1];
-  int exponentLen = decodeBase64Url(exponentBase64Url, exponent, &status);
-  if (status != 0) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to decode exponent '%s'\n", exponentBase64Url);
+  int exponentLen = 0;
+  if (!decodeBase64Url(exponentBase64Url, exponent, &exponentLen)) {
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to decode exponent '%s' - %s\n", exponentBase64Url, jwkGetStrStatus(status));
     *statusOut = JWK_STATUS_UNRECOGNIZED_FMT_ERROR;
     return;
   }
@@ -305,23 +308,23 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
   *statusOut = JWK_STATUS_OK;
 }
 
-static int decodeBase64Url(const char *data, char *resultBuf, int *statusOut) {
+/* Returns true in case of success */
+static bool decodeBase64Url(const char *data, char *resultBuf, int *lenOut) {
   size_t dataLen = strlen(data);
   size_t base64Size = dataLen + 16;
   char base64[base64Size];
 
   strcpy(base64, data);
   if (base64urlToBase64(base64, base64Size) < 0) {
-    *statusOut = JWK_STATUS_INVALID_BASE64_URL;
-    return 0;
+    return false;
   }
 
   int decodedLen = decodeBase64(base64, resultBuf);
   if (decodedLen <= 0) {
-    *statusOut = JWK_STATUS_INVALID_BASE64;
-    return 0;    
+    return false;    
   }
-  return decodedLen;
+  *lenOut = decodedLen;
+  return true;
 }
 
 static int checkJwtSignature(JwsAlgorithm algorithm,
@@ -365,10 +368,6 @@ static const char *MESSAGES[] = {
   [JWK_STATUS_RESPONSE_ERROR] = "HTTP response error",
   [JWK_STATUS_JSON_RESPONSE_ERROR] = "HTTP response error - invalid JSON",
   [JWK_STATUS_UNRECOGNIZED_FMT_ERROR] = "JWK is in unrecognized format",
-  [JWK_STATUS_NOT_RSA_KEY] = "not RSA public key",
-  [JWK_STATUS_RSA_FACTORS_NOT_FOUND] = "RSA factors not found",
-  [JWK_STATUS_INVALID_BASE64_URL] = "failed to decode base64URL",
-  [JWK_STATUS_INVALID_BASE64] = "failed to decode base64",
   [JWK_STATUS_PUBLIC_KEY_ERROR] = "failed to create public key",
   [JWK_STATUS_HTTP_CONTEXT_ERROR] = "failed to init HTTP context",
   [JWK_STATUS_HTTP_REQUEST_ERROR] = "failed to send HTTP request"
