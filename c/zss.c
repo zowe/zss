@@ -83,6 +83,7 @@
 #include "storage.h"
 #include "storageApiml.h"
 #include "passTicketService.h"
+#include "jwk.h"
 
 #define PRODUCT "ZLUX"
 #ifndef PRODUCT_MAJOR_VERSION
@@ -123,7 +124,9 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
 static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts, const char *key);
 static InternalAPIMap *makeInternalAPIMap(void);
 static bool readGatewaySettings(JsonObject *serverConfig, JsonObject *envConfig, char **outGatewayHost, int *outGatewayPort);
+static bool isMediationLayerEnabled(JsonObject *serverConfig, JsonObject *envConfig);
 static bool isCachingServiceEnabled(JsonObject *serverConfig, JsonObject *envConfig);
+static bool isJwtFallbackEnabled(JsonObject *serverConfig, JsonObject *envSettings);
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -923,6 +926,44 @@ static ApimlStorageSettings *readApimlStorageSettings(ShortLivedHeap *slh, JsonO
   return settings;
 }
 
+static JwkSettings *readJwkSettings(ShortLivedHeap *slh, JsonObject *serverConfig, JsonObject *envConfig, TlsEnvironment *tlsEnv) {
+  char *host = NULL;
+  int port = 0;
+  bool configured = false;
+  bool fallback = false;
+
+  do {
+    if (!isMediationLayerEnabled(serverConfig, envConfig)) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "APIML disabled\n");
+      break;
+    }
+    if (!readGatewaySettings(serverConfig, envConfig, &host, &port)) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Gateway settings not found\n");
+      break;
+    }
+    if (!tlsEnv) {
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "TLS settings not found\n");
+      break;
+    }
+    fallback = isJwtFallbackEnabled(serverConfig, envConfig);
+    configured = true;
+  } while(0);
+
+  if (!configured) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "JWK URL not configured");
+    return NULL;
+  }
+  JwkSettings *settings = (JwkSettings*)SLHAlloc(slh, sizeof(*settings));
+  memset(settings, 0, sizeof(*settings));
+  settings->host = host;
+  settings->port = port;
+  settings->tlsEnv = tlsEnv;
+  settings->timeoutSeconds = 10;
+  settings->path = "/gateway/api/v1/auth/keys/public/current";
+  settings->fallback = fallback;
+  return settings;
+}
+
 static const char defaultConfigPath[] = "../defaults/serverConfig/server.json";
 
 static
@@ -977,6 +1018,7 @@ static void initLoggingComponents(void) {
   logConfigureComponent(NULL, LOG_COMP_ID_MVD_SERVER, "ZSS server", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_APIML_STORAGE, "APIML Storage", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+  logConfigureComponent(NULL, LOG_COMP_ID_JWK, "JWK", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_START_VER_MSG, productVersion);
 }
 
@@ -1184,6 +1226,48 @@ static bool readGatewaySettings(JsonObject *serverConfig,
 #define NODE_MEDIATION_LAYER_CACHING_SERVICE_PREFIX   NODE_MEDIATION_LAYER_PREFIX "cachingService_"
 #define NODE_MEDIATION_LAYER_CACHING_SERVICE_KEY(key) NODE_MEDIATION_LAYER_CACHING_SERVICE_PREFIX key
 #define ENABLED_KEY "enabled"
+
+static bool isMediationLayerEnabled(JsonObject *serverConfig, JsonObject *envConfig) {
+  bool mediationLayerEnabledFound = jsonObjectHasKey(envConfig, ENV_NODE_MEDIATION_LAYER_KEY(ENABLED_KEY));
+  bool mediationLayerEnabled = false;
+  if (mediationLayerEnabledFound) {
+    mediationLayerEnabled = jsonObjectGetBoolean(envConfig, ENV_NODE_MEDIATION_LAYER_KEY(ENABLED_KEY));
+    return mediationLayerEnabled;
+  }
+  JsonObject *nodeSettings = jsonObjectGetObject(serverConfig, "node");
+  JsonObject *mediationLayerSettings = NULL;
+  if (nodeSettings) {
+    mediationLayerSettings = jsonObjectGetObject(nodeSettings, "mediationLayer");
+  }
+  if (!mediationLayerSettings) {
+    return false;
+  }
+  mediationLayerEnabled = jsonObjectGetBoolean(mediationLayerSettings, ENABLED_KEY);
+  return mediationLayerEnabled;
+}
+
+#define AGENT_JWT_PREFIX       "ZWED_agent_jwt_"
+#define ENV_AGENT_JWT_KEY(key) AGENT_JWT_PREFIX key
+
+static bool isJwtFallbackEnabled(JsonObject *serverConfig, JsonObject *envSettings) {
+  Json *fallbackJson = jsonObjectGetPropertyValue(envSettings, ENV_AGENT_JWT_KEY("fallback"));
+  if (fallbackJson) {
+    return jsonIsBoolean(fallbackJson) ? jsonAsBoolean(fallbackJson) : false;
+  }
+  JsonObject *const agentSettings = jsonObjectGetObject(serverConfig, "agent");
+  if (!agentSettings) {
+    return false;
+  }
+  JsonObject *jwtSettings = jsonObjectGetObject(agentSettings, "jwt");
+  if (!jwtSettings) {
+    return false;
+  }
+  fallbackJson = jsonObjectGetPropertyValue(jwtSettings, "enabled");
+  if (fallbackJson) {
+    return jsonIsBoolean(fallbackJson) ? jsonAsBoolean(fallbackJson) : false;
+  }
+  return false;
+}
 
 static bool isCachingServiceEnabled(JsonObject *serverConfig, JsonObject *envConfig) {
   bool mediationLayerEnabledFound = jsonObjectHasKey(envConfig, ENV_NODE_MEDIATION_LAYER_KEY(ENABLED_KEY));
@@ -1643,15 +1727,13 @@ int main(int argc, char **argv){
       server = makeHttpServer2(base, inetAddress, port, requiredTLSFlag, &returnCode, &reasonCode);
     }
     if (server){
-      if (0 != initializeJwtKeystoreIfConfigured(mvdSettings, server, envSettings)) {
-        zssStatus = ZSS_STATUS_ERROR;
-        goto out_term_stcbase;
-      }
       ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettings(slh, mvdSettings, envSettings, tlsEnv);
+      JwkSettings *jwkSettings = readJwkSettings(slh, mvdSettings, envSettings, tlsEnv);
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
       loadWebServerConfig(server, mvdSettings, envSettings, htUsers, htGroups, defaultSeconds);
       readWebPluginDefinitions(server, slh, pluginsDir, mvdSettings, envSettings, apimlStorageSettings);
+      configureJwt(server, jwkSettings);
       installCertificateService(server);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
