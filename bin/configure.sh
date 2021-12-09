@@ -64,7 +64,7 @@ if [ ! -f "$currentJsonConfigPath" ]; then
 fi
 
 APP_WORKSPACE_DIR=${INSTANCE_DIR}/workspace/app-server
-if [ "${ZOWE_ZSS_SERVER_TLS}" = "false" ]; then
+if [ "${ZWES_SERVER_TLS}" = "false" ]; then
   PROTOCOL="http"
 else
   PROTOCOL="https"
@@ -72,13 +72,13 @@ fi
 
 HTTPS_PREFIX="ZWED_agent_https_"
 
-if [ "${ZOWE_ZSS_SERVER_TLS}" = "false" ]
+if [ "${ZWES_SERVER_TLS}" = "false" ]
 then
   # HTTP
-  export "ZWED_agent_http_port=${ZOWE_ZSS_SERVER_PORT}"
+  export "ZWED_agent_http_port=${ZWES_SERVER_PORT}"
 else
   # HTTPS
-  export "${HTTPS_PREFIX}port=${ZOWE_ZSS_SERVER_PORT}"
+  export "${HTTPS_PREFIX}port=${ZWES_SERVER_PORT}"
   IP_ADDRESSES_KEY_var="${HTTPS_PREFIX}ipAddresses"
   eval "IP_ADDRESSES_val=\"\$${IP_ADDRESSES_KEY_var}\""
   if [ -z "${IP_ADDRESSES_val}" ]; then
@@ -98,9 +98,9 @@ fi
 # xmem name customization
 if [ -z "$ZWED_privilegedServerName" ]
 then
-  if [ -n "$ZOWE_ZSS_XMEM_SERVER_NAME" ]
+  if [ -n "$ZWES_XMEM_SERVER_NAME" ]
   then
-    export ZWED_privilegedServerName=$ZOWE_ZSS_XMEM_SERVER_NAME
+    export ZWED_privilegedServerName=$ZWES_XMEM_SERVER_NAME
   fi 
 fi
 
