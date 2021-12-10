@@ -9,13 +9,13 @@
 
 
 # Required variables on shell:
-# - ROOT_DIR
-# - WORKSPACE_DIR
+# - ZWE_zowe_runtimeDirectory
+# - ZWE_zowe_workspaceDirectory
 
-cd ${ROOT_DIR}/components/app-server/share/zlux-app-server/bin
+cd ${ZWE_zowe_runtimeDirectory}/components/app-server/share/zlux-app-server/bin
 . ./convert-env.sh
 
-cd ${ROOT_DIR}/components/app-server/share/zlux-app-server/lib
+cd ${ZWE_zowe_runtimeDirectory}/components/app-server/share/zlux-app-server/lib
 
 if [ -n "$INSTANCE_DIR" ]
 then
@@ -23,9 +23,9 @@ then
 else
   INSTANCE_LOCATION=$HOME/.zowe
 fi
-if [ -n "$WORKSPACE_DIR" ]
+if [ -n "$ZWE_zowe_workspaceDirectory" ]
 then
-  WORKSPACE_LOCATION=$WORKSPACE_DIR
+  WORKSPACE_LOCATION=$ZWE_zowe_workspaceDirectory
 else
   WORKSPACE_LOCATION=$INSTANCE_LOCATION/workspace
 fi
@@ -63,7 +63,7 @@ if [ ! -f "$currentJsonConfigPath" ]; then
   mkdir -p $PLUGINS_DIR
 fi
 
-APP_WORKSPACE_DIR=${INSTANCE_DIR}/workspace/app-server
+APP_WORKSPACE_DIR=${ZWE_zowe_workspaceDirectory}/app-server
 if [ "${ZWES_SERVER_TLS}" = "false" ]; then
   PROTOCOL="http"
 else
@@ -105,4 +105,4 @@ then
 fi
 
 # this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
-export ZLUX_ROOT_DIR=${ROOT_DIR}/components/app-server/share
+export ZLUX_ROOT_DIR=${ZWE_zowe_runtimeDirectory}/components/app-server/share
