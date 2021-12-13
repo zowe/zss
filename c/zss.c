@@ -1044,9 +1044,9 @@ static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envCon
 static char* generateCookieName(JsonObject *envConfig, int port) {
   int cookieLength=256;
   char *cookieName = safeMalloc(cookieLength+1, "CookieName");
-  char *zoweInstanceId = jsonObjectGetString(envConfig, "ZOWE_INSTANCE");
-  int haInstanceCount = jsonObjectGetNumber(envConfig, "ZWE_HA_INSTANCES_COUNT");
-  if (haInstanceCount > 1) {
+  char *zoweInstanceId = getenv("ZOWE_INSTANCE");
+  int haInstanceCount = getenv("ZWE_HA_INSTANCES_COUNT");
+  if (haInstanceCount > 1 && zoweInstanceId != NULL) {
     snprintf(cookieName, cookieLength, "%s.%s", SESSION_TOKEN_COOKIE_NAME, zoweInstanceId);
   } else {
     snprintf(cookieName, cookieLength, "%s.%d", SESSION_TOKEN_COOKIE_NAME, port);
