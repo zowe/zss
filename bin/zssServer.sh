@@ -19,7 +19,7 @@ fi
 if $in_app_server
 then
   ZSS_FILE=../bin/zssServer
-  ZSS_COMPONENT=${ROOT_DIR}/components/zss/bin
+  ZSS_COMPONENT=${ZWE_zowe_runtimeDirectory}/components/zss/bin
   if test -f "$ZSS_FILE"; then
     ZSS_SCRIPT_DIR=$(cd `dirname $0`/../bin && pwd)
   elif [ -d "$ZSS_COMPONENT" ]; then
@@ -41,21 +41,18 @@ then
 elif [ -e "$ZLUX_CONFIG_FILE" ]
 then
     CONFIG_FILE=$ZLUX_CONFIG_FILE
-elif [ -d "$WORKSPACE_DIR" ]
+elif [ -d "$ZWE_zowe_workspaceDirectory" ]
 then
-  CONFIG_FILE="${WORKSPACE_DIR}/app-server/serverConfig/server.json"
-elif [ -d "$INSTANCE_DIR" ]
-then
-  CONFIG_FILE="${INSTANCE_DIR}/workspace/app-server/serverConfig/server.json"
+  CONFIG_FILE="${ZWE_zowe_workspaceDirectory}/app-server/serverConfig/server.json"
 elif $in_app_server
 then
   CONFIG_FILE="../defaults/serverConfig/server.json"
-elif [ -d "$ROOT_DIR" ]
+elif [ -d "$ZWE_zowe_runtimeDirectory" ]
 then
-# This conditional and the else conditional are here for backup purposes, INSTANCE_DIR and WORKSPACE_DIR are defined
+# This conditional and the else conditional are here for backup purposes, INSTANCE_DIR and ZWE_zowe_workspaceDirectory are defined
 # in the initialization of the app-server if they are not defined but in the case of zss development they might not be defined
 # and will use the default server configuration
-    CONFIG_FILE="${ROOT_DIR}/components/app-server/share/zlux-app-server/defaults/serverConfig/server.json"
+    CONFIG_FILE="${ZWE_zowe_runtimeDirectory}/components/app-server/share/zlux-app-server/defaults/serverConfig/server.json"
 else
     echo "No config file specified, using default"
     CONFIG_FILE="${ZSS_SCRIPT_DIR}/../../app-server/share/zlux-app-server/defaults/serverConfig/server.json"
@@ -77,9 +74,9 @@ else
 # _FILE was not specified; default filename, and check and maybe default _DIR
   if [ -z "$ZWES_LOG_DIR" ]
   then
-    if [ -d "$INSTANCE_DIR" ]
+    if [ -n "$ZWE_zowe_logDirectory" -a -d "$ZWE_zowe_logDirectory" ]
     then
-      ZWES_LOG_DIR=${INSTANCE_DIR}/logs
+      ZWES_LOG_DIR=${ZWE_zowe_logDirectory}
     else
       ZWES_LOG_DIR="../log"
     fi

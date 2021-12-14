@@ -24,7 +24,7 @@
 OSNAME=$(uname)
 if [[ "${OSNAME}" == "OS/390" ]]; then
   export _EDC_ZERO_RECLEN=Y # allow processing of zero-length records in datasets
-  cd ${ROOT_DIR}/components/zss/bin
+  cd ${ZWE_zowe_runtimeDirectory}/components/zss/bin
   ./zssServer.sh
 else
   echo "Zowe ZSS server is unsupported on ${OSNAME}. Supported systems: OS/390"
