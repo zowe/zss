@@ -526,7 +526,7 @@ def unixfile_copy(subpath):
     if request.method == 'POST':
         directory = global_directory
         newName = request.args.get('newName')
-        if(newName is None or newName is ""):
+        if(newName is None or newName == ""):
             return {"msg": "newName query parameter is missing."}, 400
         newNames = newName.split("/")
         currPath = directory["contents"]
