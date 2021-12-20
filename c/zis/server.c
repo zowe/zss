@@ -123,6 +123,13 @@ static int zisRouteService(struct CrossMemoryServerGlobalArea_tag *globalArea,
     return RC_ZIS_SRVC_SERVICE_INACTIVE;
   }
 
+  if (serviceAnchor->flags & ZIS_SERVICE_ANCHOR_FLAG_SPECIFIC_AUTH){
+    bool authorized = cmsTestAuth(globalArea, serviceAnchor->safClassName,
+                                  serviceAnchor->safEntityName);
+    if (!authorized){
+      return RC_ZIS_SRVC_SPECIFIC_AUTH_FAILED;
+    }
+  }
   return serviceAnchor->serve(globalArea,
                               serviceAnchor,
                               &serviceAnchor->serviceData,
@@ -309,7 +316,8 @@ static ZISServiceAnchor *findServiceAnchor(const ZISPluginAnchor *pluginAnchor,
 
   while (currAnchor) {
     if (!memcmp(name, &currAnchor->path.serviceName, sizeof(ZISServiceName)) &&
-        currAnchor->version <= ZIS_SERVER_ANCHOR_VERSION) {
+        currAnchor->version <= ZIS_SERVICE_ANCHOR_VERSION &&
+        !(currAnchor->state & ZIS_SERVICE_ANCHOR_STATE_DISCARDED)) {
       return currAnchor;
     }
     currAnchor = currAnchor->next;
@@ -318,6 +326,9 @@ static ZISServiceAnchor *findServiceAnchor(const ZISPluginAnchor *pluginAnchor,
   return NULL;
 }
 
+static void discardServiceAnchor(ZISServiceAnchor *anchor) {
+  anchor->state |= ZIS_SERVICE_ANCHOR_STATE_DISCARDED;
+}
 
 static int cleanPluginAnchor(ZISPluginAnchor *anchor) {
 
@@ -377,7 +388,11 @@ static int callPluginInit(ZISContext *context, ZISPlugin *plugin,
     if (recoveryRC == RC_RCV_OK) {
 
       if (plugin->init != NULL) {
+        zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+                "About to init plugin \'%.4s\'\n", plugin->nickname.text);
         int initRC = plugin->init(context, plugin, anchor);
+        zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+                "Plugin init()-ed, rc=%d\n", initRC);
         if (initRC != RC_ZIS_OK) {
           zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
                   ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in init RC = %d",
@@ -530,16 +545,45 @@ static int callServiceTerm(ZISContext *context, ZISPlugin *plugin,
   return status;
 }
 
+static bool isServiceAnchorCompatible(const ZISService *service,
+                                      const ZISServiceAnchor *anchor) {
+
+  // check the SAF fields
+  bool hasSAF = service->flags & ZIS_SERVICE_FLAG_SPECIFIC_AUTH;
+  if (hasSAF && anchor->version < ZIS_SERVICE_ANCHOR_VERSION_SAF_SUPPORT) {
+    return false;
+  }
+
+  return true;
+}
+
 static int installServices(ZISContext *context, ZISPlugin *plugin,
                            ZISPluginAnchor *pluginAnchor) {
 
   CrossMemoryMap *serviceTable = context->zisAnchor->serviceTable;
 
+  zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
+          "Plugin \'%.4s\' serviceCount=%d\n",
+          plugin->nickname.text, plugin->serviceCount);
   for (unsigned int i = 0; i < plugin->serviceCount; i++) {
 
     ZISService *service = &plugin->services[i];
 
     ZISServiceAnchor *anchor = findServiceAnchor(pluginAnchor, &service->name);
+
+    zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
+            "Anchor found @ 0x%p\n", anchor);
+    if (anchor) {
+      zowedump(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG, anchor, anchor->size);
+    }
+
+    if (anchor && !isServiceAnchorCompatible(service, anchor)) {
+      discardServiceAnchor(anchor);
+      zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
+              "Anchor 0x%p has been discarded\n", anchor);
+      anchor = NULL;
+    }
+
     if (anchor == NULL) {
       anchor = zisCreateServiceAnchor(plugin, service);
       if (anchor == NULL) {
@@ -966,7 +1010,9 @@ static void visitPluginParm(const char *name, const char *value,
     return;
   }
   const char *pluginName = name + strlen("ZWES.PLUGIN.");
-
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+          "visitPluginParm %s value=%s\n",
+          pluginName, value);
   if (value == NULL) {
     zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
             ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" module name not provided",
@@ -1121,6 +1167,7 @@ static void printStopMessage(int status) {
 }
 
 static void deployPlugins(ZISContext *context) {
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG, "Deploy the ZIS plugins\n");
   zisIterateParms(context->parms, visitPluginParm, context);
 }
 

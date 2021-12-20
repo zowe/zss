@@ -13,19 +13,17 @@ set -e
 
 
 export _C89_LSYSLIB="CEE.SCEELKED:SYS1.CSSLIB:CSF.SCSFMOD0"
+export _C89_L6SYSLIB="CEE.SCEEBND2:SYS1.CSSLIB:CSF.SCSFMOD0"
 
 WORKING_DIR=$(dirname "$0")
 ZSS="../.."
 COMMON="../../deps/zowe-common-c"
 GSKDIR=/usr/lpp/gskssl
 GSKINC="${GSKDIR}/include"
-GSKLIB="${GSKDIR}/lib/GSKSSL.x"
-
+GSKLIB="${GSKDIR}/lib/GSKSSL64.x"
 
 echo "********************************************************************************"
 echo "Building ZSS..."
-
-rm -f ${ZSS}/bin/zssServer
 
 mkdir -p "${WORKING_DIR}/tmp-zss" && cd "$_"
 
@@ -37,7 +35,6 @@ echo "Date stamp: $date_stamp"
 export _C89_ACCEPTABLE_RC=0
 
 if ! c89 \
-  -c -O2 \
   -DPRODUCT_MAJOR_VERSION="$major" \
   -DPRODUCT_MINOR_VERSION="$minor" \
   -DPRODUCT_REVISION="$micro" \
@@ -47,45 +44,21 @@ if ! c89 \
   -D_OPEN_THREADS=1 \
   -DHTTPSERVER_BPX_IMPERSONATION=1 \
   -DAPF_AUTHORIZED=0 \
-  -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
-  -Wc,agg,exp,list\(\),so\(\),off,xref \
-  -I ${COMMON}/h \
-  -I ${COMMON}/jwt/jwt \
-  -I ${COMMON}/jwt/rscrypto \
-  -I ${ZSS}/h \
-  ${COMMON}/c/charsets.c \
-  ${COMMON}/c/collections.c \
-  ${COMMON}/c/json.c ;
-then
-  echo "Build failed"
-  exit 8
-fi
-
-if c89 \
-  -DPRODUCT_MAJOR_VERSION="$major" \
-  -DPRODUCT_MINOR_VERSION="$minor" \
-  -DPRODUCT_REVISION="$micro" \
-  -DPRODUCT_VERSION_DATE_STAMP="$date_stamp" \
-  -D_XOPEN_SOURCE=600 \
-  -DNOIBMHTTP=1 \
-  -D_OPEN_THREADS=1 \
   -DUSE_ZOWE_TLS=1 \
-  -DHTTPSERVER_BPX_IMPERSONATION=1 \
-  -DAPF_AUTHORIZED=0 \
-  -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
-  -Wc,agg,exp,list\(\),so\(\),off,xref \
-  -Wl,ac=1,dll \
+  -Wc,lp64,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
+  -Wc,agg,exp,list,so\(\),off,xref \
+  -Wl,lp64,ac=1 \
   -I ${COMMON}/h \
   -I ${COMMON}/jwt/jwt \
   -I ${COMMON}/jwt/rscrypto \
   -I ${ZSS}/h \
   -I ${GSKINC} \
-  -o ${ZSS}/bin/zssServer \
+  -o ${ZSS}/bin/zssServer64 \
   ${COMMON}/c/alloc.c \
   ${COMMON}/c/bpxskt.c \
-  charsets.o \
+  ${COMMON}/c/charsets.c \
   ${COMMON}/c/cmutils.c \
-  collections.o \
+  ${COMMON}/c/collections.c \
   ${COMMON}/c/crossmemory.c \
   ${COMMON}/c/crypto.c \
   ${COMMON}/c/dataservice.c \
@@ -101,12 +74,13 @@ if c89 \
   ${COMMON}/c/idcams.c \
   ${COMMON}/c/impersonation.c \
   ${COMMON}/c/jcsi.c \
-  json.o \
+  ${COMMON}/c/json.c \
   ${COMMON}/jwt/jwt/jwt.c \
   ${COMMON}/c/le.c \
   ${COMMON}/c/logging.c \
   ${COMMON}/c/nametoken.c \
   ${COMMON}/c/zos.c \
+  ${COMMON}/c/pause-element.c \
   ${COMMON}/c/pdsutil.c \
   ${COMMON}/c/qsam.c \
   ${COMMON}/c/radmin.c \
@@ -129,6 +103,7 @@ if c89 \
   ${COMMON}/c/zosaccounts.c \
   ${COMMON}/c/zosfile.c \
   ${COMMON}/c/zvt.c \
+  ${COMMON}/c/shrmem64.c \
   ${ZSS}/c/zssLogging.c \
   ${ZSS}/c/zss.c \
   ${ZSS}/c/storageApiml.c \
@@ -149,12 +124,12 @@ if c89 \
   ${ZSS}/c/passTicketService.c \
   ${GSKLIB} ;
 then
-  extattr +p ${ZSS}/bin/zssServer
+  extattr +p ${ZSS}/bin/zssServer64
   echo "Build successful"
   exit 0
 else
   # remove zssServer in case the linker had RC=4 and produced the binary
-  rm -f ${ZSS}/bin/zssServer
+  rm -f ${ZSS}/bin/zssServer64
   echo "Build failed"
   exit 8
 fi
