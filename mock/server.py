@@ -224,7 +224,7 @@ def unix_contents(subpath):
                             "directory": True if global_directory['contents'][key]['type'] == "folder" else False,
                             "size": 9,
                             "ccsid": 0,
-                            "createdAt": "2018-11-03T14:18:27",
+                            "createdAt": global_directory['contents'][key]['createdAt'],
                             "mode": 777
                         }
                     )
@@ -248,7 +248,7 @@ def unix_contents(subpath):
                                 "directory": True if directory['contents'][key]['type'] == "folder" else False,
                                 "size": 9,
                                 "ccsid": 0,
-                                "createdAt": "2018-11-03T14:18:27",
+                                "createdAt": directory['contents'][key]['createdAt'],
                                 "mode": 777
                             }
                         )
