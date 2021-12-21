@@ -207,7 +207,7 @@ def unix_contents(subpath):
                             "size": 9,
                             "ccsid": 0,
                             "createdAt": "2018-11-03T14:18:27",
-                            "mode": 777
+                            "mode": global_directory['contents'][key]['permissions']
                         }
                     )
         else:
@@ -231,7 +231,7 @@ def unix_contents(subpath):
                                 "size": 9,
                                 "ccsid": 0,
                                 "createdAt": "2018-11-03T14:18:27",
-                                "mode": 777
+                                "mode": directory['contents'][key]['permissions']
                             }
                         )
         return test
