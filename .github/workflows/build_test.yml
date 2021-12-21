@@ -2,7 +2,7 @@ name: Build and Test Workflow
 on:
   push:
     branches:
-      - "*" 
+      - staging, master, rc 
   pull_request:
     types: [opened, reopened, synchronize]
   workflow_dispatch:
@@ -37,7 +37,7 @@ jobs:
         env:
           JF_ARTIFACTORY_1: ${{ secrets.JF_ARTIFACTORY_TOKEN }}
           
-      - name: 'conver manifest'
+      - name: 'convert manifest'
         run: |
           COMMIT_HASH=$(git rev-parse --verify HEAD)
           CURRENT_TIME=$(date +%s%3N)
@@ -75,6 +75,5 @@ jobs:
         with:
           artifacts: |
             .pax/zss.pax
-            .pax/zss.tar
           perform-release: ${{ github.event.inputs.PERFORM_RELEASE }}
  
