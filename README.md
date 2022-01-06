@@ -8,7 +8,7 @@ Copyright Contributors to the Zowe Project.
 
 # ZSS - Zowe System Services Server for enabling low-level microservices
 
-another test edit from me
+change or remove this line
 
 ## How to build ZSS and the cross-memory server
 
