@@ -1760,6 +1760,7 @@ int main(int argc, char **argv){
       installRASService(server);
       installUserInfoService(server);
       installPassTicketService(server);
+      installSAFIdtTokenService(server);
 #endif
       installLoginService(server);
       installLogoutService(server);
