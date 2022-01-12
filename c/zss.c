@@ -1083,6 +1083,25 @@ static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envCon
   }
 }
 
+static char* generateCookieName(JsonObject *envConfig, int port) {
+  int cookieLength=256;
+  char *cookieName = safeMalloc(cookieLength+1, "CookieName");
+  char *zoweInstanceId = getenv("ZOWE_INSTANCE");
+  char *haInstanceCountStr = getenv("ZWE_HA_INSTANCES_COUNT");
+  int haInstanceCount=0;
+  if (haInstanceCountStr != NULL) {
+    haInstanceCount = atoi(haInstanceCountStr);
+  }
+  if (haInstanceCount > 1 && zoweInstanceId != NULL) {
+    snprintf(cookieName, cookieLength, "%s.%s", SESSION_TOKEN_COOKIE_NAME, zoweInstanceId);
+  } else {
+    snprintf(cookieName, cookieLength, "%s.%d", SESSION_TOKEN_COOKIE_NAME, port);
+  }
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cookie name set as %s\n",cookieName);
+  return cookieName;
+}
+
+
 #define PORT_KEY         "port"
 #define IP_ADDRESSES_KEY "ipAddresses"
 #define KEYRING_KEY      "keyring"
@@ -1144,8 +1163,8 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
     address = "127.0.0.1";
   }
 
-  const char *useTlsParam = getenv("ZOWE_ZSS_SERVER_TLS");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Environment variable ZOWE_ZSS_SERVER_TLS is %s\n",
+  const char *useTlsParam = getenv("ZWES_SERVER_TLS");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Environment variable ZWES_SERVER_TLS is %s\n",
           useTlsParam ? useTlsParam : "not set");
 
   bool forceHttp = useTlsParam && (0 == strcmp(useTlsParam, "false"));
@@ -1576,10 +1595,15 @@ int main(int argc, char **argv){
     registerProduct(productReg, productPID, productVer, productOwner, productName);
 
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port,  isHttpsConfigured ? "https" : "http");
+
+    char *cookieName = generateCookieName(envSettings, port);
+    
     if (isHttpsConfigured) {
-      server = makeSecureHttpServer(base, inetAddress, port, tlsEnv, requiredTLSFlag, &returnCode, &reasonCode);
+      server = makeSecureHttpServer2(base, inetAddress, port, tlsEnv, requiredTLSFlag,
+                                     cookieName, &returnCode, &reasonCode);
     } else {
-      server = makeHttpServer2(base, inetAddress, port, requiredTLSFlag, &returnCode, &reasonCode);
+      server = makeHttpServer3(base, inetAddress, port, requiredTLSFlag,
+                               cookieName, &returnCode, &reasonCode);
     }
     if (server){
       ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettings(slh, mvdSettings, envSettings, tlsEnv);
