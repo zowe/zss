@@ -9,6 +9,11 @@ All notable changes to the ZSS package will be documented in this file.
 - Breaking change: Cookie name now has a suffix which includes the port or if in an HA instance, the HA ID.
 
 
+## `1.27.0`
+
+- Enhancement: Get public key for JWT signature verification using APIML
+
+
 ## `1.26.0`
 
 - Enhancement: Add support for continuations in the ZIS PARMLIB member

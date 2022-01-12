@@ -19,7 +19,7 @@ ZSS="../.."
 COMMON="../../deps/zowe-common-c"
 GSKDIR=/usr/lpp/gskssl
 GSKINC="${GSKDIR}/include"
-GSKLIB="${GSKDIR}/lib/GSKSSL.x"
+GSKLIB="${GSKDIR}/lib/GSKSSL.x ${GSKDIR}/lib/GSKCMS31.x"
 
 
 echo "********************************************************************************"
@@ -147,6 +147,8 @@ if c89 \
   ${ZSS}/c/rasService.c \
   ${ZSS}/c/userInfoService.c \
   ${ZSS}/c/passTicketService.c \
+  ${ZSS}/c/jwk.c \
+  ${ZSS}/c/safIdtService.c \
   ${GSKLIB} ;
 then
   extattr +p ${ZSS}/bin/zssServer
