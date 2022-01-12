@@ -226,12 +226,6 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_JWT_KEYSTORE_NAME_MSG_TEXT   "Invalid JWT configuration: Keystore name is missing.\n"
 #define ZSS_LOG_JWT_KEYSTORE_NAME_MSG        ZSS_LOG_JWT_KEYSTORE_NAME_MSG_ID" "ZSS_LOG_JWT_KEYSTORE_NAME_MSG_TEXT
 
-#ifndef ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID
-#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID      ZSS_LOG_MSG_PRFX"1029I"
-#endif
-#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG_TEXT    "Will use JWT: PKCS#11 token '%s', key id '%s', '%s' fallback to legacy tokens\n"
-#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG         ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID" "ZSS_LOG_JWT_TOKEN_FALLBK_MSG_TEXT
-
 #ifndef ZSS_LOG_NO_LOAD_JWT_MSG_ID
 #define ZSS_LOG_NO_LOAD_JWT_MSG_ID           ZSS_LOG_MSG_PRFX"1030W"
 #endif
