@@ -108,6 +108,10 @@
 #define ZIS_LOG_BAD_CONFIG_PARM_MSG_TEXT        "Parameter \'%s\' has an invalid value"
 #define ZIS_LOG_BAD_CONFIG_PARM_MSG             ZIS_LOG_BAD_CONFIG_PARM_MSG_ID" "ZIS_LOG_BAD_CONFIG_PARM_MSG_TEXT
 
+#define ZIS_LOG_CXMS_BAD_PMEM_PREFIX_MSG_ID     ZIS_MSG_PRFX"0020E"
+#define ZIS_LOG_CXMS_BAD_PMEM_PREFIX_MSG_TEXT   "ZSS Cross-Memory server PARMLIB member suffix is incorrect - \'%s\'"
+#define ZIS_LOG_CXMS_BAD_PMEM_PREFIX_MSG         ZIS_LOG_CXMS_BAD_PMEM_PREFIX_MSG_ID" "ZIS_LOG_CXMS_BAD_PMEM_PREFIX_MSG_TEXT
+
 /* ZIS AUX messages */
 
 #define ZISAUX_LOG_STARTUP_MSG_ID               ZIS_MSG_PRFX"0050I"

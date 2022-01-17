@@ -58,11 +58,12 @@ See details in the ZSS Cross Memory Server installation guide
 
 
 #define ZIS_PARM_DDNAME "PARMLIB"
-#define ZIS_PARM_MEMBER_PREFIX                CMS_PROD_ID"IP"
+#define ZIS_PARM_MEMBER_DEFAULT_PREFIX        CMS_PROD_ID"IP"
 #define ZIS_PARM_MEMBER_DEFAULT_SUFFIX        "00"
+#define ZIS_PARM_MEMBER_PREFIX_SIZE            6
 #define ZIS_PARM_MEMBER_SUFFIX_SIZE            2
-#define ZIS_PARM_MEMBER_NAME_MAX_SIZE          8
 
+#define ZIS_PARM_MEMBER_PREFIX                "PRM"
 #define ZIS_PARM_MEMBER_SUFFIX                "MEM"
 #define ZIS_PARM_SERVER_NAME                  "NAME"
 #define ZIS_PARM_COLD_START                   "COLD"
@@ -1257,17 +1258,27 @@ typedef struct PARMBLIBMember_tag {
 static int extractPARMLIBMemberName(ZISParmSet *parms,
                                     PARMLIBMember *member) {
 
-  /* find out if MEM has been specified in the JCL and use it to create
-   * the parmlib member name */
+  /* find out if PRM and/or MEM have been specified in the JCL and use them
+   * to create the parmlib member name */
+
+  const char *memberPrefix = zisGetParmValue(parms, ZIS_PARM_MEMBER_PREFIX);
+  if (memberPrefix == NULL) {
+    memberPrefix = ZIS_PARM_MEMBER_DEFAULT_PREFIX;
+  }
+  member->nameNullTerm[0] = '\0';
+  if (strlen(memberPrefix) == ZIS_PARM_MEMBER_PREFIX_SIZE) {
+    strcat(member->nameNullTerm, memberPrefix);
+  } else {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+            ZIS_LOG_CXMS_BAD_PMEM_PREFIX_MSG, memberPrefix);
+    return RC_ZIS_ERROR;
+  }
 
   const char *memberSuffix = zisGetParmValue(parms, ZIS_PARM_MEMBER_SUFFIX);
   if (memberSuffix == NULL) {
     memberSuffix = ZIS_PARM_MEMBER_DEFAULT_SUFFIX;
   }
-
-  member->nameNullTerm[0] = '\0';
   if (strlen(memberSuffix) == ZIS_PARM_MEMBER_SUFFIX_SIZE) {
-    strcat(member->nameNullTerm, ZIS_PARM_MEMBER_PREFIX);
     strcat(member->nameNullTerm, memberSuffix);
   } else {
     zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
