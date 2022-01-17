@@ -58,12 +58,11 @@ See details in the ZSS Cross Memory Server installation guide
 
 
 #define ZIS_PARM_DDNAME "PARMLIB"
-#define ZIS_PARM_MEMBER_DEFAULT_PREFIX        CMS_PROD_ID"IP"
+#define ZIS_PARM_MEMBER_PREFIX                CMS_PROD_ID"IP"
 #define ZIS_PARM_MEMBER_DEFAULT_SUFFIX        "00"
-#define ZIS_PARM_MEMBER_PREFIX_SIZE            6
 #define ZIS_PARM_MEMBER_SUFFIX_SIZE            2
+#define ZIS_PARM_MEMBER_NAME_MAX_SIZE          8
 
-#define ZIS_PARM_MEMBER_PREFIX                "PRM"
 #define ZIS_PARM_MEMBER_SUFFIX                "MEM"
 #define ZIS_PARM_SERVER_NAME                  "NAME"
 #define ZIS_PARM_COLD_START                   "COLD"
@@ -1251,6 +1250,29 @@ static int handleModifyCommands(CrossMemoryServerGlobalArea *globalArea,
   return RC_CMS_OK;
 }
 
+__asm("CSVQRGLB CSVQUERY PLISTVER=0,MF=(L,CSVQRGLB)" : "DS"(CSVQRGLB));
+
+static int getCurrentModuleName(EightCharString * __ptr32 result) {
+
+  int queryRC = 0;
+
+  __asm("CSVQRGLB CSVQUERY PLISTVER=0,MF=L" : "DS"(parmList));
+  parmList = CSVQRGLB;
+
+  /* Use the address of this function itself since it's in the module. */
+  unsigned moduleAddress = (unsigned)&getCurrentModuleName;
+
+  __asm(
+      "         CSVQUERY INADDR=(%[addr]),OUTMJNM=(%[module])"
+      ",PLISTVER=0,MF=(E,%[parm])                                              \n"
+      : "=NR:r15"(queryRC)
+      : [module]"r"(result), [addr]"r"(&moduleAddress), [parm]"m"(parmList)
+      : "r0", "r1", "r14", "r15"
+  );
+
+  return queryRC;
+}
+
 typedef struct PARMBLIBMember_tag {
   char nameNullTerm[16];
 } PARMLIBMember;
@@ -1258,27 +1280,27 @@ typedef struct PARMBLIBMember_tag {
 static int extractPARMLIBMemberName(ZISParmSet *parms,
                                     PARMLIBMember *member) {
 
-  /* find out if PRM and/or MEM have been specified in the JCL and use them
-   * to create the parmlib member name */
-
-  const char *memberPrefix = zisGetParmValue(parms, ZIS_PARM_MEMBER_PREFIX);
-  if (memberPrefix == NULL) {
-    memberPrefix = ZIS_PARM_MEMBER_DEFAULT_PREFIX;
-  }
-  member->nameNullTerm[0] = '\0';
-  if (strlen(memberPrefix) == ZIS_PARM_MEMBER_PREFIX_SIZE) {
-    strcat(member->nameNullTerm, memberPrefix);
-  } else {
+  EightCharString currModuleName;
+  int modRC = getCurrentModuleName(&currModuleName);
+  if (modRC != 0) {
     zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
-            ZIS_LOG_CXMS_BAD_PMEM_PREFIX_MSG, memberPrefix);
+            ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG, modRC);
     return RC_ZIS_ERROR;
   }
+
+  /* find out if MEM has been specified in the JCL and use it to create
+   * the parmlib member name */
 
   const char *memberSuffix = zisGetParmValue(parms, ZIS_PARM_MEMBER_SUFFIX);
   if (memberSuffix == NULL) {
     memberSuffix = ZIS_PARM_MEMBER_DEFAULT_SUFFIX;
   }
+
+  memset(member->nameNullTerm, 0, sizeof(member->nameNullTerm));
   if (strlen(memberSuffix) == ZIS_PARM_MEMBER_SUFFIX_SIZE) {
+    // copy the 3-letter element ID and the subcomponent
+    memcpy(member->nameNullTerm, currModuleName.text, 4);
+    strcat(member->nameNullTerm, "IP"); // fixed part
     strcat(member->nameNullTerm, memberSuffix);
   } else {
     zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
