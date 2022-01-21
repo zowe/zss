@@ -121,6 +121,7 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
                                                   JsonObject *serverConfig, JsonObject *envConfig, ApimlStorageSettings *apimlStorageSettings);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
+static JsonObject *getDefaultServerSettings(ShortLivedHeap *slh);
 static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts, const char *key);
 static InternalAPIMap *makeInternalAPIMap(void);
 static bool readGatewaySettings(JsonObject *serverConfig, JsonObject *envConfig, char **outGatewayHost, int *outGatewayPort);
@@ -411,6 +412,38 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
     dumpJson(mvdSettings);
   } else {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PARS_ZSS_SETTING_MSG, filename, jsonErrorBuffer);
+  }
+  return mvdSettingsJsonObject;
+}
+
+#define DEFAULT_CONFIG "                                               \
+                       {                                               \
+                         \"productDir\": \"../defaults\",              \
+                         \"siteDir\": \"../deploy/site\",              \ 
+                         \"instanceDir\": \"../deploy/instance\",      \
+                         \"groupsDir\": \"../deploy/instance/groups\", \
+                         \"usersDir\": \"../deploy/instance/users\",   \
+                         \"pluginsDir\": \"../defaults/plugins\",      \
+                         \"agent\": {},                                \
+                         \"dataserviceAuthentication\": {              \
+                           \"rbac\": false,                            \
+                           \"defaultAuthentication\": \"fallback\"     \
+                         }                                             \
+                       }                                               \
+                       "
+
+static JsonObject *getDefaultServerSettings(ShortLivedHeap *slh) {
+  char jsonErrorBuffer[512] = { 0 };
+  int jsonErrorBufferSize = sizeof(jsonErrorBuffer);
+  Json *mvdSettings = NULL; 
+  JsonObject *mvdSettingsJsonObject = NULL;
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "fallback to default server settings\n");
+  mvdSettings = jsonParseString(slh, "{}", jsonErrorBuffer, jsonErrorBufferSize);
+  if (mvdSettings) {
+    dumpJson(mvdSettings);
+    mvdSettingsJsonObject = jsonAsObject(mvdSettings);
+  } else {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, "Failed to parse default server settings: %s\n", jsonErrorBuffer);
   }
   return mvdSettingsJsonObject;
 }
@@ -1468,11 +1501,11 @@ int main(int argc, char **argv){
   initVersionComponents();
   initLoggingComponents();
 
-  if (argc == 1) {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PATH_TO_SERVER_MSG);
-    zssStatus = ZSS_STATUS_ERROR;
-    goto out_term_stcbase;
-  }
+  // if (argc == 1) {
+  //   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PATH_TO_SERVER_MSG);
+  //   zssStatus = ZSS_STATUS_ERROR;
+  //   goto out_term_stcbase;
+  // }
 
   /* TODO consider moving this to stcBaseInit */
 #ifndef METTLE
@@ -1482,7 +1515,7 @@ int main(int argc, char **argv){
   }
 #endif
 
-  const char *serverConfigFile;
+  const char *serverConfigFile = NULL;
   int returnCode = 0;
   int reasonCode = 0;
   char productDir[COMMON_PATH_MAX];
@@ -1507,12 +1540,14 @@ int main(int argc, char **argv){
       serverConfigFile = argv[1];
     }
   }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_SERVER_CONFIG_MSG, serverConfigFile);
-  int invalid = validateFilePermissions(serverConfigFile);
-  if (invalid) {
-    zssStatus = ZSS_STATUS_ERROR;
-    goto out_term_stcbase;
-  } 
+  if (serverConfigFile) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_SERVER_CONFIG_MSG, serverConfigFile);
+    int invalid = validateFilePermissions(serverConfigFile);
+    if (invalid) {
+      zssStatus = ZSS_STATUS_ERROR;
+      goto out_term_stcbase;
+    }
+  }
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
   JsonObject *envSettings = readEnvSettings("ZWED");
   if (envSettings == NULL) {
@@ -1520,7 +1555,13 @@ int main(int argc, char **argv){
     zssStatus = ZSS_STATUS_ERROR;
     goto out_term_stcbase;
   }
-  JsonObject *mvdSettings = readServerSettings(slh, serverConfigFile);
+  JsonObject *mvdSettings = NULL;
+  if (serverConfigFile) {
+    mvdSettings = readServerSettings(slh, serverConfigFile);
+  }
+  if (!mvdSettings) {
+    mvdSettings = getDefaultServerSettings(slh);
+  }
 
   if (mvdSettings) {
     /* Hmm - most of these aren't used, at least here. */
