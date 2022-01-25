@@ -9,8 +9,8 @@
 
 
 # Required variables on shell (from start-app-server.sh):
-# - ROOT_DIR
-# - WORKSPACE_DIR
+# - ZWE_zowe_runtimeDirectory
+# - ZWE_zowe_workspaceDirectory
 # - NODE_HOME
 #
 # Optional variables on shell (from start-app-server.sh):
@@ -68,9 +68,8 @@ EOF
 
 convert_v2_to_v1
 
-export ZWED_agent_https_ipAddresses="0.0.0.0"
-export ZLUX_ROOT_DIR=${ZWE_zowe_runtimeDirectory}/components/app-server/share
-export SSO_FALLBACK_TO_NATIVE_AUTH=true
+export ZLUX_ROOT_DIR="${ZWE_zowe_runtimeDirectory}/components/app-server/share"
+export ZWED_pluginsDir="${ZWE_zowe_workspaceDirectory}/app-server/plugins"
 
 OSNAME=$(uname)
 if [[ "${OSNAME}" == "OS/390" ]]; then

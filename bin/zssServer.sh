@@ -41,21 +41,6 @@ then
 elif [ -e "$ZLUX_CONFIG_FILE" ]
 then
     CONFIG_FILE=$ZLUX_CONFIG_FILE
-elif [ -d "$ZWE_zowe_workspaceDirectory" ]
-then
-  CONFIG_FILE="${ZWE_zowe_workspaceDirectory}/app-server/serverConfig/server.json"
-elif $in_app_server
-then
-  CONFIG_FILE="../defaults/serverConfig/server.json"
-elif [ -d "$ZWE_zowe_runtimeDirectory" ]
-then
-# This conditional and the else conditional are here for backup purposes, INSTANCE_DIR and ZWE_zowe_workspaceDirectory are defined
-# in the initialization of the app-server if they are not defined but in the case of zss development they might not be defined
-# and will use the default server configuration
-    CONFIG_FILE="${ZWE_zowe_runtimeDirectory}/components/app-server/share/zlux-app-server/defaults/serverConfig/server.json"
-else
-    echo "No config file specified, using default"
-    CONFIG_FILE="${ZSS_SCRIPT_DIR}/../../app-server/share/zlux-app-server/defaults/serverConfig/server.json"
 fi
 if [ -n "$ZWES_LOG_FILE" ]
 then
@@ -165,7 +150,12 @@ fi
 #Determined log file.  Run zssServer.
 export dir=`dirname "$0"`
 cd $ZSS_SCRIPT_DIR
-_BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ./zssServer "${CONFIG_FILE}" 2>&1 | tee $ZWES_LOG_FILE
+if [ -f "$CONFIG_FILE" ]
+then
+  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ./zssServer "${CONFIG_FILE}" 2>&1 | tee $ZWES_LOG_FILE
+else
+  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ./zssServer 2>&1 | tee $ZWES_LOG_FILE
+fi
 # This program and the accompanying materials are
 # made available under the terms of the Eclipse Public License v2.0 which accompanies
 # this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html

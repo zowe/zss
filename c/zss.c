@@ -1193,7 +1193,7 @@ static bool readAgentHttpsSettings(ShortLivedHeap *slh,
     }
   }
   if (!address) {
-    address = "127.0.0.1";
+    address = "0.0.0.0";
   }
 
   const char *useTlsParam = getenv("ZWES_SERVER_TLS");
@@ -1501,11 +1501,6 @@ int main(int argc, char **argv){
   initVersionComponents();
   initLoggingComponents();
 
-  // if (argc == 1) {
-  //   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PATH_TO_SERVER_MSG);
-  //   zssStatus = ZSS_STATUS_ERROR;
-  //   goto out_term_stcbase;
-  // }
 
   /* TODO consider moving this to stcBaseInit */
 #ifndef METTLE
@@ -1558,8 +1553,7 @@ int main(int argc, char **argv){
   JsonObject *mvdSettings = NULL;
   if (serverConfigFile) {
     mvdSettings = readServerSettings(slh, serverConfigFile);
-  }
-  if (!mvdSettings) {
+  } else {
     mvdSettings = getDefaultServerSettings(slh);
   }
 

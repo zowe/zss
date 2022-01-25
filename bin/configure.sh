@@ -65,53 +65,35 @@ cd ${ZWE_zowe_runtimeDirectory}/components/app-server/share/zlux-app-server/bin
 
 cd ${ZWE_zowe_runtimeDirectory}/components/app-server/share/zlux-app-server/lib
 
-if [ -n "$INSTANCE_DIR" ]
-then
-  INSTANCE_LOCATION=$INSTANCE_DIR
-else
-  INSTANCE_LOCATION=$HOME/.zowe
-fi
 if [ -n "$ZWE_zowe_workspaceDirectory" ]
 then
   WORKSPACE_LOCATION=$ZWE_zowe_workspaceDirectory
 else
-  WORKSPACE_LOCATION=$INSTANCE_LOCATION/workspace
+  WORKSPACE_LOCATION="$HOME/.zowe/workspace"
 fi
-DESTINATION=$WORKSPACE_LOCATION/app-server
+DESTINATION="$WORKSPACE_LOCATION/app-server"
 
-currentJsonConfigPath=$DESTINATION/serverConfig/server.json
+PRODUCT_DIR=$(cd "$PWD/../defaults" && pwd)
+SITE_DIR=$DESTINATION/site
+SITE_PLUGIN_STORAGE=$SITE_DIR/ZLUX/pluginStorage
+INSTANCE_PLUGIN_STORAGE=$DESTINATION/ZLUX/pluginStorage
+GROUPS_DIR=$DESTINATION/groups
+USERS_DIR=$DESTINATION/users
+PLUGINS_DIR=$DESTINATION/plugins
 
-if [ ! -f "$currentJsonConfigPath" ]; then
-  mkdir -p $DESTINATION/serverConfig
-  cp ../defaults/serverConfig/server.json $DESTINATION/serverConfig/server.json
-  PRODUCT_DIR=$(cd "$PWD/../defaults" && pwd)
-  SITE_DIR=$DESTINATION/site
-  SITE_PLUGIN_STORAGE=$SITE_DIR/ZLUX/pluginStorage
-  INSTANCE_PLUGIN_STORAGE=$DESTINATION/ZLUX/pluginStorage
-  INSTANCE_CONFIG=$DESTINATION/serverConfig
-  GROUPS_DIR=$DESTINATION/groups
-  USERS_DIR=$DESTINATION/users
-  PLUGINS_DIR=$DESTINATION/plugins
 
-  sed 's@"productDir":"../defaults"@"productDir":"'${PRODUCT_DIR}'"@g' $currentJsonConfigPath > ${currentJsonConfigPath}.zwetmp1
-  sed 's@"siteDir":"../deploy/site"@"siteDir":"'${SITE_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}.zwetmp2
-  sed 's@"instanceDir":"../deploy/instance"@"instanceDir":"'${DESTINATION}'"@g' ${currentJsonConfigPath}.zwetmp2 > ${currentJsonConfigPath}.zwetmp1
-  sed 's@"groupsDir":"../deploy/instance/groups"@"groupsDir":"'${GROUPS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}.zwetmp2
-  sed 's@"usersDir":"../deploy/instance/users"@"usersDir":"'${USERS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp2 > ${currentJsonConfigPath}.zwetmp1
-  sed 's@"pluginsDir":"../defaults/plugins"@"pluginsDir":"'${PLUGINS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}
-  rm ${currentJsonConfigPath}.zwetmp1 ${currentJsonConfigPath}.zwetmp2
+mkdir -p $SITE_PLUGIN_STORAGE
+mkdir -p $INSTANCE_PLUGIN_STORAGE
+mkdir -p $GROUPS_DIR
+mkdir -p $USERS_DIR
+mkdir -p $PLUGINS_DIR
 
-  mkdir -p $SITE_PLUGIN_STORAGE
-  mkdir -p $INSTANCE_PLUGIN_STORAGE
-  mkdir -m 700 -p $INSTANCE_CONFIG
-  chmod 700 $INSTANCE_CONFIG
-  chmod 700 $INSTANCE_CONFIG/server.json
-  mkdir -p $GROUPS_DIR
-  mkdir -p $USERS_DIR
-  mkdir -p $PLUGINS_DIR
-fi
+export ZWED_productDir=$PRODUCT_DIR
+export ZWED_siteDir=$SITE_DIR
+export ZWED_groupsDir=$GROUPS_DIR
+export ZWED_usersDir=$USERS_DIR
+export ZWED_pluginsDir=$PLUGINS_DIR
 
-APP_WORKSPACE_DIR=${ZWE_zowe_workspaceDirectory}/app-server
 if [ "${ZWES_SERVER_TLS}" = "false" ]; then
   PROTOCOL="http"
 else
