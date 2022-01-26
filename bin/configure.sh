@@ -33,18 +33,18 @@ GROUPS_DIR=$DESTINATION/groups
 USERS_DIR=$DESTINATION/users
 PLUGINS_DIR=$DESTINATION/plugins
 
+mkdir -p "$SITE_PLUGIN_STORAGE"
+mkdir -p "$INSTANCE_PLUGIN_STORAGE"
+mkdir -p "$GROUPS_DIR"
+mkdir -p "$USERS_DIR"
+mkdir -p "$PLUGINS_DIR"
 
-mkdir -p $SITE_PLUGIN_STORAGE
-mkdir -p $INSTANCE_PLUGIN_STORAGE
-mkdir -p $GROUPS_DIR
-mkdir -p $USERS_DIR
-mkdir -p $PLUGINS_DIR
-
-export ZWED_productDir=$PRODUCT_DIR
-export ZWED_siteDir=$SITE_DIR
-export ZWED_groupsDir=$GROUPS_DIR
-export ZWED_usersDir=$USERS_DIR
-export ZWED_pluginsDir=$PLUGINS_DIR
+export ZWED_productDir="$PRODUCT_DIR"
+export ZWED_siteDir="$SITE_DIR"
+export ZWED_groupsDir="$GROUPS_DIR"
+export ZWED_usersDir="$USERS_DIR"
+export ZWED_pluginsDir="$PLUGINS_DIR"
+export ZWED_instanceDir="$DESTINATION"
 
 if [ "${ZWES_SERVER_TLS}" = "false" ]; then
   PROTOCOL="http"

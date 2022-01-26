@@ -1513,17 +1513,17 @@ int main(int argc, char **argv){
   const char *serverConfigFile = NULL;
   int returnCode = 0;
   int reasonCode = 0;
-  char productDir[COMMON_PATH_MAX];
-  char siteDir[COMMON_PATH_MAX];
-  char instanceDir[COMMON_PATH_MAX];
-  char groupsDir[COMMON_PATH_MAX];
-  char usersDir[COMMON_PATH_MAX];
-  char pluginsDir[COMMON_PATH_MAX];
-  char productReg[COMMON_PATH_MAX];
-  char productPID[COMMON_PATH_MAX];
-  char productVer[COMMON_PATH_MAX];
-  char productOwner[COMMON_PATH_MAX];
-  char productName[COMMON_PATH_MAX];
+  char productDir[COMMON_PATH_MAX] = {0};
+  char siteDir[COMMON_PATH_MAX] = {0};
+  char instanceDir[COMMON_PATH_MAX] = {0};
+  char groupsDir[COMMON_PATH_MAX] = {0};
+  char usersDir[COMMON_PATH_MAX] = {0};
+  char pluginsDir[COMMON_PATH_MAX] = {0};
+  char productReg[COMMON_PATH_MAX] = {0};
+  char productPID[COMMON_PATH_MAX] = {0};
+  char productVer[COMMON_PATH_MAX] = {0};
+  char productOwner[COMMON_PATH_MAX] = {0};
+  char productName[COMMON_PATH_MAX] = {0};
   char *tempString;
   hashtable *htUsers = NULL;
   hashtable *htGroups = NULL;
@@ -1558,27 +1558,27 @@ int main(int argc, char **argv){
   }
 
   if (mvdSettings) {
-    /* Hmm - most of these aren't used, at least here. */
-    checkAndSetVariable(mvdSettings, "productDir", productDir, COMMON_PATH_MAX);
-    checkAndSetVariable(mvdSettings, "siteDir", siteDir, COMMON_PATH_MAX);
-    checkAndSetVariable(mvdSettings, "instanceDir", instanceDir, COMMON_PATH_MAX);
-    checkAndSetVariable(mvdSettings, "groupsDir", groupsDir, COMMON_PATH_MAX);
-    checkAndSetVariable(mvdSettings, "usersDir", usersDir, COMMON_PATH_MAX);
-    checkAndSetVariable(mvdSettings, "productReg", productReg, COMMON_PATH_MAX);
-    checkAndSetVariable(mvdSettings, "productVer", productVer, COMMON_PATH_MAX);
-    checkAndSetVariable(mvdSettings, "productPID", productPID, COMMON_PATH_MAX);
-    checkAndSetVariable(mvdSettings, "productOwner", productOwner, COMMON_PATH_MAX);
-    checkAndSetVariable(mvdSettings, "productName", productName, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "pluginsDir", envSettings, "ZWED_pluginsDir", pluginsDir, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productDir", envSettings, "ZWED_productDir", productDir, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "siteDir", envSettings, "ZWED_siteDir", siteDir,  COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "instanceDir", envSettings, "ZWED_instanceDir", instanceDir, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "groupsDir", envSettings, "ZWED_groupsDir", groupsDir, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "usersDir", envSettings, "ZWED_usersDir", usersDir, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productReg", envSettings, "ZWED_productReg", productReg, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productVer", envSettings, "ZWED_productVer", productVer, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productPID", envSettings, "ZWED_productPID", productPID, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productOwner", envSettings, "ZWED_productOwner", productOwner, COMMON_PATH_MAX);
+    checkAndSetVariableWithEnvOverride(mvdSettings, "productName", envSettings, "ZWED_productName", productName, COMMON_PATH_MAX);
     
-    char *serverTimeoutsDir;
     char *serverTimeoutsDirSuffix;
-    if (instanceDir[strlen(instanceDir)-1] == '/') {
+    int instanceDirLen = strlen(instanceDir);
+    if (instanceDirLen == 0 || instanceDir[instanceDirLen-1] == '/') {
       serverTimeoutsDirSuffix = "serverConfig/timeouts.json";
     } else {
       serverTimeoutsDirSuffix = "/serverConfig/timeouts.json";
     }
     int serverTimeoutsDirSize = strlen(instanceDir) + strlen(serverTimeoutsDirSuffix) + 1;
-    serverTimeoutsDir = safeMalloc(serverTimeoutsDirSize, "serverTimeoutsDir"); // +1 for the null-terminator
+    char serverTimeoutsDir[serverTimeoutsDirSize];
     strcpy(serverTimeoutsDir, instanceDir);
     strcat(serverTimeoutsDir, serverTimeoutsDirSuffix);
 
@@ -1595,16 +1595,8 @@ int main(int argc, char **argv){
     } else {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_PARS_ZSS_TIMEOUT_MSG, serverTimeoutsDir);
     }
-    safeFree(serverTimeoutsDir, serverTimeoutsDirSize);
    
     /* This one IS used*/
-    checkAndSetVariableWithEnvOverride(mvdSettings, "pluginsDir", envSettings, "ZWED_pluginsDir", pluginsDir, COMMON_PATH_MAX);
-        /* and these 5 are also used */
-    checkAndSetVariableWithEnvOverride(mvdSettings, "productReg", envSettings, "ZWED_productReg", productReg, COMMON_PATH_MAX);
-    checkAndSetVariableWithEnvOverride(mvdSettings, "productVer", envSettings, "ZWED_productVer", productVer, COMMON_PATH_MAX);
-    checkAndSetVariableWithEnvOverride(mvdSettings, "productPID", envSettings, "ZWED_productPID", productPID, COMMON_PATH_MAX);
-    checkAndSetVariableWithEnvOverride(mvdSettings, "productOwner", envSettings, "ZWED_productOwner", productOwner, COMMON_PATH_MAX);
-    checkAndSetVariableWithEnvOverride(mvdSettings, "productName", envSettings, "ZWED_productName", productName, COMMON_PATH_MAX);
 
     HttpServer *server = NULL;
     int port = 0;
