@@ -17,34 +17,20 @@ cd ${ZWE_zowe_runtimeDirectory}/components/app-server/share/zlux-app-server/bin
 
 cd ${ZWE_zowe_runtimeDirectory}/components/app-server/share/zlux-app-server/lib
 
-if [ -n "$ZWE_zowe_workspaceDirectory" ]
-then
-  WORKSPACE_LOCATION=$ZWE_zowe_workspaceDirectory
-else
-  WORKSPACE_LOCATION="$HOME/.zowe/workspace"
-fi
-DESTINATION="$WORKSPACE_LOCATION/app-server"
+# ZWED_instanceDir, ZWED_siteDir are set by convert-env.sh
+SITE_DIR="$ZWED_instanceDir/site"
+SITE_PLUGIN_STORAGE="$ZWED_siteDir/ZLUX/pluginStorage"
+INSTANCE_PLUGIN_STORAGE="$ZWED_instanceDir/ZLUX/pluginStorage"
+GROUPS_DIR="$ZWED_instanceDir/groups"
+USERS_DIR="$ZWED_instanceDir/users"
+PLUGINS_DIR="$ZWED_instanceDir/plugins"
 
-PRODUCT_DIR=$(cd "$PWD/../defaults" && pwd)
-SITE_DIR=$DESTINATION/site
-SITE_PLUGIN_STORAGE=$SITE_DIR/ZLUX/pluginStorage
-INSTANCE_PLUGIN_STORAGE=$DESTINATION/ZLUX/pluginStorage
-GROUPS_DIR=$DESTINATION/groups
-USERS_DIR=$DESTINATION/users
-PLUGINS_DIR=$DESTINATION/plugins
-
+mkdir -p "$SITE_DIR"
 mkdir -p "$SITE_PLUGIN_STORAGE"
 mkdir -p "$INSTANCE_PLUGIN_STORAGE"
 mkdir -p "$GROUPS_DIR"
 mkdir -p "$USERS_DIR"
 mkdir -p "$PLUGINS_DIR"
-
-export ZWED_productDir="$PRODUCT_DIR"
-export ZWED_siteDir="$SITE_DIR"
-export ZWED_groupsDir="$GROUPS_DIR"
-export ZWED_usersDir="$USERS_DIR"
-export ZWED_pluginsDir="$PLUGINS_DIR"
-export ZWED_instanceDir="$DESTINATION"
 
 if [ "${ZWES_SERVER_TLS}" = "false" ]; then
   PROTOCOL="http"
