@@ -274,8 +274,10 @@ int serveLogoutByRemovingSessionToken(HttpService *service, HttpResponse *respon
   addStringHeader(response, "Cache-control", "no-store");
   addStringHeader(response, "Pragma", "no-cache");
   
+  char cookie[512] = {0};
+  snprintf(cookie, sizeof(cookie), "%s=non-token; Path=/; HttpOnly", service->server->cookieName);
   /* Remove the session token when the user wants to log out */
-  addStringHeader(response,"Set-Cookie","jedHTTPSession=non-token; Path=/; HttpOnly");
+  addStringHeader(response,"Set-Cookie", cookie);
   response->sessionCookie = "non-token";
   writeHeader(response);
 
