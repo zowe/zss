@@ -1604,6 +1604,7 @@ int main(int argc, char **argv){
       installUnixFileTableOfContentsService(server); /* This needs to be registered last */
 #ifdef __ZOWE_OS_ZOS
       loadCsi();
+      installJesService(server);
       installVSAMDatasetContentsService(server);
       installDatasetMetadataService(server);
       installDatasetContentsService(server);
