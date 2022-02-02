@@ -440,7 +440,7 @@ static JsonObject *getDefaultServerSettings(ShortLivedHeap *slh) {
   Json *mvdSettings = NULL; 
   JsonObject *mvdSettingsJsonObject = NULL;
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "fallback to default server settings\n");
-  mvdSettings = jsonParseString(slh, "{}", jsonErrorBuffer, jsonErrorBufferSize);
+  mvdSettings = jsonParseString(slh, DEFAULT_CONFIG, jsonErrorBuffer, jsonErrorBufferSize);
   if (mvdSettings) {
     dumpJson(mvdSettings);
     mvdSettingsJsonObject = jsonAsObject(mvdSettings);
