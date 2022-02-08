@@ -426,7 +426,12 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
                          \"groupsDir\": \"../deploy/instance/groups\", \
                          \"usersDir\": \"../deploy/instance/users\",   \
                          \"pluginsDir\": \"../defaults/plugins\",      \
-                         \"agent\": {},                                \
+                         \"agent\": {                                  \
+                           \"http\": {                                 \
+                             \"ipAddresses\": [\"127.0.0.1\"],         \
+                             \"port\": 7557                            \
+                            }                                          \
+                         },                                            \
                          \"dataserviceAuthentication\": {              \
                            \"rbac\": false,                            \
                            \"defaultAuthentication\": \"fallback\"     \
