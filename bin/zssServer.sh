@@ -35,13 +35,13 @@ else
     eval "$env_converted_from_yaml"
   fi
 fi
+ # It's still possible to provide a json config
 if [ -e "$ZSS_CONFIG_FILE" ]
 then
-    CONFIG_FILE=$ZSS_CONFIG_FILE
-elif [ -e "$ZLUX_CONFIG_FILE" ]
-then
-    CONFIG_FILE=$ZLUX_CONFIG_FILE
+  CONFIG_FILE=$ZSS_CONFIG_FILE
 fi
+# in case when no server.json, zss can be configured with env vars 
+# when zss is ready to read yaml config directly check whether CONFIG_FILE=~/.zowe/zowe.yaml exists
 if [ -n "$ZWES_LOG_FILE" ]
 then
   if [[ $ZWES_LOG_FILE == /* ]]
