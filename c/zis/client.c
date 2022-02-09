@@ -142,6 +142,7 @@ static int authRequest(const CrossMemoryServerName *serverName,
  */
 int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
                                 const char *userName, const char *password,
+                                const char *appl,
                                 const char *safIdt,
                                 ZISAuthServiceStatus *status) {
   AuthServiceParmList parmList = {0};
@@ -162,7 +163,13 @@ int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
   }
   strncpy(parmList.passwordNullTerm, password, sizeof(parmList.passwordNullTerm));
 
-  parmList.options |= ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT;
+  if (strlen(appl) >= sizeof (parmList.applNullTerm)) {
+    status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
+    return RC_ZIS_SRVC_SERVICE_FAILED;
+  }
+  strncpy(parmList.applNullTerm, appl, sizeof(parmList.applNullTerm));
+
+  parmList.options |= ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT | ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL;
   parmList.safIdtLen = strlen(safIdt);
 
   if (strlen(safIdt) >= sizeof(parmList.safIdt)) {

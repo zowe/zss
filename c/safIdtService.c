@@ -63,6 +63,7 @@ static int authenticate(HttpResponse *response, CrossMemoryServerName *privilege
   JsonObject *jsonObject = jsonAsObject(body);
   char *username = jsonObjectGetString(jsonObject, "username");
   char *pass = jsonObjectGetString(jsonObject, "pass");
+  char *appl = jsonObjectGetString(jsonObject, "appl");
 
   if (username == NULL || strlen(username) == 0) {
     respondWithJsonStatus(response, "No username provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
@@ -74,6 +75,10 @@ static int authenticate(HttpResponse *response, CrossMemoryServerName *privilege
     return HTTP_SERVICE_FAILED;
   }
 
+  if (appl == NULL) {
+    appl = "";
+  }
+
   strupcase(username);
 
   if (isLowerCasePasswordAllowed() == FALSE && isPassPhrase(pass) == FALSE) {
@@ -82,6 +87,7 @@ static int authenticate(HttpResponse *response, CrossMemoryServerName *privilege
 
   int zisRC = zisGenerateOrValidateSafIdt(privilegedServerName, username,
                                           pass,
+                                          appl,
                                           safIdt,
                                           &status);
 
@@ -220,6 +226,11 @@ static int verify(HttpResponse *response, CrossMemoryServerName *privilegedServe
 
   JsonObject *jsonObject = jsonAsObject(body);
   char *jwt = jsonObjectGetString(jsonObject, "jwt");
+  char *appl = jsonObjectGetString(jsonObject, "appl");
+
+  if (appl == NULL) {
+    appl = "";
+  }
 
   if (jwt == NULL || strlen(jwt) == 0) {
     respondWithJsonStatus(response, "No jwt provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
@@ -244,6 +255,7 @@ static int verify(HttpResponse *response, CrossMemoryServerName *privilegedServe
 
   int zisRC = zisGenerateOrValidateSafIdt(privilegedServerName, username,
                                           "",
+                                          appl,
                                           safIdt,
                                           &status);
 
