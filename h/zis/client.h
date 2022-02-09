@@ -422,6 +422,7 @@ int zisCallNWMService(const CrossMemoryServerName *serverName,
 
 int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
                                 const char *userName, const char *password,
+                                const char *appl,
                                 const char *safIdt,
                                 ZISAuthServiceStatus *status);
 

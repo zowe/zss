@@ -58,8 +58,13 @@ static int handleVerifyPassword(AuthServiceParmList *parmList,
     safRC = safVerify(VERIFY_CREATE, parmList->userIDNullTerm,
       parmList->passwordNullTerm, &acee, &racfRC, &racfRsn);
   } else {
-    safRC = safVerify6(options, parmList->userIDNullTerm,
-      parmList->passwordNullTerm, &acee, &racfRC, &racfRsn, idta);
+    if (parmList->options & ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL) {
+      safRC = safVerify7(options, parmList->userIDNullTerm,
+        parmList->passwordNullTerm, &acee, parmList->applNullTerm, &racfRC, &racfRsn, idta);
+    } else {
+      safRC = safVerify6(options, parmList->userIDNullTerm,
+        parmList->passwordNullTerm, &acee, &racfRC, &racfRsn, idta);
+    }
   }
   CMS_DEBUG(globalArea, "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
       "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);

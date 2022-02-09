@@ -43,6 +43,7 @@ typedef struct AbendInfo_tag {
 #define ZIS_AUTH_SERVICE_PASSWORD_MAX_LENGTH    100
 #define ZIS_AUTH_SERVICE_CLASS_MAX_LENGTH       8
 #define ZIS_AUTH_SERVICE_ENTITY_MAX_LENGTH      255
+#define ZIS_AUTH_SERVICE_APPL_MAX_LENGTH     8
 
 typedef struct AuthServiceParmList_tag {
   char eyecatcher[8];
@@ -57,6 +58,7 @@ typedef struct AuthServiceParmList_tag {
   char classNullTerm[ZIS_AUTH_SERVICE_CLASS_MAX_LENGTH + 1];
   char options;
 #define ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT 0x80
+#define ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL 0x40
   int access;
   /* up to 255 characters: */
   char entityNullTerm[ZIS_AUTH_SERVICE_ENTITY_MAX_LENGTH + 1];
@@ -68,6 +70,7 @@ typedef struct AuthServiceParmList_tag {
   int safIdtLen;
   #define ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH (2 * IDTA_IDT_BUFFER_LEN_MIN)
   char safIdt[ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH];
+  char applNullTerm[ZIS_AUTH_SERVICE_APPL_MAX_LENGTH + 1];
 } AuthServiceParmList;
 ZOWE_PRAGMA_PACK_RESET
 
