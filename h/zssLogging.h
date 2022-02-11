@@ -53,6 +53,7 @@ bool isLogLevelValid(int level);
 
 /* MVD Server */
 
+/* Documented */
 #ifndef ZSS_LOG_PRV_SRV_NAME_MSG_ID
 #define ZSS_LOG_PRV_SRV_NAME_MSG_ID          ZSS_LOG_MSG_PRFX"1000W"
 #endif
@@ -78,13 +79,13 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_PARS_ZSS_SETTING_MSG         ZSS_LOG_PARS_ZSS_SETTING_MSG_ID" "ZSS_LOG_PARS_ZSS_SETTING_MSG_TEXT
 
 #ifndef ZSS_LOG_EXPEC_PLUGIN_ID_MSG_ID
-#define ZSS_LOG_EXPEC_PLUGIN_ID_MSG_ID       ZSS_LOG_MSG_PRFX"1004I"
+#define ZSS_LOG_EXPEC_PLUGIN_ID_MSG_ID       ZSS_LOG_MSG_PRFX"1004W"
 #endif
 #define ZSS_LOG_EXPEC_PLUGIN_ID_MSG_TEXT     "Expected plugin ID '%s', instead received '%s'\n"
 #define ZSS_LOG_EXPEC_PLUGIN_ID_MSG          ZSS_LOG_EXPEC_PLUGIN_ID_MSG_ID" "ZSS_LOG_EXPEC_PLUGIN_ID_MSG_TEXT
 
 #ifndef ZSS_LOG_PLUGIN_ID_NFOUND_MSG_ID
-#define ZSS_LOG_PLUGIN_ID_NFOUND_MSG_ID      ZSS_LOG_MSG_PRFX"1005I"
+#define ZSS_LOG_PLUGIN_ID_NFOUND_MSG_ID      ZSS_LOG_MSG_PRFX"1005W"
 #endif
 #define ZSS_LOG_PLUGIN_ID_NFOUND_MSG_TEXT    "Plugin ID was not found in '%s'\n"
 #define ZSS_LOG_PLUGIN_ID_NFOUND_MSG         ZSS_LOG_PLUGIN_ID_NFOUND_MSG_ID" "ZSS_LOG_PLUGIN_ID_NFOUND_MSG_TEXT
@@ -92,7 +93,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_PARS_FILE_MSG_ID
 #define ZSS_LOG_PARS_FILE_MSG_ID             ZSS_LOG_MSG_PRFX"1006E"
 #endif
-#define ZSS_LOG_PARS_FILE_MSG_TEXT           "Error while parsing file '%s': '%s'\n"
+#define ZSS_LOG_PARS_FILE_MSG_TEXT           "Error while parsing plugin definition file '%s': '%s'\n"
 #define ZSS_LOG_PARS_FILE_MSG                ZSS_LOG_PARS_FILE_MSG_ID" "ZSS_LOG_PARS_FILE_MSG_TEXT
 
 #ifndef ZSS_LOG_WEB_CONT_NFOUND_MSG_ID
@@ -125,11 +126,11 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_PARS_GENERIC_MSG_TEXT        "Error while parsing: '%s'\n"
 #define ZSS_LOG_PARS_GENERIC_MSG             ZSS_LOG_PARS_GENERIC_MSG_ID" "ZSS_LOG_PARS_GENERIC_MSG_TEXT
 
-#ifndef ZSS_LOG_OPEN_DIR_FAIL_MSG_ID
-#define ZSS_LOG_OPEN_DIR_FAIL_MSG_ID         ZSS_LOG_MSG_PRFX"1012W"
+#ifndef ZSS_LOG_OPEN_PLGDIR_FAIL_MSG_ID
+#define ZSS_LOG_OPEN_PLGDIR_FAIL_MSG_ID       ZSS_LOG_MSG_PRFX"1012W"
 #endif
-#define ZSS_LOG_OPEN_DIR_FAIL_MSG_TEXT       "Could not open directory '%s': Ret='%d', res='0x%x'\n"
-#define ZSS_LOG_OPEN_DIR_FAIL_MSG            ZSS_LOG_OPEN_DIR_FAIL_MSG_ID" "ZSS_LOG_OPEN_DIR_FAIL_MSG_TEXT
+#define ZSS_LOG_OPEN_PLGDIR_FAIL_MSG_TEXT     "Could not open pluginsDir '%s': Ret='%d', res='0x%x'\n"
+#define ZSS_LOG_OPEN_PLGDIR_FAIL_MSG          ZSS_LOG_OPEN_PLGDIR_FAIL_MSG_ID" "ZSS_LOG_OPEN_PLGDIR_FAIL_MSG_TEXT
 
 #ifndef ZSS_LOG_ZSS_START_VER_MSG_ID
 #define ZSS_LOG_ZSS_START_VER_MSG_ID         ZSS_LOG_MSG_PRFX"1013I"
@@ -143,11 +144,7 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_ZIS_STATUS_MSG_TEXT          "ZIS status - '%s' (name='%.16s', cmsRC='%d', description='%s', clientVersion='%d')\n"
 #define ZSS_LOG_ZIS_STATUS_MSG               ZSS_LOG_ZIS_STATUS_MSG_ID" "ZSS_LOG_ZIS_STATUS_MSG_TEXT
 
-#ifndef ZSS_LOG_HTTPS_NO_IMPLEM_MSG_ID
-#define ZSS_LOG_HTTPS_NO_IMPLEM_MSG_ID       ZSS_LOG_MSG_PRFX"1015W"
-#endif
-#define ZSS_LOG_HTTPS_NO_IMPLEM_MSG_TEXT     "*** Server has not implemented HTTPS! ***\n*** In production, please use 27.0.0.1 or localhost. Server is using '%s' ***\n"
-#define ZSS_LOG_HTTPS_NO_IMPLEM_MSG          ZSS_LOG_HTTPS_NO_IMPLEM_MSG_ID" "ZSS_LOG_HTTPS_NO_IMPLEM_MSG_TEXT
+/* 1015W unused, was *** Server has not implemented HTTPS! ***\n*** In production, please use 127.0.0.1 or localhost. Server is using '%s' *** */
 
 #ifndef ZSS_LOG_CANT_VAL_PERMISS_MSG_ID
 #define ZSS_LOG_CANT_VAL_PERMISS_MSG_ID      ZSS_LOG_MSG_PRFX"1016E"
@@ -191,60 +188,6 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_PATH_DIR_MSG_TEXT            "Cannot validate file permissions: Path is for a directory and not a file.\n"
 #define ZSS_LOG_PATH_DIR_MSG                 ZSS_LOG_PATH_DIR_MSG_ID" "ZSS_LOG_PATH_DIR_MSG_TEXT
 
-#ifndef ZSS_LOG_NO_JWT_AGENT_MSG_ID
-#define ZSS_LOG_NO_JWT_AGENT_MSG_ID          ZSS_LOG_MSG_PRFX"1023I"
-#endif
-#define ZSS_LOG_NO_JWT_AGENT_MSG_TEXT        "Will not accept JWTs: Agent configuration is missing.\n"
-#define ZSS_LOG_NO_JWT_AGENT_MSG             ZSS_LOG_NO_JWT_AGENT_MSG_ID" "ZSS_LOG_NO_JWT_AGENT_MSG_TEXT
-
-#ifndef ZSS_LOG_NO_JWT_CONFIG_MSG_ID
-#define ZSS_LOG_NO_JWT_CONFIG_MSG_ID         ZSS_LOG_MSG_PRFX"1024I"
-#endif
-#define ZSS_LOG_NO_JWT_CONFIG_MSG_TEXT       "Will not accept JWTs: JWT keystore configuration is missing.\n"
-#define ZSS_LOG_NO_JWT_CONFIG_MSG            ZSS_LOG_NO_JWT_CONFIG_MSG_ID" "ZSS_LOG_NO_JWT_CONFIG_MSG_TEXT
-
-#ifndef ZSS_LOG_NO_JWT_DISABLED_MSG_ID
-#define ZSS_LOG_NO_JWT_DISABLED_MSG_ID       ZSS_LOG_MSG_PRFX"1025I"
-#endif
-#define ZSS_LOG_NO_JWT_DISABLED_MSG_TEXT     "Will not accept JWTs: Disabled in the configuration.\n"
-#define ZSS_LOG_NO_JWT_DISABLED_MSG          ZSS_LOG_NO_JWT_DISABLED_MSG_ID" "ZSS_LOG_NO_JWT_DISABLED_MSG_TEXT
-
-#ifndef ZSS_LOG_JWT_CONFIG_MISSING_MSG_ID
-#define ZSS_LOG_JWT_CONFIG_MISSING_MSG_ID    ZSS_LOG_MSG_PRFX"1026E"
-#endif
-#define ZSS_LOG_JWT_CONFIG_MISSING_MSG_TEXT  "JWT keystore configuration is missing.\n"
-#define ZSS_LOG_JWT_CONFIG_MISSING_MSG       ZSS_LOG_JWT_CONFIG_MISSING_MSG_ID" "ZSS_LOG_JWT_CONFIG_MISSING_MSG_TEXT
-
-#ifndef ZSS_LOG_JWT_KEYSTORE_UNKN_MSG_ID
-#define ZSS_LOG_JWT_KEYSTORE_UNKN_MSG_ID     ZSS_LOG_MSG_PRFX"1027E"
-#endif
-#define ZSS_LOG_JWT_KEYSTORE_UNKN_MSG_TEXT   "Invalid JWT configuration: Unknown keystore type '%s'\n"
-#define ZSS_LOG_JWT_KEYSTORE_UNKN_MSG        ZSS_LOG_JWT_KEYSTORE_UNKN_MSG_ID" "ZSS_LOG_JWT_KEYSTORE_UNKN_MSG_TEXT
-
-#ifndef ZSS_LOG_JWT_KEYSTORE_NAME_MSG_ID
-#define ZSS_LOG_JWT_KEYSTORE_NAME_MSG_ID     ZSS_LOG_MSG_PRFX"1028E"
-#endif
-#define ZSS_LOG_JWT_KEYSTORE_NAME_MSG_TEXT   "Invalid JWT configuration: Keystore name is missing.\n"
-#define ZSS_LOG_JWT_KEYSTORE_NAME_MSG        ZSS_LOG_JWT_KEYSTORE_NAME_MSG_ID" "ZSS_LOG_JWT_KEYSTORE_NAME_MSG_TEXT
-
-#ifndef ZSS_LOG_NO_LOAD_JWT_MSG_ID
-#define ZSS_LOG_NO_LOAD_JWT_MSG_ID           ZSS_LOG_MSG_PRFX"1030W"
-#endif
-#define ZSS_LOG_NO_LOAD_JWT_MSG_TEXT         "Server startup problem: Could not load the JWT key '%s' from token '%s': rc '%d', p11rc '%d', p11Rsn '%d'\n"
-#define ZSS_LOG_NO_LOAD_JWT_MSG              ZSS_LOG_NO_LOAD_JWT_MSG_ID" "ZSS_LOG_NO_LOAD_JWT_MSG_TEXT
-
-#ifndef ZSS_LOG_PATH_TO_SERVER_MSG_ID
-#define ZSS_LOG_PATH_TO_SERVER_MSG_ID        ZSS_LOG_MSG_PRFX"1031W"
-#endif
-#define ZSS_LOG_PATH_TO_SERVER_MSG_TEXT      "Correct usage: zssServer <path to server.json file>\n"
-#define ZSS_LOG_PATH_TO_SERVER_MSG           ZSS_LOG_PATH_TO_SERVER_MSG_ID" "ZSS_LOG_PATH_TO_SERVER_MSG_TEXT
-
-#ifndef ZSS_LOG_SIG_IGNORE_MSG_ID
-#define ZSS_LOG_SIG_IGNORE_MSG_ID            ZSS_LOG_MSG_PRFX"1032W"
-#endif
-#define ZSS_LOG_SIG_IGNORE_MSG_TEXT          "Problem encountered: Sigignore(SIGPIPE)='%d', errno='%d'\n"
-#define ZSS_LOG_SIG_IGNORE_MSG               ZSS_LOG_SIG_IGNORE_MSG_ID" "ZSS_LOG_SIG_IGNORE_MSG_TEXT
-
 #ifndef ZSS_LOG_SERVER_CONFIG_MSG_ID
 #define ZSS_LOG_SERVER_CONFIG_MSG_ID         ZSS_LOG_MSG_PRFX"1033I"
 #endif
@@ -252,7 +195,7 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_SERVER_CONFIG_MSG            ZSS_LOG_SERVER_CONFIG_MSG_ID" "ZSS_LOG_SERVER_CONFIG_MSG_TEXT
 
 #ifndef ZSS_LOG_SERVER_STARTUP_MSG_ID
-#define ZSS_LOG_SERVER_STARTUP_MSG_ID        ZSS_LOG_MSG_PRFX"1034W"
+#define ZSS_LOG_SERVER_STARTUP_MSG_ID        ZSS_LOG_MSG_PRFX"1034E"
 #endif
 #define ZSS_LOG_SERVER_STARTUP_MSG_TEXT      "Server startup problem: Address '%s' not valid\n"
 #define ZSS_LOG_SERVER_STARTUP_MSG           ZSS_LOG_SERVER_STARTUP_MSG_ID" "ZSS_LOG_SERVER_STARTUP_MSG_TEXT
@@ -264,17 +207,19 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_ZSS_SETTINGS_MSG             ZSS_LOG_ZSS_SETTINGS_MSG_ID" "ZSS_LOG_ZSS_SETTINGS_MSG_TEXT
 
 #ifndef ZSS_LOG_ZSS_STARTUP_MSG_ID
-#define ZSS_LOG_ZSS_STARTUP_MSG_ID           ZSS_LOG_MSG_PRFX"1036W"
+#define ZSS_LOG_ZSS_STARTUP_MSG_ID           ZSS_LOG_MSG_PRFX"1036E"
 #endif
 #define ZSS_LOG_ZSS_STARTUP_MSG_TEXT         "Server startup problem: Ret='%d', res='0x%x'\n"
 #define ZSS_LOG_ZSS_STARTUP_MSG              ZSS_LOG_ZSS_STARTUP_MSG_ID" "ZSS_LOG_ZSS_STARTUP_MSG_TEXT
 
 #ifndef ZSS_LOG_PORT_OCCUP_MSG_ID
-#define ZSS_LOG_PORT_OCCUP_MSG_ID            ZSS_LOG_MSG_PRFX"1037W"
+#define ZSS_LOG_PORT_OCCUP_MSG_ID            ZSS_LOG_MSG_PRFX"1037E"
 #endif
 #define ZSS_LOG_PORT_OCCUP_MSG_TEXT          "This is usually because the server port '%d' is occupied. Is ZSS running twice?\n"
 #define ZSS_LOG_PORT_OCCUP_MSG               ZSS_LOG_PORT_OCCUP_MSG_ID" "ZSS_LOG_PORT_OCCUP_MSG_TEXT
 
+
+/* TODO: Fix later */
 #ifndef ZSS_LOG_PARS_ZSS_TIMEOUT_MSG_ID
 #define ZSS_LOG_PARS_ZSS_TIMEOUT_MSG_ID      ZSS_LOG_MSG_PRFX"1038I"
 #endif
@@ -295,11 +240,7 @@ bool isLogLevelValid(int level);
 
 /* MVD Server (ServerStatusService) */
 
-#ifndef ZSS_LOG_FAIL_RMF_FETCH_MSG_ID
-#define ZSS_LOG_FAIL_RMF_FETCH_MSG_ID        ZSS_LOG_MSG_PRFX"1050W"
-#endif
-#define ZSS_LOG_FAIL_RMF_FETCH_MSG_TEXT      "Failed to fetch RMF data: RC='%d'\n"
-#define ZSS_LOG_FAIL_RMF_FETCH_MSG           ZSS_LOG_FAIL_RMF_FETCH_MSG_ID" "ZSS_LOG_FAIL_RMF_FETCH_MSG_TEXT
+/* 1050W Failed to fetch RMF data: RC='%d' */
 
 /* MVD Server (TLS) */
 #ifndef ZSS_LOG_TLS_INIT_MSG_ID
@@ -355,13 +296,13 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_PROD_REG_RC_0_MSG_ID
 #define ZSS_LOG_PROD_REG_RC_0_MSG_ID          ZSS_LOG_MSG_PRFX"1102I"
 #endif
-#define ZSS_LOG_PROD_REG_RC_0_MSG_TEXT        "Product Registration RC = 0.\n"
+#define ZSS_LOG_PROD_REG_RC_0_MSG_TEXT        "Product Registration successful.\n"
 #define ZSS_LOG_PROD_REG_RC_0_MSG             ZSS_LOG_PROD_REG_RC_0_MSG_ID" "ZSS_LOG_PROD_REG_RC_0_MSG_TEXT
 
 #ifndef ZSS_LOG_PROD_REG_RC_MSG_ID
 #define ZSS_LOG_PROD_REG_RC_MSG_ID            ZSS_LOG_MSG_PRFX"1103W"
 #endif
-#define ZSS_LOG_PROD_REG_RC_MSG_TEXT          "Product Registration RC = %d\n"
+#define ZSS_LOG_PROD_REG_RC_MSG_TEXT          "Product Registration failed, RC = %d\n"
 #define ZSS_LOG_PROD_REG_RC_MSG               ZSS_LOG_PROD_REG_RC_MSG_ID" "ZSS_LOG_PROD_REG_RC_MSG_TEXT
 
 
@@ -371,13 +312,13 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_UNABLE_MSG_ID
 #define ZSS_LOG_UNABLE_MSG_ID                ZSS_LOG_MSG_PRFX"1200W"
 #endif
-#define ZSS_LOG_UNABLE_MSG_TEXT              "Could not %s file: Ret='%d', res='%d'\n"
+#define ZSS_LOG_UNABLE_MSG_TEXT              "Could not %s file '%s': Ret='%d', res='%d'\n"
 #define ZSS_LOG_UNABLE_MSG                   ZSS_LOG_UNABLE_MSG_ID" "ZSS_LOG_UNABLE_MSG_TEXT
 
 #ifndef ZSS_LOG_UNABLE_METADATA_MSG_ID
 #define ZSS_LOG_UNABLE_METADATA_MSG_ID       ZSS_LOG_MSG_PRFX"1201W"
 #endif
-#define ZSS_LOG_UNABLE_METADATA_MSG_TEXT     "Could not get metadata for file: Ret='%d', res='%d'\n"
+#define ZSS_LOG_UNABLE_METADATA_MSG_TEXT     "Could not get metadata for file '%s': Ret='%d', res='%d'\n"
 #define ZSS_LOG_UNABLE_METADATA_MSG          ZSS_LOG_UNABLE_METADATA_MSG_ID" "ZSS_LOG_UNABLE_METADATA_MSG_TEXT
 
 #ifndef ZSS_LOG_TTYPE_NOT_SET_MSG_ID
