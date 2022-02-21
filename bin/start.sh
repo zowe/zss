@@ -9,22 +9,22 @@
 
 
 # Required variables on shell (from start-app-server.sh):
-# - ROOT_DIR
-# - WORKSPACE_DIR
+# - ZWE_zowe_runtimeDirectory
+# - ZWE_zowe_workspaceDirectory
 # - NODE_HOME
 #
 # Optional variables on shell (from start-app-server.sh):
 # - APIML_ENABLE_SSO
 # - GATEWAY_PORT
 # - DISCOVERY_PORT
-# - ZOWE_ZLUX_SSH_PORT
-# - ZOWE_ZLUX_TELNET_PORT
-# - ZOWE_ZLUX_SECURITY_TYPE
+# - ZWED_SSH_PORT
+# - ZWED_TN3270_PORT
+# - ZWED_TN3270_SECURITY
 
 OSNAME=$(uname)
 if [[ "${OSNAME}" == "OS/390" ]]; then
   export _EDC_ZERO_RECLEN=Y # allow processing of zero-length records in datasets
-  cd ${ROOT_DIR}/components/zss/bin
+  cd ${ZWE_zowe_runtimeDirectory}/components/zss/bin
   ./zssServer.sh
 else
   echo "Zowe ZSS server is unsupported on ${OSNAME}. Supported systems: OS/390"

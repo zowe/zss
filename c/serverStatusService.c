@@ -166,10 +166,10 @@ int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *con
       }
       jsonAddString(out, "timestamp", tstamp);
     }
-    if (getenv("ZSS_LOG_FILE") != NULL) {
-      jsonAddString(out, "logDirectory", getenv("ZSS_LOG_FILE"));
+    if (getenv("ZWES_LOG_FILE") != NULL) {
+      jsonAddString(out, "logDirectory", getenv("ZWES_LOG_FILE"));
     } else {
-      jsonAddString(out, "logDirectory", "ZSS_LOG_FILE not defined in environment variables");
+      jsonAddString(out, "logDirectory", "ZWES_LOG_FILE not defined in environment variables");
     }
   }
   jsonAddString(out, "agentName", "zss");
@@ -264,7 +264,7 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
     } else if (!strcmp(l1, "config")) {
       return respondWithServerConfig(response, context->serverConfig);
     } else if (!strcmp(l1, "log")) {
-      char* logDir = getenv("ZSS_LOG_FILE");
+      char* logDir = getenv("ZWES_LOG_FILE");
       if (strne(logDir, "")) {
         respondWithUnixFile2(NULL, response, logDir, 0, 0, false);
         return 0;

@@ -39,6 +39,7 @@
 #define LOG_COMP_ID_UNIXFILE      0x008F000300040000
 #define LOG_COMP_ID_DATASERVICE   0x008F000300050000
 #define LOG_COMP_ID_APIML_STORAGE 0x008F000300060000
+#define LOG_COMP_ID_JWK           0x008F000300070000
 
 bool isLogLevelValid(int level);
 
@@ -225,12 +226,6 @@ bool isLogLevelValid(int level);
 #endif
 #define ZSS_LOG_JWT_KEYSTORE_NAME_MSG_TEXT   "Invalid JWT configuration: Keystore name is missing.\n"
 #define ZSS_LOG_JWT_KEYSTORE_NAME_MSG        ZSS_LOG_JWT_KEYSTORE_NAME_MSG_ID" "ZSS_LOG_JWT_KEYSTORE_NAME_MSG_TEXT
-
-#ifndef ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID
-#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID      ZSS_LOG_MSG_PRFX"1029I"
-#endif
-#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG_TEXT    "Will use JWT: PKCS#11 token '%s', key id '%s', '%s' fallback to legacy tokens\n"
-#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG         ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID" "ZSS_LOG_JWT_TOKEN_FALLBK_MSG_TEXT
 
 #ifndef ZSS_LOG_NO_LOAD_JWT_MSG_ID
 #define ZSS_LOG_NO_LOAD_JWT_MSG_ID           ZSS_LOG_MSG_PRFX"1030W"
@@ -519,6 +514,50 @@ bool isLogLevelValid(int level);
 #endif
 #define ZSS_LOG_PASSTICKET_GEN_FAILED_MSG_TEXT  "Failed to generate PassTicket - userId='%s', applId='%s', %s\n"
 #define ZSS_LOG_PASSTICKET_GEN_FAILED_MSG       ZSS_LOG_PASSTICKET_GEN_FAILED_MSG_ID" "ZSS_LOG_PASSTICKET_GEN_FAILED_MSG_TEXT
+
+/* JWK */
+
+#ifndef ZSS_LOG_JWK_URL_MSG_ID
+#define ZSS_LOG_JWK_URL_MSG_ID          ZSS_LOG_MSG_PRFX"1600I"
+#endif
+#define ZSS_LOG_JWK_URL_MSG_TEXT        "JWT will be configured using JWK URL https://%s:%d%s\n"
+#define ZSS_LOG_JWK_URL_MSG             ZSS_LOG_JWK_URL_MSG_ID" "ZSS_LOG_JWK_URL_MSG_TEXT
+
+#ifndef ZSS_LOG_JWK_READY_MSG_ID
+#define ZSS_LOG_JWK_READY_MSG_ID          ZSS_LOG_MSG_PRFX"1601I"
+#endif
+#define ZSS_LOG_JWK_READY_MSG_TEXT        "Server is ready to accept JWT %s fallback to legacy tokens\n"
+#define ZSS_LOG_JWK_READY_MSG             ZSS_LOG_JWK_READY_MSG_ID" "ZSS_LOG_JWK_READY_MSG_TEXT
+
+#ifndef ZSS_LOG_JWK_UNRECOGNIZED_MSG_ID
+#define ZSS_LOG_JWK_UNRECOGNIZED_MSG_ID     ZSS_LOG_MSG_PRFX"1602W"
+#endif
+#define ZSS_LOG_JWK_UNRECOGNIZED_MSG_TEXT   "JWK is in unrecognized format\n"
+#define ZSS_LOG_JWK_UNRECOGNIZED_MSG        ZSS_LOG_JWK_UNRECOGNIZED_MSG_ID" "ZSS_LOG_JWK_UNRECOGNIZED_MSG_TEXT
+
+#ifndef ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG_ID
+#define ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG_ID     ZSS_LOG_MSG_PRFX"1603W"
+#endif
+#define ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG_TEXT   "Failed to construct public key using JWK\n"
+#define ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG        ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG_ID" "ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG_TEXT
+
+#ifndef ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG_ID
+#define ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG_ID     ZSS_LOG_MSG_PRFX"1604W"
+#endif
+#define ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG_TEXT   "JWK: failed to init HTTP context, ensure that APIML and TLS settings are correct\n"
+#define ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG        ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG_ID" "ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG_TEXT
+
+#ifndef ZSS_LOG_JWK_FAILED_MSG_ID
+#define ZSS_LOG_JWK_FAILED_MSG_ID     ZSS_LOG_MSG_PRFX"1605W"
+#endif
+#define ZSS_LOG_JWK_FAILED_MSG_TEXT   "Server will not accept JWT\n"
+#define ZSS_LOG_JWK_FAILED_MSG        ZSS_LOG_JWK_FAILED_MSG_ID" "ZSS_LOG_JWK_FAILED_MSG_TEXT
+
+#ifndef ZSS_LOG_JWK_RETRY_MSG_ID
+#define ZSS_LOG_JWK_RETRY_MSG_ID     ZSS_LOG_MSG_PRFX"1606W"
+#endif
+#define ZSS_LOG_JWK_RETRY_MSG_TEXT   "Failed to get JWK - %s, retry in %d seconds\n"
+#define ZSS_LOG_JWK_RETRY_MSG        ZSS_LOG_JWK_RETRY_MSG_ID" "ZSS_LOG_JWK_RETRY_MSG_TEXT
 
 #endif /* MVD_H_ZSSLOGGING_H_ */
 
