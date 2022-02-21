@@ -23,7 +23,7 @@
 //*   NAME  - NAME OF THIS SERVER                                    */
 //*           ZWESIS_STD IS THE DEFAULT NAME, THE MAX LENGTH IS 16.  */
 //*           EXAMPLE: NAME='ZWESIS_02'                              */
-//*   MEM   - THE SUFFIX OF THE ZWESIPXX MEMEBER                     */
+//*   MEM   - THE SUFFIX OF THE PARMLIB MEMBER                       */
 //*           00 IS THE DEFAULT VALUE.                               */
 //*           EXAMPLE: MEM=02                                        */
 //*                                                                  */
