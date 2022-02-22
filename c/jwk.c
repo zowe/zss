@@ -197,6 +197,18 @@ static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, 
   return jsonBody;
 }
 
+static void writeJsonMethod(struct jsonPrinter_tag *unusedPrinter, char *text, int len) {
+  zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "%.*s", len, text);
+}
+
+static void dumpJson(Json *json) {
+  jsonPrinter *printer = makeCustomJsonPrinter(writeJsonMethod, NULL);
+  jsonEnablePrettyPrint(printer);
+  jsonPrint(printer, json);
+  freeJsonPrinter(printer);
+  zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "\n");
+}
+
 static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut) {
   bool done = false;
   Json *jsonBody = NULL;
@@ -214,11 +226,10 @@ static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientC
   if (done) {
     int contentLength = session->response->contentLength;
     char *body = session->response->body;
-    char responseEbcdic[contentLength + 1];
-    memset(responseEbcdic, '\0', contentLength + 1);
-    memcpy(responseEbcdic, body, contentLength);
-    __atoe_l(responseEbcdic, contentLength);
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JWK response: %s\n", responseEbcdic);
+    char *bodyNative = copyStringToNative(session->slh, body, contentLength);
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JWK response(dump)(contentLength %d, actual %d):\n", contentLength, strlen(body));
+    dumpbuffer(body, contentLength);
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JWK response: %s\n", bodyNative);
     char errorBuf[1024];
     ShortLivedHeap *slh = session->slh;
     jsonBody = jsonParseUnterminatedUtf8String(slh, CCSID_IBM1047, body, contentLength, errorBuf, sizeof(errorBuf));
@@ -227,7 +238,22 @@ static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientC
       *statusOut = JWK_STATUS_JSON_RESPONSE_ERROR;
       return NULL;
     } else {
-      *statusOut = JWK_STATUS_OK;
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JSON parsed:\n");
+      dumpJson(jsonBody);
+      if (!jsonIsObject(jsonBody)) {
+        zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JWK is not an object, parse again as native\n");
+        jsonBody = jsonParseString(slh, bodyNative, errorBuf, sizeof(errorBuf));
+        if (!jsonBody) {
+          zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "error parsing JSON response: %s\n", errorBuf);
+          *statusOut = JWK_STATUS_JSON_RESPONSE_ERROR;
+        } else {
+          zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JSON parsed:\n");
+          dumpJson(jsonBody);
+          *statusOut = JWK_STATUS_OK;
+        }
+      } else {
+        *statusOut = JWK_STATUS_OK;
+      }
     }
   } else {
     *statusOut = JWK_STATUS_RESPONSE_ERROR;
