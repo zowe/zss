@@ -383,6 +383,25 @@ TraceDefinition traceDefs[] = {
   {0,0}
 };
 
+LOGGING_COMPONENTS_MAP(logComponents)
+
+ZSS_LOGGING_COMPONENTS_MAP(zssLogComponents)
+
+void configureAndSetComponentLogLevel(LogComponentsMap *logComponent, JsonObject *logLevels){
+  int logLevel = ZOWE_LOG_NA;
+  while (logComponent->name != NULL) {
+    if (jsonObjectHasKey(logLevels, (char *)logComponent->name)) {
+      logLevel = jsonObjectGetNumber(logLevels, (char *)logComponent->name);
+      if (isLogLevelValid(logLevel)) {
+        logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name + (strlen("_zss.")),
+                              LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+        logSetLevel(NULL, logComponent->compID, logLevel);  
+      }
+    }
+    ++logComponent;
+  }
+}
+
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename) {
 
   char jsonErrorBuffer[512] = { 0 };
@@ -407,6 +426,12 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
         }
         ++traceDef;
       }
+
+      LogComponentsMap *logComponent = (LogComponentsMap *)logComponents;
+      configureAndSetComponentLogLevel(logComponent, logLevels);
+
+      LogComponentsMap *zssLogComponent = (LogComponentsMap *)zssLogComponents;
+      configureAndSetComponentLogLevel(zssLogComponent, logLevels);
     }
     dumpJson(mvdSettings);
   } else {

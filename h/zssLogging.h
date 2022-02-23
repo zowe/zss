@@ -13,6 +13,8 @@
 #ifndef MVD_H_ZSSLOGGING_H_
 #define MVD_H_ZSSLOGGING_H_
 
+#include "logging.h"
+
 #ifndef ZSS_LOG_ID
 #define ZSS_LOG_ID     "ZWE"
 #endif
@@ -40,6 +42,18 @@
 #define LOG_COMP_ID_DATASERVICE   0x008F000300050000
 #define LOG_COMP_ID_APIML_STORAGE 0x008F000300060000
 #define LOG_COMP_ID_JWK           0x008F000300070000
+
+#define ZSS_LOGGING_COMPONENTS_MAP(zssLogComponents)\
+ static const LogComponentsMap zssLogComponents[] = {\
+  {LOG_COMP_ID_MVD_SERVER, "_zss.mvdserver"},\
+  {LOG_COMP_ID_CTDS, "_zss.ctds"},\
+  {LOG_COMP_ID_SECURITY, "_zss.security"},\
+  {LOG_COMP_ID_UNIXFILE, "_zss.unixfile"},\
+  {LOG_COMP_ID_DATASERVICE, "_zss.dataservice"},\
+  {LOG_COMP_ID_APIML_STORAGE, "_zss.apimlstorage"},\
+  {LOG_COMP_ID_JWK, "_zss.jwk"},\
+  {0, NULL}\
+};
 
 bool isLogLevelValid(int level);
 
