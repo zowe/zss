@@ -35,16 +35,47 @@ static int handleVerifyPassword(AuthServiceParmList *parmList,
   int safRC = 0, racfRC = 0, racfRsn = 0;
   int deleteSAFRC = 0, deleteRACFRC = 0, deleteRACFRsn = 0;
   int rc = RC_ZIS_AUTHSRV_OK;
+  IDTA *idta = NULL;
+  int options = VERIFY_CREATE;
+
+  if (parmList->options & ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT) {
+    idta = (IDTA *) safeMalloc31(sizeof(IDTA), "Idta structure");
+    memset(idta, 0, sizeof(IDTA));
+    memcpy(idta->id, "IDTA", 4);
+    idta->version = IDTA_VERSION_0001;
+    idta->length = sizeof(IDTA);
+    idta->idtType = IDTA_JWT_IDT_Type;
+    idta->idtBufferPtr = parmList->safIdt;
+    idta->idtBufferLen = sizeof(parmList->safIdt);
+    idta->idtLen = parmList->safIdtLen;
+    idta->idtPropIn = IDTA_End_User_IDT;
+    options |= VERIFY_GENERATE_IDT;
+  }
 
   CMS_DEBUG(globalArea, "handleVerifyPassword(): username = %s, password = %s\n",
       parmList->userIDNullTerm, "******");
-  safRC = safVerify(VERIFY_CREATE, parmList->userIDNullTerm,
+  if (idta == NULL) {
+    safRC = safVerify(VERIFY_CREATE, parmList->userIDNullTerm,
       parmList->passwordNullTerm, &acee, &racfRC, &racfRsn);
+  } else {
+    safRC = safVerify6(options, parmList->userIDNullTerm,
+      parmList->passwordNullTerm, &acee, &racfRC, &racfRsn, idta);
+  }
   CMS_DEBUG(globalArea, "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
       "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
+  if (idta != NULL) {
+    CMS_DEBUG(globalArea, "IDTA token: gen_rc = %d, prop_out = %X, prop_in = %X "
+      "token length = %d\n", idta->idtGenRc, idta->idtPropOut, idta->idtPropIn,
+      idta->idtLen);
+  }
+
   if (safRC != 0) {
     rc = RC_ZIS_AUTHSRV_SAF_ERROR;
     goto acee_deleted;
+  }
+
+  if (idta != NULL) {
+    parmList->safIdtLen = idta->idtLen;
   }
 
   deleteSAFRC = safVerify(VERIFY_DELETE, NULL, NULL, &acee, &deleteRACFRC,
@@ -59,6 +90,10 @@ acee_deleted:
 
   FILL_SAF_STATUS(&parmList->safStatus, safRC, racfRC, racfRsn);
   CMS_DEBUG(globalArea, "handleVerifyPassword() done\n");
+  if (idta != NULL) {
+    safeFree(idta, sizeof(IDTA));
+    idta = NULL;
+  }
   return rc;
 }
 
