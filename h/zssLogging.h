@@ -45,13 +45,13 @@
 
 #define ZSS_LOGGING_COMPONENTS_MAP(zssLogComponents)\
  static const LogComponentsMap zssLogComponents[] = {\
-  {LOG_COMP_ID_MVD_SERVER, "_zss.mvdserver"},\
-  {LOG_COMP_ID_CTDS, "_zss.ctds"},\
-  {LOG_COMP_ID_SECURITY, "_zss.security"},\
-  {LOG_COMP_ID_UNIXFILE, "_zss.unixfile"},\
-  {LOG_COMP_ID_DATASERVICE, "_zss.dataservice"},\
-  {LOG_COMP_ID_APIML_STORAGE, "_zss.apimlstorage"},\
-  {LOG_COMP_ID_JWK, "_zss.jwk"},\
+  {LOG_COMP_ID_MVD_SERVER, LOG_COMP_NAME_PREFIX"mvdserver"},\
+  {LOG_COMP_ID_CTDS, LOG_COMP_NAME_PREFIX"ctds"},\
+  {LOG_COMP_ID_SECURITY, LOG_COMP_NAME_PREFIX"security"},\
+  {LOG_COMP_ID_UNIXFILE, LOG_COMP_NAME_PREFIX"unixfile"},\
+  {LOG_COMP_ID_DATASERVICE, LOG_COMP_NAME_PREFIX"dataservice"},\
+  {LOG_COMP_ID_APIML_STORAGE, LOG_COMP_NAME_PREFIX"apimlstorage"},\
+  {LOG_COMP_ID_JWK, LOG_COMP_NAME_PREFIX"jwk"},\
   {0, NULL}\
 };
 

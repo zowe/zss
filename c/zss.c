@@ -393,7 +393,7 @@ void configureAndSetComponentLogLevel(LogComponentsMap *logComponent, JsonObject
     if (jsonObjectHasKey(logLevels, (char *)logComponent->name)) {
       logLevel = jsonObjectGetNumber(logLevels, (char *)logComponent->name);
       if (isLogLevelValid(logLevel)) {
-        logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name + (strlen("_zss.")),
+        logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name + (strlen(LOG_COMP_NAME_PREFIX)),
                               LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
         logSetLevel(NULL, logComponent->compID, logLevel);  
       }
