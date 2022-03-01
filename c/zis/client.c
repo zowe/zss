@@ -140,7 +140,7 @@ static int authRequest(const CrossMemoryServerName *serverName,
 /*
  *   safIdt - a buffer for SAF IDT token. The buffer must be ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1 bytes long.
  */
-int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
+int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
                                 const char *userName, const char *password,
                                 const char *appl,
                                 const char *safIdt,
@@ -163,13 +163,17 @@ int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
   }
   strncpy(parmList.passwordNullTerm, password, sizeof(parmList.passwordNullTerm));
 
-  if (strlen(appl) >= sizeof (parmList.applNullTerm)) {
-    status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
-    return RC_ZIS_SRVC_SERVICE_FAILED;
-  }
-  strncpy(parmList.applNullTerm, appl, sizeof(parmList.applNullTerm));
+  if (appl != NULL && strlen(appl) != 0) {
+    if (strlen(appl) >= sizeof (parmList.applNullTerm)) {
+      status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
+      return RC_ZIS_SRVC_SERVICE_FAILED;
+    }
+    strcpy(parmList.applNullTerm, appl);
 
-  parmList.options |= ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT | ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL;
+    parmList.options |= ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL;
+  }
+
+  parmList.options |= ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT;
   parmList.safIdtLen = strlen(safIdt);
 
   if (strlen(safIdt) >= sizeof(parmList.safIdt)) {
@@ -186,6 +190,23 @@ int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
   }
 
   return rc;
+}
+
+/*
+ *   safIdt - a buffer for SAF IDT token. The buffer must be ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1 bytes long.
+ */
+int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
+                                const char *userName, const char *password,
+                                const char *safIdt,
+                                ZISAuthServiceStatus *status) {
+
+    return zisGenerateOrValidateSafIdtWithAppl(serverName,
+                                               userName,
+                                               password,
+                                               NULL,
+                                               safIdt,
+                                               status
+                                               );
 }
 
 int zisCheckUsernameAndPassword(const CrossMemoryServerName *serverName,

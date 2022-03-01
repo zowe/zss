@@ -420,9 +420,14 @@ int zisCallNWMService(const CrossMemoryServerName *serverName,
 
 #define RC_ZIS_SRVC_NWM_BUFFER_NULL               (ZIS_MAX_GEN_SRVC_RC + 1)
 
-int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
+int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
                                 const char *userName, const char *password,
                                 const char *appl,
+                                const char *safIdt,
+                                ZISAuthServiceStatus *status);
+
+int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
+                                const char *userName, const char *password,
                                 const char *safIdt,
                                 ZISAuthServiceStatus *status);
 

@@ -75,17 +75,13 @@ static int authenticate(HttpResponse *response, CrossMemoryServerName *privilege
     return HTTP_SERVICE_FAILED;
   }
 
-  if (appl == NULL) {
-    appl = "";
-  }
-
   strupcase(username);
 
   if (isLowerCasePasswordAllowed() == FALSE && isPassPhrase(pass) == FALSE) {
     strupcase(pass); /* upfold password */
   }
 
-  int zisRC = zisGenerateOrValidateSafIdt(privilegedServerName, username,
+  int zisRC = zisGenerateOrValidateSafIdtWithAppl(privilegedServerName, username,
                                           pass,
                                           appl,
                                           safIdt,
@@ -228,10 +224,6 @@ static int verify(HttpResponse *response, CrossMemoryServerName *privilegedServe
   char *jwt = jsonObjectGetString(jsonObject, "jwt");
   char *appl = jsonObjectGetString(jsonObject, "appl");
 
-  if (appl == NULL) {
-    appl = "";
-  }
-
   if (jwt == NULL || strlen(jwt) == 0) {
     respondWithJsonStatus(response, "No jwt provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
     return HTTP_SERVICE_FAILED;
@@ -253,7 +245,7 @@ static int verify(HttpResponse *response, CrossMemoryServerName *privilegedServe
   extractUsernameFromJwt(response, jwt, username);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "extracted username is: %s\n", username);
 
-  int zisRC = zisGenerateOrValidateSafIdt(privilegedServerName, username,
+  int zisRC = zisGenerateOrValidateSafIdtWithAppl(privilegedServerName, username,
                                           "",
                                           appl,
                                           safIdt,
