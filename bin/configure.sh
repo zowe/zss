@@ -12,10 +12,26 @@
 # - ZWE_zowe_runtimeDirectory
 # - ZWE_zowe_workspaceDirectory
 
-cd ${ZWE_zowe_runtimeDirectory}/components/app-server/share/zlux-app-server/bin
-. ./convert-env.sh
+COMPONENT_HOME=${ZWE_zowe_runtimeDirectory}/components/zss
 
-cd ${ZWE_zowe_runtimeDirectory}/components/app-server/share/zlux-app-server/lib
+# this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
+if [ -z "${ZLUX_ROOT_DIR}" ]; then
+  if [ -d "${COMPONENT_HOME}/../app-server/share" ]; then
+    export ZLUX_ROOT_DIR=$(cd `dirname ${COMPONENT_HOME}/../app-server/share/zlux-app-server` && pwd)
+  fi
+fi
+
+# Consume server infrastructure environment variables if possible
+if [ -n "$ZLUX_ROOT_DIR" ]; then
+  cd ${ZLUX_ROOT_DIR}/zlux-app-server/bin/init
+  . ../utils/convert-env.sh
+  NO_NODE=1
+  CHECK_PC_BIT=1
+  . ./plugins-init.sh $NO_NODE $CHECK_PC_BIT
+  cd $COMPONENT_HOME/bin
+elif [ -e ./convert-env.sh ]; then
+  . ./convert-env.sh
+fi
 
 # ZWED_instanceDir, ZWED_siteDir are set by convert-env.sh
 SITE_DIR="$ZWED_instanceDir/site"
@@ -71,6 +87,3 @@ then
     export ZWED_privilegedServerName=$ZWES_XMEM_SERVER_NAME
   fi 
 fi
-
-# this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
-export ZLUX_ROOT_DIR=${ZWE_zowe_runtimeDirectory}/components/app-server/share
