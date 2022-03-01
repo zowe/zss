@@ -1246,6 +1246,9 @@ static bool readGatewaySettings(JsonObject *serverConfig,
                                ) {
   char *gatewayHost = jsonObjectGetString(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("gatewayHostname"));
   char *hostname = jsonObjectGetString(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("hostname"));
+  if (!gatewayHost) {
+    gatewayHost = hostname;
+  }
   int gatewayPort = jsonObjectGetNumber(envConfig, ENV_NODE_MEDIATION_LAYER_SERVER_KEY("gatewayPort"));
   if (gatewayHost && gatewayPort) {
     *outGatewayHost = gatewayHost;
@@ -1326,7 +1329,7 @@ static bool isJwtFallbackEnabled(JsonObject *serverConfig, JsonObject *envSettin
   if (!jwtSettings) {
     return false;
   }
-  fallbackJson = jsonObjectGetPropertyValue(jwtSettings, "enabled");
+  fallbackJson = jsonObjectGetPropertyValue(jwtSettings, "fallback");
   if (fallbackJson) {
     return jsonIsBoolean(fallbackJson) ? jsonAsBoolean(fallbackJson) : false;
   }
