@@ -113,6 +113,8 @@ static int traceLevel = 0;
   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256   \
   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
 
+#define LOGGING_COMPONENT_PREFIX "_zss."
+
 static int stringEndsWith(char *s, char *suffix);
 static void dumpJson(Json *json);
 static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
@@ -120,6 +122,7 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
                                         char *resolvedPluginLocation);
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
                                                   JsonObject *serverConfig, JsonObject *envConfig, ApimlStorageSettings *apimlStorageSettings);
+static void configureAndSetComponentLogLevel(LogComponentsMap *logComponent, JsonObject *logLevels, char *logCompPrefix);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts, const char *key);
 static InternalAPIMap *makeInternalAPIMap(void);
@@ -387,17 +390,25 @@ LOGGING_COMPONENTS_MAP(logComponents)
 
 ZSS_LOGGING_COMPONENTS_MAP(zssLogComponents)
 
-void configureAndSetComponentLogLevel(LogComponentsMap *logComponent, JsonObject *logLevels){
+static void configureAndSetComponentLogLevel(LogComponentsMap *logComponent, JsonObject *logLevels, char *logCompPrefix) {
   int logLevel = ZOWE_LOG_NA;
+  char *logCompName = NULL;
+  int logCompLen = 0;
   while (logComponent->name != NULL) {
-    if (jsonObjectHasKey(logLevels, (char *)logComponent->name)) {
-      logLevel = jsonObjectGetNumber(logLevels, (char *)logComponent->name);
+    logCompLen = strlen(logComponent->name) + strlen (logCompPrefix) + 1;
+    logCompName = (char*) safeMalloc(logCompLen, "Log Component Name");
+    memset(logCompName, '\0', logCompLen);
+    strcpy(logCompName, logCompPrefix);
+    strcat(logCompName, logComponent->name);
+    if (jsonObjectHasKey(logLevels, logCompName)) {
+      logLevel = jsonObjectGetNumber(logLevels, logCompName);
       if (isLogLevelValid(logLevel)) {
-        logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name + (strlen(LOG_COMP_NAME_PREFIX)),
+        logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name,
                               LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
         logSetLevel(NULL, logComponent->compID, logLevel);  
       }
     }
+    safeFree(logCompName, logCompLen);
     ++logComponent;
   }
 }
@@ -426,12 +437,10 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
         }
         ++traceDef;
       }
-
       LogComponentsMap *logComponent = (LogComponentsMap *)logComponents;
-      configureAndSetComponentLogLevel(logComponent, logLevels);
-
+      configureAndSetComponentLogLevel(logComponent, logLevels, LOGGING_COMPONENT_PREFIX);
       LogComponentsMap *zssLogComponent = (LogComponentsMap *)zssLogComponents;
-      configureAndSetComponentLogLevel(zssLogComponent, logLevels);
+      configureAndSetComponentLogLevel(zssLogComponent, logLevels, LOGGING_COMPONENT_PREFIX);
     }
     dumpJson(mvdSettings);
   } else {
