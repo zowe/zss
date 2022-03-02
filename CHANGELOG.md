@@ -7,6 +7,7 @@ All notable changes to the ZSS package will be documented in this file.
 ## `2.0.0`
 
 - Breaking change: Cookie name now has a suffix which includes the port or if in an HA instance, the HA ID.
+- Enhancement: New configuration option that allows to run 64-bit ZSS
 
 
 ## `1.27.0`

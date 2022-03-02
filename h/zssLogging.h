@@ -135,7 +135,11 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_ZSS_START_VER_MSG_ID
 #define ZSS_LOG_ZSS_START_VER_MSG_ID         ZSS_LOG_MSG_PRFX"1013I"
 #endif
-#define ZSS_LOG_ZSS_START_VER_MSG_TEXT       "ZSS Server has started. Version '%s'\n"
+#ifdef __ZOWE_64
+#define ZSS_LOG_ZSS_START_VER_MSG_TEXT       "ZSS Server has started. Version '%s' 64-bit\n"
+#else
+#define ZSS_LOG_ZSS_START_VER_MSG_TEXT       "ZSS Server has started. Version '%s' 31-bit\n"
+#endif
 #define ZSS_LOG_ZSS_START_VER_MSG            ZSS_LOG_ZSS_START_VER_MSG_ID" "ZSS_LOG_ZSS_START_VER_MSG_TEXT
 
 #ifndef ZSS_LOG_ZIS_STATUS_MSG_ID

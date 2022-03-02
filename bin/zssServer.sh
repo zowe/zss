@@ -150,11 +150,22 @@ fi
 #Determined log file.  Run zssServer.
 export dir=`dirname "$0"`
 cd $ZSS_SCRIPT_DIR
+
+# determine amode for zssServer 
+ZSS_SERVER_31="./zssServer"
+ZSS_SERVER_64="./zssServer64"
+
+if [ "$ZWE_components_zss_agent_64bit" = "true" ] && [ -x "${ZSS_SERVER_64}" ]; then
+  ZSS_SERVER="${ZSS_SERVER_64}"
+else
+  ZSS_SERVER="${ZSS_SERVER_31}"
+fi
+
 if [ -f "$CONFIG_FILE" ]
 then
-  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ./zssServer "${CONFIG_FILE}" 2>&1 | tee $ZWES_LOG_FILE
+  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} "${CONFIG_FILE}" 2>&1 | tee $ZWES_LOG_FILE
 else
-  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ./zssServer 2>&1 | tee $ZWES_LOG_FILE
+  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} 2>&1 | tee $ZWES_LOG_FILE
 fi
 # This program and the accompanying materials are
 # made available under the terms of the Eclipse Public License v2.0 which accompanies

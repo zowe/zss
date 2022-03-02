@@ -1094,6 +1094,8 @@ static void printZISStatus(HttpServer *server) {
 static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envConfig, char **address, int *port) {
   *port = jsonObjectGetNumber(envConfig, "ZWED_agent_http_port");
   *address = jsonObjectGetString(envConfig, "ZWED_agent_http_ipAddresses");
+  bool isAttlsInEnv = jsonObjectHasKey(envConfig, "ZWED_agent_http_attls");
+  bool isAttls = isAttlsInEnv ? jsonObjectGetBoolean(envConfig, "ZWED_agent_http_attls") : false;
 
   JsonObject *agentSettings = jsonObjectGetObject(serverConfig, "agent");
   if (agentSettings){
@@ -1113,13 +1115,16 @@ static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envCon
           }
         }
       }
+      if (!isAttlsInEnv) {
+        isAttls = jsonObjectGetBoolean(agentHttp, "attls");
+      }
     }
   }
   if (!(*port)) {
     *port = jsonObjectGetNumber(serverConfig, "zssPort");
   }
   if (!(*address)) {
-    *address = "127.0.0.1";
+    *address = isAttls ? "0.0.0.0" : "127.0.0.1";
   }
 }
 
