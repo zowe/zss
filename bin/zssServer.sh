@@ -10,29 +10,27 @@
 
 export _BPXK_AUTOCVT=ON
 
-COMPONENT_HOME=${ZWE_zowe_runtimeDirectory}/components/zss
-ZSS_SCRIPT_DIR=$COMPONENT_HOME/bin
+COMPONENT_HOME="${ZWE_zowe_runtimeDirectory}/components/zss"
+ZSS_SCRIPT_DIR="${COMPONENT_HOME}/bin"
 
 # this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
 if [ -z "${ZLUX_ROOT_DIR}" ]; then
-  if [ -d "${COMPONENT_HOME}/../app-server/share" ]; then
-    export ZLUX_ROOT_DIR=$(cd `dirname ${COMPONENT_HOME}/../app-server/share/zlux-app-server` && pwd)
+  if [ -d "${ZWE_zowe_runtimeDirectory}/components/app-server/share" ]; then
+    export ZLUX_ROOT_DIR="${ZWE_zowe_runtimeDirectory}/components/app-server/share"
   fi
 fi
 
-# Consume server infrastructure environment variables if possible
-if [ -n "$ZLUX_ROOT_DIR" ]; then
-  cd ${ZLUX_ROOT_DIR}/zlux-app-server/bin/init
-  . ../utils/convert-env.sh
-  cd $COMPONENT_HOME/bin
-elif [ -e ./convert-env.sh ]; then
-  . ./convert-env.sh
-fi
+# This location will have init and utils folders inside and is used to gather env vars and do plugin initialization
+helper_script_location="${ZLUX_ROOT_DIR}/zlux-app-server/bin"
 
+if [ -d "${helper_script_location}" ]; then
+  . ${helper_script_location}/utils/convert-env.sh
+  cd "${COMPONENT_HOME}/bin"
+fi
 
 # TODO this depends on nodejs but shouldn't. It should go away when config manager is available.
 # Read yaml file, convert it to env vars loading same way as env vars
-yamlConverter="${ZSS_SCRIPT_DIR}/../../app-server/share/zlux-server-framework/utils/yamlConfig.js"
+yamlConverter="${ZLUX_ROOT_DIR}/zlux-server-framework/utils/yamlConfig.js"
 env_converted_from_yaml=$(node $yamlConverter --components 'zss app-server' 2>/dev/null)
 if [ -n "$env_converted_from_yaml" ]; then
   eval "$env_converted_from_yaml"
