@@ -16,37 +16,40 @@ COMPONENT_HOME=${ZWE_zowe_runtimeDirectory}/components/zss
 
 # this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
 if [ -z "${ZLUX_ROOT_DIR}" ]; then
-  if [ -d "${COMPONENT_HOME}/../app-server/share" ]; then
-    export ZLUX_ROOT_DIR=$(cd `dirname ${COMPONENT_HOME}/../app-server/share/zlux-app-server` && pwd)
+  if [ -d "${ZWE_zowe_runtimeDirectory}/components/app-server/share" ]; then
+    export ZLUX_ROOT_DIR="${ZWE_zowe_runtimeDirectory}/components/app-server/share"
   fi
 fi
 
-# Consume server infrastructure environment variables if possible
-if [ -n "$ZLUX_ROOT_DIR" ]; then
-  cd ${ZLUX_ROOT_DIR}/zlux-app-server/bin/init
+# This location will have init and utils folders inside and is used to gather env vars and do plugin initialization
+helper_script_location="${ZLUX_ROOT_DIR}/zlux-app-server/bin"
+
+if [ -d "${helper_script_location}" ]; then
+  cd "${helper_script_location}/init"
   . ../utils/convert-env.sh
+
+  # Register/deregister plugins according to their enabled status, and check for PC bit
   NO_NODE=1
   CHECK_PC_BIT=1
   . ./plugins-init.sh $NO_NODE $CHECK_PC_BIT
-  cd $COMPONENT_HOME/bin
-elif [ -e ./convert-env.sh ]; then
-  . ./convert-env.sh
+
+  cd "${COMPONENT_HOME}/bin"
+  
+  # ZWED_instanceDir, ZWED_siteDir are set by convert-env.sh
+  SITE_DIR="$ZWED_instanceDir/site"
+  SITE_PLUGIN_STORAGE="$ZWED_siteDir/ZLUX/pluginStorage"
+  INSTANCE_PLUGIN_STORAGE="$ZWED_instanceDir/ZLUX/pluginStorage"
+  GROUPS_DIR="$ZWED_instanceDir/groups"
+  USERS_DIR="$ZWED_instanceDir/users"
+  PLUGINS_DIR="$ZWED_instanceDir/plugins"
+
+  mkdir -p "$SITE_DIR"
+  mkdir -p "$SITE_PLUGIN_STORAGE"
+  mkdir -p "$INSTANCE_PLUGIN_STORAGE"
+  mkdir -p "$GROUPS_DIR"
+  mkdir -p "$USERS_DIR"
+  mkdir -p "$PLUGINS_DIR"
 fi
-
-# ZWED_instanceDir, ZWED_siteDir are set by convert-env.sh
-SITE_DIR="$ZWED_instanceDir/site"
-SITE_PLUGIN_STORAGE="$ZWED_siteDir/ZLUX/pluginStorage"
-INSTANCE_PLUGIN_STORAGE="$ZWED_instanceDir/ZLUX/pluginStorage"
-GROUPS_DIR="$ZWED_instanceDir/groups"
-USERS_DIR="$ZWED_instanceDir/users"
-PLUGINS_DIR="$ZWED_instanceDir/plugins"
-
-mkdir -p "$SITE_DIR"
-mkdir -p "$SITE_PLUGIN_STORAGE"
-mkdir -p "$INSTANCE_PLUGIN_STORAGE"
-mkdir -p "$GROUPS_DIR"
-mkdir -p "$USERS_DIR"
-mkdir -p "$PLUGINS_DIR"
 
 if [ "${ZWES_SERVER_TLS}" = "false" ]; then
   PROTOCOL="http"
