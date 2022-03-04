@@ -25,7 +25,7 @@ then
   elif [ -d "$ZSS_COMPONENT" ]; then
     ZSS_SCRIPT_DIR=$ZSS_COMPONENT
   fi
-  ../bin/convert-env.sh
+  . ../bin/convert-env.sh
 else
   ZSS_SCRIPT_DIR=$(cd `dirname $0` && pwd)
   . ${ZSS_SCRIPT_DIR}/../../app-server/share/zlux-app-server/bin/convert-env.sh
