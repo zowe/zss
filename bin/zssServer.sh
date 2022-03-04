@@ -10,31 +10,32 @@
 
 export _BPXK_AUTOCVT=ON
 
-if [ -e "../bin/app-server.sh" ]
-then
-  in_app_server=true
-else
-  in_app_server=false
-fi
-if $in_app_server
-then
-  ZSS_FILE=../bin/zssServer
-  ZSS_COMPONENT=${ZWE_zowe_runtimeDirectory}/components/zss/bin
-  if test -f "$ZSS_FILE"; then
-    ZSS_SCRIPT_DIR=$(cd `dirname $0`/../bin && pwd)
-  elif [ -d "$ZSS_COMPONENT" ]; then
-    ZSS_SCRIPT_DIR=$ZSS_COMPONENT
-  fi
-  . ../bin/convert-env.sh
-else
-  ZSS_SCRIPT_DIR=$(cd `dirname $0` && pwd)
-  . ${ZSS_SCRIPT_DIR}/../../app-server/share/zlux-app-server/bin/convert-env.sh
-  yamlConverter="${ZSS_SCRIPT_DIR}/../../app-server/share/zlux-server-framework/utils/yamlConfig.js"
-  env_converted_from_yaml=$(node $yamlConverter --components 'zss app-server' 2>/dev/null)
-  if [ -n "$env_converted_from_yaml" ]; then
-    eval "$env_converted_from_yaml"
+COMPONENT_HOME="${ZWE_zowe_runtimeDirectory}/components/zss"
+ZSS_SCRIPT_DIR="${COMPONENT_HOME}/bin"
+
+# this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
+if [ -z "${ZLUX_ROOT_DIR}" ]; then
+  if [ -d "${ZWE_zowe_runtimeDirectory}/components/app-server/share" ]; then
+    export ZLUX_ROOT_DIR="${ZWE_zowe_runtimeDirectory}/components/app-server/share"
   fi
 fi
+
+# This location will have init and utils folders inside and is used to gather env vars and do plugin initialization
+helper_script_location="${ZLUX_ROOT_DIR}/zlux-app-server/bin"
+
+if [ -d "${helper_script_location}" ]; then
+  . ${helper_script_location}/utils/convert-env.sh
+  cd "${COMPONENT_HOME}/bin"
+fi
+
+# TODO this depends on nodejs but shouldn't. It should go away when config manager is available.
+# Read yaml file, convert it to env vars loading same way as env vars
+yamlConverter="${ZLUX_ROOT_DIR}/zlux-server-framework/utils/yamlConfig.js"
+env_converted_from_yaml=$(node $yamlConverter --components 'zss app-server' 2>/dev/null)
+if [ -n "$env_converted_from_yaml" ]; then
+  eval "$env_converted_from_yaml"
+fi
+
  # It's still possible to provide a json config
 if [ -e "$ZSS_CONFIG_FILE" ]
 then
