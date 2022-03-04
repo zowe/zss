@@ -923,7 +923,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
     directoryClose(directory, &returnCode, &reasonCode);
     directory = NULL;
   } else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_OPEN_DIR_FAIL_MSG, dirname, returnCode, reasonCode);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_OPEN_PLGDIR_FAIL_MSG, dirname, returnCode, reasonCode);
   }
   if (webPluginListHead) {
     installWebPluginDefintionsService(webPluginListHead, server);
@@ -1521,7 +1521,8 @@ int main(int argc, char **argv){
 #ifndef METTLE
   int sigignoreRC = sigignore(SIGPIPE);
   if (sigignoreRC == -1) {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_SIG_IGNORE_MSG, sigignoreRC, errno);
+    /* actually sigignore(SIGPIPE) never fails because we pass valid signum SIGPIPE */
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Failed to ignore SIGPIPE, errno='%d' - %s\n", errno, strerror(errno));
   }
 #endif
 
@@ -1691,7 +1692,7 @@ int main(int argc, char **argv){
     } else{
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_ZSS_STARTUP_MSG, returnCode, reasonCode);
       if (returnCode==EADDRINUSE) {
-        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_PORT_OCCUP_MSG, port);
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PORT_OCCUP_MSG, port);
       }
     }
   }
