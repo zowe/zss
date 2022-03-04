@@ -89,7 +89,6 @@ if c89 \
   ${COMMON}/c/crossmemory.c \
   ${COMMON}/c/crypto.c \
   ${COMMON}/c/dataservice.c \
-  ${COMMON}/c/datasetjson.c \
   ${COMMON}/c/discovery.c \
   ${COMMON}/c/dynalloc.c \
   ${COMMON}/c/fdpoll.c \
@@ -138,6 +137,7 @@ if c89 \
   ${ZSS}/c/certificateService.c \
   ${ZSS}/c/unixFileService.c \
   ${ZSS}/c/datasetService.c \
+  ${ZSS}/c/datasetjson.c \
   ${ZSS}/c/envService.c \
   ${ZSS}/c/zosDiscovery.c \
   ${ZSS}/c/securityService.c \
