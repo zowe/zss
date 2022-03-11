@@ -1229,7 +1229,6 @@ static int zisCallServiceInternal(const CrossMemoryServerName *serverName,
   }
 
   CrossMemoryServerGlobalArea *cmsGA = NULL;
-
   int getGlobalAreaRC = cmsGetGlobalArea(serverName, &cmsGA);
   if (getGlobalAreaRC != RC_CMS_OK) {
     return RC_ZIS_SRVC_GLOBAL_AREA_NULL;

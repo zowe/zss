@@ -120,15 +120,12 @@ ZISServiceAnchor *zisCreateServiceAnchor(const struct ZISPlugin_tag *plugin,
     anchor->flags |= ZIS_SERVICE_ANCHOR_FLAG_SPECIFIC_AUTH;
   }
 
-
   *(ZISPluginName *)anchor->path.pluginName = plugin->name;
   anchor->path.serviceName = service->name;
 
   anchor->pluginAnchor = plugin->anchor;
   anchor->serve = service->serve;
   anchor->serviceVersion = service->serviceVersion;
-
-
   memcpy(anchor->safClassName, service->safClassName,
          sizeof(anchor->safClassName));
   memcpy(anchor->safEntityName, service->safEntityName,
@@ -139,11 +136,9 @@ ZISServiceAnchor *zisCreateServiceAnchor(const struct ZISPlugin_tag *plugin,
 
 void zisRemoveServiceAnchor(ZISServiceAnchor **anchor) {
 
-
   unsigned int size = sizeof(ZISServiceAnchor);
   int subpool = CROSS_MEMORY_SERVER_SUBPOOL;
   int key = CROSS_MEMORY_SERVER_KEY;
-
 
   cmFree2((void **)anchor, size, subpool, key);
 
