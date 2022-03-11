@@ -1,19 +1,50 @@
 #ifndef __ZOSSTEAM_ZISSTUBS__
 #define __ZOSSTEAM_ZISSTUBS__ 1
 
+/* Bump this number up everytime a stub is added to
+   a release that makes it to a public merge like master or staging
+   
+   NEVER RE-USE a STUB NUMBER !!!!!!
+
+   FULL BACKWARD COMPATIBILITY MUST BE MAINTAINED
+   */
+
+#define ZIS_STUBS_VERSION 2
+
+/*
+  How does a user check for compatibility?
+
+  Since routines are NOT removed clients only want to know that the ZIS server
+  is >= some version to know that routines will be there.
+
+  Use case 1:  A ZIS Plugin
+
+    A ZIS Plugin should in its pluginInit callback check if version is at least a certain number.
+
+    int dynVersion = dynamicZISVersion();
+
+  Use case 2:  A non-Plugin Metal C program
+
+    int dynVersion = dynamicZISVersion();
+    
+ */
+
 #define MAX_ZIS_STUBS 1000
 
+#define ZIS_STUB_DYNZISUD  0  /* dynamicZISUndefinedStub */
+#define ZIS_STUB_DYNZISVR  1  /* dynamicZISVersion       */
+
 #define ZIS_STUB_SHR64TKN 10  /* shrmem64GetAddressSpaceToken  */
-#define ZIS_STUB_SHR64ALC 11  /* shrmem64Alloc      */
-#define ZIS_STUB_SHR64AL2 12  /* shrmem64Alloc2     */
+#define ZIS_STUB_SHR64ALC 11  /* shrmem64Alloc       */
+#define ZIS_STUB_SHR64AL2 12  /* shrmem64Alloc2      */
 #define ZIS_STUB_SHR64CAL 13  /* shrmem64CommonAlloc      */
 #define ZIS_STUB_SHR64CA2 14  /* shrmem64CommonAlloc2     */
-#define ZIS_STUB_SHR64REL 15  /* shrmem64Release    */
-#define ZIS_STUB_SHR64REA 16  /* shrmem64ReleaseAll */
+#define ZIS_STUB_SHR64REL 15  /* shrmem64Release          */
+#define ZIS_STUB_SHR64REA 16  /* shrmem64ReleaseAll       */
 
-#define ZIS_STUB_SHR64GAC 17  /* shrmem64GetAccess     */
-#define ZIS_STUB_SHR64GA2 18  /* shrmem64GetAccess2    */
-#define ZIS_STUB_SHR64RAC 19  /* shrmem64RemoveAccess  */
+#define ZIS_STUB_SHR64GAC 17  /* shrmem64GetAccess      */
+#define ZIS_STUB_SHR64GA2 18  /* shrmem64GetAccess2     */
+#define ZIS_STUB_SHR64RAC 19  /* shrmem64RemoveAccess   */
 #define ZIS_STUB_SHR64RA2 20  /* shrmem64RemoveAccess2  */
 
 #define ZIS_STUB_CPL64CRE 30  /* iarcp64Create */
@@ -389,3 +420,10 @@
 
 #endif
 
+#ifndef __LONGNAME__
+#define dynamicZISUndefinedStub DYNZISUD
+#define dynamicZISVersion DYNZISVR
+#endif 
+
+void dynamicZISUndefinedStub(void);
+int dynamicZISVersion();
