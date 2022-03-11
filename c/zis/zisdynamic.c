@@ -90,7 +90,12 @@ static int initZISDynamic(struct ZISContext_tag *context,
       rleAnchor->metalDynamicLinkageVector = stubVector;
     }
 
+    /* special initialization for slot 0 and all unused slots */
+    for (int s=0; s<MAX_ZIS_STUBS; s++){
+      stubVector[s] = (void*)dynamicZISUndefinedStub;
+    }
 
+    stubVector[ZIS_STUB_DYNZISVR] = (void*)dynamicZISVersion;
     stubVector[ZIS_STUB_SHR64TKN] = (void*)shrmem64GetAddressSpaceToken;
     stubVector[ZIS_STUB_SHR64ALC] = (void*)shrmem64Alloc;
     stubVector[ZIS_STUB_SHR64AL2] = (void*)shrmem64Alloc2;
@@ -437,6 +442,14 @@ static int handleZISDynamicCommands(struct ZISContext_tag *context,
   return RC_ZIS_PLUGIN_OK;
 }
 
+void dynamicZISUndefinedStub(void){
+  __asm(" ABEND 777,REASON=8 ":::);
+}
+
+int dynamicZISVersion(){
+  return ZIS_STUBS_VERSION;
+}
+
 ZISPlugin *getPluginDescriptor() {
   ZISPluginName pluginName = {.text = "ZISDYNAMIC      "};
   ZISPluginNickname pluginNickname = {.text = "ZDYN"};
@@ -454,6 +467,7 @@ ZISPlugin *getPluginDescriptor() {
 
   return plugin;
 }
+
 
 
 
