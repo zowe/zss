@@ -402,6 +402,7 @@ static int callPluginInit(ZISContext *context, ZISPlugin *plugin,
           status = RC_ZIS_ERROR;
         }
       }
+
     } else {
       zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
               ZIS_LOG_PLUGIN_FAILURE_MSG_PREFIX" plug-in init failed, "
@@ -586,9 +587,7 @@ static int installServices(ZISContext *context, ZISPlugin *plugin,
     }
 
     if (anchor == NULL) {
-
       anchor = zisCreateServiceAnchor(plugin, service);
-
       if (anchor == NULL) {
         zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE,
                 ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG, "service anchor");
@@ -1195,8 +1194,6 @@ static void printStopMessage(int status) {
            ZIS_LOG_CXMS_TERM_FAILURE_MSG, status);
   }
 }
-
-
 
 static void deployPlugins(ZISContext *context) {
   zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG, "Deploy the ZIS plugins\n");
