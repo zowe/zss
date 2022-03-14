@@ -1,5 +1,10 @@
 name: cppcheck-action-test
-on: [push]
+on:
+  push:
+    branches:
+      - v2.x/staging
+  pull_request:
+    types: [opened, reopened, synchronize]
 
 jobs:
   build:
@@ -7,16 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-          
-      - name: cppcheck
-        uses: deep5050/cppcheck-action@main
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN}}
-          force: enable
-          
-        
-      - name: publish report    
-        uses: mikeal/publish-to-github-action@master
+      
+      - name: '[Prep 2] Setup jFrog CLI'
+        uses: jfrog/setup-jfrog-cli@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH_NAME: 'v2.x/staging'
+          JF_ARTIFACTORY_1: ${{ secrets.JF_ARTIFACTORY_TOKEN }}
+          
+      - name: upload artifact      
+        uses: actions/upload-artifact@v3
+        with:
+          name: cppcheck_report.txt
+          path: /home/runner/work/zss/zss/cppcheck_report.txt
+          
