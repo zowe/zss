@@ -38,6 +38,7 @@ export _C89_ACCEPTABLE_RC=0
 
 if ! c89 \
   -c -O2 \
+  -DDEBUG=1 \
   -DPRODUCT_MAJOR_VERSION="$major" \
   -DPRODUCT_MINOR_VERSION="$minor" \
   -DPRODUCT_REVISION="$micro" \
