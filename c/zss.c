@@ -400,11 +400,11 @@ static void configureAndSetComponentLogLevel(LogComponentsMap *logComponent, Jso
     memset(logCompName, '\0', logCompLen);
     strcpy(logCompName, logCompPrefix);
     strcat(logCompName, logComponent->name);
+    logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name,
+                          LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
     if (jsonObjectHasKey(logLevels, logCompName)) {
       logLevel = jsonObjectGetNumber(logLevels, logCompName);
       if (isLogLevelValid(logLevel)) {
-        logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name,
-                              LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
         logSetLevel(NULL, logComponent->compID, logLevel);  
       }
     }
