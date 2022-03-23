@@ -152,6 +152,9 @@ fi
 export dir=`dirname "$0"`
 cd $ZSS_SCRIPT_DIR
 
+echo Show Environment
+env
+
 # determine amode for zssServer 
 ZSS_SERVER_31="./zssServer"
 ZSS_SERVER_64="./zssServer64"
