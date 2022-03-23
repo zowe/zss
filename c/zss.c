@@ -355,7 +355,7 @@ static int setMVDTrace(int toWhat) {
   int was = traceLevel;
   if (isLogLevelValid(toWhat)) {
     traceLevel = toWhat;
-    logSetLevel(NULL, LOG_COMP_ID_MVD_SERVER, toWhat);
+    logSetLevel(NULL, LOG_COMP_ID_MVD_SERVER, 5);
   } else {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_ALWAYS, ZSS_LOG_INC_LOG_LEVEL_MSG, toWhat);
   }
@@ -404,7 +404,7 @@ static void configureAndSetComponentLogLevel(LogComponentsMap *logComponent, Jso
     strcpy(logCompName, logCompPrefix);
     strcat(logCompName, logComponent->name);
     logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name,
-                      LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+                      LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_DEBUG3);
     if (jsonObjectHasKey(logLevels, logCompName)) {
       logLevel = jsonObjectGetNumber(logLevels, logCompName);
       if (isLogLevelValid(logLevel)) {
