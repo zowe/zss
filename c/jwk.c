@@ -220,7 +220,6 @@ static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientC
     __atoe_l(responseEbcdic, contentLength);
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JWK response: %s\n", responseEbcdic);
     char errorBuf[1024];
-    ShortLivedHeap *slh = session->slh;
     jsonBody = jsonParseUnterminatedUtf8String(slh, CCSID_IBM1047, body, contentLength, errorBuf, sizeof(errorBuf));
     if (!jsonBody) {
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "error parsing JSON response: %s\n", errorBuf);
