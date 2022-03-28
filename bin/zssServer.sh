@@ -165,11 +165,17 @@ else
   ZSS_SERVER="${ZSS_SERVER_31}"
 fi
 
+# This was used to log to stdout and a file at the same time, but it seems tee crashes if too much is logged at once
+# _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ./zssServer "${CONFIG_FILE}" 2>&1 | tee $ZWES_LOG_FILE
+
+# This is now used to log to stdout and file instead. tail seems to be fine with massive logging.
+touch $ZWES_LOG_FILE
+tail -f $ZWES_LOG_FILE &
 if [ -f "$CONFIG_FILE" ]
 then
-  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} "${CONFIG_FILE}" 2>&1 | tee $ZWES_LOG_FILE
+  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} "${CONFIG_FILE}" 2>&1 > $ZWES_LOG_FILE
 else
-  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} 2>&1 | tee $ZWES_LOG_FILE
+  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} 2>&1 > $ZWES_LOG_FILE
 fi
 # This program and the accompanying materials are
 # made available under the terms of the Eclipse Public License v2.0 which accompanies
