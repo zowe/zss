@@ -10,6 +10,10 @@ All notable changes to the ZSS package will be documented in this file.
 - Enhancement: New configuration option that allows to run 64-bit ZSS
 
 
+## `1.28.0`
+
+- Bugfix: Logging via tee could sometimes stop working if too much logging occurred at once. Tail is now used instead.
+
 ## `1.27.0`
 
 - Enhancement: Get public key for JWT signature verification using APIML
