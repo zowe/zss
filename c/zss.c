@@ -131,6 +131,8 @@ static bool readGatewaySettings(JsonObject *serverConfig, JsonObject *envConfig,
 static bool isMediationLayerEnabled(JsonObject *serverConfig, JsonObject *envConfig);
 static bool isCachingServiceEnabled(JsonObject *serverConfig, JsonObject *envConfig);
 static bool isJwtFallbackEnabled(JsonObject *serverConfig, JsonObject *envSettings);
+static void logLevelConfigurator(JsonObject *envSettings);
+static void readAndConfigureLogLevelFromEnv(LogComponentsMap *logComponent, JsonObject *envSettings, char *logCompPrefix);
 
 static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -403,11 +405,11 @@ static void configureAndSetComponentLogLevel(LogComponentsMap *logComponent, Jso
     memset(logCompName, '\0', logCompLen);
     strcpy(logCompName, logCompPrefix);
     strcat(logCompName, logComponent->name);
+    logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name,
+                      LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
     if (jsonObjectHasKey(logLevels, logCompName)) {
       logLevel = jsonObjectGetNumber(logLevels, logCompName);
       if (isLogLevelValid(logLevel)) {
-        logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name,
-                              LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
         logSetLevel(NULL, logComponent->compID, logLevel);  
       }
     }
@@ -1538,6 +1540,34 @@ static void initializePluginIDHashTable(HttpServer *server) {
   server->loggingIdsByName = htCreate(PLUGIN_ID_HT_BACKBONE_SIZE, hashPluginID, comparePluginID, NULL, NULL);
 }
 
+static void readAndConfigureLogLevelFromEnv(LogComponentsMap *logComponent, JsonObject *envSettings, char *logCompPrefix) {
+  int logLevel = ZOWE_LOG_NA;
+  char *logCompName = NULL;
+  int logCompLen = 0;
+  while (logComponent->name != NULL) {
+    logCompLen = strlen(logComponent->name) + strlen (logCompPrefix) + 1;
+    logCompName = (char*) safeMalloc(logCompLen, "Log Component Name");
+    memset(logCompName, '\0', logCompLen);
+    strcpy(logCompName, logCompPrefix);
+    strcat(logCompName, logComponent->name);
+    logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name,
+                          LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+    logLevel = getLogLevelsFromEnv(envSettings, logCompName);
+    if (isLogLevelValid(logLevel)) {
+      logSetLevel(NULL, logComponent->compID, logLevel);  
+    }
+    safeFree(logCompName, logCompLen);
+    ++logComponent;
+  }
+}
+
+static void logLevelConfigurator(JsonObject *envSettings) {
+  LogComponentsMap *logComponent = (LogComponentsMap *)logComponents;
+  readAndConfigureLogLevelFromEnv(logComponent, envSettings, LOGGING_COMPONENT_PREFIX);
+  LogComponentsMap *zssLogComponent = (LogComponentsMap *)zssLogComponents;
+  readAndConfigureLogLevelFromEnv(zssLogComponent, envSettings, LOGGING_COMPONENT_PREFIX);
+}
+
 #define ZSS_STATUS_OK     0
 #define ZSS_STATUS_ERROR  8
 
@@ -1600,6 +1630,7 @@ int main(int argc, char **argv){
     zssStatus = ZSS_STATUS_ERROR;
     goto out_term_stcbase;
   }
+  logLevelConfigurator(envSettings);
   JsonObject *mvdSettings = NULL;
   if (serverConfigFile) {
     mvdSettings = readServerSettings(slh, serverConfigFile);
