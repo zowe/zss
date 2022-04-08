@@ -14,6 +14,8 @@ keywords:
   - zss
   - appfw
 license: EPL-2.0
+schemas:
+  configs: schemas/zowe-schema.json
 repository:
   type: git
   url: https://github.com/zowe/zss.git
