@@ -55,8 +55,8 @@ int installOMVSService(HttpServer *server)
   HttpService *httpService = makeGeneratedService("OMVS_Service", "/omvs/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = &serveOMVSSegment;
-  httpService->runInSubtask = TRUE;
-  httpService->doImpersonation = TRUE;
+  httpService->runInSubtask = FALSE;
+  httpService->doImpersonation = FALSE;
   registerHttpService(server, httpService);
 
   return 0;
@@ -88,14 +88,14 @@ static int serveOMVSSegment(HttpService *service, HttpResponse *response)
   char command[COMMAND_BUFFER_SIZE + 1];
   sprintf(command, "LISTUSER (%s) OMVS", request->username);
 
-  OMVSSegment omvs;
+  OMVSSegment *__ptr32 omvs = (OMVSSegment*__ptr32)safeMalloc31(sizeof(OMVSSegment),"OMVSSegment31");
   /* If the request method is GET */
   if(!strcmp(request->method, methodGET))
   {
     /* Issue the RACF command that
      * gets the OMVS segment.
      */
-    int status = issueRACFCommand(command, &omvs);
+    int status = issueRACFCommand(command, omvs);
     if (status != 0)
     {
       setResponseStatus(response, 500, "Internal Server Error");
@@ -114,15 +114,15 @@ static int serveOMVSSegment(HttpService *service, HttpResponse *response)
       writeHeader(response);
 
       jsonStart(p);
-      jsonAddString(p, "uid", omvs.uid);
-      jsonAddString(p, "home", omvs.home);
-      jsonAddString(p, "program", omvs.program);
-      jsonAddString(p, "cpuTimeMax", omvs.cpuTimeMax);
-      jsonAddString(p, "assizeMax", omvs.assizeMax);
-      jsonAddString(p, "fileProcMax", omvs.fileProcMax);
-      jsonAddString(p, "procUserMax", omvs.procUserMax);
-      jsonAddString(p, "threadsMax", omvs.threadsMax);
-      jsonAddString(p, "mMapAreaMax", omvs.mMapAreaMax);
+      jsonAddString(p, "uid", omvs->uid);
+      jsonAddString(p, "home", omvs->home);
+      jsonAddString(p, "program", omvs->program);
+      jsonAddString(p, "cpuTimeMax", omvs->cpuTimeMax);
+      jsonAddString(p, "assizeMax", omvs->assizeMax);
+      jsonAddString(p, "fileProcMax", omvs->fileProcMax);
+      jsonAddString(p, "procUserMax", omvs->procUserMax);
+      jsonAddString(p, "threadsMax", omvs->threadsMax);
+      jsonAddString(p, "mMapAreaMax", omvs->mMapAreaMax);
       jsonEnd(p);
     }
   }
@@ -284,7 +284,7 @@ static int issueRACFCommand(char *command, OMVSSegment *omvs)
   if (radminRC != RC_RADMIN_OK)
   {
 #ifdef DEBUG
-    printf("error: radminRC: %d, safRC: %d, racfRC: %d, racfRSN: %d\n", radminRC, status.safRC, status.racfRC, status.racfRSN);
+    printf("error: radminRC: %d, safRC: %d, racfRC: %d, racfRSN: %d\n", radminRC, status.apiStatus.safRC, status.apiStatus.racfRC, status.apiStatus.racfRSN);
 #endif
     return radminRC;
   }

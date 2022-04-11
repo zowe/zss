@@ -20,6 +20,7 @@
 #include "crossmemory.h"
 #include "metalio.h"
 #include "zis/parm.h"
+#include "zis/message.h"
 #include "zis/server.h"
 
 #define IEFPRMLB_RECORD_SIZE 80
@@ -54,7 +55,7 @@ static int iterateMember(IEFPRMLBHeader *memberContent,
     int visitorRC = visitor(memberContent->records[recID],
                            IEFPRMLB_RECORD_SIZE, userData);
     if (visitorRC != 0) {
-      state = RC_ZISPARM_NONZERO_VISITOR_RC;
+      state = visitorRC;
       break;
     }
 
@@ -176,25 +177,23 @@ static const char *getTrimmedSlice(const char *string, unsigned int length,
   unsigned int resultLength = length;
 
   if (length == 0) {
+    *sliceLength = 0;
     return result;
   }
 
-  for (unsigned int i = 0; i < resultLength; i++) {
-    if (result[i] != ' ' || i == resultLength - 1) {
-      result = &result[i];
-      resultLength = resultLength - i;
+  for (unsigned int i = 0; i < length; i++) {
+    if (string[i] != ' ') {
+      result = &string[i];
       break;
     }
+    resultLength--;
   }
 
-
-  if (resultLength > 0) {
-    for (unsigned int i = resultLength - 1; i >= 0; i--) {
-      if (result[i] != ' ' || i == 0) {
-        resultLength = resultLength - ((resultLength - 1) - i);
-        break;
-      }
+  for (unsigned int i = length - 1; ; i--) {
+    if (resultLength == 0 || string[i] != ' ') {
+      break;
     }
+    resultLength--;
   }
 
   *sliceLength = resultLength;
@@ -210,47 +209,102 @@ typedef __packed struct ParmRecordVisitorData_tag {
 #define PARM_REC_VISITOR_DATA_EYECATCHER "RSZISPVD"
   ShortLivedHeap *slh;
   ZISParmSet *parmSet;
+  unsigned currRecordStart;
+  unsigned currRecordEnd;
+  unsigned currRecordLen;
+  char currRecord[4096];
 } ParmRecordVisitorData;
+
+static bool isParmCommentedOut(const char parm[], unsigned length) {
+  if (length >= 1 && !memcmp(parm, "*", 1)) {
+    return true;
+  }
+  if (length >= 3 && !memcmp(parm, "//*", 3)) {
+    return true;
+  }
+  return false;
+}
 
 static int handleParmRecord(const char *record,
                             unsigned int recordLength,
                             void *userData) {
 
+  zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG, ZIS_LOG_DEBUG_MSG_ID" rec(%u):",
+          recordLength);
+  zowedump(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG, (void *)record, recordLength);
+
   ParmRecordVisitorData *visitorContext = userData;
   ShortLivedHeap *slh = visitorContext->slh;
   ZISParmSet *parmSet = visitorContext->parmSet;
 
+  visitorContext->currRecordEnd++;
+  if (visitorContext->currRecordLen == 0) {
+    visitorContext->currRecordStart = visitorContext->currRecordEnd;
+  }
+
   unsigned int sliceLength = 0;
   const char *slice = getTrimmedSlice(record, recordLength, &sliceLength);
-  if (sliceLength > 0) {
+  zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG, ZIS_LOG_DEBUG_MSG_ID" trm(%u):",
+          sliceLength);
+  zowedump(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG, (void *)slice, sliceLength);
 
-    if (slice[0] == '*') {
-      return RC_ZISPARM_OK;
-    }
+  // skip comments if they're not part of continuation
+  if (visitorContext->currRecordLen == 0 &&
+      isParmCommentedOut(slice, sliceLength)) {
+    zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
+            ZIS_LOG_DEBUG_MSG_ID" parm comment");
+    return RC_ZISPARM_OK;
+  }
 
-    char *sliceNullTerm = SLHAlloc(slh, sliceLength + 1);
-    if (sliceNullTerm == NULL) {
-      return RC_ZISPARM_SLH_ALLOC_FAILED;
-    }
+  size_t totalRecordLength = visitorContext->currRecordLen + sliceLength + 1;
+  if (totalRecordLength > sizeof(visitorContext->currRecord)) {
+    return RC_ZISPARM_CONTINUATION_TOO_LONG;
+  }
 
-    memcpy(sliceNullTerm, slice, sliceLength);
-    sliceNullTerm[sliceLength] = '\0';
+  // concatenate records
+  memcpy(&visitorContext->currRecord[visitorContext->currRecordLen],
+         slice, sliceLength);
+  visitorContext->currRecordLen += sliceLength;
+  visitorContext->currRecord[visitorContext->currRecordLen] = '\0';
+  zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
+          ZIS_LOG_DEBUG_MSG_ID" curr_rec: lines=%u-%u, len=%u",
+          visitorContext->currRecordStart, visitorContext->currRecordEnd,
+          visitorContext->currRecordLen);
+  zowedump(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG, visitorContext->currRecord,
+           visitorContext->currRecordLen);
 
-    const char *key = sliceNullTerm;
-    const char *value = "";
+  // stop here if continuation is expected
+  if (sliceLength > 0 && slice[sliceLength - 1] == '\\') {
+    visitorContext->currRecord[visitorContext->currRecordLen - 1] = '\0';
+    visitorContext->currRecordLen--;
+    zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
+            ZIS_LOG_DEBUG_MSG_ID" continuation detected");
+    return RC_ZISPARM_OK;
+  }
 
-    char *eqSign = strchr(sliceNullTerm, '=');
+  // move the full parm record into separate storage
+  char *recordNullTerm = SLHAlloc(slh, visitorContext->currRecordLen + 1);
+  if (recordNullTerm == NULL) {
+    return RC_ZISPARM_SLH_ALLOC_FAILED;
+  }
+  memcpy(recordNullTerm, visitorContext->currRecord,
+         visitorContext->currRecordLen);
+  recordNullTerm[visitorContext->currRecordLen] = '\0';
+  visitorContext->currRecordLen = 0;
+  visitorContext->currRecord[0] = '\0';
 
-    if (eqSign != NULL) {
-      *eqSign = '\0';
-      value = eqSign + 1;
-    }
+  // get the key/value pair
+  const char *key = recordNullTerm;
+  const char *value = "";
+  char *eqSign = strchr(recordNullTerm, '=');
+  if (eqSign != NULL) {
+    *eqSign = '\0';
+    value = eqSign + 1;
+  }
 
-    int putRC = zisPutParmValue(parmSet, key, value);
-    if (putRC != RC_ZISPARM_OK) {
-      return putRC;
-    }
-
+  int putRC = zisPutParmValue(parmSet, key, value);
+  if (putRC != RC_ZISPARM_OK) {
+    return putRC;
   }
 
   return RC_ZISPARM_OK;
@@ -364,7 +418,6 @@ int zisReadParmlib(ZISParmSet *parms, const char *ddname, const char *member,
       break;
     }
 
-    unsigned int requiredBufferSize = 0;
     int readRSN = 0;
     int readRC = readLogicalParmLib(ddnameSpacePadded, memberNameSpacePadded,
                                     readBuffer, &readRSN);
@@ -395,6 +448,8 @@ int zisReadParmlib(ZISParmSet *parms, const char *ddname, const char *member,
     };
     int iterateRC = iterateMember(readBuffer, handleParmRecord, &visitorData);
     if (iterateRC != RC_ZISPARM_OK) {
+      readStatus->internalRC = visitorData.currRecordStart;
+      readStatus->internalRSN = visitorData.currRecordEnd;
       status = iterateRC;
     }
   }
@@ -411,9 +466,11 @@ int zisReadParmlib(ZISParmSet *parms, const char *ddname, const char *member,
     if (freeRC == RC_IEFPRMLB_OK) {
       ddnameAllocated = false;
     } else {
-      readStatus->internalRC = allocRC;
-      readStatus->internalRSN = allocRSN;
-      status = RC_ZISPARM_PARMLIB_FREE_FAILED;
+      if (status != RC_ZISPARM_OK) {
+        readStatus->internalRC = allocRC;
+        readStatus->internalRSN = allocRSN;
+        status = RC_ZISPARM_PARMLIB_FREE_FAILED;
+      }
     }
   }
 

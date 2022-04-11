@@ -64,38 +64,45 @@ if [ ! -f "$currentJsonConfigPath" ]; then
 fi
 
 APP_WORKSPACE_DIR=${INSTANCE_DIR}/workspace/app-server
-
-if [ -n "${STATIC_DEF_CONFIG_DIR}" ]
-then
-
-version=`grep "version" ${INSTANCE_DIR}/workspace/manifest.json |  head -1 | sed -e 's/"//g' | sed -e 's/.*: *//g' | sed -e 's/,.*//g'`
-
-# Add static definition for zss. TODO: Needs documentation
-cat <<EOF >${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml
-#
-services:
-  - serviceId: zss
-    title: Zowe System Services (ZSS)
-    description: 'Zowe System Services is an HTTPS and Websocket server that makes it easy to have secure, powerful web APIs backed by low-level z/OS constructs. It contains services for essential z/OS abilities such as working with files, datasets, and ESMs, but is also extensible by REST and Websocket "Dataservices" which are optionally present in App Framework "Plugins".'
-    catalogUiTileId: zss
-    instanceBaseUrls:
-      - http://${ZOWE_EXPLORER_HOST}:${ZOWE_ZSS_SERVER_PORT}/
-    homePageRelativeUrl:
-    routedServices:
-      - gatewayUrl: api/v1
-        serviceRelativeUrl: 
-    apiInfo:
-      - apiId: org.zowe.zss
-        gatewayUrl: api/v1
-        version: ${version}
-        # swaggerUrl: TODO
-        # documentationUrl: TODO
-catalogUiTiles:
-  zss:
-    title: Zowe System Services (ZSS)
-    description:  Zowe System Services is an HTTPS and Websocket server that makes it easy to have secure, powerful web APIs backed by low-level z/OS constructs.
-EOF
-iconv -f IBM-1047 -t IBM-850 ${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml > $STATIC_DEF_CONFIG_DIR/zss.yml
-rm ${STATIC_DEF_CONFIG_DIR}/zss.ebcidic.yml
-chmod 770 $STATIC_DEF_CONFIG_DIR/zss.yml
+if [ "${ZOWE_ZSS_SERVER_TLS}" = "false" ]; then
+  PROTOCOL="http"
+else
+  PROTOCOL="https"
 fi
+
+HTTPS_PREFIX="ZWED_agent_https_"
+
+if [ "${ZOWE_ZSS_SERVER_TLS}" = "false" ]
+then
+  # HTTP
+  export "ZWED_agent_http_port=${ZOWE_ZSS_SERVER_PORT}"
+else
+  # HTTPS
+  export "${HTTPS_PREFIX}port=${ZOWE_ZSS_SERVER_PORT}"
+  IP_ADDRESSES_KEY_var="${HTTPS_PREFIX}ipAddresses"
+  eval "IP_ADDRESSES_val=\"\$${IP_ADDRESSES_KEY_var}\""
+  if [ -z "${IP_ADDRESSES_val}" ]; then
+    export "${IP_ADDRESSES_KEY_var}"="${ZOWE_IP_ADDRESS}"
+  fi
+fi
+
+# Keystore settings are used for both https server and Caching Service
+export "${HTTPS_PREFIX}label=${KEY_ALIAS}"
+if [ "${KEYSTORE_TYPE}" = "JCERACFKS" ]; then
+  export "${HTTPS_PREFIX}keyring=${KEYRING_OWNER}/${KEYRING_NAME}"
+else
+  export "${HTTPS_PREFIX}keyring=${KEYSTORE}"
+  export "${HTTPS_PREFIX}password=${KEYSTORE_PASSWORD}"
+fi
+
+# xmem name customization
+if [ -z "$ZWED_privilegedServerName" ]
+then
+  if [ -n "$ZOWE_ZSS_XMEM_SERVER_NAME" ]
+  then
+    export ZWED_privilegedServerName=$ZOWE_ZSS_XMEM_SERVER_NAME
+  fi 
+fi
+
+# this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
+export ZLUX_ROOT_DIR=${ROOT_DIR}/components/app-server/share

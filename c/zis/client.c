@@ -27,6 +27,9 @@
 #include "zis/client.h"
 #include "zis/service.h"
 #include "zis/server.h"
+#ifdef __ZOWE_OS_ZOS
+#include "zos.h"
+#endif
 
 CrossMemoryServerName zisGetDefaultServerName() {
   return CMS_DEFAULT_SERVER_NAME;
@@ -134,6 +137,50 @@ static int authRequest(const CrossMemoryServerName *serverName,
   return rc;
 }
 
+/*
+ *   safIdt - a buffer for SAF IDT token. The buffer must be ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1 bytes long.
+ */
+int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
+                                const char *userName, const char *password,
+                                const char *safIdt,
+                                ZISAuthServiceStatus *status) {
+  AuthServiceParmList parmList = {0};
+
+  memcpy(&parmList.eyecatcher[0], ZIS_AUTH_SERVICE_PARMLIST_EYECATCHER,
+      sizeof(parmList.eyecatcher));
+  parmList.fc = ZIS_AUTH_SERVICE_PARMLIST_FC_VERIFY_PASSWORD;
+
+  if (strlen(userName) >= sizeof (parmList.userIDNullTerm)) {
+    status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
+    return RC_ZIS_SRVC_SERVICE_FAILED;
+  }
+  strncpy(parmList.userIDNullTerm, userName, sizeof(parmList.userIDNullTerm));
+
+  if (strlen(password) >= sizeof (parmList.passwordNullTerm)) {
+    status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
+    return RC_ZIS_SRVC_SERVICE_FAILED;
+  }
+  strncpy(parmList.passwordNullTerm, password, sizeof(parmList.passwordNullTerm));
+
+  parmList.options |= ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT;
+  parmList.safIdtLen = strlen(safIdt);
+
+  if (strlen(safIdt) >= sizeof(parmList.safIdt)) {
+    status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
+    return RC_ZIS_SRVC_SERVICE_FAILED;
+  }
+  memcpy((void *)parmList.safIdt, (void *)safIdt, strlen(safIdt));
+
+  int rc = authRequest(serverName, &parmList, status);
+
+  if (parmList.safIdtLen > 0) {
+    memset((void *)safIdt, 0, ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1);
+    memcpy((void *)safIdt, (void *)parmList.safIdt, parmList.safIdtLen);
+  }
+
+  return rc;
+}
+
 int zisCheckUsernameAndPassword(const CrossMemoryServerName *serverName,
                                 const char *userName, const char *password,
                                 ZISAuthServiceStatus *status) {
@@ -174,9 +221,14 @@ int zisCheckEntity(const CrossMemoryServerName *serverName,
     return RC_ZIS_SRVC_SERVICE_FAILED;
   }
   strncpy(parmList.classNullTerm, class, sizeof(parmList.classNullTerm));
-  if (strlen(entity) >= sizeof (parmList.entityNullTerm)) {
+  size_t entityLen = strlen(entity);
+  if (entityLen == 0) {
+    status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_SHORT;
+    return RC_ZIS_SRVC_SERVICE_FAILED;
+  }
+  if (entityLen >= sizeof (parmList.entityNullTerm)) {
     status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
-    return RC_ZIS_SRVC_SERVICE_FAILED;;
+    return RC_ZIS_SRVC_SERVICE_FAILED;
   }
   strncpy(parmList.entityNullTerm, entity, sizeof(parmList.entityNullTerm));
   return authRequest(serverName, &parmList, status);
@@ -1232,7 +1284,10 @@ static int zisCallServiceInternal(const CrossMemoryServerName *serverName,
     return RC_ZIS_SRVC_CMS_FAILED;
   }
 
-  if (routerRC != RC_ZIS_SRVC_OK) {
+  if (routerRC == RC_ZIS_SRVC_SPECIFIC_AUTH_FAILED){
+    status->serviceRC = routerRC;
+    return RC_ZIS_SRVC_SPECIFIC_AUTH_FAILED;
+  } else if (routerRC != RC_ZIS_SRVC_OK) {
     status->serviceRC = routerRC;
     return RC_ZIS_SRVC_SERVICE_FAILED;
   }

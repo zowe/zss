@@ -21,7 +21,7 @@ app = Flask(__name__)
 
 global_username = "mock"
 global_password = "pass"
-global_password_expired = True
+global_password_expired = False
 
 global_datasets = [
     {
@@ -38,6 +38,22 @@ global_datasets = [
             "maxRecordLen":150,
             "totalBlockSize":1500
         }
+    },
+    {
+        "name":"MOCK.ETAG",
+        "csiEntryType":"A",
+        "volser":"TSP121",
+        "recfm": {
+            "recordLength":"F",
+            "isBlocked":True,
+            "carriageControl":"unknown"
+        },
+        "dsorg": {
+            "organization":"sequential",
+            "maxRecordLen":150,
+            "totalBlockSize":1500
+        },
+        "etag": "12345678"
     },
     {
         "name":"MOCK.JCLLIB.TEST",
@@ -354,14 +370,28 @@ def dataset_contents(dataset):
                     return {
                         "records" : x.get('records', []) for x in data['members'] if x['name'] == dataset_names[1]
                     }
-        else:
+        elif dataset == '':
+            return {"error": "Invalid dataset name"}, 400
+        else :
             for data in global_datasets:
+                resp_data = {
+                    "records": x.get('records', []) for x in global_datasets if x['name'] == dataset
+                }
                 if dataset == data['name']:
-                    if data['volser'] == "MIGRAT":
-                        data['volser'] = genVolserId()
-            return {
-                "records": x.get('records', []) for x in global_datasets if x['name'] == dataset
-            }
+                    try:
+                        if data['volser'] == "MIGRAT":
+                            data['volser'] = genVolserId()
+                    except KeyError:
+                        pass
+                try:
+                    if dataset == "MOCK.ETAG":
+                        resp_data['etag'] = data['etag']
+                        resp = make_response(resp_data)
+                        resp.headers['etag'] = data['etag']
+                        return resp
+                except KeyError:
+                    pass
+            return make_response(resp_data)
     elif request.method == 'POST':
         if dataset.endswith(')'):
             dataset_names = dataset.replace(")","").split("(")
@@ -370,6 +400,22 @@ def dataset_contents(dataset):
                     for member in data['name']['members']:
                         if dataset_names[1] == member['name']:
                             member['records'] = request.get_data()['records']
+        else:
+            if dataset == "MOCK.ETAG":
+                request_data = request.get_json()
+                for data in global_datasets:
+                    if data['name'] == "MOCK.ETAG":
+                        if request_data and 'etag' in request_data:
+                            if request_data['etag'] == data['etag']:
+                                return {"msg": "Updated dataset //'MOCK.ETAG' with 4 records", "etag": "0E906ACEE13CF3C797C8049E66CC42DCB503FA18"}, 200
+                        if request.args.get('force') == 'true':
+                            return {"msg": "Updated dataset //'MOCK.ETAG' with 4 records", "etag": "0E906ACEE13CF3C797C8049E66CC42DCB503FA18"}, 200
+                        elif not request.headers.get('etag'):
+                            return "No etag given", 400
+                        elif request.headers.get('etag') != data['etag']:
+                            return "Provided etag did not match system etag. To write, read the dataset again and resolve the difference, then retry.", 400
+                        else:
+                            return {"msg": "Updated dataset //'MOCK.ETAG' with 4 records", "etag": "0E906ACEE13CF3C797C8049E66CC42DCB503FA18"}, 200
     elif request.method == 'DELETE':
         if dataset.endswith(')'):
             dataset_names = dataset.replace(")","").split("(")
@@ -381,14 +427,17 @@ def dataset_contents(dataset):
             global_datasets = [x for x in global_datasets if x['name'] != dataset]
             return {"msg": "Data set " + dataset + " was deleted successfully"}
 
-@app.route('/VSAMdatasetContents/<path:dataset>', methods=['DELETE', 'POST'])
+@app.route('/VSAMdatasetContents/<path:dataset>', methods=['GET', 'DELETE', 'POST'])
 def VSAMdataset_contents(dataset):
     global global_datasets
     if request.method == 'GET':
         for data in global_datasets:
             if dataset == data['name']:
-                if data['volser'] == "MIGRAT":
-                    data['volser'] = genVolserId()
+                try:
+                    if data['volser'] == "MIGRAT":
+                        data['volser'] = genVolserId()
+                except KeyError:
+                    pass
         return {
             "records": x.get('records', []) for x in global_datasets if x['name'] == dataset
         }

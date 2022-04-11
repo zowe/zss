@@ -13,6 +13,8 @@
 #ifndef MVD_H_ZSSLOGGING_H_
 #define MVD_H_ZSSLOGGING_H_
 
+#include "logging.h"
+
 #ifndef ZSS_LOG_ID
 #define ZSS_LOG_ID     "ZWE"
 #endif
@@ -38,6 +40,20 @@
 #define LOG_COMP_ID_SECURITY      0x008F000300030000
 #define LOG_COMP_ID_UNIXFILE      0x008F000300040000
 #define LOG_COMP_ID_DATASERVICE   0x008F000300050000
+#define LOG_COMP_ID_APIML_STORAGE 0x008F000300060000
+#define LOG_COMP_ID_JWK           0x008F000300070000
+
+#define ZSS_LOGGING_COMPONENTS_MAP(zssLogComponents)\
+ static const LogComponentsMap zssLogComponents[] = {\
+  {LOG_COMP_ID_MVD_SERVER, "mvdserver"},\
+  {LOG_COMP_ID_CTDS, "ctds"},\
+  {LOG_COMP_ID_SECURITY, "security"},\
+  {LOG_COMP_ID_UNIXFILE, "unixfile"},\
+  {LOG_COMP_ID_DATASERVICE, "dataservice"},\
+  {LOG_COMP_ID_APIML_STORAGE, "apimlstorage"},\
+  {LOG_COMP_ID_JWK, "jwk"},\
+  {0, NULL}\
+};
 
 bool isLogLevelValid(int level);
 
@@ -225,12 +241,6 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_JWT_KEYSTORE_NAME_MSG_TEXT   "Invalid JWT configuration: Keystore name is missing.\n"
 #define ZSS_LOG_JWT_KEYSTORE_NAME_MSG        ZSS_LOG_JWT_KEYSTORE_NAME_MSG_ID" "ZSS_LOG_JWT_KEYSTORE_NAME_MSG_TEXT
 
-#ifndef ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID
-#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID      ZSS_LOG_MSG_PRFX"1029I"
-#endif
-#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG_TEXT    "Will use JWT: PKCS#11 token '%s', key id '%s', '%s' fallback to legacy tokens\n"
-#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG         ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID" "ZSS_LOG_JWT_TOKEN_FALLBK_MSG_TEXT
-
 #ifndef ZSS_LOG_NO_LOAD_JWT_MSG_ID
 #define ZSS_LOG_NO_LOAD_JWT_MSG_ID           ZSS_LOG_MSG_PRFX"1030W"
 #endif
@@ -264,7 +274,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_ZSS_SETTINGS_MSG_ID
 #define ZSS_LOG_ZSS_SETTINGS_MSG_ID          ZSS_LOG_MSG_PRFX"1035I"
 #endif
-#define ZSS_LOG_ZSS_SETTINGS_MSG_TEXT        "ZSS Server settings: Address='%s', port='%d'\n"
+#define ZSS_LOG_ZSS_SETTINGS_MSG_TEXT        "ZSS Server settings: Address='%s', port='%d', protocol='%s'\n"
 #define ZSS_LOG_ZSS_SETTINGS_MSG             ZSS_LOG_ZSS_SETTINGS_MSG_ID" "ZSS_LOG_ZSS_SETTINGS_MSG_TEXT
 
 #ifndef ZSS_LOG_ZSS_STARTUP_MSG_ID
@@ -304,6 +314,71 @@ bool isLogLevelValid(int level);
 #endif
 #define ZSS_LOG_FAIL_RMF_FETCH_MSG_TEXT      "Failed to fetch RMF data: RC='%d'\n"
 #define ZSS_LOG_FAIL_RMF_FETCH_MSG           ZSS_LOG_FAIL_RMF_FETCH_MSG_ID" "ZSS_LOG_FAIL_RMF_FETCH_MSG_TEXT
+
+/* MVD Server (TLS) */
+#ifndef ZSS_LOG_TLS_INIT_MSG_ID
+#define ZSS_LOG_TLS_INIT_MSG_ID              ZSS_LOG_MSG_PRFX"1060W"
+#endif
+#define ZSS_LOG_TLS_INIT_MSG_TEXT            "Failed to init TLS environment, rc=%d(%s)\n"
+#define ZSS_LOG_TLS_INIT_MSG                 ZSS_LOG_TLS_INIT_MSG_ID" "ZSS_LOG_TLS_INIT_MSG_TEXT
+
+#ifndef ZSS_LOG_TLS_SETTINGS_MSG_ID
+#define ZSS_LOG_TLS_SETTINGS_MSG_ID          ZSS_LOG_MSG_PRFX"1061I"
+#endif
+#define ZSS_LOG_TLS_SETTINGS_MSG_TEXT        "TLS settings: keyring '%s', label '%s', password '%s', stash '%s'\n"
+#define ZSS_LOG_TLS_SETTINGS_MSG             ZSS_LOG_TLS_SETTINGS_MSG_ID" "ZSS_LOG_TLS_SETTINGS_MSG_TEXT
+
+#ifndef ZSS_LOG_ENV_SETTINGS_MSG_ID
+#define ZSS_LOG_ENV_SETTINGS_MSG_ID          ZSS_LOG_MSG_PRFX"1062E"
+#endif
+#define ZSS_LOG_ENV_SETTINGS_MSG_TEXT        "Failed to process environment variables\n"
+#define ZSS_LOG_ENV_SETTINGS_MSG             ZSS_LOG_ENV_SETTINGS_MSG_ID" "ZSS_LOG_ENV_SETTINGS_MSG_TEXT
+
+#ifndef ZSS_LOG_CACHE_SETTINGS_MSG_ID
+#define ZSS_LOG_CACHE_SETTINGS_MSG_ID        ZSS_LOG_MSG_PRFX"1063I"
+#endif
+#define ZSS_LOG_CACHE_SETTINGS_MSG_TEXT      "Caching Service settings: gateway host '%s', port %d\n",
+#define ZSS_LOG_CACHE_SETTINGS_MSG           ZSS_LOG_CACHE_SETTINGS_MSG_ID" "ZSS_LOG_CACHE_SETTINGS_MSG_TEXT
+
+#ifndef ZSS_LOG_CACHE_NOT_CFG_MSG_ID
+#define ZSS_LOG_CACHE_NOT_CFG_MSG_ID         ZSS_LOG_MSG_PRFX"1064I"
+#endif
+#define ZSS_LOG_CACHE_NOT_CFG_MSG_TEXT       "Caching Service not configured\n"
+#define ZSS_LOG_CACHE_NOT_CFG_MSG            ZSS_LOG_CACHE_NOT_CFG_MSG_ID" "ZSS_LOG_CACHE_NOT_CFG_MSG_TEXT
+
+#ifndef ZSS_LOG_HTTPS_INVALID_MSG_ID
+#define ZSS_LOG_HTTPS_INVALID_MSG_ID          ZSS_LOG_MSG_PRFX"1065E"
+#endif
+#define ZSS_LOG_HTTPS_INVALID_MSG_TEXT        "Failed to configure https server, check agent https settings\n"
+#define ZSS_LOG_HTTPS_INVALID_MSG             ZSS_LOG_HTTPS_INVALID_MSG_ID" "ZSS_LOG_HTTPS_INVALID_MSG_TEXT
+
+/* registerProduct */
+
+#ifndef ZSS_LOG_PROD_REG_ENABLED_MSG_ID
+#define ZSS_LOG_PROD_REG_ENABLED_MSG_ID       ZSS_LOG_MSG_PRFX"1100I"
+#endif
+#define ZSS_LOG_PROD_REG_ENABLED_MSG_TEXT     "Product Registration is enabled.\n"
+#define ZSS_LOG_PROD_REG_ENABLED_MSG          ZSS_LOG_PROD_REG_ENABLED_MSG_ID" "ZSS_LOG_PROD_REG_ENABLED_MSG_TEXT
+
+#ifndef ZSS_LOG_PROD_REG_DISABLED_MSG_ID
+#define ZSS_LOG_PROD_REG_DISABLED_MSG_ID      ZSS_LOG_MSG_PRFX"1101I"
+#endif
+#define ZSS_LOG_PROD_REG_DISABLED_MSG_TEXT    "Product Registration is disabled.\n"
+#define ZSS_LOG_PROD_REG_DISABLED_MSG         ZSS_LOG_PROD_REG_DISABLED_MSG_ID" "ZSS_LOG_PROD_REG_DISABLED_MSG_TEXT
+
+#ifndef ZSS_LOG_PROD_REG_RC_0_MSG_ID
+#define ZSS_LOG_PROD_REG_RC_0_MSG_ID          ZSS_LOG_MSG_PRFX"1102I"
+#endif
+#define ZSS_LOG_PROD_REG_RC_0_MSG_TEXT        "Product Registration RC = 0.\n"
+#define ZSS_LOG_PROD_REG_RC_0_MSG             ZSS_LOG_PROD_REG_RC_0_MSG_ID" "ZSS_LOG_PROD_REG_RC_0_MSG_TEXT
+
+#ifndef ZSS_LOG_PROD_REG_RC_MSG_ID
+#define ZSS_LOG_PROD_REG_RC_MSG_ID            ZSS_LOG_MSG_PRFX"1103W"
+#endif
+#define ZSS_LOG_PROD_REG_RC_MSG_TEXT          "Product Registration RC = %d\n"
+#define ZSS_LOG_PROD_REG_RC_MSG               ZSS_LOG_PROD_REG_RC_MSG_ID" "ZSS_LOG_PROD_REG_RC_MSG_TEXT
+
+
 
 /* Unixfile */
 
@@ -446,6 +521,57 @@ bool isLogLevelValid(int level);
 #endif
 #define ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG_TEXT  "Group-mgmt query string is invalid, ending request...\n"
 #define ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG       ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG_ID" "ZSS_LOG_GROUP_MGMT_QRY_DEL_MSG_TEXT
+
+/* PassTicket */
+#ifndef ZSS_LOG_PASSTICKET_GEN_FAILED_MSG_ID
+#define ZSS_LOG_PASSTICKET_GEN_FAILED_MSG_ID    ZSS_LOG_MSG_PRFX"1500E"
+#endif
+#define ZSS_LOG_PASSTICKET_GEN_FAILED_MSG_TEXT  "Failed to generate PassTicket - userId='%s', applId='%s', %s\n"
+#define ZSS_LOG_PASSTICKET_GEN_FAILED_MSG       ZSS_LOG_PASSTICKET_GEN_FAILED_MSG_ID" "ZSS_LOG_PASSTICKET_GEN_FAILED_MSG_TEXT
+
+/* JWK */
+
+#ifndef ZSS_LOG_JWK_URL_MSG_ID
+#define ZSS_LOG_JWK_URL_MSG_ID          ZSS_LOG_MSG_PRFX"1600I"
+#endif
+#define ZSS_LOG_JWK_URL_MSG_TEXT        "JWT will be configured using JWK URL https://%s:%d%s\n"
+#define ZSS_LOG_JWK_URL_MSG             ZSS_LOG_JWK_URL_MSG_ID" "ZSS_LOG_JWK_URL_MSG_TEXT
+
+#ifndef ZSS_LOG_JWK_READY_MSG_ID
+#define ZSS_LOG_JWK_READY_MSG_ID          ZSS_LOG_MSG_PRFX"1601I"
+#endif
+#define ZSS_LOG_JWK_READY_MSG_TEXT        "Server is ready to accept JWT %s fallback to legacy tokens\n"
+#define ZSS_LOG_JWK_READY_MSG             ZSS_LOG_JWK_READY_MSG_ID" "ZSS_LOG_JWK_READY_MSG_TEXT
+
+#ifndef ZSS_LOG_JWK_UNRECOGNIZED_MSG_ID
+#define ZSS_LOG_JWK_UNRECOGNIZED_MSG_ID     ZSS_LOG_MSG_PRFX"1602W"
+#endif
+#define ZSS_LOG_JWK_UNRECOGNIZED_MSG_TEXT   "JWK is in unrecognized format\n"
+#define ZSS_LOG_JWK_UNRECOGNIZED_MSG        ZSS_LOG_JWK_UNRECOGNIZED_MSG_ID" "ZSS_LOG_JWK_UNRECOGNIZED_MSG_TEXT
+
+#ifndef ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG_ID
+#define ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG_ID     ZSS_LOG_MSG_PRFX"1603W"
+#endif
+#define ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG_TEXT   "Failed to construct public key using JWK\n"
+#define ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG        ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG_ID" "ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG_TEXT
+
+#ifndef ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG_ID
+#define ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG_ID     ZSS_LOG_MSG_PRFX"1604W"
+#endif
+#define ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG_TEXT   "JWK: failed to init HTTP context, ensure that APIML and TLS settings are correct\n"
+#define ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG        ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG_ID" "ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG_TEXT
+
+#ifndef ZSS_LOG_JWK_FAILED_MSG_ID
+#define ZSS_LOG_JWK_FAILED_MSG_ID     ZSS_LOG_MSG_PRFX"1605W"
+#endif
+#define ZSS_LOG_JWK_FAILED_MSG_TEXT   "Server will not accept JWT\n"
+#define ZSS_LOG_JWK_FAILED_MSG        ZSS_LOG_JWK_FAILED_MSG_ID" "ZSS_LOG_JWK_FAILED_MSG_TEXT
+
+#ifndef ZSS_LOG_JWK_RETRY_MSG_ID
+#define ZSS_LOG_JWK_RETRY_MSG_ID     ZSS_LOG_MSG_PRFX"1606W"
+#endif
+#define ZSS_LOG_JWK_RETRY_MSG_TEXT   "Failed to get JWK - %s, retry in %d seconds\n"
+#define ZSS_LOG_JWK_RETRY_MSG        ZSS_LOG_JWK_RETRY_MSG_ID" "ZSS_LOG_JWK_RETRY_MSG_TEXT
 
 #endif /* MVD_H_ZSSLOGGING_H_ */
 

@@ -108,6 +108,10 @@
 #define ZIS_LOG_BAD_CONFIG_PARM_MSG_TEXT        "Parameter \'%s\' has an invalid value"
 #define ZIS_LOG_BAD_CONFIG_PARM_MSG             ZIS_LOG_BAD_CONFIG_PARM_MSG_ID" "ZIS_LOG_BAD_CONFIG_PARM_MSG_TEXT
 
+#define ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG_ID    ZIS_MSG_PRFX"0020E"
+#define ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG_TEXT  "ZSS Cross-Memory server PARMLIB member name not determined, RC = %d"
+#define ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG       ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG_ID" "ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG_TEXT
+
 /* ZIS AUX messages */
 
 #define ZISAUX_LOG_STARTUP_MSG_ID               ZIS_MSG_PRFX"0050I"
@@ -237,6 +241,10 @@
 #define ZISAUX_LOG_DUB_ERROR_MSG_ID             ZIS_MSG_PRFX"0081E"
 #define ZISAUX_LOG_DUB_ERROR_MSG_TEXT           "Bad dub status %d (%d,0x%04X), verify that the started task user has an OMVS segment"
 #define ZISAUX_LOG_DUB_ERROR_MSG                ZISAUX_LOG_DUB_ERROR_MSG_ID" "ZISAUX_LOG_DUB_ERROR_MSG_TEXT
+
+#define ZISAUX_LOG_LEGACY_API_MSG_ID            ZIS_MSG_PRFX"0082W"
+#define ZISAUX_LOG_LEGACY_API_MSG_TEXT          "Legacy API has been detected, some functionality may be limited"
+#define ZISAUX_LOG_LEGACY_API_MSG               ZISAUX_LOG_LEGACY_API_MSG_ID" "ZISAUX_LOG_LEGACY_API_MSG_TEXT
 
 #endif /* ZIS_MSG_H_ */
 
