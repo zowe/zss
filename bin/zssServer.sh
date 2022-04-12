@@ -164,9 +164,9 @@ fi
 
 if [ -f "$CONFIG_FILE" ]
 then
-  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} "${CONFIG_FILE}" 2>&1 | tee $ZWES_LOG_FILE
+  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ ${ZSS_SERVER} "${CONFIG_FILE}" 2>&1 | tee $ZWES_LOG_FILE
 else
-  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} 2>&1 | tee $ZWES_LOG_FILE
+  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ ${ZSS_SERVER} 2>&1 | tee $ZWES_LOG_FILE
 fi
 # This program and the accompanying materials are
 # made available under the terms of the Eclipse Public License v2.0 which accompanies
