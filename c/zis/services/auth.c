@@ -64,7 +64,7 @@ acee_deleted:
   return rc;
 }
 
-static int handleGenerateToken(TokenAuthServiceParmList *parmList,
+static int handleGenerateToken(AuthServiceParmList *parmList,
                                 const CrossMemoryServerGlobalArea *globalArea) {
     ACEE *acee = NULL;
       int safRC = 0, racfRC = 0, racfRsn = 0;
