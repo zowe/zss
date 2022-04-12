@@ -164,29 +164,29 @@ int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
   strncpy(parmList.passwordNullTerm, password, sizeof(parmList.passwordNullTerm));
 
   if (appl != NULL && strlen(appl) != 0) {
-    if (strlen(appl) >= sizeof (parmList.applNullTerm)) {
+    if (strlen(appl) >= sizeof (parmList.safIdtService.applNullTerm)) {
       status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
       return RC_ZIS_SRVC_SERVICE_FAILED;
     }
-    strcpy(parmList.applNullTerm, appl);
+    strcpy(parmList.safIdtService.applNullTerm, appl);
 
     parmList.options |= ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL;
   }
 
   parmList.options |= ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT;
-  parmList.safIdtLen = strlen(safIdt);
-
-  if (strlen(safIdt) >= sizeof(parmList.safIdt)) {
+  parmList.safIdtService.safIdtLen = strlen(safIdt);
+  parmList.safIdtService.safIdtServiceVersion = 1;
+  if (strlen(safIdt) >= sizeof(parmList.safIdtService.safIdt)) {
     status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
     return RC_ZIS_SRVC_SERVICE_FAILED;
   }
-  memcpy((void *)parmList.safIdt, (void *)safIdt, strlen(safIdt));
+  memcpy((void *)parmList.safIdtService.safIdt, (void *)safIdt, strlen(safIdt));
 
   int rc = authRequest(serverName, &parmList, status);
 
-  if (parmList.safIdtLen > 0) {
+  if (parmList.safIdtService.safIdtLen > 0) {
     memset((void *)safIdt, 0, ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1);
-    memcpy((void *)safIdt, (void *)parmList.safIdt, parmList.safIdtLen);
+    memcpy((void *)safIdt, (void *)parmList.safIdtService.safIdt, parmList.safIdtService.safIdtLen);
   }
 
   return rc;

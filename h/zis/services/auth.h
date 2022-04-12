@@ -68,10 +68,13 @@ typedef struct AuthServiceParmList_tag {
     AbendInfo abendInfo;
   };
   int traceLevel;
+  struct {
+  int safIdtServiceVersion;
   int safIdtLen;
   #define ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH (2 * IDTA_IDT_BUFFER_LEN_MIN)
   char safIdt[ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH];
   char applNullTerm[ZIS_AUTH_SERVICE_APPL_MAX_LENGTH + 1];
+  } safIdtService;
 } AuthServiceParmList;
 ZOWE_PRAGMA_PACK_RESET
 
@@ -95,6 +98,7 @@ int zisAuthServiceFunction(CrossMemoryServerGlobalArea *globalArea,
 #define RC_ZIS_AUTHSRV_CUSTOM_CLASS_NOT_ALLOWED   20
 #define RC_ZIS_AUTHSRV_INPUT_STRING_TOO_SHORT     21
 #define RC_ZIS_AUTHSRV_MAX_RC                     21
+#define RC_ZIS_AUTHSRV_BAD_SAF_SERVICE_VERSION    22
 
 #endif /* ZIS_SERVICES_AUTH_H_ */
 
