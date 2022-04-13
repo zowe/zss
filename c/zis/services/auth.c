@@ -83,9 +83,9 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
         idta->version = IDTA_VERSION_0001;
         idta->length = sizeof(IDTA);
         idta->idtType = IDTA_JWT_IDT_Type;
-        idta->idtBufferPtr = parmList->safIdtService->safIdt;
-        idta->idtBufferLen = sizeof(parmList->safIdtService->safIdt);
-        idta->idtLen = parmList->safIdtService->safIdtLen;
+        idta->idtBufferPtr = parmList->safIdtService.safIdt;
+        idta->idtBufferLen = sizeof(parmList->safIdtService.safIdt);
+        idta->idtLen = parmList->safIdtService.safIdtLen;
         idta->idtPropIn = IDTA_End_User_IDT;
         options |= VERIFY_GENERATE_IDT;
       }
@@ -94,7 +94,7 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
           parmList->userIDNullTerm, "******");
         if (parmList->options & ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL) {
           safRC = safVerify7(options, parmList->userIDNullTerm,
-            parmList->passwordNullTerm, &acee, parmList->safIdtService->applNullTerm, &racfRC, &racfRsn, idta);
+            parmList->passwordNullTerm, &acee, parmList->safIdtService.applNullTerm, &racfRC, &racfRsn, idta);
         } else {
           safRC = safVerify6(options, parmList->userIDNullTerm,
             parmList->passwordNullTerm, &acee, &racfRC, &racfRsn, idta);
@@ -114,7 +114,7 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
       }
 
       if (idta != NULL) {
-        parmList->safIdtService->safIdtLen = idta->idtLen;
+        parmList->safIdtService.safIdtLen = idta->idtLen;
       }
 
       deleteSAFRC = safVerify(VERIFY_DELETE, NULL, NULL, &acee, &deleteRACFRC,
