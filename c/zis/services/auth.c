@@ -67,7 +67,7 @@ acee_deleted:
 static int handleGenerateToken(AuthServiceParmList *parmList,
                                 const CrossMemoryServerGlobalArea *globalArea) {
        if(parmList->safIdtService.safIdtServiceVersion > 1) {
-       return RC_ZIS_AUTHSRV_BAD_SAF_SERVICE_VERSION;
+            return RC_ZIS_AUTHSRV_BAD_SAF_SERVICE_VERSION;
        }
     ACEE *acee = NULL;
       int safRC = 0, racfRC = 0, racfRsn = 0;

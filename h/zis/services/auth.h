@@ -45,6 +45,14 @@ typedef struct AbendInfo_tag {
 #define ZIS_AUTH_SERVICE_ENTITY_MAX_LENGTH      255
 #define ZIS_AUTH_SERVICE_APPL_MAX_LENGTH     8
 
+typedef struct SafIdtService_tag{
+  int safIdtServiceVersion;
+  int safIdtLen;
+  #define ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH (2 * IDTA_IDT_BUFFER_LEN_MIN)
+  char safIdt[ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH];
+  char applNullTerm[ZIS_AUTH_SERVICE_APPL_MAX_LENGTH + 1];
+} SafIdtService;
+
 typedef struct AuthServiceParmList_tag {
   char eyecatcher[8];
 #define ZIS_AUTH_SERVICE_PARMLIST_EYECATCHER   "RSCMPASS"
@@ -68,13 +76,7 @@ typedef struct AuthServiceParmList_tag {
     AbendInfo abendInfo;
   };
   int traceLevel;
-  struct {
-  int safIdtServiceVersion;
-  int safIdtLen;
-  #define ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH (2 * IDTA_IDT_BUFFER_LEN_MIN)
-  char safIdt[ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH];
-  char applNullTerm[ZIS_AUTH_SERVICE_APPL_MAX_LENGTH + 1];
-  } safIdtService;
+  SafIdtService safIdtService;
 } AuthServiceParmList;
 ZOWE_PRAGMA_PACK_RESET
 
