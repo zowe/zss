@@ -162,11 +162,18 @@ else
   ZSS_SERVER="${ZSS_SERVER_31}"
 fi
 
-if [ -f "$CONFIG_FILE" ]
-then
-  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} "${CONFIG_FILE}" 2>&1 | tee $ZWES_LOG_FILE
+if [ -f "$CONFIG_FILE" ]; then
+  if [ "$ZWES_LOG_FILE" = "/dev/null" ]; then
+    _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} "${CONFIG_FILE}" 2>&1
+  else
+    _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} "${CONFIG_FILE}" 2>&1 | tee $ZWES_LOG_FILE
+  fi
 else
-  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} 2>&1 | tee $ZWES_LOG_FILE
+  if [ "$ZWES_LOG_FILE" = "/dev/null" ]; then
+    _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} 2>&1
+  else
+    _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ${ZSS_SERVER} 2>&1 | tee $ZWES_LOG_FILE
+  fi
 fi
 # This program and the accompanying materials are
 # made available under the terms of the Eclipse Public License v2.0 which accompanies
