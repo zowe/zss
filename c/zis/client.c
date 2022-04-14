@@ -149,7 +149,7 @@ int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
 
   memcpy(&parmList.eyecatcher[0], ZIS_AUTH_SERVICE_PARMLIST_EYECATCHER,
       sizeof(parmList.eyecatcher));
-  parmList.fc = ZIS_AUTH_SERVICE_PARMLIST_FC_VERIFY_PASSWORD;
+  parmList.fc = ZIS_AUTH_SERVICE_PARMLIST_FC_GENERATE_TOKEN;
 
   if (strlen(userName) >= sizeof (parmList.userIDNullTerm)) {
     status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
