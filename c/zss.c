@@ -1167,7 +1167,7 @@ static void readAgentAddressAndPort(JsonObject *serverConfig, JsonObject *envCon
 static char* generateCookieName(JsonObject *envConfig, int port) {
   int cookieLength=256;
   char *cookieName = safeMalloc(cookieLength+1, "CookieName");
-  char *zoweInstanceId = getenv("ZOWE_INSTANCE");
+  char *zoweInstanceId = getenv("ZWE_zowe_cookieIdentifier");
   char *haInstanceCountStr = getenv("ZWE_HA_INSTANCES_COUNT");
   int haInstanceCount=0;
   if (haInstanceCountStr != NULL) {
