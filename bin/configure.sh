@@ -80,10 +80,12 @@ if [ "${ZWE_zowe_certificate_keystore_type}" = "JCERACFKS" ]; then
   export "${HTTPS_PREFIX}keyring=${ZWE_zowe_certificate_keystore_file}"
   case "${ZWE_zowe_certificate_keystore_file}" in
     safkeyring:////*)
-      export ZWED_node_mediationLayer_enabled=$(echo $ZWE_zowe_certificate_keystore_file | cut -c 16-)
+      trimmed=$(echo $ZWE_zowe_certificate_keystore_file | cut -c 16-)
+      export "${HTTPS_PREFIX}keyring=$trimmed"
     ;;
     safkeyring://*)
-      export ZWED_node_mediationLayer_enabled=$(echo $ZWE_zowe_certificate_keystore_file | cut -c 14-)
+      trimmed=$(echo $ZWE_zowe_certificate_keystore_file | cut -c 14-)
+      export "${HTTPS_PREFIX}keyring=$trimmed"
     ;;
   esac
 else
