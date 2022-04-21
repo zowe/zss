@@ -57,7 +57,7 @@ static int handleVerifyPassword(AuthServiceParmList *parmList,
   if (deleteSAFRC != 0) {
     rc = RC_ZIS_AUTHSRV_DELETE_FAILED;
   }
-acee_deleted:
+  acee_deleted:
 
   FILL_SAF_STATUS(&parmList->safStatus, safRC, racfRC, racfRsn);
   CMS_DEBUG(globalArea, "handleVerifyPassword() done\n");
@@ -66,74 +66,77 @@ acee_deleted:
 
 static int handleGenerateToken(AuthServiceParmList *parmList,
                                 const CrossMemoryServerGlobalArea *globalArea) {
-       if(parmList->safIdtService.safIdtServiceVersion > 1) {
-            return RC_ZIS_AUTHSRV_BAD_SAF_SERVICE_VERSION;
-       }
-    ACEE *acee = NULL;
-      int safRC = 0, racfRC = 0, racfRsn = 0;
-      int deleteSAFRC = 0, deleteRACFRC = 0, deleteRACFRsn = 0;
-      int rc = RC_ZIS_AUTHSRV_OK;
-      IDTA *idta = NULL;
-      int options = VERIFY_CREATE;
+   if(parmList->safIdtService.safIdtServiceVersion < SAF_IDT_SERVICE_CURRENT_VERSION) {
+        return RC_ZIS_AUTHSRV_BAD_SAF_SERVICE_VERSION;
+   }
+   ACEE *acee = NULL;
+   int safRC = 0, racfRC = 0, racfRsn = 0;
+   int deleteSAFRC = 0, deleteRACFRC = 0, deleteRACFRsn = 0;
+   int rc = RC_ZIS_AUTHSRV_OK;
+   IDTA *idta = NULL;
+   int options = VERIFY_CREATE;
 
-      if (parmList->options & ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT) {
-        idta = (IDTA *) safeMalloc31(sizeof(IDTA), "Idta structure");
-        memset(idta, 0, sizeof(IDTA));
-        memcpy(idta->id, "IDTA", 4);
-        idta->version = IDTA_VERSION_0001;
-        idta->length = sizeof(IDTA);
-        idta->idtType = IDTA_JWT_IDT_Type;
-        idta->idtBufferPtr = parmList->safIdtService.safIdt;
-        idta->idtBufferLen = sizeof(parmList->safIdtService.safIdt);
-        idta->idtLen = parmList->safIdtService.safIdtLen;
-        idta->idtPropIn = IDTA_End_User_IDT;
-        options |= VERIFY_GENERATE_IDT;
-      }
 
-      CMS_DEBUG(globalArea, "handleGenerateToken(): username = %s, password = %s\n",
-          parmList->userIDNullTerm, "******");
-        if (parmList->options & ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL) {
-          safRC = safVerify7(options, parmList->userIDNullTerm,
-            parmList->passwordNullTerm, &acee, parmList->safIdtService.applNullTerm, &racfRC, &racfRsn, idta);
-        } else {
-          safRC = safVerify6(options, parmList->userIDNullTerm,
-            parmList->passwordNullTerm, &acee, &racfRC, &racfRsn, idta);
-        }
+  idta = (IDTA *) safeMalloc31(sizeof(IDTA), "Idta structure");
+  if(idta == NULL) {
+        return RC_ZIS_AUTHSRV_IDT_NULL;
+  }
+  memset(idta, 0, sizeof(IDTA));
+  memcpy(idta->id, "IDTA", 4);
+  idta->version = IDTA_VERSION_0001;
+  idta->length = sizeof(IDTA);
+  idta->idtType = IDTA_JWT_IDT_Type;
+  idta->idtBufferPtr = parmList->safIdtService.safIdt;
+  idta->idtBufferLen = sizeof(parmList->safIdtService.safIdt);
+  idta->idtLen = parmList->safIdtService.safIdtLen;
+  idta->idtPropIn = IDTA_End_User_IDT;
+  options |= VERIFY_GENERATE_IDT;
 
-      CMS_DEBUG(globalArea, "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
-          "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
-      if (idta != NULL) {
-        CMS_DEBUG(globalArea, "IDTA token: gen_rc = %d, prop_out = %X, prop_in = %X "
-          "token length = %d\n", idta->idtGenRc, idta->idtPropOut, idta->idtPropIn,
-          idta->idtLen);
-      }
 
-      if (safRC != 0) {
-        rc = RC_ZIS_AUTHSRV_SAF_ERROR;
-        goto acee_deleted;
-      }
+  CMS_DEBUG(globalArea, "handleGenerateToken(): username = %s, password = %s\n",
+      parmList->userIDNullTerm, "******");
+  if (parmList->options & ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL) {
+    safRC = safVerify7(options, parmList->userIDNullTerm,
+    parmList->passwordNullTerm, &acee, parmList->safIdtService.applNullTerm, &racfRC, &racfRsn, idta);
+  } else {
+    safRC = safVerify6(options, parmList->userIDNullTerm,
+    parmList->passwordNullTerm, &acee, &racfRC, &racfRsn, idta);
+  }
 
-      if (idta != NULL) {
-        parmList->safIdtService.safIdtLen = idta->idtLen;
-      }
+  CMS_DEBUG(globalArea, "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
+      "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
+  if (idta != NULL) {
+    CMS_DEBUG(globalArea, "IDTA token: gen_rc = %d, prop_out = %X, prop_in = %X "
+      "token length = %d\n", idta->idtGenRc, idta->idtPropOut, idta->idtPropIn,
+      idta->idtLen);
+  }
 
-      deleteSAFRC = safVerify(VERIFY_DELETE, NULL, NULL, &acee, &deleteRACFRC,
-          &deleteRACFRsn);
-      CMS_DEBUG(globalArea, "safVerify(VERIFY_DELETE) safStatus = %d, RACF RC = %d, "
-          "RSN = %d, ACEE=0x%p\n", deleteSAFRC, deleteRACFRC, deleteRACFRsn,
-          acee);
-      if (deleteSAFRC != 0) {
-        rc = RC_ZIS_AUTHSRV_DELETE_FAILED;
-      }
-    acee_deleted:
+  if (safRC != 0) {
+    rc = RC_ZIS_AUTHSRV_SAF_ERROR;
+    goto acee_deleted;
+  }
 
-      FILL_SAF_STATUS(&parmList->safStatus, safRC, racfRC, racfRsn);
-      CMS_DEBUG(globalArea, "handleVerifyPassword() done\n");
-      if (idta != NULL) {
-        safeFree(idta, sizeof(IDTA));
-        idta = NULL;
-      }
-      return rc;
+  if (idta != NULL) {
+    parmList->safIdtService.safIdtLen = idta->idtLen;
+  }
+
+  deleteSAFRC = safVerify(VERIFY_DELETE, NULL, NULL, &acee, &deleteRACFRC,
+      &deleteRACFRsn);
+  CMS_DEBUG(globalArea, "safVerify(VERIFY_DELETE) safStatus = %d, RACF RC = %d, "
+      "RSN = %d, ACEE=0x%p\n", deleteSAFRC, deleteRACFRC, deleteRACFRsn,
+      acee);
+  if (deleteSAFRC != 0) {
+    rc = RC_ZIS_AUTHSRV_DELETE_FAILED;
+  }
+  acee_deleted:
+
+  FILL_SAF_STATUS(&parmList->safStatus, safRC, racfRC, racfRsn);
+  CMS_DEBUG(globalArea, "handleVerifyPassword() done\n");
+  if (idta != NULL) {
+    safeFree(idta, sizeof(IDTA));
+    idta = NULL;
+  }
+  return rc;
 }
 
 typedef struct AuthClass_tag {
