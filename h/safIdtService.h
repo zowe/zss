@@ -15,6 +15,8 @@
 
 void installSAFIdtTokenService(HttpServer *server);
 
+#define ZIS_AUTH_SERVICE_APPL_MAX_LENGTH     8
+
 /* The #define for ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT has been deprecated, and will be removed
    in the future.
   */
