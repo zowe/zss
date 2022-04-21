@@ -12,6 +12,7 @@
 #define __SAF_IDT_SERVICE_H__
 
 #include "httpserver.h"
+#include "zos.h"
 
 void installSAFIdtTokenService(HttpServer *server);
 
