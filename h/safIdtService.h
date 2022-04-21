@@ -15,8 +15,6 @@
 
 void installSAFIdtTokenService(HttpServer *server);
 
-#define ZIS_AUTH_SERVICE_APPL_MAX_LENGTH     8
-
 #endif /* __SAF_IDT_SERVICE_H__ */
 
 
