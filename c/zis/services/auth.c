@@ -26,7 +26,7 @@
 
 #include "zis/utils.h"
 #include "zis/services/auth.h"
-
+#include "safIdtService.h"
 #define ZIS_PARMLIB_PARM_AUTH_USER_CLASS    CMS_PROD_ID".AUTH.CLASS"
 
 static int handleVerifyPassword(AuthServiceParmList *parmList,

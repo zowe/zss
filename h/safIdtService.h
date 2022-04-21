@@ -15,6 +15,19 @@
 
 void installSAFIdtTokenService(HttpServer *server);
 
+/* The #define for ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT has been deprecated, and will be removed
+   in the future.
+  */
+typedef struct SafIdtService_tag{
+  int safIdtServiceVersion;
+  int safIdtLen;
+  #define ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH (2 * IDTA_IDT_BUFFER_LEN_MIN)
+  #define ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT 0x80
+  #define ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL 0x40
+  char safIdt[ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH];
+  char applNullTerm[ZIS_AUTH_SERVICE_APPL_MAX_LENGTH + 1];
+} SafIdtService;
+
 #endif /* __SAF_IDT_SERVICE_H__ */
 
 

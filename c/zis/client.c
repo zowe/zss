@@ -29,6 +29,7 @@
 #include "zis/server.h"
 #ifdef __ZOWE_OS_ZOS
 #include "zos.h"
+#include "safIdtService.h"
 #endif
 
 CrossMemoryServerName zisGetDefaultServerName() {
@@ -173,7 +174,6 @@ int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
     parmList.options |= ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL;
   }
 
-  parmList.options |= ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT;
   parmList.safIdtService.safIdtLen = strlen(safIdt);
   parmList.safIdtService.safIdtServiceVersion = 1;
   if (strlen(safIdt) >= sizeof(parmList.safIdtService.safIdt)) {
