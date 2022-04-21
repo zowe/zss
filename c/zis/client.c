@@ -27,9 +27,9 @@
 #include "zis/client.h"
 #include "zis/service.h"
 #include "zis/server.h"
+#include "safIdtService.h"
 #ifdef __ZOWE_OS_ZOS
 #include "zos.h"
-#include "safIdtService.h"
 #endif
 
 CrossMemoryServerName zisGetDefaultServerName() {
