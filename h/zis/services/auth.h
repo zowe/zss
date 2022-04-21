@@ -13,7 +13,7 @@
 #ifndef ZIS_SERVICES_AUTH_H_
 #define ZIS_SERVICES_AUTH_H_
 
-#include "../../safIdService.h"
+#include "safIdtService.h"
 
 #define ZIS_SERVICE_ID_AUTH_SRV                   11
 
