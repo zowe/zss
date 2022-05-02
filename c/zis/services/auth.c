@@ -73,25 +73,20 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
    int safRC = 0, racfRC = 0, racfRsn = 0;
    int deleteSAFRC = 0, deleteRACFRC = 0, deleteRACFRsn = 0;
    int rc = RC_ZIS_AUTHSRV_OK;
-   IDTA *idta = NULL;
+
    int options = VERIFY_CREATE;
 
-
-  idta = (IDTA *) safeMalloc31(sizeof(IDTA), "Idta structure");
-  if(idta == NULL) {
-        return RC_ZIS_AUTHSRV_IDT_NULL;
-  }
-  memset(idta, 0, sizeof(IDTA));
-  memcpy(idta->id, "IDTA", 4);
-  idta->version = IDTA_VERSION_0001;
-  idta->length = sizeof(IDTA);
-  idta->idtType = IDTA_JWT_IDT_Type;
-  idta->idtBufferPtr = parmList->safIdtService.safIdt;
-  idta->idtBufferLen = sizeof(parmList->safIdtService.safIdt);
-  idta->idtLen = parmList->safIdtService.safIdtLen;
-  idta->idtPropIn = IDTA_End_User_IDT;
-  options |= VERIFY_GENERATE_IDT;
-
+    IDTA idta = {
+      .eyecatcher = "IDTA",
+      .version = IDTA_VERSION_0001,
+      .length = sizeof(IDTA),
+      .idtBufferPtr = parmList->safIdtService.safIdt,
+      .idtBufferLen = sizeof(parmList->safIdtService.safIdt),
+      .idtLen = parmList->safIdtService.safIdtLen,
+      .idtType = IDTA_JWT_IDT_Type,
+      .options = VERIFY_GENERATE_IDT,
+      .idtPropIn = IDTA_End_User_IDT,
+    };
 
   CMS_DEBUG(globalArea, "handleGenerateToken(): username = %s, password = %s\n",
       parmList->userIDNullTerm, "******");
