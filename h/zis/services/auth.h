@@ -45,7 +45,7 @@ typedef struct AbendInfo_tag {
 #define ZIS_AUTH_SERVICE_ENTITY_MAX_LENGTH      255
 #define ZIS_AUTH_SERVICE_APPL_MAX_LENGTH     8
 
-#define SAF_IDT_SERVICE_CURRENT_VERSION         1
+#define ZIS_SAF_IDT_SERVICE_CURRENT_VERSION         1
 
 /* The #define for ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT has been deprecated, and will be removed
    in the future.
@@ -73,7 +73,7 @@ typedef struct AuthServiceParmList_tag {
   /* up to 8 characters: */
   char classNullTerm[ZIS_AUTH_SERVICE_CLASS_MAX_LENGTH + 1];
   char options;
-
+#define ZIS_AUTH_SERVICE_PARMLIST_OPTION_RESERVED 0x80
   int access;
   /* up to 255 characters: */
   char entityNullTerm[ZIS_AUTH_SERVICE_ENTITY_MAX_LENGTH + 1];

@@ -423,12 +423,12 @@ int zisCallNWMService(const CrossMemoryServerName *serverName,
 int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
                                 const char *userName, const char *password,
                                 const char *appl,
-                                const char *safIdt,
+                                char *safIdt,
                                 ZISAuthServiceStatus *status);
 
 int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
                                 const char *userName, const char *password,
-                                const char *safIdt,
+                                char *safIdt,
                                 ZISAuthServiceStatus *status);
 
 #endif /* ZIS_CLIENT_H_ */

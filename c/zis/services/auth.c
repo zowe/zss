@@ -66,7 +66,7 @@ static int handleVerifyPassword(AuthServiceParmList *parmList,
 
 static int handleGenerateToken(AuthServiceParmList *parmList,
                                 const CrossMemoryServerGlobalArea *globalArea) {
-   if(parmList->safIdtService.safIdtServiceVersion < SAF_IDT_SERVICE_CURRENT_VERSION) {
+   if(parmList->safIdtService.safIdtServiceVersion > ZIS_SAF_IDT_SERVICE_CURRENT_VERSION) {
         return RC_ZIS_AUTHSRV_BAD_SAF_SERVICE_VERSION;
    }
    ACEE *acee = NULL;
