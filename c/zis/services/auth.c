@@ -76,18 +76,19 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
 
    int options = VERIFY_CREATE;
 
-    IDTA idta = {
-      .eyecatcher = "IDTA",
+    IDTA idtaVar = {
       .version = IDTA_VERSION_0001,
       .length = sizeof(IDTA),
       .idtBufferPtr = parmList->safIdtService.safIdt,
       .idtBufferLen = sizeof(parmList->safIdtService.safIdt),
       .idtLen = parmList->safIdtService.safIdtLen,
       .idtType = IDTA_JWT_IDT_Type,
-      .options = VERIFY_GENERATE_IDT,
       .idtPropIn = IDTA_End_User_IDT,
     };
-
+    IDTA *idta = &idtaVar
+    memset(idta, 0, sizeof(IDTA));
+    memcpy(idta->id, "IDTA", 4);
+    options |= VERIFY_GENERATE_IDT;
   CMS_DEBUG(globalArea, "handleGenerateToken(): username = %s, password = %s\n",
       parmList->userIDNullTerm, "******");
   if (parmList->options & ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL) {
