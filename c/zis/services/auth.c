@@ -85,7 +85,7 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
       .idtType = IDTA_JWT_IDT_Type,
       .idtPropIn = IDTA_End_User_IDT,
     };
-    IDTA *idta = &idtaVar
+    IDTA *idta = &idtaVar;
     memset(idta, 0, sizeof(IDTA));
     memcpy(idta->id, "IDTA", 4);
     options |= VERIFY_GENERATE_IDT;
