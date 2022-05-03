@@ -125,7 +125,7 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
   acee_deleted:
 
   FILL_SAF_STATUS(&parmList->safStatus, safRC, racfRC, racfRsn);
-  CMS_DEBUG(globalArea, "handleGenerateToken() done\n");
+  CMS_DEBUG(globalArea, "handleGenerateToken() done rc = &d\n",rc);
   if (idta != NULL) {
     safeFree(idta, sizeof(IDTA));
     idta = NULL;
