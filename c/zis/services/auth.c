@@ -73,22 +73,22 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
    int safRC = 0, racfRC = 0, racfRsn = 0;
    int deleteSAFRC = 0, deleteRACFRC = 0, deleteRACFRsn = 0;
    int rc = RC_ZIS_AUTHSRV_OK;
-
+   IDTA *idta = NULL;
    int options = VERIFY_CREATE;
 
-    IDTA idtaVar = {
-      .version = IDTA_VERSION_0001,
-      .length = sizeof(IDTA),
-      .idtBufferPtr = parmList->safIdtService.safIdt,
-      .idtBufferLen = sizeof(parmList->safIdtService.safIdt),
-      .idtLen = parmList->safIdtService.safIdtLen,
-      .idtType = IDTA_JWT_IDT_Type,
-      .idtPropIn = IDTA_End_User_IDT,
-    };
-    IDTA *idta = &idtaVar;
+    idta = (IDTA *) safeMalloc31(sizeof(IDTA), "Idta structure");
+
     memset(idta, 0, sizeof(IDTA));
     memcpy(idta->id, "IDTA", 4);
+    idta->version = IDTA_VERSION_0001;
+    idta->length = sizeof(IDTA);
+    idta->idtType = IDTA_JWT_IDT_Type;
+    idta->idtBufferPtr = parmList->safIdtService.safIdt;
+    idta->idtBufferLen = sizeof(parmList->safIdtService.safIdt);
+    idta->idtLen = parmList->safIdtService.safIdtLen;
+    idta->idtPropIn = IDTA_End_User_IDT;
     options |= VERIFY_GENERATE_IDT;
+
   CMS_DEBUG(globalArea, "handleGenerateToken(): username = %s, password = %s\n",
       parmList->userIDNullTerm, "******");
   if (parmList->options & ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL) {
@@ -127,7 +127,7 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
   acee_deleted:
 
   FILL_SAF_STATUS(&parmList->safStatus, safRC, racfRC, racfRsn);
-  CMS_DEBUG(globalArea, "handleVerifyPassword() done\n");
+  CMS_DEBUG(globalArea, "handleGenerateToken() done\n");
   if (idta != NULL) {
     safeFree(idta, sizeof(IDTA));
     idta = NULL;
