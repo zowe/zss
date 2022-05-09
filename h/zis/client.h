@@ -421,12 +421,21 @@ int zisCallNWMService(const CrossMemoryServerName *serverName,
 #define RC_ZIS_SRVC_NWM_BUFFER_NULL               (ZIS_MAX_GEN_SRVC_RC + 1)
 
 /**
- * @brief This function generates the SAF ID token for @userName and @password is provided and @safIdt is empty.
- * This function validates token in @safIdt for user in @userName while @password is empty.
+ * @brief This function generates the SAF ID token when username and password is provided and SAF ID token is empty.
+ * This function validates the SAF ID token for username when token is provided and password is empty. Supports only
+ * JWT as identity token. Supports application name as audience claim. Returns RC_ZIS_AUTHSRV_SAF_ERROR when username,
+ * password and SAF ID token is empty.
  *
- * @appl Application name parameter to specify the audience claim for SAF IDT. It is optional parameter. When provided
- * for generation the token, this will be included in the token. When provided for validation, it will be validated
- * against audience claim.
+ * @param serverName Cross-memory server that validates the parameters
+ * @param userName Name of the user to whom the token belongs
+ * @param password Password of the user
+ * @param appl Application name parameter to specify the audience claim for SAF IDT. It is optional parameter. When
+ * provided for generation the token, this will be included in the token. When provided for validation, it will be
+ * validated against audience claim.
+ * @param safIdt Token that will be validated.
+ * @param status Status code from ZIS.
+ *
+ * @return One of the RC_ZIS_AUTHSRV_xx return codes.
  */
 int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
                                 const char *userName, const char *password,
@@ -434,6 +443,19 @@ int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
                                 char *safIdt,
                                 ZISAuthServiceStatus *status);
 
+/**
+ * @brief This function generates the SAF ID token when username and password is provided and SAF ID token is empty.
+ * This function validates the SAF ID token for username when token is provided and password is empty. Supports only
+ * JWT as identity token.Returns RC_ZIS_AUTHSRV_SAF_ERROR when username, password and SAF ID token is empty.
+ *
+ * @param serverName Cross-memory server that validates the parameters
+ * @param userName Name of the user to whom the token belongs
+ * @param password Password of the user
+ * @param safIdt Token that will be validated.
+ * @param status Status code from ZIS.
+ *
+ * @return One of the RC_ZIS_AUTHSRV_xx return codes.
+ */
 int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
                                 const char *userName, const char *password,
                                 char *safIdt,

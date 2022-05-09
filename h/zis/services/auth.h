@@ -47,9 +47,6 @@ typedef struct AbendInfo_tag {
 
 #define ZIS_SAF_IDT_SERVICE_CURRENT_VERSION         1
 
-/* The #define for ZIS_AUTH_SERVICE_SAFIDT_OPTION_GENERATE_IDT has been deprecated, and will be removed
-   in the future.
-  */
 typedef struct SafIdtService_tag{
   int safIdtServiceVersion;
   int safIdtLen;
@@ -61,6 +58,9 @@ typedef struct SafIdtService_tag{
   char applNullTerm[ZIS_AUTH_SERVICE_APPL_MAX_LENGTH + 1];
 } SafIdtService;
 
+/* The #define for ZIS_AUTH_SERVICE_SAFIDT_OPTION_GENERATE_IDT has been deprecated, and will be removed
+   in the future.
+  */
 typedef struct AuthServiceParmList_tag {
   char eyecatcher[8];
 #define ZIS_AUTH_SERVICE_PARMLIST_EYECATCHER   "RSCMPASS"

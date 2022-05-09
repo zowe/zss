@@ -180,13 +180,13 @@ int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
     status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
     return RC_ZIS_SRVC_SERVICE_FAILED;
   }
-  memcpy((void *)parmList.safIdtService.safIdt, (void *)safIdt, strlen(safIdt));
+  memcpy((void *)parmList.safIdtService.safIdt, safIdt, strlen(safIdt));
 
   int rc = authRequest(serverName, &parmList, status);
 
   if (parmList.safIdtService.safIdtLen > 0) {
-    memset((void *)safIdt, 0, ZIS_AUTH_SERVICE_SAFIDT_LENGTH + 1);
-    memcpy((void *)safIdt, (void *)parmList.safIdtService.safIdt, parmList.safIdtService.safIdtLen);
+    memset(safIdt, 0, ZIS_AUTH_SERVICE_SAFIDT_LENGTH + 1);
+    memcpy(safIdt, (void *)parmList.safIdtService.safIdt, parmList.safIdtService.safIdtLen);
   }
 
   return rc;
