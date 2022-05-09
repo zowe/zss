@@ -42,7 +42,7 @@ static int handleVerifyPassword(AuthServiceParmList *parmList,
   safRC = safVerify(VERIFY_CREATE, parmList->userIDNullTerm,
           parmList->passwordNullTerm, &acee, &racfRC, &racfRsn);
   if (parmList->safIdtService.options & ZIS_AUTH_SERVICE_SAFIDT_OPTION_RESERVED) {
-    return SOME_BAD_RC;
+    return RC_ZIS_AUTHSRV_BAD_SAF_SERVICE_VERSION;
   }
   CMS_DEBUG(globalArea, "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
       "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
