@@ -420,6 +420,14 @@ int zisCallNWMService(const CrossMemoryServerName *serverName,
 
 #define RC_ZIS_SRVC_NWM_BUFFER_NULL               (ZIS_MAX_GEN_SRVC_RC + 1)
 
+/**
+ * @brief This function generates the SAF ID token for @userName and @password is provided and @safIdt is empty.
+ * This function validates token in @safIdt for user in @userName while @password is empty.
+ *
+ * @appl Application name parameter to specify the audience claim for SAF IDT. It is optional parameter. When provided
+ * for generation the token, this will be included in the token. When provided for validation, it will be validated
+ * against audience claim.
+ */
 int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
                                 const char *userName, const char *password,
                                 const char *appl,
