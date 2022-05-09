@@ -51,7 +51,7 @@ Json *parseContentBody(HttpRequest *request) {
 static int authenticate(HttpResponse *response, CrossMemoryServerName *privilegedServerName) {
 
   ZISAuthServiceStatus status = {0};
-  char safIdt[ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1] = {0};
+  char safIdt[ZIS_AUTH_SERVICE_SAFIDT_LENGTH + 1] = {0};
   HttpRequest *request = response->request;  
 
   Json *body = parseContentBody(request);
@@ -210,7 +210,7 @@ void extractUsernameFromJwt(HttpResponse *response, char *jwt, char *username) {
 static int verify(HttpResponse *response, CrossMemoryServerName *privilegedServerName) {
 
   ZISAuthServiceStatus status = {0};
-  char safIdt[ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1] = {0};
+  char safIdt[ZIS_AUTH_SERVICE_SAFIDT_LENGTH + 1] = {0};
   char username[9] = {0};
   HttpRequest *request = response->request;
 
@@ -229,8 +229,8 @@ static int verify(HttpResponse *response, CrossMemoryServerName *privilegedServe
     return HTTP_SERVICE_FAILED;
   }
 
-  if (strlen(jwt) > ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH) {
-    respondWithJsonStatus(response, "JWT size exceeds length of "STRINGIFY(ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH),
+  if (strlen(jwt) > ZIS_AUTH_SERVICE_SAFIDT_LENGTH) {
+    respondWithJsonStatus(response, "JWT size exceeds length of "STRINGIFY(ZIS_AUTH_SERVICE_SAFIDT_LENGTH),
                           HTTP_STATUS_BAD_REQUEST, "Bad Request");
     return HTTP_SERVICE_FAILED;
   }

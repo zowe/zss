@@ -39,9 +39,11 @@ static int handleVerifyPassword(AuthServiceParmList *parmList,
   CMS_DEBUG(globalArea, "handleVerifyPassword(): username = %s, password = %s\n",
       parmList->userIDNullTerm, "******");
 
-   safRC = safVerify(VERIFY_CREATE, parmList->userIDNullTerm,
-      parmList->passwordNullTerm, &acee, &racfRC, &racfRsn);
-
+  safRC = safVerify(VERIFY_CREATE, parmList->userIDNullTerm,
+          parmList->passwordNullTerm, &acee, &racfRC, &racfRsn);
+  if (parmList->safIdtService.options & ZIS_AUTH_SERVICE_SAFIDT_OPTION_RESERVED) {
+    return SOME_BAD_RC;
+  }
   CMS_DEBUG(globalArea, "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
       "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
 
@@ -89,7 +91,7 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
 
   CMS_DEBUG(globalArea, "handleGenerateToken(): username = %s, password = %s\n",
       parmList->userIDNullTerm, "******");
-  if (parmList->options & ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL) {
+  if (parmList->safIdtService.options & ZIS_AUTH_SERVICE_SAFIDT_OPTION_IDT_APPL) {
     safRC = safVerify7(options, parmList->userIDNullTerm,
     parmList->passwordNullTerm, &acee, parmList->safIdtService.applNullTerm, &racfRC, &racfRsn, idta);
   } else {
@@ -110,9 +112,7 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
     goto acee_deleted;
   }
 
-  if (idta != NULL) {
-    parmList->safIdtService.safIdtLen = idta->idtLen;
-  }
+  parmList->safIdtService.safIdtLen = idta->idtLen;
 
   deleteSAFRC = safVerify(VERIFY_DELETE, NULL, NULL, &acee, &deleteRACFRC,
       &deleteRACFRsn);

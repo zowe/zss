@@ -47,17 +47,18 @@ typedef struct AbendInfo_tag {
 
 #define ZIS_SAF_IDT_SERVICE_CURRENT_VERSION         1
 
-/* The #define for ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT has been deprecated, and will be removed
+/* The #define for ZIS_AUTH_SERVICE_SAFIDT_OPTION_GENERATE_IDT has been deprecated, and will be removed
    in the future.
   */
 typedef struct SafIdtService_tag{
   int safIdtServiceVersion;
   int safIdtLen;
-  #define ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH (2 * IDTA_IDT_BUFFER_LEN_MIN)
-  #define ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT 0x80
-  #define ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL 0x40
-  char safIdt[ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH];
+  #define ZIS_AUTH_SERVICE_SAFIDT_LENGTH (2 * IDTA_IDT_BUFFER_LEN_MIN)
+  #define ZIS_AUTH_SERVICE_SAFIDT_OPTION_GENERATE_IDT 0x80
+  #define ZIS_AUTH_SERVICE_SAFIDT_OPTION_IDT_APPL 0x40
+  char safIdt[ZIS_AUTH_SERVICE_SAFIDT_LENGTH];
   char applNullTerm[ZIS_AUTH_SERVICE_APPL_MAX_LENGTH + 1];
+  char options;
 } SafIdtService;
 
 typedef struct AuthServiceParmList_tag {
@@ -72,8 +73,8 @@ typedef struct AuthServiceParmList_tag {
   char passwordNullTerm[ZIS_AUTH_SERVICE_PASSWORD_MAX_LENGTH + 1];
   /* up to 8 characters: */
   char classNullTerm[ZIS_AUTH_SERVICE_CLASS_MAX_LENGTH + 1];
-  char options;
-#define ZIS_AUTH_SERVICE_PARMLIST_OPTION_RESERVED 0x80
+
+#define ZIS_AUTH_SERVICE_SAFIDT_OPTION_RESERVED 0x80
   int access;
   /* up to 255 characters: */
   char entityNullTerm[ZIS_AUTH_SERVICE_ENTITY_MAX_LENGTH + 1];

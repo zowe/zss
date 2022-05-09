@@ -138,7 +138,7 @@ static int authRequest(const CrossMemoryServerName *serverName,
 }
 
 /*
- *   safIdt - a buffer for SAF IDT token. The buffer must be ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1 bytes long.
+ *   safIdt - a buffer for SAF IDT token. The buffer must be ZIS_AUTH_SERVICE_SAFIDT_LENGTH + 1 bytes long.
  *   appl - application name to be included in the audience claim of SAF IDT. It is an optional parameter and can be null.
  */
 int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
@@ -171,7 +171,7 @@ int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
     }
     strcpy(parmList.safIdtService.applNullTerm, appl);
 
-    parmList.options |= ZIS_AUTH_SERVICE_PARMLIST_OPTION_IDT_APPL;
+    parmList.safIdtService.options |= ZIS_AUTH_SERVICE_SAFIDT_OPTION_IDT_APPL;
   }
 
   parmList.safIdtService.safIdtLen = strlen(safIdt);
@@ -185,7 +185,7 @@ int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
   int rc = authRequest(serverName, &parmList, status);
 
   if (parmList.safIdtService.safIdtLen > 0) {
-    memset((void *)safIdt, 0, ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1);
+    memset((void *)safIdt, 0, ZIS_AUTH_SERVICE_SAFIDT_LENGTH + 1);
     memcpy((void *)safIdt, (void *)parmList.safIdtService.safIdt, parmList.safIdtService.safIdtLen);
   }
 
@@ -193,7 +193,7 @@ int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
 }
 
 /*
- *   safIdt - a buffer for SAF IDT token. The buffer must be ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1 bytes long.
+ *   safIdt - a buffer for SAF IDT token. The buffer must be ZIS_AUTH_SERVICE_SAFIDT_LENGTH + 1 bytes long.
  */
 int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
                                 const char *userName, const char *password,
