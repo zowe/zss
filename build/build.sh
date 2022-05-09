@@ -28,3 +28,7 @@ fi
 if [ "$1" = "zis" ] || [ "$1" = "" ]; then
   "${WORKING_DIR}/build_zis.sh"
 fi
+
+if [ "$1" = "zss64" ] || [ "$1" = "" ]; then
+  "${WORKING_DIR}/build_zss64.sh"
+fi

@@ -53,7 +53,7 @@ typedef struct ZISServerAnchor_tag {
 
 } ZISServerAnchor;
 
-typedef __packed struct ZISServiceRouterData_tag {
+typedef _Packed struct ZISServiceRouterData_tag {
   char eyecatcher[8];
 #define ZIS_SERVICE_ROUTER_EYECATCHER "ZISSREYE"
   unsigned int version;

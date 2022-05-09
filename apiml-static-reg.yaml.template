@@ -4,16 +4,18 @@ services:
     description: 'Zowe System Services is an HTTPS and Websocket server that makes it easy to have secure, powerful web APIs backed by low-level z/OS constructs. It contains services for essential z/OS abilities such as working with files, datasets, and ESMs, but is also extensible by REST and Websocket "Dataservices" which are optionally present in App Framework "Plugins".'
     catalogUiTileId: zss
     instanceBaseUrls:
-      - https://${ZOWE_EXPLORER_HOST}:${ZOWE_ZSS_SERVER_PORT}/
+      - https://${ZWE_haInstance_hostname}:${ZWE_components_zss_port}/
     homePageRelativeUrl:
     routedServices:
       - gatewayUrl: api/v1
         serviceRelativeUrl: 
     apiInfo:
-      - apiId: org.zowe.zss
+      - apiId: zowe.zss
         gatewayUrl: api/v1
-        swaggerUrl: https://${ZOWE_EXPLORER_HOST}:${ZOWE_ZLUX_SERVER_HTTPS_PORT:-8544}/api-docs/agent
+        swaggerUrl: https://${ZWE_haInstance_hostname}:${ZWE_components_app_server_port}/api-docs/agent
         # documentationUrl: TODO
+    authentication:
+        scheme: zoweJwt
 catalogUiTiles:
   zss:
     title: Zowe System Services (ZSS)

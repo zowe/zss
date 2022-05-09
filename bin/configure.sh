@@ -9,62 +9,49 @@
 
 
 # Required variables on shell:
-# - ROOT_DIR
-# - WORKSPACE_DIR
+# - ZWE_zowe_runtimeDirectory
+# - ZWE_zowe_workspaceDirectory
 
-cd ${ROOT_DIR}/components/app-server/share/zlux-app-server/bin
-. ./convert-env.sh
+COMPONENT_HOME=${ZWE_zowe_runtimeDirectory}/components/zss
 
-cd ${ROOT_DIR}/components/app-server/share/zlux-app-server/lib
-
-if [ -n "$INSTANCE_DIR" ]
-then
-  INSTANCE_LOCATION=$INSTANCE_DIR
-else
-  INSTANCE_LOCATION=$HOME/.zowe
-fi
-if [ -n "$WORKSPACE_DIR" ]
-then
-  WORKSPACE_LOCATION=$WORKSPACE_DIR
-else
-  WORKSPACE_LOCATION=$INSTANCE_LOCATION/workspace
-fi
-DESTINATION=$WORKSPACE_LOCATION/app-server
-
-currentJsonConfigPath=$DESTINATION/serverConfig/server.json
-
-if [ ! -f "$currentJsonConfigPath" ]; then
-  mkdir -p $DESTINATION/serverConfig
-  cp ../defaults/serverConfig/server.json $DESTINATION/serverConfig/server.json
-  PRODUCT_DIR=$(cd "$PWD/../defaults" && pwd)
-  SITE_DIR=$DESTINATION/site
-  SITE_PLUGIN_STORAGE=$SITE_DIR/ZLUX/pluginStorage
-  INSTANCE_PLUGIN_STORAGE=$DESTINATION/ZLUX/pluginStorage
-  INSTANCE_CONFIG=$DESTINATION/serverConfig
-  GROUPS_DIR=$DESTINATION/groups
-  USERS_DIR=$DESTINATION/users
-  PLUGINS_DIR=$DESTINATION/plugins
-
-  sed 's@"productDir":"../defaults"@"productDir":"'${PRODUCT_DIR}'"@g' $currentJsonConfigPath > ${currentJsonConfigPath}.zwetmp1
-  sed 's@"siteDir":"../deploy/site"@"siteDir":"'${SITE_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}.zwetmp2
-  sed 's@"instanceDir":"../deploy/instance"@"instanceDir":"'${DESTINATION}'"@g' ${currentJsonConfigPath}.zwetmp2 > ${currentJsonConfigPath}.zwetmp1
-  sed 's@"groupsDir":"../deploy/instance/groups"@"groupsDir":"'${GROUPS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}.zwetmp2
-  sed 's@"usersDir":"../deploy/instance/users"@"usersDir":"'${USERS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp2 > ${currentJsonConfigPath}.zwetmp1
-  sed 's@"pluginsDir":"../defaults/plugins"@"pluginsDir":"'${PLUGINS_DIR}'"@g' ${currentJsonConfigPath}.zwetmp1 > ${currentJsonConfigPath}
-  rm ${currentJsonConfigPath}.zwetmp1 ${currentJsonConfigPath}.zwetmp2
-
-  mkdir -p $SITE_PLUGIN_STORAGE
-  mkdir -p $INSTANCE_PLUGIN_STORAGE
-  mkdir -m 700 -p $INSTANCE_CONFIG
-  chmod 700 $INSTANCE_CONFIG
-  chmod 700 $INSTANCE_CONFIG/server.json
-  mkdir -p $GROUPS_DIR
-  mkdir -p $USERS_DIR
-  mkdir -p $PLUGINS_DIR
+# this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
+if [ -z "${ZLUX_ROOT_DIR}" ]; then
+  if [ -d "${ZWE_zowe_runtimeDirectory}/components/app-server/share" ]; then
+    export ZLUX_ROOT_DIR="${ZWE_zowe_runtimeDirectory}/components/app-server/share"
+  fi
 fi
 
-APP_WORKSPACE_DIR=${INSTANCE_DIR}/workspace/app-server
-if [ "${ZOWE_ZSS_SERVER_TLS}" = "false" ]; then
+# This location will have init and utils folders inside and is used to gather env vars and do plugin initialization
+helper_script_location="${ZLUX_ROOT_DIR}/zlux-app-server/bin"
+
+if [ -d "${helper_script_location}" ]; then
+  cd "${helper_script_location}/init"
+  . ../utils/convert-env.sh
+
+  # Register/deregister plugins according to their enabled status, and check for PC bit
+  NO_NODE=1
+  CHECK_PC_BIT=1
+  . ./plugins-init.sh $NO_NODE $CHECK_PC_BIT
+
+  cd "${COMPONENT_HOME}/bin"
+  
+  # ZWED_instanceDir, ZWED_siteDir are set by convert-env.sh
+  SITE_DIR="$ZWED_instanceDir/site"
+  SITE_PLUGIN_STORAGE="$ZWED_siteDir/ZLUX/pluginStorage"
+  INSTANCE_PLUGIN_STORAGE="$ZWED_instanceDir/ZLUX/pluginStorage"
+  GROUPS_DIR="$ZWED_instanceDir/groups"
+  USERS_DIR="$ZWED_instanceDir/users"
+  PLUGINS_DIR="$ZWED_instanceDir/plugins"
+
+  mkdir -p "$SITE_DIR"
+  mkdir -p "$SITE_PLUGIN_STORAGE"
+  mkdir -p "$INSTANCE_PLUGIN_STORAGE"
+  mkdir -p "$GROUPS_DIR"
+  mkdir -p "$USERS_DIR"
+  mkdir -p "$PLUGINS_DIR"
+fi
+
+if [ "${ZWES_SERVER_TLS}" = "false" ]; then
   PROTOCOL="http"
 else
   PROTOCOL="https"
@@ -72,13 +59,13 @@ fi
 
 HTTPS_PREFIX="ZWED_agent_https_"
 
-if [ "${ZOWE_ZSS_SERVER_TLS}" = "false" ]
+if [ "${ZWES_SERVER_TLS}" = "false" ]
 then
   # HTTP
-  export "ZWED_agent_http_port=${ZOWE_ZSS_SERVER_PORT}"
+  export "ZWED_agent_http_port=${ZWES_SERVER_PORT}"
 else
   # HTTPS
-  export "${HTTPS_PREFIX}port=${ZOWE_ZSS_SERVER_PORT}"
+  export "${HTTPS_PREFIX}port=${ZWES_SERVER_PORT}"
   IP_ADDRESSES_KEY_var="${HTTPS_PREFIX}ipAddresses"
   eval "IP_ADDRESSES_val=\"\$${IP_ADDRESSES_KEY_var}\""
   if [ -z "${IP_ADDRESSES_val}" ]; then
@@ -88,8 +75,19 @@ fi
 
 # Keystore settings are used for both https server and Caching Service
 export "${HTTPS_PREFIX}label=${KEY_ALIAS}"
-if [ "${KEYSTORE_TYPE}" = "JCERACFKS" ]; then
-  export "${HTTPS_PREFIX}keyring=${KEYRING_OWNER}/${KEYRING_NAME}"
+
+if [ "${ZWE_zowe_certificate_keystore_type}" = "JCERACFKS" ]; then
+  export "${HTTPS_PREFIX}keyring=${ZWE_zowe_certificate_keystore_file}"
+  case "${ZWE_zowe_certificate_keystore_file}" in
+    safkeyring:////*)
+      trimmed=$(echo $ZWE_zowe_certificate_keystore_file | cut -c 16-)
+      export "${HTTPS_PREFIX}keyring=$trimmed"
+    ;;
+    safkeyring://*)
+      trimmed=$(echo $ZWE_zowe_certificate_keystore_file | cut -c 14-)
+      export "${HTTPS_PREFIX}keyring=$trimmed"
+    ;;
+  esac
 else
   export "${HTTPS_PREFIX}keyring=${KEYSTORE}"
   export "${HTTPS_PREFIX}password=${KEYSTORE_PASSWORD}"
@@ -98,11 +96,8 @@ fi
 # xmem name customization
 if [ -z "$ZWED_privilegedServerName" ]
 then
-  if [ -n "$ZOWE_ZSS_XMEM_SERVER_NAME" ]
+  if [ -n "$ZWES_XMEM_SERVER_NAME" ]
   then
-    export ZWED_privilegedServerName=$ZOWE_ZSS_XMEM_SERVER_NAME
+    export ZWED_privilegedServerName=$ZWES_XMEM_SERVER_NAME
   fi 
 fi
-
-# this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
-export ZLUX_ROOT_DIR=${ROOT_DIR}/components/app-server/share

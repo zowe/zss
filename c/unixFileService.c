@@ -147,7 +147,7 @@ static void freeValueSessionsByFileID(void *value) {
   status = fileClose(s->file, &returnCode, &reasonCode);
   if (status == -1) {
     zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
-          "close", returnCode, reasonCode);
+          "close", s->file->pathname, returnCode, reasonCode);
   }
   safeFree((char*)s, sizeof(UploadSession));
 }
@@ -170,7 +170,7 @@ static void timeOutDestroyer(void *userData, void *value) {
   status = fileClose(s->file, &returnCode, &reasonCode);
   if (status == -1) {
     zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
-          "close", returnCode, reasonCode);
+          "close", s->file->pathname, returnCode, reasonCode);
   }
   safeFree((char*)s, sizeof(UploadSession));
 }
@@ -256,7 +256,7 @@ static int handleNewFileCase(HttpResponse *response, char *encodedFileName, int 
 
   if (newFile == NULL) {
     zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
-           "create", returnCode, reasonCode);
+           "create", fileName, returnCode, reasonCode);
     respondWithJsonError(response, "Could not create new file.", 500, "Internal Server Error");
     return -1;
   }
@@ -264,7 +264,7 @@ static int handleNewFileCase(HttpResponse *response, char *encodedFileName, int 
   int status = fileClose(newFile, &returnCode, &reasonCode);
   if (status != 0) {
     zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
-           "close", returnCode, reasonCode);
+           "close", newFile, returnCode, reasonCode);
     respondWithJsonError(response, "Could not close file.", 500, "Internal Server Error");
     return -1;
   }
@@ -273,7 +273,7 @@ static int handleNewFileCase(HttpResponse *response, char *encodedFileName, int 
   status = fileInfo(fileName, &info, &returnCode, &reasonCode);
   if (status != 0) {
     zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_METADATA_MSG,
-           returnCode, reasonCode);
+           fileName, returnCode, reasonCode);
     respondWithJsonError(response, "Could not get metadata for file.", 500, "Internal Server Error");
     return -1;
   }
@@ -368,7 +368,7 @@ static int checkIfFileIsBusy(HttpResponse *response, char *encodedFileName, Unix
 
   if (*file == NULL) {
     zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_WARNING, ZSS_LOG_UNABLE_MSG,
-          "open", returnCode, reasonCode);
+          "open", fileName, returnCode, reasonCode);
     respondWithJsonError(response, "Could not open file. Requested resource is busy. Please try again later.",
           403, "Forbidden");
     return -1;
