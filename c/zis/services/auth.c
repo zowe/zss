@@ -39,7 +39,7 @@ static int handleVerifyPassword(AuthServiceParmList *parmList,
   CMS_DEBUG(globalArea, "handleVerifyPassword(): username = %s, password = %s\n",
       parmList->userIDNullTerm, "******");
 
-  if (parmList->safIdtService.options & ZIS_AUTH_SERVICE_SAFIDT_OPTION_RESERVED) {
+  if (parmList->_padding0[0] & ZIS_AUTH_SERVICE_SAFIDT_OPTION_RESERVED) {
     return RC_ZIS_AUTHSRV_BAD_SAF_SERVICE_VERSION;
   }
 
@@ -93,7 +93,7 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
 
   CMS_DEBUG(globalArea, "handleGenerateToken(): username = %s, password = %s\n",
       parmList->userIDNullTerm, "******");
-  if (parmList->_padding0 & ZIS_AUTH_SERVICE_SAFIDT_OPTION_IDT_APPL) {
+  if (parmList->safIdtService.options & ZIS_AUTH_SERVICE_SAFIDT_OPTION_IDT_APPL) {
     safRC = safVerify7(options, parmList->userIDNullTerm,
     parmList->passwordNullTerm, &acee, parmList->safIdtService.applNullTerm, &racfRC, &racfRsn, idta);
   } else {
