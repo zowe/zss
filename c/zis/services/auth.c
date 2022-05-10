@@ -93,7 +93,7 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
 
   CMS_DEBUG(globalArea, "handleGenerateToken(): username = %s, password = %s\n",
       parmList->userIDNullTerm, "******");
-  if (parmList->safIdtService.options & ZIS_AUTH_SERVICE_SAFIDT_OPTION_IDT_APPL) {
+  if (parmList->_padding0 & ZIS_AUTH_SERVICE_SAFIDT_OPTION_IDT_APPL) {
     safRC = safVerify7(options, parmList->userIDNullTerm,
     parmList->passwordNullTerm, &acee, parmList->safIdtService.applNullTerm, &racfRC, &racfRsn, idta);
   } else {
@@ -103,11 +103,9 @@ static int handleGenerateToken(AuthServiceParmList *parmList,
 
   CMS_DEBUG(globalArea, "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
       "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
-  if (idta != NULL) {
-    CMS_DEBUG(globalArea, "IDTA token: gen_rc = %d, prop_out = %X, prop_in = %X "
+  CMS_DEBUG(globalArea, "IDTA token: gen_rc = %d, prop_out = %X, prop_in = %X "
       "token length = %d\n", idta->idtGenRc, idta->idtPropOut, idta->idtPropIn,
       idta->idtLen);
-  }
 
   if (safRC != 0) {
     rc = RC_ZIS_AUTHSRV_SAF_ERROR;
