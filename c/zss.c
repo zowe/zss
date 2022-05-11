@@ -113,6 +113,8 @@ static int traceLevel = 0;
   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256   \
   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
 
+#define LOGGING_COMPONENT_PREFIX "_zss."
+
 static int stringEndsWith(char *s, char *suffix);
 static void dumpJson(Json *json);
 static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
@@ -120,6 +122,7 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
                                         char *resolvedPluginLocation);
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
                                                   JsonObject *serverConfig, JsonObject *envConfig, ApimlStorageSettings *apimlStorageSettings);
+static void configureAndSetComponentLogLevel(LogComponentsMap *logComponent, JsonObject *logLevels, char *logCompPrefix);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts, const char *key);
 static InternalAPIMap *makeInternalAPIMap(void);
@@ -383,6 +386,33 @@ TraceDefinition traceDefs[] = {
   {0,0}
 };
 
+LOGGING_COMPONENTS_MAP(logComponents)
+
+ZSS_LOGGING_COMPONENTS_MAP(zssLogComponents)
+
+static void configureAndSetComponentLogLevel(LogComponentsMap *logComponent, JsonObject *logLevels, char *logCompPrefix) {
+  int logLevel = ZOWE_LOG_NA;
+  char *logCompName = NULL;
+  int logCompLen = 0;
+  while (logComponent->name != NULL) {
+    logCompLen = strlen(logComponent->name) + strlen (logCompPrefix) + 1;
+    logCompName = (char*) safeMalloc(logCompLen, "Log Component Name");
+    memset(logCompName, '\0', logCompLen);
+    strcpy(logCompName, logCompPrefix);
+    strcat(logCompName, logComponent->name);
+    logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name,
+                          LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+    if (jsonObjectHasKey(logLevels, logCompName)) {
+      logLevel = jsonObjectGetNumber(logLevels, logCompName);
+      if (isLogLevelValid(logLevel)) {
+        logSetLevel(NULL, logComponent->compID, logLevel);  
+      }
+    }
+    safeFree(logCompName, logCompLen);
+    ++logComponent;
+  }
+}
+
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename) {
 
   char jsonErrorBuffer[512] = { 0 };
@@ -407,6 +437,10 @@ static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename)
         }
         ++traceDef;
       }
+      LogComponentsMap *logComponent = (LogComponentsMap *)logComponents;
+      configureAndSetComponentLogLevel(logComponent, logLevels, LOGGING_COMPONENT_PREFIX);
+      LogComponentsMap *zssLogComponent = (LogComponentsMap *)zssLogComponents;
+      configureAndSetComponentLogLevel(zssLogComponent, logLevels, LOGGING_COMPONENT_PREFIX);
     }
     dumpJson(mvdSettings);
   } else {
@@ -1405,151 +1439,6 @@ static int validateFilePermissions(const char *filePath) {
 }
 
 #endif /* ZSS_IGNORE_PERMISSION_PROBLEMS */
-
-/*
-    "agent": { 
-      ...,      
-      "jwt": {
-        "enabled": true,
-        "fallback": true,
-        "key": {
-          "type": "pkcs11",     //optional, since only one type is supported
-          "token": "ZOWE.ZSS.APIMLQA",
-          "label": "KEY_RS256"
-        }
-      }
-    }
- 
-  If `jwtKeystore` is present in the config, this will initialize the server
-  to use the specified keystore and public key, with or without fallback to
-  session tokens, as specified.
-
-  Otherwise we would just use session tokens.
- */
-int initializeJwtKeystoreIfConfigured(JsonObject *const serverConfig,
-                                      HttpServer *const httpServer, JsonObject *const envSettings) {
-  JsonObject *const agentSettings = jsonObjectGetObject(serverConfig, "agent");
-  if (agentSettings == NULL) {
-    zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
-        ZOWE_LOG_WARNING,
-        ZSS_LOG_NO_JWT_AGENT_MSG);
-    return 0;
-  }
-
-  JsonObject *const jwtSettings = jsonObjectGetObject(agentSettings, "jwt");
-  char *envTokenName = jsonObjectGetString(envSettings, "ZWED_agent_jwt_token_name");
-  char *envTokenLabel = jsonObjectGetString(envSettings, "ZWED_agent_jwt_token_label");
-  Json *envFallbackJsonVal = jsonObjectGetPropertyValue(envSettings, "ZWED_agent_jwt_fallback");
-  int envFallback = (envFallbackJsonVal && jsonIsBoolean(envFallbackJsonVal)) ?
-                     jsonAsBoolean(envFallbackJsonVal) : TRUE;
-  bool envIsSet = (envTokenName != NULL
-                      && envTokenLabel != NULL);
-
-  if(envIsSet){
-    int initTokenRc, p11rc, p11Rsn;
-    const int contextInitRc = httpServerInitJwtContext(httpServer,
-        envFallback,
-        envTokenName,
-        envTokenLabel,
-        CKO_PUBLIC_KEY,
-        &initTokenRc, &p11rc, &p11Rsn);
-    if (contextInitRc != 0) {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
-          ZSS_LOG_NO_LOAD_JWT_MSG,
-          envTokenName,
-          envTokenLabel,
-          initTokenRc, p11rc, p11Rsn);
-      return 1;
-    }
-    zowelog(NULL,
-      LOG_COMP_ID_MVD_SERVER,
-      ZOWE_LOG_INFO,
-      ZSS_LOG_JWT_TOKEN_FALLBK_MSG,
-      envTokenName,
-      envTokenLabel,
-      envFallback ? "with" : "without");
-    return 0;
-  }
-
-  if (jwtSettings == NULL) {
-    zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
-        ZOWE_LOG_WARNING,
-        ZSS_LOG_NO_JWT_CONFIG_MSG);
-    return 0;
-  }
-
-  if (!jsonObjectGetBoolean(jwtSettings, "enabled")) {
-    zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
-        ZOWE_LOG_INFO,
-        ZSS_LOG_NO_JWT_DISABLED_MSG);
-    return 0;
-  }
-
-  const int fallback = jsonObjectGetBoolean(jwtSettings, "fallback");
-
-  JsonObject *const jwtKeyConfig = jsonObjectGetObject(jwtSettings, "key");
-  if (jwtKeyConfig == NULL) {
-    zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
-        ZOWE_LOG_SEVERE,
-        ZSS_LOG_JWT_CONFIG_MISSING_MSG);
-    return 1;
-  }
-
-  const char *const keystoreType = jsonObjectGetString(jwtKeyConfig, "type");
-  const char *const keystoreToken = jsonObjectGetString(jwtKeyConfig, "token");
-  const char *const tokenLabel = jsonObjectGetString(jwtKeyConfig, "label");
-
-  if (keystoreType != NULL && strcmp(keystoreType, "pkcs11") != 0) {
-    zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
-        ZOWE_LOG_SEVERE,
-        ZSS_LOG_JWT_KEYSTORE_UNKN_MSG, keystoreType);
-    return 1;
-  } else if (keystoreToken == NULL) {
-    zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
-        ZOWE_LOG_SEVERE,
-        ZSS_LOG_JWT_KEYSTORE_NAME_MSG);
-    return 1;
-  } else if(tokenLabel == NULL){
-    zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
-        ZOWE_LOG_SEVERE,
-        "Invalid JWT configuration: token label missing\n");
-    return 1;
-  } else {
-    zowelog(NULL,
-        LOG_COMP_ID_MVD_SERVER,
-        ZOWE_LOG_INFO,
-        ZSS_LOG_JWT_TOKEN_FALLBK_MSG,
-        keystoreToken,
-        tokenLabel,
-        fallback? "with" : "without");
-  }
-
-
-  int initTokenRc, p11rc, p11Rsn;
-  const int contextInitRc = httpServerInitJwtContext(httpServer,
-      fallback,
-      keystoreToken,
-      tokenLabel,
-      CKO_PUBLIC_KEY,
-      &initTokenRc, &p11rc, &p11Rsn);
-  if (contextInitRc != 0) {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE,
-        ZSS_LOG_NO_LOAD_JWT_MSG,
-        tokenLabel,
-        keystoreToken,
-        initTokenRc, p11rc, p11Rsn);
-    return 1;
-  }
-
-  return 0;
-}
 
 /* djb2 */
 static int hashPluginID(void *key) {

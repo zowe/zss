@@ -13,6 +13,8 @@
 #ifndef MVD_H_ZSSLOGGING_H_
 #define MVD_H_ZSSLOGGING_H_
 
+#include "logging.h"
+
 #ifndef ZSS_LOG_ID
 #define ZSS_LOG_ID     "ZWE"
 #endif
@@ -40,6 +42,18 @@
 #define LOG_COMP_ID_DATASERVICE   0x008F000300050000
 #define LOG_COMP_ID_APIML_STORAGE 0x008F000300060000
 #define LOG_COMP_ID_JWK           0x008F000300070000
+
+#define ZSS_LOGGING_COMPONENTS_MAP(zssLogComponents)\
+ static const LogComponentsMap zssLogComponents[] = {\
+  {LOG_COMP_ID_MVD_SERVER, "mvdserver"},\
+  {LOG_COMP_ID_CTDS, "ctds"},\
+  {LOG_COMP_ID_SECURITY, "security"},\
+  {LOG_COMP_ID_UNIXFILE, "unixfile"},\
+  {LOG_COMP_ID_DATASERVICE, "dataservice"},\
+  {LOG_COMP_ID_APIML_STORAGE, "apimlstorage"},\
+  {LOG_COMP_ID_JWK, "jwk"},\
+  {0, NULL}\
+};
 
 bool isLogLevelValid(int level);
 
@@ -226,12 +240,6 @@ bool isLogLevelValid(int level);
 #endif
 #define ZSS_LOG_JWT_KEYSTORE_NAME_MSG_TEXT   "Invalid JWT configuration: Keystore name is missing.\n"
 #define ZSS_LOG_JWT_KEYSTORE_NAME_MSG        ZSS_LOG_JWT_KEYSTORE_NAME_MSG_ID" "ZSS_LOG_JWT_KEYSTORE_NAME_MSG_TEXT
-
-#ifndef ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID
-#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID      ZSS_LOG_MSG_PRFX"1029I"
-#endif
-#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG_TEXT    "Will use JWT: PKCS#11 token '%s', key id '%s', '%s' fallback to legacy tokens\n"
-#define ZSS_LOG_JWT_TOKEN_FALLBK_MSG         ZSS_LOG_JWT_TOKEN_FALLBK_MSG_ID" "ZSS_LOG_JWT_TOKEN_FALLBK_MSG_TEXT
 
 #ifndef ZSS_LOG_NO_LOAD_JWT_MSG_ID
 #define ZSS_LOG_NO_LOAD_JWT_MSG_ID           ZSS_LOG_MSG_PRFX"1030W"
