@@ -27,6 +27,7 @@
 #include "bpxnet.h"
 #include "logging.h"
 #include "unixfile.h"
+#include "errno.h"
 #ifdef __ZOWE_OS_ZOS
 #include "zos.h"
 #endif 
@@ -80,6 +81,13 @@ typedef struct Volser_tag {
 
 static int getVolserForDataset(const DatasetName *dataset, Volser *volser);
 static bool memberExists(char* dsName, DynallocMemberName daMemberName);
+static char getRecordLengthType(char *dscb);
+static int getMaxRecordLength(char *dscb);
+static int getDSCB(DatasetName *dsName, char* dscb, int bufferSize);
+static int updateInputParmsProperty(JsonObject *object, int *configsCount, DynallocNewTextUnit *textUnit);
+static void setTextUnitString(int size, char* data, int *configsCount, int key, DynallocNewTextUnit *textUnit);
+static void setTextUnitCharOrInt(int size, int data, int *configsCount, int key, DynallocNewTextUnit *textUnit);
+static void setTextUnitBool(int *configsCount, int key, DynallocNewTextUnit *textUnit);
 
 
 static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
@@ -2517,6 +2525,339 @@ void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQue
 #endif /* __ZOWE_OS_ZOS */
 }
 
+static int updateInputParmsProperty(JsonObject *object, int *configsCount, DynallocNewTextUnit *textUnit) {
+  JsonProperty *currentProp = jsonObjectGetFirstProperty(object);
+  //printf("Updating input parms");
+  Json *value;
+  while(currentProp != NULL){
+    value = jsonPropertyGetValue(currentProp);
+    char *valueString = jsonAsString(value);
+
+    if(valueString != NULL){
+      errno = 0;
+      int valueStrLen = strlen(valueString);
+      char *propString = jsonPropertyGetKey(currentProp);
+
+      if (!strcmp(propString, "dsorg")) {
+        setTextUnitCharOrInt(sizeof(short), !strcmp(valueString, "PS") ? DALDSORG_PS : DALDSORG_PO, configsCount, DALDSORG, textUnit);
+      } else if(!strcmp(propString, "blksz")) {
+        long toi = strtol(valueString, NULL, 0);
+        if(errno != ERANGE){
+          if (toi <= 0x7FF8 && toi >= 0) { //<-- If DASD, if tape, it can be 80000000
+            setTextUnitCharOrInt(sizeof(short), toi, configsCount, DALBLKSZ, textUnit);
+          } else if (toi <= 0x80000000){
+            setTextUnitCharOrInt(sizeof(long long), toi, configsCount, DALBLKSZ, textUnit);
+          }
+        }
+      } else if(!strcmp(propString, "lrecl")) {
+        long toi = strtol(valueString, NULL, 0);
+        if (errno != ERANGE){
+          if (toi == 0x8000) {
+            setTextUnitCharOrInt(sizeof(short), toi, configsCount, DALLRECL, textUnit);
+          }
+          else if (toi <= 0x7FF8 && toi >= 0) {
+            setTextUnitCharOrInt(sizeof(short), toi, configsCount, DALLRECL, textUnit);
+          }
+        }
+      } else if(!strcmp(propString, "volser")) {
+        if (valueStrLen <= VOLSER_SIZE){
+          setTextUnitString(VOLSER_SIZE, &(valueString)[0], configsCount, DALVLSER, textUnit);
+        }
+      } else if(!strcmp(propString, "recfm")) {
+        int setRECFM = 0;
+        if (indexOf(valueString, valueStrLen, 'A', 0) != -1){
+          setRECFM = setRECFM | DALRECFM_A;
+        }
+        if (indexOf(valueString, valueStrLen, 'B', 0) != -1){
+          setRECFM = setRECFM | DALRECFM_B;
+        }
+        if (indexOf(valueString, valueStrLen, 'V', 0) != -1){
+          setRECFM = setRECFM | DALRECFM_V;
+        }
+        if (indexOf(valueString, valueStrLen, 'F', 0) != -1){
+          setRECFM = setRECFM | DALRECFM_F;
+        }
+        if (indexOf(valueString, valueStrLen, 'U', 0) != -1){
+          setRECFM = setRECFM | DALRECFM_U;
+        }
+        setTextUnitCharOrInt(sizeof(char), setRECFM, configsCount, DALRECFM, textUnit);
+      } else if(!strcmp(propString, "space")) {
+        setTextUnitBool(configsCount, !strcmp(valueString, "cyl") ? DALCYL : DALTRK, textUnit);
+      } else if(!strcmp(propString, "blkln")) {
+        long toi = strtol(valueString, NULL, 0);
+        if (toi <= 0xFFFF || toi >= 0) {
+          if (errno != ERANGE){
+            setTextUnitCharOrInt(INT24_SIZE, toi, configsCount, DALBLKLN, textUnit);
+          }
+        }
+      } else if(!strcmp(propString, "status")) {
+        if (!strcmp(valueString, "OLD")){
+          setTextUnitCharOrInt(sizeof(char), DISP_OLD, configsCount, DALSTATS, textUnit);
+        } else if (!strcmp(valueString, "MOD")){
+          setTextUnitCharOrInt(sizeof(char), DISP_MOD, configsCount, DALSTATS, textUnit);
+        } else if (!strcmp(valueString, "SHARE")){
+          setTextUnitCharOrInt(sizeof(char), DISP_SHARE, configsCount, DALSTATS, textUnit);
+        } else {
+          setTextUnitCharOrInt(sizeof(char), DISP_NEW, configsCount, DALSTATS, textUnit);
+        }
+      } else if (!strcmp(propString, "ndisp")) {
+        if (!strcmp(valueString, "UNCATLG")){
+          setTextUnitCharOrInt(sizeof(char), DISP_UNCATLG, configsCount, DALNDISP, textUnit);
+        } else if (!strcmp(valueString, "DELETE")){
+          setTextUnitCharOrInt(sizeof(char), DISP_DELETE, configsCount, DALNDISP, textUnit);
+        } else if (!strcmp(valueString, "KEEP")){
+          setTextUnitCharOrInt(sizeof(char), DISP_KEEP, configsCount, DALNDISP, textUnit);
+        } else {
+          setTextUnitCharOrInt(sizeof(char), DISP_CATLG, configsCount, DALNDISP, textUnit);
+        }
+      } else if(!strcmp(propString, "unit")) {
+        setTextUnitString(valueStrLen, &(valueString)[0], configsCount, DALUNIT, textUnit);
+      } else if(!strcmp(propString, "sysout")) {
+        if (!strcmp(valueString, "default")){
+          for(int i = 0; i < *configsCount; i++) {
+            if (textUnit[i].key == DALSTATS || textUnit[i].key == DALNDISP) {
+              textUnit[i].type = TEXT_UNIT_NULL;
+            }
+          }
+          setTextUnitBool(configsCount, DALSYSOU, textUnit);
+        } else if (isalnum(valueString[0])) {
+          for(int i = 0; i < *configsCount; i++) {
+            if (textUnit[i].key == DALSTATS || textUnit[i].key == DALNDISP) {
+              textUnit[i].type == TEXT_UNIT_NULL;
+            }
+          }
+          setTextUnitCharOrInt(1, valueString[0], configsCount, DALSYSOU, textUnit);
+        }
+      } else if(!strcmp(propString, "spgnm")) {
+        if (valueStrLen <= CLASS_WRITER_SIZE){
+          setTextUnitString(valueStrLen, &(valueString)[0], configsCount, DALSPGNM, textUnit);
+        }
+      } else if(!strcmp(propString, "close") || !strcmp(propString, "dummy")) {
+        if (!strcmp(valueString, "true")){
+          setTextUnitBool(configsCount, !strcmp(propString, "close") ? DALCLOSE : DALDUMMY, textUnit);
+        }
+      } else if(!strcmp(propString, "dcbdd") || !strcmp(propString, "retdd")) {
+        if (valueStrLen <= DD_NAME_LEN){
+          setTextUnitString(DD_NAME_LEN, &(valueString)[0], configsCount, !strcmp(propString, "dcbdd") ? DALDCBDD : DALRTDDN, textUnit);
+        }
+      } else if(!strcmp(propString, "spin")) {
+        if (!strcmp(valueString, "UNALLOC")){
+          setTextUnitCharOrInt(1, SPIN_UNALLOC, configsCount, DALSPIN, textUnit);
+        } else if (!strcmp(valueString, "ENDJOB")){
+          setTextUnitCharOrInt(1, SPIN_ENDJOB, configsCount, DALSPIN, textUnit);
+        }
+      } else if(!strcmp(propString, "strcls")) {
+        if (valueStrLen <= CLASS_WRITER_SIZE){
+          setTextUnitString(8, &(valueString)[0], configsCount, DALSTCL, textUnit);
+        }
+      } else if(!strcmp(propString, "mngcls") || !strcmp(propString, "datacls")) {
+        if (valueStrLen <= CLASS_WRITER_SIZE){
+         setTextUnitString(CLASS_WRITER_SIZE, &(valueString)[0], configsCount, !strcmp(propString, "mngcls") ? DALMGCL : DALDACL, textUnit);
+        }
+      }
+    }
+    currentProp = jsonObjectGetNextProperty(currentProp);
+  }
+}
+
+static void setTextUnitString(int size, char* data, int *configsCount, int key, DynallocNewTextUnit *textUnit) {
+  textUnit[*configsCount].size = size;
+  textUnit[*configsCount].type = TEXT_UNIT_STRING;
+  textUnit[*configsCount].key = key;
+  textUnit[*configsCount].data.string = data;
+  (*configsCount)++;
+}  
+
+static void setTextUnitCharOrInt(int size, int data, int *configsCount, int key, DynallocNewTextUnit *textUnit) {
+  textUnit[*configsCount].size = size;
+  textUnit[*configsCount].type = TEXT_UNIT_CHARINT;
+  textUnit[*configsCount].key = key;
+  textUnit[*configsCount].data.number = data;
+  (*configsCount)++;
+}  
+
+static void setTextUnitBool(int *configsCount, int key, DynallocNewTextUnit *textUnit) {
+  textUnit[*configsCount].type = TEXT_UNIT_BOOLEAN;
+  textUnit[*configsCount].key = key;
+  (*configsCount)++;
+}
+
+static int getDSCB(const DatasetName* datasetName, char* dscb, int bufferSize){
+  if (bufferSize < INDEXED_DSCB){
+    zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, 
+            "DSCB of size %d is too small, must be at least %d", bufferSize, INDEXED_DSCB);
+    return 1;
+  }
+  Volser volser = {0};
+
+  int volserSuccess = getVolserForDataset(datasetName, &volser);
+  if(!volserSuccess){
+    int rc = obtainDSCB1(datasetName->value, sizeof(datasetName->value),
+                           volser.value, sizeof(volser.value),
+                           dscb);
+    if (rc == 0){
+      if (DSCB_TRACE){
+        zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "DSCB for %.*s found\n", sizeof(&datasetName->value), datasetName->value);
+        dumpbuffer(dscb,INDEXED_DSCB);
+      }
+    }
+    return 0;
+  }
+  else {
+    return 1;
+  }
+}
+
+void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* absolutePath) {
+  char dscb[INDEXED_DSCB] = {0};
+  int bufferSize = sizeof(dscb);
+  if (getDSCB(datasetName, dscb, bufferSize) != 0) {
+    respondWithJsonError(response, "Error decoding dataset", 400, "Bad Request");
+  }
+  else {
+    if (!isPartionedDataset(dscb)) {
+      respondWithJsonError(response, "Dataset must be PDS/E", 400, "Bad Request");
+    }
+    else {
+      char *overwriteParam = getQueryParam(response->request,"overwrite");
+      int overwrite = !strcmp(overwriteParam, "true") ? TRUE : FALSE;
+      FILE* memberExists = fopen(absolutePath,"r");
+      if (memberExists && overwrite != TRUE) {//Member already exists and overwrite wasn't specified
+        if (fclose(memberExists) != 0) {
+            zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
+            respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
+        }
+        else {
+          respondWithJsonError(response, "Member already exists and overwrite not specified", 400, "Bad Request");
+        }
+      }
+      else { // Member doesn't exist
+        if (memberExists) {
+          if (fclose(memberExists) != 0) {
+            zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
+            respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
+            return;
+          }
+        }
+        FILE* newMember = fopen(absolutePath, "w");
+        if (!newMember){
+          printf("full path: %s\n", absolutePath);
+          respondWithJsonError(response, "Bad dataset name", 400, "Bad Request");
+          return;
+        }
+        if (fclose(newMember) == 0){
+          response200WithMessage(response, "Successfully created member");
+        }
+        else {
+          zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
+          respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
+        }
+      }
+    }
+  }
+}
+
+void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
+  #ifdef __ZOWE_OS_ZOS
+  HttpRequest *request = response->request;
+  if (!isDatasetPathValid(absolutePath)) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
+    return;
+  }
+
+  DatasetName datasetName;
+  DatasetMemberName memberName;
+  extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
+  DynallocDatasetName daDatasetName;
+  DynallocMemberName daMemberName;
+  memcpy(daDatasetName.name, datasetName.value, sizeof(daDatasetName.name));
+  memcpy(daMemberName.name, memberName.value, sizeof(daMemberName.name));
+  DynallocDDName daDDName = {.name = "????????"};
+
+  int daRC = RC_DYNALLOC_OK, daSysReturnCode = 0, daSysReasonCode = 0;
+
+  bool isMemberEmpty = IS_DAMEMBER_EMPTY(daMemberName);
+
+  if(!isMemberEmpty){
+    return newDatasetMember(response, &datasetName, absolutePath);
+  }
+
+  int configsCount = 0;
+  char ddNameBuffer[DD_NAME_LEN+1] = "MVD00000";
+  DynallocNewTextUnit textUnits[TOTAL_TEXT_UNITS];
+  setTextUnitString(DATASET_NAME_LEN, &datasetName.value[0], &configsCount, DALDSNAM, &textUnits[0]);
+  setTextUnitString(DD_NAME_LEN, ddNameBuffer, &configsCount, DALDDNAM, &textUnits[0]);
+
+  if (jsonMode != TRUE) { /*TODO add support for updating files with raw bytes instead of JSON*/
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Cannot update file without JSON formatted record request");
+    return;
+  }
+
+  char *contentBody = request->contentBody;
+  int bodyLength = strlen(contentBody);
+
+  char *convertedBody = safeMalloc(bodyLength*4,"writeDatasetConvert");
+  int conversionBufferLength = bodyLength*4;
+  int translationLength;
+  int outCCSID = NATIVE_CODEPAGE;
+  int reasonCode;
+
+  int returnCode = convertCharset(contentBody,
+                              bodyLength,
+                              CCSID_UTF_8,
+                              CHARSET_OUTPUT_USE_BUFFER,
+                              &convertedBody,
+                              conversionBufferLength,
+                              outCCSID,
+                              NULL,
+                              &translationLength,
+                              &reasonCode);
+
+  if(returnCode == 0) {  
+
+    ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+    char errorBuffer[2048];
+    Json *json = jsonParseUnterminatedString(slh,
+                                             convertedBody, translationLength,
+                                             errorBuffer, sizeof(errorBuffer));
+    if (json) {
+      if (jsonIsObject(json)){
+        JsonObject * jsonObject = jsonAsObject(json);
+        updateInputParmsProperty(jsonObject, &configsCount, &textUnits[0]);
+      }     
+    } else {
+      respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid JSON request body");
+    }
+  }
+
+  returnCode = dynallocNewDataset(&reasonCode, &textUnits[0], configsCount);
+  int ddNumber = 1;
+  while (reasonCode==0x4100000 && ddNumber < 100000) {
+    sprintf(ddNameBuffer, "MVD%05d", ddNumber);
+    int ddconfig = 1;
+    setTextUnitString(DD_NAME_LEN, ddNameBuffer, &ddconfig, DALDDNAM, &textUnits[0]);
+    returnCode = dynallocNewDataset(&reasonCode, &textUnits[0], configsCount);
+    ddNumber++;
+  }
+  if (returnCode) {
+    zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
+            "error: ds alloc dsn=\'%44.44s\' dd=\'%8.8s\', sysRC=%d, sysRSN=0x%08X\n",
+            daDatasetName.name, ddNameBuffer, returnCode, reasonCode);
+    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to allocate a DD for ACB");
+    return;
+  }
+  memcpy(daDDName.name, ddNameBuffer, DD_NAME_LEN);
+  daRC = dynallocUnallocDatasetByDDName(&daDDName, DYNALLOC_UNALLOC_FLAG_NONE, &returnCode, &reasonCode);
+  if (daRC != RC_DYNALLOC_OK) {
+    zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
+            "error: ds unalloc dsn=\'%44.44s\' dd=\'%8.8s\', rc=%d sysRC=%d, sysRSN=0x%08X\n",
+            daDatasetName.name, daDDName.name, daRC, returnCode, reasonCode);
+    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to deallocate DDNAME");
+    return;
+  }
+  response200WithMessage(response, "Successfully created dataset");
+  #endif
+}
 
 #endif /* not METTLE - the whole module */
 
