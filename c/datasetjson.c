@@ -2527,8 +2527,8 @@ void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQue
 
 static int updateInputParmsProperty(JsonObject *object, int *configsCount, DynallocNewTextUnit *textUnit) {
   JsonProperty *currentProp = jsonObjectGetFirstProperty(object);
-  //printf("Updating input parms");
-  Json *value;
+  Json *value = NULL;
+  int parmDefn = DALDSORG_NULL;
   while(currentProp != NULL){
     value = jsonPropertyGetValue(currentProp);
     char *valueString = jsonAsString(value);
@@ -2581,12 +2581,10 @@ static int updateInputParmsProperty(JsonObject *object, int *configsCount, Dynal
           setRECFM = setRECFM | DALRECFM_U;
         }
         setTextUnitCharOrInt(sizeof(char), setRECFM, configsCount, DALRECFM, textUnit);
-      } else if(!strcmp(propString, "space")) {
-        setTextUnitBool(configsCount, !strcmp(valueString, "cyl") ? DALCYL : DALTRK, textUnit);
       } else if(!strcmp(propString, "blkln")) {
         long toi = strtol(valueString, NULL, 0);
-        if (toi <= 0xFFFF || toi >= 0) {
-          if (errno != ERANGE){
+        if (errno != ERANGE) {
+          if (toi <= 0xFFFF || toi >= 0){
             setTextUnitCharOrInt(INT24_SIZE, toi, configsCount, DALBLKLN, textUnit);
           }
         }
@@ -2654,9 +2652,72 @@ static int updateInputParmsProperty(JsonObject *object, int *configsCount, Dynal
         if (valueStrLen <= CLASS_WRITER_SIZE){
          setTextUnitString(CLASS_WRITER_SIZE, &(valueString)[0], configsCount, !strcmp(propString, "mngcls") ? DALMGCL : DALDACL, textUnit);
         }
+      } else if(!strcmp(propString, "space")) {
+        if (!strcmp(valueString, "CYL")) {
+          parmDefn = DALCYL;
+        } else if (!strcmp(valueString, "TRK")) {
+          parmDefn = DALTRK;
+        }
+        if(parmDefn != DALDSORG_NULL) {
+          setTextUnitBool(configsCount, parmDefn, textUnit);
+        }
+      } else if(!strcmp(propString, "dir")) {
+        long toi = strtol(valueString, NULL, 0);
+        if (errno != ERANGE) {
+          if (toi <= 0xFFFFFF || toi >= 0) {
+            setTextUnitCharOrInt(LEN_THREE_BYTES, toi, configsCount, DALDIR, textUnit);
+          }
+        }
+      } else if(!strcmp(propString, "prime")) {
+        long toi = strtol(valueString, NULL, 0);
+        if (errno != ERANGE) {
+          if (toi <= 0xFFFFFF || toi >= 0) {
+            setTextUnitCharOrInt(LEN_THREE_BYTES, toi, configsCount, DALPRIME, textUnit);
+          }
+        }
+      } else if(!strcmp(propString, "secnd")) {
+        long toi = strtol(valueString, NULL, 0);
+        if (errno != ERANGE) {
+          if (toi <= 0xFFFFFF || toi >= 0) {
+            setTextUnitCharOrInt(LEN_THREE_BYTES, toi, configsCount, DALSECND, textUnit);
+          }
+        }
+      } else if(!strcmp(propString, "avgr")) {
+        if (!strcmp(valueString, "M")) {
+          parmDefn = DALDSORG_MREC;
+        } else if (!strcmp(valueString, "K")) {
+          parmDefn = DALDSORG_KREC;
+        } else if (!strcmp(valueString, "U")) {
+          parmDefn = DALDSORG_UREC;
+        }
+        if(parmDefn != DALDSORG_NULL) {
+          setTextUnitCharOrInt(LEN_ONE_BYTE, parmDefn, configsCount, DALAVGR, textUnit);
+        }
+      } else if(!strcmp(propString, "dsnt")) {
+        if (!strcmp(valueString, "PDSE")) {
+          parmDefn = DALDSORG_PDSE;
+        } else if (!strcmp(valueString, "PDS")) {
+          parmDefn = DALDSORG_PDS;
+        } else if (!strcmp(valueString, "PIPE")) {
+          parmDefn = DALDSORG_PIPE;
+        } else if (!strcmp(valueString, "HFS")) {
+          parmDefn = DALDSORG_HFS;
+        } else if (!strcmp(valueString, "EXTREQ")) {
+          parmDefn = DALDSORG_EXTREQ;
+        } else if (!strcmp(valueString, "EXTPREF")) {
+          parmDefn = DALDSORG_EXTPREF;
+        } else if (!strcmp(valueString, "BASIC")) {
+          parmDefn = DALDSORG_BASIC;
+        } else if (!strcmp(valueString, "LARGE")) {
+          parmDefn = DALDSORG_LARGE;
+        }
+        if(parmDefn != DALDSORG_NULL) {
+          setTextUnitCharOrInt(LEN_ONE_BYTE, parmDefn, configsCount, DALDSNT, textUnit);
+        }
       }
     }
     currentProp = jsonObjectGetNextProperty(currentProp);
+    parmDefn = DALDSORG_NULL;
   }
 }
 
@@ -2812,7 +2873,7 @@ void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
                               NULL,
                               &translationLength,
                               &reasonCode);
-
+                              
   if(returnCode == 0) {  
 
     ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
