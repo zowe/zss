@@ -1,40 +1,33 @@
+
+/*
+  This program and the accompanying materials are
+  made available under the terms of the Eclipse Public License v2.0 which accompanies
+  this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
+  
+  SPDX-License-Identifier: EPL-2.0
+  
+  Copyright Contributors to the Zowe Project.
+*/
+
 #ifdef METTLE
-/* HAS NOT BEEN COMPILED WITH METTLE BEFORE */
+#error Metal C is not supported
 #else
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <sys/stat.h>
 #include "zowetypes.h"
 #include "alloc.h"
 #include "utils.h"
-#include "json.h"
-#include "bpxnet.h"
 #include "logging.h"
-#include "unixfile.h"
 #ifdef __ZOWE_OS_ZOS
 #include "zos.h"
 #endif
-
-#include "charsets.h"
-
-#include "socketmgmt.h"
-#include "httpserver.h"
-#include "datasetjson.h"
-#include "pdsutil.h"
 #include "jcsi.h"
-#include "impersonation.h"
 #include "dynalloc.h"
 #include "utils.h"
-#include "vsam.h"
-#include "qsam.h"
-#include "icsf.h"
-
-
-
 #include "dsutils.h"
 
 
@@ -42,7 +35,7 @@
 /*
   Dataset only, no wildcards or pds members accepted - beware that this should be wrapped with authentication
  */
-int getVolserForDataset(const DatasetName *dataset, Volser *volser) {
+int dsutilsGetVolserForDataset(const DatasetName *dataset, Volser *volser) {
   if (dataset == NULL){
     return -1;
   }
@@ -91,7 +84,7 @@ int getVolserForDataset(const DatasetName *dataset, Volser *volser) {
   return rc;
 }
 
-char getRecordLengthType(char *dscb){
+char dsutilsGetRecordLengthType(char *dscb){
   int posOffset = 44;
   int recfm = dscb[84 - posOffset];
   if ((recfm & 0xc0) == 0xc0){
@@ -105,13 +98,13 @@ char getRecordLengthType(char *dscb){
   }
 }
 
-int getMaxRecordLength(char *dscb){
+int dsutilsGetMaxRecordLength(char *dscb){
   int posOffset = 44;
   int lrecl = (dscb[88-posOffset] << 8) | dscb[89-posOffset];
   return lrecl;
 }
 
-int obtainDSCB1(const char *dsname, unsigned int dsnameLength,
+int dsutilsObtainDSCB1(const char *dsname, unsigned int dsnameLength,
                        const char *volser, unsigned int volserLength,
                        char *dscb1) {
 
@@ -179,7 +172,7 @@ int obtainDSCB1(const char *dsname, unsigned int dsnameLength,
 }
 
 
-int getLreclOrRespondError(HttpResponse *response,
+int dsutilsGetLreclOrRespondError(HttpResponse *response,
 		const DatasetName *dsn,
 		const char *ddPath){
 
@@ -190,20 +183,20 @@ int getLreclOrRespondError(HttpResponse *response,
   int reasonCode;
   FILE *in = fopen(ddPath, "r");
   if (in == NULL) {
-    respondWithError(response,HTTP_STATUS_NOT_FOUND,"File could not be opened or does not exist");
+    respondWithError(response, HTTP_STATUS_NOT_FOUND, "File could not be opened or does not exist");
     return 0;
   }
 
   Volser volser;
   memset(&volser.value, ' ', sizeof(volser.value));
 
-  int volserSuccess = getVolserForDataset(dsn, &volser);
+  int volserSuccess = dsutilsGetVolserForDataset(dsn, &volser);
   int handledThroughDSCB = FALSE;
 
   if (!volserSuccess){
 
     char dscb[INDEXED_DSCB] = {0};
-    int rc = obtainDSCB1(dsn->value, sizeof(dsn->value),
+    int rc = dsutilsObtainDSCB1(dsn->value, sizeof(dsn->value),
                          volser.value, sizeof(volser.value),
                          dscb);
     if (rc == 0){
@@ -212,8 +205,8 @@ int getLreclOrRespondError(HttpResponse *response,
         dumpbuffer(dscb,INDEXED_DSCB);
       }
 
-      lrecl = getMaxRecordLength(dscb);
-      char recordType = getRecordLengthType(dscb);
+      lrecl = dsutilsGetMaxRecordLength(dscb);
+      char recordType = dsutilsGetRecordLengthType(dscb);
       if (recordType == 'U'){
         fclose(in);
         respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
@@ -251,7 +244,7 @@ int getLreclOrRespondError(HttpResponse *response,
 #define DSPATH_PREFIX   "//\'"
 #define DSPATH_SUFFIX   "\'"
 
-bool isDatasetPathValid(const char *path) {
+bool dsutilsIsDatasetPathValid(const char *path) {
 
   /* Basic check. The fopen() dataset path format is //'dsn(member)' */
 
@@ -340,7 +333,7 @@ bool isDatasetPathValid(const char *path) {
 #define DSPATH_PREFIX   "//\'"
 #define DSPATH_SUFFIX   "\'"
 
-void extractDatasetAndMemberName(const char *datasetPath,
+void dsutilsExtractDatasetAndMemberName(const char *datasetPath,
                                         DatasetName *dsn,
                                         DatasetMemberName *memberName) {
 
@@ -374,7 +367,7 @@ void extractDatasetAndMemberName(const char *datasetPath,
 #undef DSPATH_PREFIX
 #undef DSPATH_SUFFIX
 
-void respondWithDYNALLOCError(HttpResponse *response,
+void dsutilsRespondWithDYNALLOCError(HttpResponse *response,
                               int rc, int sysRC, int sysRSN,
                               const DynallocDatasetName *dsn,
                               const DynallocMemberName *member,
@@ -415,3 +408,13 @@ void respondWithDYNALLOCError(HttpResponse *response,
 #endif /* __ZOWE_OS_ZOS */
 
 #endif /* not METTLE - the whole module */
+
+/*
+  This program and the accompanying materials are
+  made available under the terms of the Eclipse Public License v2.0 which accompanies
+  this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
+  
+  SPDX-License-Identifier: EPL-2.0
+  
+  Copyright Contributors to the Zowe Project.
+*/

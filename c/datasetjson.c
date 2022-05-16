@@ -470,7 +470,7 @@ void addDetailedDatasetMetadata(char *datasetName, int nameLength,
   int isPDS = FALSE;
   zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Going to check dataset %s attributes\n",datasetName);
   char dscb[INDEXED_DSCB] = {0};
-  int rc = obtainDSCB1(datasetName, nameLength,
+  int rc = dsutilsObtainDSCB1(datasetName, nameLength,
                        volser, volserLength,
                        dscb);
   if (rc == 0){
@@ -497,7 +497,7 @@ void addMemberedDatasetMetadata(char *datasetName, int nameLength,
 
   int isPDS = FALSE;
   char dscb[INDEXED_DSCB] = {0};
-  int rc = obtainDSCB1(datasetName, nameLength,
+  int rc = dsutilsObtainDSCB1(datasetName, nameLength,
                        volser, volserLength,
                        dscb);
 
@@ -594,11 +594,11 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
   Volser volser;
   memset(&volser.value, ' ', sizeof(volser.value));
 
-  int volserSuccess = getVolserForDataset(dsn, &volser);
+  int volserSuccess = dsutilsGetVolserForDataset(dsn, &volser);
   if (!volserSuccess){
     
     char dscb[INDEXED_DSCB] = {0};
-    int rc = obtainDSCB1(dsn->value, sizeof(dsn->value),
+    int rc = dsutilsObtainDSCB1(dsn->value, sizeof(dsn->value),
                          volser.value, sizeof(volser.value),
                          dscb);
     if (rc == 0){
@@ -626,8 +626,8 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
         }
       }
       
-      maxRecordLength = getMaxRecordLength(dscb);
-      char recordType = getRecordLengthType(dscb);
+      maxRecordLength = dsutilsGetMaxRecordLength(dscb);
+      char recordType = dsutilsGetRecordLengthType(dscb);
       if (recordType == 'F'){
         isFixed = TRUE;
       } else if (recordType == 'U') {
@@ -803,7 +803,7 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
 
   HttpRequest *request = response->request;
 
-  if (!isDatasetPathValid(datasetPath)) {
+  if (!dsutilsIsDatasetPathValid(datasetPath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
     return;
   }
@@ -815,7 +815,7 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
 
   DatasetName dsn;
   DatasetMemberName memberName;
-  extractDatasetAndMemberName(datasetPath, &dsn, &memberName);
+  dsutilsExtractDatasetAndMemberName(datasetPath, &dsn, &memberName);
   
   DynallocDatasetName daDsn;
   DynallocMemberName daMember;
@@ -838,7 +838,7 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
             "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
             " rc=%d sysRC=%d, sysRSN=0x%08X (update)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "update");
-    respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
+    dsutilsRespondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
                              &daDsn, &daMember, "w");
     return;
   }
@@ -856,7 +856,7 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
   int eTagRC = 0;
   if (!force) { //do not write dataset if current contents do not match contents client expected, unless forced
     int eTagReturnLength = 0;
-    int lrecl = getLreclOrRespondError(response, &dsn, ddPath);
+    int lrecl = dsutilsGetLreclOrRespondError(response, &dsn, ddPath);
     if (lrecl) {
       char *eTag = getDatasetETag(ddPath, lrecl, &eTagRC, &eTagReturnLength);
       zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_INFO, "Given etag=%s, current etag=%s\n",lastEtag, eTag);
@@ -1062,14 +1062,14 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
-  if (!isDatasetPathValid(absolutePath)) {
+  if (!dsutilsIsDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
     return;
   }
   
   DatasetName datasetName;
   DatasetMemberName memberName;
-  extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
+  dsutilsExtractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
   DynallocDatasetName daDatasetName;
   DynallocMemberName daMemberName;
   memcpy(daDatasetName.name, datasetName.value, sizeof(daDatasetName.name));
@@ -1105,7 +1105,7 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDatasetName.name, daMemberName.name, daDDName.name,
             daReturnCode, daSysReturnCode, daSysReasonCode);
-    respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
+    dsutilsRespondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
                              daSysReasonCode, &daDatasetName, &daMemberName,
                              "r");
     return;
@@ -1124,7 +1124,7 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
               " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
               daDatasetName.name, daMemberName.name, daDDName.name,
               daReturnCode, daSysReturnCode, daSysReasonCode);
-      respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
+      dsutilsRespondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
                                daSysReasonCode, &daDatasetName, &daMemberName,
                                "r");
       return;
@@ -1192,7 +1192,7 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
               " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
               daDatasetName.name, daMemberName.name, daDDName.name,
               daReturnCode, daSysReturnCode, daSysReasonCode);
-      respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
+      dsutilsRespondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
                                daSysReasonCode, &daDatasetName, &daMemberName,
                                "r");
       return;
@@ -1266,7 +1266,7 @@ char getCSIType(char* absolutePath) {
 
   DatasetName datasetName;
   DatasetMemberName memberName;
-  extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
+  dsutilsExtractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
 
   char dsNameNullTerm[DATASET_NAME_LEN + 1] = {0};
   memcpy(dsNameNullTerm, datasetName.value, sizeof(datasetName.value));
@@ -1294,7 +1294,7 @@ void deleteVSAMDataset(HttpResponse* response, char* absolutePath) {
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
   
-  if (!isDatasetPathValid(absolutePath)) {
+  if (!dsutilsIsDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
     return;
   }
@@ -1428,7 +1428,7 @@ static void respondWithDatasetInternal(HttpResponse* response,
   char ddPath[16];
   snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName->value);
 
-  int lrecl = getLreclOrRespondError(response, dsn, ddPath);
+  int lrecl = dsutilsGetLreclOrRespondError(response, dsn, ddPath);
   if (!lrecl) {
     return;
   }
@@ -1454,14 +1454,14 @@ void respondWithDataset(HttpResponse* response, char* absolutePath, int jsonMode
 
   HttpRequest *request = response->request;
 
-  if (!isDatasetPathValid(absolutePath)) {
+  if (!dsutilsIsDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
     return;
   }
 
   DatasetName dsn;
   DatasetMemberName memberName;
-  extractDatasetAndMemberName(absolutePath, &dsn, &memberName);
+  dsutilsExtractDatasetAndMemberName(absolutePath, &dsn, &memberName);
 
   DynallocDatasetName daDsn;
   DynallocMemberName daMember;
@@ -1484,7 +1484,7 @@ void respondWithDataset(HttpResponse* response, char* absolutePath, int jsonMode
     		    "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN);
-    respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
+    dsutilsRespondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
                              &daDsn, &daMember, "r");
     return;
   }
@@ -1840,7 +1840,7 @@ void respondWithDatasetMetadata(HttpResponse *response) {
   char *absDsPathTemp = stringConcatenate(response->slh, "//'", percentDecoded);
   char *absDsPath = stringConcatenate(response->slh, absDsPathTemp, "'");
 
-  if(!isDatasetPathValid(absDsPath)){
+  if(!dsutilsIsDatasetPathValid(absDsPath)){
     respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Invalid dataset path");
     return;
   }
@@ -1852,7 +1852,7 @@ void respondWithDatasetMetadata(HttpResponse *response) {
   DatasetMemberName memName;
   int memberNameLength = 0;
 
-  extractDatasetAndMemberName(absDsPath, &dsnName, &memName);
+  dsutilsExtractDatasetAndMemberName(absDsPath, &dsnName, &memName);
   memberNameLength = (unsigned int)rParenIndex  - (unsigned int)lParenIndex -1;
   
   HttpRequestParam *addQualifiersParam = getCheckedParam(request,"addQualifiers");

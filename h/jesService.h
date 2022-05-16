@@ -14,6 +14,7 @@
 #define __JES_SERVICE_H__
 
 void installJesService(HttpServer *server);
+void responseJesServiceWithSubmitJobs(HttpResponse* response, int jsonMode);
 
 #endif /* __JES_SERVICE_H__ */
 

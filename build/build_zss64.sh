@@ -116,7 +116,6 @@ if ! c89 \
   ${ZSS}/c/dsutils.c \
   ${ZSS}/c/envService.c \
   ${ZSS}/c/jesService.c \
-  ${ZSS}/c/jesrequestsjson.c \
   ${ZSS}/c/zosDiscovery.c \
   ${ZSS}/c/securityService.c \
   ${ZSS}/c/registerProduct.c \
