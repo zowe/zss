@@ -131,61 +131,75 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
 
   if (!strcmp(request->method, methodPOST))
   {
-    RUsermapParamList userMapCertificateStructure;
-    memset(&userMapCertificateStructure, 0, sizeof(RUsermapParamList));
+    RUsermapParamList *userMapCertificateStructure 
+      = (RUsermapParamList*)safeMalloc31(sizeof(RUsermapParamList),"RUsermapParamList");
+    memset(userMapCertificateStructure, 0, sizeof(RUsermapParamList));
 
-    if(request->contentLength > sizeof(userMapCertificateStructure.certificate) || request->contentLength < 0) {
+    if(request->contentLength > sizeof(userMapCertificateStructure->certificate) || request->contentLength < 0) {
       respondWithBadRequest(response);
       return 0;
     }
 
-    userMapCertificateStructure.certificateLength = request->contentLength;
-    memset(userMapCertificateStructure.certificate, 0, request->contentLength);
-    memcpy(userMapCertificateStructure.certificate, request->contentBody, request->contentLength);
+    userMapCertificateStructure->certificateLength = request->contentLength;
+    memset(userMapCertificateStructure->certificate, 0, request->contentLength);
+    memcpy(userMapCertificateStructure->certificate, request->contentBody, request->contentLength);
 
-    userMapCertificateStructure.functionCode = MAP_CERTIFICATE_TO_USERNAME;
+    userMapCertificateStructure->functionCode = MAP_CERTIFICATE_TO_USERNAME;
     int rc;
 
 #ifdef _LP64 
-    rc = 12; /* This needs work to support 64-bit mode.
-		We will need to get a pointer to this routine w/o using linker
-		and SAM31 / SAM64 wrap this call. */
+    __asm(ASM_PREFIX
+	  /* We get the routine pointer for IRRSIM00 by an, *ahem*, direct approach.
+	     These offsets are stable, and this avoids linker/pragma mojo */
+	  " LA 15,X'10' \n"
+          " LG 15,X'220'(,15) \n" /* CSRTABLE */
+          " LG 15,X'28'(,15) \n" /* Some RACF Routin Vector */
+          " LG 15,X'A0'(,15) \n" /* IRRSIM00 itself */
+	  " LG 1,%0 \n"
+	  " SAM64 \n"
+	  " BALR 14,15 \n"
+          " SAM31 \n"
+          " ST 15,%0"
+	  :
+	  :"m"(userMapCertificateStructure),"m"(rc)
+	  :"r14","r15");
 #else
     rc = IRRSIM00(
-        &userMapCertificateStructure.workarea, // WORKAREA
-        &userMapCertificateStructure.safRcAlet  , // ALET
-        &userMapCertificateStructure.returnCode,
-        &userMapCertificateStructure.racfRcAlet,
-        &userMapCertificateStructure.returnCodeRacf,
-        &userMapCertificateStructure.racfReasonAlet,
-        &userMapCertificateStructure.reasonCodeRacf,
-        &userMapCertificateStructure.fcAlet,
-        &userMapCertificateStructure.functionCode,
-        &userMapCertificateStructure.optionWord,
-        &userMapCertificateStructure.useridLengthRacf,
-        &userMapCertificateStructure.certificateLength,
-        &userMapCertificateStructure.applicationIdLength,
-        &userMapCertificateStructure.distinguishedNameLength,
-        &userMapCertificateStructure.registryNameLength
+        &userMapCertificateStructure->workarea, // WORKAREA
+        &userMapCertificateStructure->safRcAlet  , // ALET
+        &userMapCertificateStructure->returnCode,
+        &userMapCertificateStructure->racfRcAlet,
+        &userMapCertificateStructure->returnCodeRacf,
+        &userMapCertificateStructure->racfReasonAlet,
+        &userMapCertificateStructure->reasonCodeRacf,
+        &userMapCertificateStructure->fcAlet,
+        &userMapCertificateStructure->functionCode,
+        &userMapCertificateStructure->optionWord,
+        &userMapCertificateStructure->useridLengthRacf,
+        &userMapCertificateStructure->certificateLength,
+        &userMapCertificateStructure->applicationIdLength,
+        &userMapCertificateStructure->distinguishedNameLength,
+        &userMapCertificateStructure->registryNameLength
     );
 #endif
 
     jsonPrinter *p = respondWithJsonPrinter(response);
 
-    setValidResponseCode(response, rc, userMapCertificateStructure.returnCode, userMapCertificateStructure.returnCodeRacf, userMapCertificateStructure.reasonCodeRacf);
+    setValidResponseCode(response, rc, userMapCertificateStructure->returnCode, userMapCertificateStructure->returnCodeRacf, userMapCertificateStructure->reasonCodeRacf);
     setDefaultJSONRESTHeaders(response);
     writeHeader(response);
-
+    
     jsonStart(p);
     {
-      jsonAddString(p, "userid", userMapCertificateStructure.useridRacf);
+      jsonAddString(p, "userid", userMapCertificateStructure->useridRacf);
       jsonAddInt(p, "returnCode", rc);
-      jsonAddInt(p, "safReturnCode", userMapCertificateStructure.returnCode);
-      jsonAddInt(p, "racfReturnCode", userMapCertificateStructure.returnCodeRacf);
-      jsonAddInt(p, "racfReasonCode", userMapCertificateStructure.reasonCodeRacf);
+      jsonAddInt(p, "safReturnCode", userMapCertificateStructure->returnCode);
+      jsonAddInt(p, "racfReturnCode", userMapCertificateStructure->returnCodeRacf);
+      jsonAddInt(p, "racfReasonCode", userMapCertificateStructure->reasonCodeRacf);
     }
     jsonEnd(p);
 
+    safeFree31((char*)userMapCertificateStructure,sizeof(RUsermapParamList));
     finishResponse(response);
   }
   else

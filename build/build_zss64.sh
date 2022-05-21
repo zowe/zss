@@ -45,6 +45,7 @@ if ! c89 \
   -DHTTPSERVER_BPX_IMPERSONATION=1 \
   -DAPF_AUTHORIZED=0 \
   -DUSE_ZOWE_TLS=1 \
+  -DNEW_CAA_LOCATIONS=1 \
   -Wc,lp64,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
   -Wc,agg,exp,list,so\(\),off,xref \
   -Wl,lp64,ac=1 \
