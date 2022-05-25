@@ -13,6 +13,14 @@ export _BPXK_AUTOCVT=ON
 COMPONENT_HOME="${ZWE_zowe_runtimeDirectory}/components/zss"
 ZSS_SCRIPT_DIR="${COMPONENT_HOME}/bin"
 
+# include . in LIBPATH if not present already
+if [ -n "$LIBPATH" ]
+then
+  if [ "$(echo "${LIBPATH}" | grep ":.:")" != "${LIBPATH}" ] && [ "$(echo "${LIBPATH}" | cut -c1-2)" != ".:" ] && [ "$(echo "${LIBPATH}" | tail -c 3)" != ":." ];
+  then
+    export LIBPATH="${LIBPATH}:."
+  fi
+fi
 # this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
 if [ -z "${ZLUX_ROOT_DIR}" ]; then
   if [ -d "${ZWE_zowe_runtimeDirectory}/components/app-server/share" ]; then
