@@ -43,7 +43,24 @@ typedef struct AbendInfo_tag {
 #define ZIS_AUTH_SERVICE_PASSWORD_MAX_LENGTH    100
 #define ZIS_AUTH_SERVICE_CLASS_MAX_LENGTH       8
 #define ZIS_AUTH_SERVICE_ENTITY_MAX_LENGTH      255
+#define ZIS_AUTH_SERVICE_APPL_MAX_LENGTH     8
 
+#define ZIS_SAF_IDT_SERVICE_CURRENT_VERSION         1
+
+typedef struct SafIdtService_tag{
+  int safIdtServiceVersion;
+  int safIdtLen;
+  char options;
+  #define ZIS_AUTH_SERVICE_SAFIDT_LENGTH (2 * IDTA_IDT_BUFFER_LEN_MIN)
+  #define ZIS_AUTH_SERVICE_SAFIDT_OPTION_GENERATE_IDT 0x80
+  #define ZIS_AUTH_SERVICE_SAFIDT_OPTION_IDT_APPL 0x40
+  char safIdt[ZIS_AUTH_SERVICE_SAFIDT_LENGTH];
+  char applNullTerm[ZIS_AUTH_SERVICE_APPL_MAX_LENGTH + 1];
+} SafIdtService;
+
+/* The #define for ZIS_AUTH_SERVICE_SAFIDT_OPTION_GENERATE_IDT has been deprecated, and will be removed
+   in the future.
+  */
 typedef struct AuthServiceParmList_tag {
   char eyecatcher[8];
 #define ZIS_AUTH_SERVICE_PARMLIST_EYECATCHER   "RSCMPASS"
@@ -51,12 +68,13 @@ typedef struct AuthServiceParmList_tag {
 #define ZIS_AUTH_SERVICE_PARMLIST_FC_VERIFY_PASSWORD 0
 #define ZIS_AUTH_SERVICE_PARMLIST_FC_ENTITY_CHECK 1
 #define ZIS_AUTH_SERVICE_PARMLIST_FC_GET_ACCESS 2
+#define ZIS_AUTH_SERVICE_PARMLIST_FC_GENERATE_TOKEN 3
   char userIDNullTerm[ZIS_AUTH_SERVICE_USER_ID_MAX_LENGTH + 1];
   char passwordNullTerm[ZIS_AUTH_SERVICE_PASSWORD_MAX_LENGTH + 1];
   /* up to 8 characters: */
   char classNullTerm[ZIS_AUTH_SERVICE_CLASS_MAX_LENGTH + 1];
-  char options;
-#define ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT 0x80
+  char _padding0[1];
+#define ZIS_AUTH_SERVICE_SAFIDT_OPTION_RESERVED 0x80
   int access;
   /* up to 255 characters: */
   char entityNullTerm[ZIS_AUTH_SERVICE_ENTITY_MAX_LENGTH + 1];
@@ -65,9 +83,7 @@ typedef struct AuthServiceParmList_tag {
     AbendInfo abendInfo;
   };
   int traceLevel;
-  int safIdtLen;
-  #define ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH (2 * IDTA_IDT_BUFFER_LEN_MIN)
-  char safIdt[ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH];
+  SafIdtService safIdtService;
 } AuthServiceParmList;
 ZOWE_PRAGMA_PACK_RESET
 
@@ -90,7 +106,9 @@ int zisAuthServiceFunction(CrossMemoryServerGlobalArea *globalArea,
 #define RC_ZIS_AUTHSRV_USER_CLASS_TOO_LONG        19
 #define RC_ZIS_AUTHSRV_CUSTOM_CLASS_NOT_ALLOWED   20
 #define RC_ZIS_AUTHSRV_INPUT_STRING_TOO_SHORT     21
-#define RC_ZIS_AUTHSRV_MAX_RC                     21
+#define RC_ZIS_AUTHSRV_BAD_SAF_SERVICE_VERSION    22
+#define RC_ZIS_AUTHSRV_IDT_NULL                   23
+#define RC_ZIS_AUTHSRV_MAX_RC                     23
 
 #endif /* ZIS_SERVICES_AUTH_H_ */
 
