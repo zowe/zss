@@ -16,9 +16,9 @@ ZSS_SCRIPT_DIR="${COMPONENT_HOME}/bin"
 # include . in LIBPATH if not present already
 if [ -n "$LIBPATH" ]
 then
-  if [ "$(echo "${LIBPATH}" | grep ":.:")" != "${LIBPATH}" ] && [ "$(echo "${LIBPATH}" | cut -c1-2)" != ".:" ] && [ "$(echo "${LIBPATH}" | tail -c 3)" != ":." ];
+  if [ "$(echo "${LIBPATH}" | grep ":.:")" != "${LIBPATH}" ] && [ "$(echo "${LIBPATH}" | cut -c1-2)" != ".:" ] && [ "$(echo "${LIBPATH}" | tail -c 3)" != ":." ] && [ "$(echo "${LIBPATH}" | grep "${ZSS_SCRIPT_DIR}")" != "${LIBPATH}" ];
   then
-    export LIBPATH="${LIBPATH}:."
+    export LIBPATH="${LIBPATH}:${ZSS_SCRIPT_DIR}"
   fi
 fi
 # this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
