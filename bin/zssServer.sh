@@ -13,7 +13,7 @@ export _BPXK_AUTOCVT=ON
 COMPONENT_HOME="${ZWE_zowe_runtimeDirectory}/components/zss"
 ZSS_SCRIPT_DIR="${COMPONENT_HOME}/bin"
 
-# include . in LIBPATH if not present already
+# this is to resolve LIBPATH current working dir issue. If LIBPATH is set manually by overwriting all existing values then cwd doesn't get resolved
 if [ -n "$LIBPATH" ]
 then
   if [ "$(echo "${LIBPATH}" | grep ":.:")" != "${LIBPATH}" ] && [ "$(echo "${LIBPATH}" | cut -c1-2)" != ".:" ] && [ "$(echo "${LIBPATH}" | tail -c 3)" != ":." ] && [ "$(echo "${LIBPATH}" | grep "${ZSS_SCRIPT_DIR}")" != "${LIBPATH}" ];
