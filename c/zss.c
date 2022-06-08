@@ -1710,6 +1710,7 @@ int main(int argc, char **argv){
     }
     */
 
+  bool hasProductReg = false;
   if (configmgr) { /* mvdSettings */
     int missingDirs = 0;
     if (!checkAndSetVariableV2(configmgr, "pluginsDir", pluginsDir, COMMON_PATH_MAX)) missingDirs++;
@@ -1718,23 +1719,18 @@ int main(int argc, char **argv){
     if (!checkAndSetVariableV2(configmgr, "instanceDir", instanceDir, COMMON_PATH_MAX)) missingDirs++;
     if (!checkAndSetVariableV2(configmgr, "groupsDir", groupsDir, COMMON_PATH_MAX)) missingDirs++;
     if (!checkAndSetVariableV2(configmgr, "usersDir", usersDir, COMMON_PATH_MAX)) missingDirs++;
-    printf("JOE dirs: prod='%s' inst='%s' plugins='%s'\n",productDir,instanceDir,pluginsDir);
-    if (false){
-      /* JOE - these are from JOE Pun , and are container pricing stuff, SMF Rec 89
-             reintroduce these next to "node" in schema
-             ZWED_productReg=enable
-	     ZWED_productVer=1.0
-	     ZWED_productPID= 8 characters
-	     ZWED_productOwner= 16 characters
-	     ZWED_productName= 16 characters (edited) 
-
-	     most users do not have these values set
-	     */
-      checkAndSetVariableV2(configmgr, "productReg", productReg, COMMON_PATH_MAX);
-      checkAndSetVariableV2(configmgr, "productVer", productVer, COMMON_PATH_MAX);
-      checkAndSetVariableV2(configmgr, "productPID", productPID, COMMON_PATH_MAX);
-      checkAndSetVariableV2(configmgr, "productOwner", productOwner, COMMON_PATH_MAX);
-      checkAndSetVariableV2(configmgr, "productName",  productName, COMMON_PATH_MAX);
+    /*     ZWED_productReg=enable
+	   ZWED_productVer=1.0
+	   ZWED_productPID= 8 characters
+	   ZWED_productOwner= 16 characters
+	   ZWED_productName= 16 characters (edited) 
+	   */
+    if (checkAndSetVariableV2(configmgr, "productReg", productReg, COMMON_PATH_MAX) &&
+	checkAndSetVariableV2(configmgr, "productVer", productVer, COMMON_PATH_MAX) &&
+	checkAndSetVariableV2(configmgr, "productPID", productPID, COMMON_PATH_MAX) &&
+	checkAndSetVariableV2(configmgr, "productOwner", productOwner, COMMON_PATH_MAX) &&
+	checkAndSetVariableV2(configmgr, "productName",  productName, COMMON_PATH_MAX)){
+      hasProductReg = true;
     }
     if (missingDirs){
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, "at least one of required app-server dir or product info missing");
@@ -1828,10 +1824,8 @@ int main(int argc, char **argv){
                                  cookieName, &returnCode, &reasonCode);
       }
     }
-    if (false){ /* JOE */
+    if (hasProductReg){ 
       registerProduct(productReg, productPID, productVer, productOwner, productName);
-    } else{
-      printf("*** Remember to restore registerProduct and it's info sources in YAML ***\n");
     }
     
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "made http(s) server at 0x%p\n",server);

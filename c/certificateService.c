@@ -156,9 +156,9 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
           " LG 15,X'28'(,15) \n" /* Some RACF Routin Vector */
           " LG 15,X'A0'(,15) \n" /* IRRSIM00 itself */
 	  " LG 1,%0 \n"
-	  " SAM64 \n"
+	  " SAM31 \n"
 	  " BALR 14,15 \n"
-          " SAM31 \n"
+          " SAM64 \n"
           " ST 15,%0"
 	  :
 	  :"m"(userMapCertificateStructure),"m"(rc)
