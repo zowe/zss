@@ -14,6 +14,8 @@ keywords:
   - zss
   - appfw
 license: EPL-2.0
+schemas:
+  configs: schemas/zowe-schema.json
 repository:
   type: git
   url: https://github.com/zowe/zss.git
@@ -21,7 +23,7 @@ build:
   branch: "{{build.branch}}"
   number: "{{build.number}}"
   commitHash: "{{build.commitHash}}"
-  timestamp: "{{build.timestamp}}"
+  timestamp: {{build.timestamp}}
 commands:
   install: bin/internal-install.sh
   start: bin/start.sh

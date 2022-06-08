@@ -14,6 +14,8 @@ services:
         gatewayUrl: api/v1
         swaggerUrl: https://${ZWE_haInstance_hostname}:${ZWE_components_app_server_port}/api-docs/agent
         # documentationUrl: TODO
+    authentication:
+        scheme: zoweJwt
 catalogUiTiles:
   zss:
     title: Zowe System Services (ZSS)

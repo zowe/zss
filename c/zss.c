@@ -1181,13 +1181,8 @@ static char* generateCookieNameV2(ConfigManager *configmgr, int port) {
 static char* generateCookieName(JsonObject *envConfig, int port) {
   int cookieLength=256;
   char *cookieName = safeMalloc(cookieLength+1, "CookieName");
-  char *zoweInstanceId = getenv("ZOWE_INSTANCE");
-  char *haInstanceCountStr = getenv("ZWE_HA_INSTANCES_COUNT"); 
-  int haInstanceCount=0;
-  if (haInstanceCountStr != NULL) {
-    haInstanceCount = atoi(haInstanceCountStr);
-  }
-  if (haInstanceCount > 1 && zoweInstanceId != NULL) {
+  char *zoweInstanceId = getenv("ZWE_zowe_cookieIdentifier");
+  if (zoweInstanceId != NULL) {
     snprintf(cookieName, cookieLength, "%s.%s", SESSION_TOKEN_COOKIE_NAME, zoweInstanceId);
   } else {
     snprintf(cookieName, cookieLength, "%s.%d", SESSION_TOKEN_COOKIE_NAME, port);

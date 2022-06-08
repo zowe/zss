@@ -75,8 +75,19 @@ fi
 
 # Keystore settings are used for both https server and Caching Service
 export "${HTTPS_PREFIX}label=${KEY_ALIAS}"
-if [ "${KEYSTORE_TYPE}" = "JCERACFKS" ]; then
-  export "${HTTPS_PREFIX}keyring=${KEYRING_OWNER}/${KEYRING_NAME}"
+
+if [ "${ZWE_zowe_certificate_keystore_type}" = "JCERACFKS" ]; then
+  export "${HTTPS_PREFIX}keyring=${ZWE_zowe_certificate_keystore_file}"
+  case "${ZWE_zowe_certificate_keystore_file}" in
+    safkeyring:////*)
+      trimmed=$(echo $ZWE_zowe_certificate_keystore_file | cut -c 16-)
+      export "${HTTPS_PREFIX}keyring=$trimmed"
+    ;;
+    safkeyring://*)
+      trimmed=$(echo $ZWE_zowe_certificate_keystore_file | cut -c 14-)
+      export "${HTTPS_PREFIX}keyring=$trimmed"
+    ;;
+  esac
 else
   export "${HTTPS_PREFIX}keyring=${KEYSTORE}"
   export "${HTTPS_PREFIX}password=${KEYSTORE_PASSWORD}"
