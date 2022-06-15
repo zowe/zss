@@ -13,11 +13,9 @@ export _BPXK_AUTOCVT=ON
 COMPONENT_HOME="${ZWE_zowe_runtimeDirectory}/components/zss"
 ZSS_SCRIPT_DIR="${COMPONENT_HOME}/bin"
 
-# this is to resolve LIBPATH current working dir issue. If LIBPATH is set manually by overwriting all existing values then cwd doesn't get resolved
-if [ -n "$LIBPATH" ]
-then
-  export LIBPATH="${LIBPATH}:${ZSS_SCRIPT_DIR}"
-fi
+# this is to resolve ZSS bin path in LIBPATH variable.
+export LIBPATH="${LIBPATH}:${ZSS_SCRIPT_DIR}"
+
 # this is to resolve (builtin) plugins that use ZLUX_ROOT_DIR as a relative path. if it doesnt exist, the plugins shouldn't either, so no problem
 if [ -z "${ZLUX_ROOT_DIR}" ]; then
   if [ -d "${ZWE_zowe_runtimeDirectory}/components/app-server/share" ]; then
