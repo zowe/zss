@@ -27,6 +27,7 @@
 #include "bpxnet.h"
 #include "logging.h"
 #include "unixfile.h"
+#include "errno.h"
 #ifdef __ZOWE_OS_ZOS
 #include "zos.h"
 #endif 
@@ -45,7 +46,12 @@
 #include "qsam.h"
 #include "icsf.h"
 
-#define INDEXED_DSCB 96
+#define INDEXED_DSCB      96
+#define LEN_THREE_BYTES   3
+#define LEN_ONE_BYTE      1
+#define VOLSER_SIZE       6
+#define CLASS_WRITER_SIZE 8
+#define TOTAL_TEXT_UNITS  23
 
 static char defaultDatasetTypesAllowed[3] = {'A','D','X'};
 static char clusterTypesAllowed[3] = {'C','D','I'}; /* TODO: support 'I' type DSNs */
@@ -80,6 +86,8 @@ typedef struct Volser_tag {
 
 static int getVolserForDataset(const DatasetName *dataset, Volser *volser);
 static bool memberExists(char* dsName, DynallocMemberName daMemberName);
+static int getDSCB(DatasetName *dsName, char* dscb, int bufferSize);
+static int configureTextunitsFromContentBody(JsonObject *object, int *configsCount, TextUnit **inputTextUnit);
 
 
 static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
@@ -2517,6 +2525,391 @@ void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQue
 #endif /* __ZOWE_OS_ZOS */
 }
 
+static int configureTextunitsFromContentBody(JsonObject *object, int *configsCount, TextUnit **inputTextUnit) {
+  JsonProperty *currentProp = jsonObjectGetFirstProperty(object);
+  Json *value = NULL;
+  int parmDefn = DALDSORG_NULL;
+  int type = TEXT_UNIT_NULL;
+  int rc = 0;
+  while(currentProp != NULL){
+    value = jsonPropertyGetValue(currentProp);
+    char *valueString = jsonAsString(value);
+
+    if(valueString != NULL){
+      errno = 0;
+      int valueStrLen = strlen(valueString);
+      char *propString = jsonPropertyGetKey(currentProp);
+      if (!strcmp(propString, "dsorg")) {
+        parmDefn = (!strcmp(valueString, "PS")) ? DALDSORG_PS : DALDSORG_PO;
+        rc = setTextUnit(TEXT_UNIT_INT16, 0, NULL, parmDefn, DALDSORG, configsCount, inputTextUnit);
+      } else if(!strcmp(propString, "blksz")) {
+        long toi = strtol(valueString, NULL, 0);
+        if(errno != ERANGE){
+          if (toi <= 0x7FF8 && toi >= 0) { //<-- If DASD, if tape, it can be 80000000
+            type = TEXT_UNIT_INT16;
+          } else if (toi <= 0x80000000){
+            type = TEXT_UNIT_LONGINT;
+          }
+          if(type != TEXT_UNIT_NULL) {
+            rc = setTextUnit(type, 0, NULL, toi, DALBLKSZ, configsCount, inputTextUnit);
+          }
+        }
+      } else if(!strcmp(propString, "lrecl")) {
+        long toi = strtol(valueString, NULL, 0);
+        if (errno != ERANGE){
+          if (toi == 0x8000 || (toi <= 0x7FF8 && toi >= 0)) {
+            rc = setTextUnit(TEXT_UNIT_INT16, 0, NULL, toi, DALLRECL, configsCount, inputTextUnit);
+          }
+        }
+      } else if(!strcmp(propString, "volser")) {
+        if (valueStrLen <= VOLSER_SIZE){
+          rc = setTextUnit(TEXT_UNIT_STRING, VOLSER_SIZE, &(valueString)[0], 0, DALVLSER, configsCount, inputTextUnit);
+        }
+      } else if(!strcmp(propString, "recfm")) {
+        int setRECFM = 0;
+        if (indexOf(valueString, valueStrLen, 'A', 0) != -1){
+          setRECFM = setRECFM | DALRECFM_A;
+        }
+        if (indexOf(valueString, valueStrLen, 'B', 0) != -1){
+          setRECFM = setRECFM | DALRECFM_B;
+        }
+        if (indexOf(valueString, valueStrLen, 'V', 0) != -1){
+          setRECFM = setRECFM | DALRECFM_V;
+        }
+        if (indexOf(valueString, valueStrLen, 'F', 0) != -1){
+          setRECFM = setRECFM | DALRECFM_F;
+        }
+        if (indexOf(valueString, valueStrLen, 'U', 0) != -1){
+          setRECFM = setRECFM | DALRECFM_U;
+        }
+        rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, setRECFM, DALRECFM, configsCount, inputTextUnit);
+      } else if(!strcmp(propString, "blkln")) {
+        long toi = strtol(valueString, NULL, 0);
+        if (errno != ERANGE) {
+          if (toi <= 0xFFFF || toi >= 0){
+            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, toi, DALBLKLN, configsCount, inputTextUnit);
+          }
+        }
+      } else if(!strcmp(propString, "status")) {
+        if (!strcmp(valueString, "OLD")){
+          parmDefn = DISP_OLD;
+        } else if (!strcmp(valueString, "MOD")){
+          parmDefn = DISP_MOD;
+        } else if (!strcmp(valueString, "SHARE")){
+          parmDefn = DISP_SHARE;
+        } else {
+          parmDefn = DISP_NEW;
+        }
+        rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALSTATS, configsCount, inputTextUnit);
+      } else if (!strcmp(propString, "ndisp")) {
+        if (!strcmp(valueString, "UNCATLG")){
+          parmDefn = DISP_UNCATLG;
+        } else if (!strcmp(valueString, "DELETE")){
+          parmDefn = DISP_DELETE;
+        } else if (!strcmp(valueString, "KEEP")){
+          parmDefn = DISP_KEEP;
+        } else {
+          parmDefn = DISP_CATLG;
+        }
+        rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALNDISP, configsCount, inputTextUnit);
+      } else if(!strcmp(propString, "unit")) {
+        rc = setTextUnit(TEXT_UNIT_STRING, valueStrLen, &(valueString)[0], 0, DALUNIT, configsCount, inputTextUnit);
+      } else if(!strcmp(propString, "spgnm")) {
+        if (valueStrLen <= CLASS_WRITER_SIZE){
+          rc = setTextUnit(TEXT_UNIT_STRING, valueStrLen, &(valueString)[0], 0, DALSPGNM, configsCount, inputTextUnit);
+        }
+      } else if(!strcmp(propString, "close")) {
+        if (!strcmp(valueString, "true")){
+          rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, DALCLOSE, configsCount, inputTextUnit);
+        }
+      } else if(!strcmp(propString, "dummy")) {
+        if (!strcmp(valueString, "true")){
+          rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, DALDUMMY, configsCount, inputTextUnit);
+        }
+      } else if(!strcmp(propString, "dcbdd")) {
+        if (valueStrLen <= DD_NAME_LEN){
+          rc = setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, &(valueString)[0], 0, DALDCBDD, configsCount, inputTextUnit);
+        }
+      } else if(!strcmp(propString, "retdd")) {
+        if (valueStrLen <= DD_NAME_LEN){
+          rc = setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, &(valueString)[0], 0, DALRTDDN, configsCount, inputTextUnit);
+        }
+      } else if(!strcmp(propString, "spin")) {
+        if (!strcmp(valueString, "UNALLOC")){
+          parmDefn = SPIN_UNALLOC;
+        } else if (!strcmp(valueString, "ENDJOB")){
+          parmDefn = SPIN_ENDJOB;
+        }
+        if(parmDefn != DALDSORG_NULL) {
+          rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALSPIN, configsCount, inputTextUnit);
+        }
+      } else if(!strcmp(propString, "strcls")) {
+        if (valueStrLen <= CLASS_WRITER_SIZE){
+          rc = setTextUnit(TEXT_UNIT_STRING, CLASS_WRITER_SIZE, &(valueString)[0], 0, DALSTCL, configsCount, inputTextUnit);
+        }
+      } else if(!strcmp(propString, "mngcls")) {
+        if (valueStrLen <= CLASS_WRITER_SIZE){
+          rc = setTextUnit(TEXT_UNIT_STRING, CLASS_WRITER_SIZE, &(valueString)[0], 0, DALMGCL, configsCount, inputTextUnit);
+        }
+      } else if(!strcmp(propString, "datacls")) {
+        if (valueStrLen <= CLASS_WRITER_SIZE){
+          rc = setTextUnit(TEXT_UNIT_STRING, CLASS_WRITER_SIZE, &(valueString)[0], 0, DALDACL, configsCount, inputTextUnit);
+        }
+      } else if(!strcmp(propString, "space")) {
+        if (!strcmp(valueString, "CYL")) {
+          parmDefn = DALCYL;
+        } else if (!strcmp(valueString, "TRK")) {
+          parmDefn = DALTRK;
+        }
+        if(parmDefn != DALDSORG_NULL) {
+          rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, parmDefn, configsCount, inputTextUnit);
+        }
+      } else if(!strcmp(propString, "dir")) {
+        long toi = strtol(valueString, NULL, 0);
+        if (errno != ERANGE) {
+          if (toi <= 0xFFFFFF || toi >= 0) {
+            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, toi, DALDIR, configsCount, inputTextUnit);
+          }
+        }
+      } else if(!strcmp(propString, "prime")) {
+        long toi = strtol(valueString, NULL, 0);
+        if (errno != ERANGE) {
+          if (toi <= 0xFFFFFF || toi >= 0) {
+            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, toi, DALPRIME, configsCount, inputTextUnit);
+          }
+        }
+      } else if(!strcmp(propString, "secnd")) {
+        long toi = strtol(valueString, NULL, 0);
+        if (errno != ERANGE) {
+          if (toi <= 0xFFFFFF || toi >= 0) {
+            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, toi, DALSECND, configsCount, inputTextUnit);
+          }
+        }
+      } else if(!strcmp(propString, "avgr")) {
+        if (!strcmp(valueString, "M")) {
+          parmDefn = DALDSORG_MREC;
+        } else if (!strcmp(valueString, "K")) {
+          parmDefn = DALDSORG_KREC;
+        } else if (!strcmp(valueString, "U")) {
+          parmDefn = DALDSORG_UREC;
+        }
+        if(parmDefn != DALDSORG_NULL) {
+          rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALAVGR, configsCount, inputTextUnit);
+        }
+      } else if(!strcmp(propString, "dsnt")) {
+        if (!strcmp(valueString, "PDSE")) {
+          parmDefn = DALDSORG_PDSE;
+        } else if (!strcmp(valueString, "PDS")) {
+          parmDefn = DALDSORG_PDS;
+        } else if (!strcmp(valueString, "PIPE")) {
+          parmDefn = DALDSORG_PIPE;
+        } else if (!strcmp(valueString, "HFS")) {
+          parmDefn = DALDSORG_HFS;
+        } else if (!strcmp(valueString, "EXTREQ")) {
+          parmDefn = DALDSORG_EXTREQ;
+        } else if (!strcmp(valueString, "EXTPREF")) {
+          parmDefn = DALDSORG_EXTPREF;
+        } else if (!strcmp(valueString, "BASIC")) {
+          parmDefn = DALDSORG_BASIC;
+        } else if (!strcmp(valueString, "LARGE")) {
+          parmDefn = DALDSORG_LARGE;
+        }
+        if(parmDefn != DALDSORG_NULL) {
+          rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALDSNT, configsCount, inputTextUnit);
+        }
+      }
+      
+    }
+    if(rc == -1) {
+      break;
+    }
+    currentProp = jsonObjectGetNextProperty(currentProp);
+    parmDefn = DALDSORG_NULL;
+    type = TEXT_UNIT_NULL;
+  }
+  return rc;
+}
+
+static int getDSCB(const DatasetName* datasetName, char* dscb, int bufferSize){
+  if (bufferSize < INDEXED_DSCB){
+    zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, 
+            "DSCB of size %d is too small, must be at least %d", bufferSize, INDEXED_DSCB);
+    return 1;
+  }
+  Volser volser = {0};
+
+  int volserSuccess = getVolserForDataset(datasetName, &volser);
+  if(!volserSuccess){
+    int rc = obtainDSCB1(datasetName->value, sizeof(datasetName->value),
+                           volser.value, sizeof(volser.value),
+                           dscb);
+    if (rc == 0){
+      if (DSCB_TRACE){
+        zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "DSCB for %.*s found\n", sizeof(&datasetName->value), datasetName->value);
+        dumpbuffer(dscb,INDEXED_DSCB);
+      }
+    }
+    return 0;
+  }
+  else {
+    return 1;
+  }
+}
+
+void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* absolutePath) {
+  char dscb[INDEXED_DSCB] = {0};
+  int bufferSize = sizeof(dscb);
+  if (getDSCB(datasetName, dscb, bufferSize) != 0) {
+    respondWithJsonError(response, "Error decoding dataset", 400, "Bad Request");
+  }
+  else {
+    if (!isPartionedDataset(dscb)) {
+      respondWithJsonError(response, "Dataset must be PDS/E", 400, "Bad Request");
+    }
+    else {
+      char *overwriteParam = getQueryParam(response->request,"overwrite");
+      int overwrite = !strcmp(overwriteParam, "true") ? TRUE : FALSE;
+      FILE* memberExists = fopen(absolutePath,"r");
+      if (memberExists && overwrite != TRUE) {//Member already exists and overwrite wasn't specified
+        if (fclose(memberExists) != 0) {
+            zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
+            respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
+        }
+        else {
+          respondWithJsonError(response, "Member already exists and overwrite not specified", 400, "Bad Request");
+        }
+      }
+      else { // Member doesn't exist
+        if (memberExists) {
+          if (fclose(memberExists) != 0) {
+            zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
+            respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
+            return;
+          }
+        }
+        FILE* newMember = fopen(absolutePath, "w");
+        if (!newMember){
+          respondWithJsonError(response, "Bad dataset name", 400, "Bad Request");
+          return;
+        }
+        if (fclose(newMember) == 0){
+          response200WithMessage(response, "Successfully created member");
+        }
+        else {
+          zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
+          respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
+        }
+      }
+    }
+  }
+}
+
+void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
+  #ifdef __ZOWE_OS_ZOS
+  HttpRequest *request = response->request;
+  if (!isDatasetPathValid(absolutePath)) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
+    return;
+  }
+
+  DatasetName datasetName;
+  DatasetMemberName memberName;
+  extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
+  DynallocDatasetName daDatasetName;
+  DynallocMemberName daMemberName;
+  memcpy(daDatasetName.name, datasetName.value, sizeof(daDatasetName.name));
+  memcpy(daMemberName.name, memberName.value, sizeof(daMemberName.name));
+  DynallocDDName daDDName = {.name = "????????"};
+
+  int daRC = RC_DYNALLOC_OK, daSysReturnCode = 0, daSysReasonCode = 0;
+
+  bool isMemberEmpty = IS_DAMEMBER_EMPTY(daMemberName);
+
+  if(!isMemberEmpty){
+    return newDatasetMember(response, &datasetName, absolutePath);
+  }
+
+  int configsCount = 0;
+  char ddNameBuffer[DD_NAME_LEN+1] = "MVD00000";
+  TextUnit *inputTextUnit[TOTAL_TEXT_UNITS] = {NULL};
+
+  if (jsonMode != TRUE) { /*TODO add support for updating files with raw bytes instead of JSON*/
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Cannot update file without JSON formatted record request");
+    return;
+  }
+
+  char *contentBody = request->contentBody;
+  int bodyLength = strlen(contentBody);
+
+  char *convertedBody = safeMalloc(bodyLength*4,"writeDatasetConvert");
+  int conversionBufferLength = bodyLength*4;
+  int translationLength;
+  int outCCSID = NATIVE_CODEPAGE;
+  int reasonCode;
+
+  int returnCode = convertCharset(contentBody,
+                              bodyLength,
+                              CCSID_UTF_8,
+                              CHARSET_OUTPUT_USE_BUFFER,
+                              &convertedBody,
+                              conversionBufferLength,
+                              outCCSID,
+                              NULL,
+                              &translationLength,
+                              &reasonCode);
+                              
+  if(returnCode == 0) {  
+
+    ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+    char errorBuffer[2048];
+    Json *json = jsonParseUnterminatedString(slh,
+                                             convertedBody, translationLength,
+                                             errorBuffer, sizeof(errorBuffer));
+    if (json) {
+      if (jsonIsObject(json)){
+        JsonObject * jsonObject = jsonAsObject(json);
+        returnCode = setTextUnit(TEXT_UNIT_STRING, DATASET_NAME_LEN, &datasetName.value[0], 0, DALDSNAM, &configsCount, inputTextUnit);
+        if(returnCode == 0) {
+          returnCode = setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, ddNameBuffer, 0, DALDDNAM, &configsCount, inputTextUnit);
+        }
+        if(returnCode == 0) {
+          returnCode = configureTextunitsFromContentBody(jsonObject, &configsCount, inputTextUnit);
+        }
+      }     
+    } else {
+      respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid JSON request body");
+    }
+  }
+  if (returnCode == 0) {
+    returnCode = dynallocNewDataset(inputTextUnit, configsCount, &reasonCode);
+    int ddNumber = 1;
+    while (reasonCode==0x4100000 && ddNumber < 100000) {
+      sprintf(ddNameBuffer, "MVD%05d", ddNumber);
+      int ddconfig = 1;
+      setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, ddNameBuffer, 0, DALDDNAM, &ddconfig, inputTextUnit);
+      returnCode = dynallocNewDataset(inputTextUnit, configsCount, &reasonCode);
+      ddNumber++;
+    }
+  }
+  if (returnCode) {
+    zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
+            "error: ds alloc dsn=\'%44.44s\' dd=\'%8.8s\', sysRC=%d, sysRSN=0x%08X\n",
+            daDatasetName.name, ddNameBuffer, returnCode, reasonCode);
+    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to allocate a DD for ACB");
+    return;
+  }
+  memcpy(daDDName.name, ddNameBuffer, DD_NAME_LEN);
+  daRC = dynallocUnallocDatasetByDDName(&daDDName, DYNALLOC_UNALLOC_FLAG_NONE, &returnCode, &reasonCode);
+  if (daRC != RC_DYNALLOC_OK) {
+    zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
+            "error: ds unalloc dsn=\'%44.44s\' dd=\'%8.8s\', rc=%d sysRC=%d, sysRSN=0x%08X\n",
+            daDatasetName.name, daDDName.name, daRC, returnCode, reasonCode);
+    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to deallocate DDNAME");
+    return;
+  }
+  response200WithMessage(response, "Successfully created dataset");
+  #endif
+}
 
 #endif /* not METTLE - the whole module */
 
