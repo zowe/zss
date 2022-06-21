@@ -23,7 +23,7 @@ build:
   branch: "{{build.branch}}"
   number: "{{build.number}}"
   commitHash: "{{build.commitHash}}"
-  timestamp: "{{build.timestamp}}"
+  timestamp: {{build.timestamp}}
 commands:
   install: bin/internal-install.sh
   start: bin/start.sh
