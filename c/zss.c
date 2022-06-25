@@ -1664,7 +1664,7 @@ int main(int argc, char **argv){
   cfgSetConfigPath(configmgr,ZSS_CFGNAME,configs);
   cfgLoadSchemas(configmgr,ZSS_CFGNAME,schemas);
 
-  if (loadConfigurations(configmgr,ZSS_CFGNAME) != 0){
+  if (cfgLoadConfiguration(configmgr,ZSS_CFGNAME) != 0){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS Could not load configurations\n");
     zssStatus = ZSS_STATUS_ERROR;
     goto out_term_stcbase;

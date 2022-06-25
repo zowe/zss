@@ -16,8 +16,22 @@ export _C89_LSYSLIB="CEE.SCEELKED:SYS1.CSSLIB:CSF.SCSFMOD0"
 export _C89_L6SYSLIB="CEE.SCEEBND2:SYS1.CSSLIB:CSF.SCSFMOD0"
 
 WORKING_DIR=$(dirname "$0")
+ZSS_ROOT=".."
 ZSS="../.."
+COMMON_BUILD="../deps/zowe-common-c/build"
 COMMON="../../deps/zowe-common-c"
+
+. ${ZSS_ROOT}/build/zss.proj.env
+. $COMMON_BUILD/dependencies.sh
+check_dependencies "${ZSS_ROOT}" "zss.proj.env"
+DEPS_DESTINATION=$(get_destination "${ZSS}" "${PROJECT}")
+
+YAML_MAJOR=0
+YAML_MINOR=2
+YAML_PATCH=5
+YAML_VERSION="\"${YAML_MAJOR}.${YAML_MINOR}.${YAML_PATCH}\""
+
+
 GSKDIR=/usr/lpp/gskssl
 GSKINC="${GSKDIR}/include"
 GSKLIB="${GSKDIR}/lib/GSKSSL64.x ${GSKDIR}/lib/GSKCMS64.x"
@@ -32,7 +46,76 @@ date_stamp=$(date +%Y%m%d)
 echo "Version: $major.$minor.$micro"
 echo "Date stamp: $date_stamp"
 
+xlclang \
+  -c \
+  -q64 \
+  -qascii \
+  "-Wc,float(ieee),longname,langlvl(extc99),gonum,goff,ASM,asmlib('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN')" \
+  -DYAML_VERSION_MAJOR=${YAML_MAJOR} \
+  -DYAML_VERSION_MINOR=${YAML_MINOR} \
+  -DYAML_VERSION_PATCH=${YAML_PATCH} \
+  -DYAML_VERSION_STRING="${YAML_VERSION}" \
+  -DYAML_DECLARE_STATIC=1 \
+  -D_OPEN_SYS_FILE_EXT=1 \
+  -D_XOPEN_SOURCE=600 \
+  -D_OPEN_THREADS=1 \
+  -DCONFIG_VERSION=\"2021-03-27\" \
+  -DNEW_CAA_LOCATIONS=1 \
+  -I "${DEPS_DESTINATION}/${LIBYAML}/include" \
+  -I "${DEPS_DESTINATION}/${QUICKJS}" \
+  ${DEPS_DESTINATION}/${LIBYAML}/src/api.c \
+  ${DEPS_DESTINATION}/${LIBYAML}/src/reader.c \
+  ${DEPS_DESTINATION}/${LIBYAML}/src/scanner.c \
+  ${DEPS_DESTINATION}/${LIBYAML}/src/parser.c \
+  ${DEPS_DESTINATION}/${LIBYAML}/src/loader.c \
+  ${DEPS_DESTINATION}/${LIBYAML}/src/writer.c \
+  ${DEPS_DESTINATION}/${LIBYAML}/src/emitter.c \
+  ${DEPS_DESTINATION}/${LIBYAML}/src/dumper.c \
+  ${DEPS_DESTINATION}/${QUICKJS}/cutils.c \
+  ${DEPS_DESTINATION}/${QUICKJS}/quickjs.c \
+  ${DEPS_DESTINATION}/${QUICKJS}/quickjs-libc.c \
+  ${DEPS_DESTINATION}/${QUICKJS}/libunicode.c \
+  ${DEPS_DESTINATION}/${QUICKJS}/libregexp.c \
+  ${DEPS_DESTINATION}/${QUICKJS}/porting/polyfill.c
+
+STEP1CC="$?"
+
+echo "STEP1CC $STEP1CC"
+
+if [ STEP1CC="0" ]; then
+  echo "Done with qascii-compiled open-source parts"
+else
+  echo "Build failed step1 code = $STEP1CC"
+  exit 8
+fi
+
+echo "Done with ASCII mode 3rd party Objects"
+
+
+xlclang \
+  -c \
+  -q64 \
+  "-Wc,float(ieee),longname,langlvl(extc99),gonum,goff,ASM,asmlib('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN')" \
+  -DYAML_VERSION_MAJOR=${YAML_MAJOR} \
+  -DYAML_VERSION_MINOR=${YAML_MINOR} \
+  -DYAML_VERSION_PATCH=${YAML_PATCH} \
+  -DYAML_VERSION_STRING="${YAML_VERSION}" \
+  -DYAML_DECLARE_STATIC=1 \
+  -D_OPEN_SYS_FILE_EXT=1 \
+  -D_XOPEN_SOURCE=600 \
+  -D_OPEN_THREADS=1 \
+  -DCONFIG_VERSION=\"2021-03-27\" \
+  -I "${DEPS_DESTINATION}/${LIBYAML}/include" \
+  -I "${DEPS_DESTINATION}/${QUICKJS}" \
+  -I ${COMMON}/h \
+  ${COMMON}/c/embeddedjs.c 
+
+echo "Done with embedded JS interface"
+
 export _C89_ACCEPTABLE_RC=0
+
+# Hacking around weird link issue:
+ar x /usr/lpp/cbclib/lib/libibmcmp.a z_atomic.LIB64R.o
 
 if ! c89 \
   -DPRODUCT_MAJOR_VERSION="$major" \
@@ -50,16 +133,35 @@ if ! c89 \
   -Wc,agg,exp,list,so\(\),off,xref \
   -Wl,lp64,ac=1 \
   -I ${COMMON}/h \
+  -I ${COMMON}/platform/posix \
   -I ${COMMON}/jwt/jwt \
   -I ${COMMON}/jwt/rscrypto \
   -I ${ZSS}/h \
   -I ${GSKINC} \
+  -I ${DEPS_DESTINATION}/${LIBYAML}/include \
   -o ${ZSS}/bin/zssServer64 \
+  api.o \
+  reader.o \
+  scanner.o \
+  parser.o \
+  loader.o \
+  writer.o \
+  emitter.o \
+  dumper.o \
+  cutils.o \
+  quickjs.o \
+  quickjs-libc.o \
+  libunicode.o \
+  libregexp.o \
+  polyfill.o \
+  embeddedjs.o \
+  z_atomic.LIB64R.o \
   ${COMMON}/c/alloc.c \
   ${COMMON}/c/bpxskt.c \
   ${COMMON}/c/charsets.c \
   ${COMMON}/c/cmutils.c \
   ${COMMON}/c/collections.c \
+  ${COMMON}/c/configmgr.c \
   ${COMMON}/c/crossmemory.c \
   ${COMMON}/c/crypto.c \
   ${COMMON}/c/dataservice.c \
@@ -75,11 +177,13 @@ if ! c89 \
   ${COMMON}/c/impersonation.c \
   ${COMMON}/c/jcsi.c \
   ${COMMON}/c/json.c \
+  ${COMMON}/c/jsonschema.c \
   ${COMMON}/jwt/jwt/jwt.c \
   ${COMMON}/c/le.c \
   ${COMMON}/c/logging.c \
   ${COMMON}/c/nametoken.c \
   ${COMMON}/c/zos.c \
+  ${COMMON}/c/parsetools.c \
   ${COMMON}/c/pause-element.c \
   ${COMMON}/c/pdsutil.c \
   ${COMMON}/c/qsam.c \
@@ -100,10 +204,12 @@ if ! c89 \
   ${COMMON}/c/vsam.c \
   ${COMMON}/c/xlate.c \
   ${COMMON}/c/xml.c \
+  ${COMMON}/c/yaml2json.c \
   ${COMMON}/c/zosaccounts.c \
   ${COMMON}/c/zosfile.c \
   ${COMMON}/c/zvt.c \
   ${COMMON}/c/shrmem64.c \
+  ${COMMON}/platform/posix/psxregex.c \
   ${ZSS}/c/zssLogging.c \
   ${ZSS}/c/zss.c \
   ${ZSS}/c/storageApiml.c \

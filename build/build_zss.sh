@@ -50,6 +50,7 @@ if ! c89 \
   -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
   -Wc,agg,exp,list\(\),so\(\),off,xref \
   -I ${COMMON}/h \
+  -I ${COMMON}/platform/posix \
   -I ${COMMON}/jwt/jwt \
   -I ${COMMON}/jwt/rscrypto \
   -I ${ZSS}/h \
@@ -76,6 +77,7 @@ if c89 \
   -Wc,agg,exp,list\(\),so\(\),off,xref \
   -Wl,ac=1,dll \
   -I ${COMMON}/h \
+  -I ${COMMON}/platform/posix \
   -I ${COMMON}/jwt/jwt \
   -I ${COMMON}/jwt/rscrypto \
   -I ${ZSS}/h \
@@ -87,10 +89,12 @@ if c89 \
   ${COMMON}/c/cmutils.c \
   collections.o \
   ${COMMON}/c/crossmemory.c \
+  ${COMMON}/c/configmgr.c \
   ${COMMON}/c/crypto.c \
   ${COMMON}/c/dataservice.c \
   ${COMMON}/c/discovery.c \
   ${COMMON}/c/dynalloc.c \
+  ${COMMON}/c/embeddedjs.c \
   ${COMMON}/c/fdpoll.c \
   ${COMMON}/c/http.c \
   ${COMMON}/c/httpclient.c \
@@ -104,6 +108,7 @@ if c89 \
   ${COMMON}/jwt/jwt/jwt.c \
   ${COMMON}/c/le.c \
   ${COMMON}/c/logging.c \
+  ${COMMON}/c/microjq.c \
   ${COMMON}/c/nametoken.c \
   ${COMMON}/c/zos.c \
   ${COMMON}/c/pdsutil.c \
