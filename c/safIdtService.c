@@ -51,7 +51,7 @@ Json *parseContentBody(HttpRequest *request) {
 static int authenticate(HttpResponse *response, CrossMemoryServerName *privilegedServerName) {
 
   ZISAuthServiceStatus status = {0};
-  char safIdt[ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1] = {0};
+  char safIdt[ZIS_AUTH_SERVICE_SAFIDT_LENGTH + 1] = {0};
   HttpRequest *request = response->request;  
 
   Json *body = parseContentBody(request);
@@ -63,6 +63,7 @@ static int authenticate(HttpResponse *response, CrossMemoryServerName *privilege
   JsonObject *jsonObject = jsonAsObject(body);
   char *username = jsonObjectGetString(jsonObject, "username");
   char *pass = jsonObjectGetString(jsonObject, "pass");
+  char *appl = jsonObjectGetString(jsonObject, "appl");
 
   if (username == NULL || strlen(username) == 0) {
     respondWithJsonStatus(response, "No username provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
@@ -80,8 +81,9 @@ static int authenticate(HttpResponse *response, CrossMemoryServerName *privilege
     strupcase(pass); /* upfold password */
   }
 
-  int zisRC = zisGenerateOrValidateSafIdt(privilegedServerName, username,
+  int zisRC = zisGenerateOrValidateSafIdtWithAppl(privilegedServerName, username,
                                           pass,
+                                          appl,
                                           safIdt,
                                           &status);
 
@@ -208,7 +210,7 @@ void extractUsernameFromJwt(HttpResponse *response, char *jwt, char *username) {
 static int verify(HttpResponse *response, CrossMemoryServerName *privilegedServerName) {
 
   ZISAuthServiceStatus status = {0};
-  char safIdt[ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1] = {0};
+  char safIdt[ZIS_AUTH_SERVICE_SAFIDT_LENGTH + 1] = {0};
   char username[9] = {0};
   HttpRequest *request = response->request;
 
@@ -220,14 +222,15 @@ static int verify(HttpResponse *response, CrossMemoryServerName *privilegedServe
 
   JsonObject *jsonObject = jsonAsObject(body);
   char *jwt = jsonObjectGetString(jsonObject, "jwt");
+  char *appl = jsonObjectGetString(jsonObject, "appl");
 
   if (jwt == NULL || strlen(jwt) == 0) {
     respondWithJsonStatus(response, "No jwt provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
     return HTTP_SERVICE_FAILED;
   }
 
-  if (strlen(jwt) > ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH) {
-    respondWithJsonStatus(response, "JWT size exceeds length of "STRINGIFY(ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH),
+  if (strlen(jwt) > ZIS_AUTH_SERVICE_SAFIDT_LENGTH) {
+    respondWithJsonStatus(response, "JWT size exceeds length of "STRINGIFY(ZIS_AUTH_SERVICE_SAFIDT_LENGTH),
                           HTTP_STATUS_BAD_REQUEST, "Bad Request");
     return HTTP_SERVICE_FAILED;
   }
@@ -242,8 +245,9 @@ static int verify(HttpResponse *response, CrossMemoryServerName *privilegedServe
   extractUsernameFromJwt(response, jwt, username);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "extracted username is: %s\n", username);
 
-  int zisRC = zisGenerateOrValidateSafIdt(privilegedServerName, username,
+  int zisRC = zisGenerateOrValidateSafIdtWithAppl(privilegedServerName, username,
                                           "",
+                                          appl,
                                           safIdt,
                                           &status);
 
