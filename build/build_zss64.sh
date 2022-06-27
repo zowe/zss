@@ -17,9 +17,9 @@ export _C89_L6SYSLIB="CEE.SCEEBND2:SYS1.CSSLIB:CSF.SCSFMOD0"
 
 WORKING_DIR=$(cd $(dirname "$0") && pwd)
 ZSS_ROOT="$WORKING_DIR/.."
-ZSS="$WORKING_DIR/../.."
 COMMON_BUILD="$WORKING_DIR/../deps/zowe-common-c/build"
-COMMON="$WORKING_DIR/../../deps/zowe-common-c"
+ZSS="../.."
+COMMON="../../deps/zowe-common-c"
 
 . ${ZSS_ROOT}/build/zss.proj.env
 . $COMMON_BUILD/dependencies.sh
@@ -41,7 +41,7 @@ echo "Building ZSS..."
 
 mkdir -p "${WORKING_DIR}/tmp-zss" && cd "$_"
 
-IFS='.' read -r major minor micro < "${ZSS}/version.txt"
+IFS='.' read -r major minor micro < "${ZSS_ROOT}/version.txt"
 date_stamp=$(date +%Y%m%d)
 echo "Version: $major.$minor.$micro"
 echo "Date stamp: $date_stamp"
