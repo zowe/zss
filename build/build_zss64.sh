@@ -37,7 +37,7 @@ GSKINC="${GSKDIR}/include"
 GSKLIB="${GSKDIR}/lib/GSKSSL64.x ${GSKDIR}/lib/GSKCMS64.x"
 
 echo "********************************************************************************"
-echo "Building ZSS..."
+echo "Building ZSS (64 bit) ..."
 
 mkdir -p "${WORKING_DIR}/tmp-zss" && cd "$_"
 
@@ -234,11 +234,11 @@ if ! c89 \
   ${GSKLIB} ;
 then
   extattr +p ${ZSS}/bin/zssServer64
-  echo "Build successful"
+  echo "Build zss64 successfully"
   exit 0
 else
   # remove zssServer in case the linker had RC=4 and produced the binary
   rm -f ${ZSS}/bin/zssServer64
-  echo "Build failed"
+  echo "Build zss64 failed"
   exit 8
 fi
