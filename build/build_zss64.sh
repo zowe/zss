@@ -23,7 +23,7 @@ COMMON="../../deps/zowe-common-c"
 
 . ${ZSS_ROOT}/build/zss.proj.env
 . $COMMON_BUILD/dependencies.sh
-check_dependencies "${ZSS_ROOT}" "zss.proj.env"
+check_dependencies "${ZSS_ROOT}" "${ZSS_ROOT}/build/zss.proj.env"
 DEPS_DESTINATION=$(get_destination "${ZSS}" "${PROJECT}")
 
 YAML_MAJOR=0
