@@ -68,7 +68,7 @@ static char *getDatasetETag(char *filename, int recordLength, int *rc, int *eTag
 #ifdef __ZOWE_OS_ZOS
   int rcEtag = 0;
   int eTagLength = 0;
-    
+   
   // Note: to allow processing of zero-length records set _EDC_ZERO_RECLEN=Y
   int defaultSize = DATA_STREAM_BUFFER_SIZE;
   FILE *in;
@@ -573,6 +573,44 @@ void addMemberedDatasetMetadata(char *datasetName, int nameLength,
 
 #ifdef __ZOWE_OS_ZOS
 
+static void respondWithDYNALLOCError(HttpResponse *response,
+                                     int rc, int sysRC, int sysRSN,
+                                     const DynallocDatasetName *dsn,
+                                     const DynallocMemberName *member,
+                                     const char *site) {
+
+  if (rc ==  RC_DYNALLOC_SVC99_FAILED && sysRC == 4) {
+
+    if (sysRSN == 0x020C0000 || sysRSN == 0x02100000) {
+      respondWithMessage(response, HTTP_STATUS_FORBIDDEN,
+                        "Dataset \'%44.44s(%8.8s)\' busy (%s)",
+                        dsn->name, member->name, site);
+      return;
+    }
+
+    if (sysRSN == 0x02180000) {
+      respondWithMessage(response, HTTP_STATUS_NOT_FOUND,
+                        "Device not available for dataset \'%44.44s(%8.8s)\' "
+                        "(%s)", dsn->name, member->name, site);
+      return;
+    }
+
+    if (sysRSN == 0x023C0000) {
+      respondWithMessage(response, HTTP_STATUS_NOT_FOUND,
+                        "Catalog not available for dataset \'%44.44s(%8.8s)\' "
+                        "(%s)", dsn->name, member->name, site);
+      return;
+    }
+
+  }
+
+  respondWithMessage(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
+                    "DYNALLOC failed with RC = %d, DYN RC = %d, RSN = 0x%08X, "
+                    "dsn=\'%44.44s(%8.8s)\', (%s)", rc, sysRC, sysRSN,
+                    dsn->name, member->name, site);
+
+}
+
 #define IS_DAMEMBER_EMPTY($member) \
   (!memcmp(&($member), &(DynallocMemberName){"        "}, sizeof($member)))
 
@@ -838,7 +876,7 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
             "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
             " rc=%d sysRC=%d, sysRSN=0x%08X (update)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "update");
-    dsutilsRespondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
+    respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
                              &daDsn, &daMember, "w");
     return;
   }
@@ -856,7 +894,18 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
   int eTagRC = 0;
   if (!force) { //do not write dataset if current contents do not match contents client expected, unless forced
     int eTagReturnLength = 0;
-    int lrecl = dsutilsGetLreclOrRespondError(response, &dsn, ddPath);
+    int lrecl = dsutilsGetLreclOr(&dsn, ddPath);
+    if (lrecl == -1) {
+      respondWithError(response, HTTP_STATUS_NOT_FOUND, "File could not be opened or does not exist");
+    }
+    else if (lrecl == -2){
+      respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Undefined-length dataset");
+    }
+    else if (lrecl == -3){
+      respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
+                       "Could not read dataset information");
+    }
+
     if (lrecl) {
       char *eTag = getDatasetETag(ddPath, lrecl, &eTagRC, &eTagReturnLength);
       zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_INFO, "Given etag=%s, current etag=%s\n",lastEtag, eTag);
@@ -1105,7 +1154,7 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDatasetName.name, daMemberName.name, daDDName.name,
             daReturnCode, daSysReturnCode, daSysReasonCode);
-    dsutilsRespondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
+    respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
                              daSysReasonCode, &daDatasetName, &daMemberName,
                              "r");
     return;
@@ -1124,7 +1173,7 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
               " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
               daDatasetName.name, daMemberName.name, daDDName.name,
               daReturnCode, daSysReturnCode, daSysReasonCode);
-      dsutilsRespondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
+      respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
                                daSysReasonCode, &daDatasetName, &daMemberName,
                                "r");
       return;
@@ -1192,7 +1241,7 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
               " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
               daDatasetName.name, daMemberName.name, daDDName.name,
               daReturnCode, daSysReturnCode, daSysReasonCode);
-      dsutilsRespondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
+      respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
                                daSysReasonCode, &daDatasetName, &daMemberName,
                                "r");
       return;
@@ -1428,9 +1477,16 @@ static void respondWithDatasetInternal(HttpResponse* response,
   char ddPath[16];
   snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName->value);
 
-  int lrecl = dsutilsGetLreclOrRespondError(response, dsn, ddPath);
-  if (!lrecl) {
-    return;
+  int lrecl = dsutilsGetLreclOr(dsn, ddPath);
+  if (lrecl == -1) {
+    respondWithError(response, HTTP_STATUS_NOT_FOUND, "File could not be opened or does not exist");
+  }
+  else if (lrecl == -2){
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Undefined-length dataset");
+  }
+  else if (lrecl == -3){
+    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
+                       "Could not read dataset information");
   }
 
   jsonPrinter *jPrinter = respondWithJsonPrinter(response);
@@ -1484,7 +1540,7 @@ void respondWithDataset(HttpResponse* response, char* absolutePath, int jsonMode
     		    "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN);
-    dsutilsRespondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
+    respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
                              &daDsn, &daMember, "r");
     return;
   }
@@ -2143,4 +2199,3 @@ void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQue
   
   Copyright Contributors to the Zowe Project.
 */
-

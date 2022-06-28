@@ -26,7 +26,6 @@
 #include "zos.h"
 #endif
 #include "jcsi.h"
-#include "dynalloc.h"
 #include "utils.h"
 #include "dsutils.h"
 
@@ -172,8 +171,7 @@ int dsutilsObtainDSCB1(const char *dsname, unsigned int dsnameLength,
 }
 
 
-int dsutilsGetLreclOrRespondError(HttpResponse *response,
-		const DatasetName *dsn,
+int dsutilsGetLreclOr(const DatasetName *dsn,
 		const char *ddPath){
 
   int lrecl = 0;
@@ -183,8 +181,7 @@ int dsutilsGetLreclOrRespondError(HttpResponse *response,
   int reasonCode;
   FILE *in = fopen(ddPath, "r");
   if (in == NULL) {
-    respondWithError(response, HTTP_STATUS_NOT_FOUND, "File could not be opened or does not exist");
-    return 0;
+    return -1;
   }
 
   Volser volser;
@@ -209,8 +206,7 @@ int dsutilsGetLreclOrRespondError(HttpResponse *response,
       char recordType = dsutilsGetRecordLengthType(dscb);
       if (recordType == 'U'){
         fclose(in);
-        respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
-        return 0;
+        return -2;
       }
       handledThroughDSCB = TRUE;
     }
@@ -224,16 +220,12 @@ int dsutilsGetLreclOrRespondError(HttpResponse *response,
     if (!returnCode) {
       if (fileinfo.__recfmU) {
         fclose(in);
-        respondWithError(response,  HTTP_STATUS_BAD_REQUEST,
-                         "Undefined-length dataset");
-        return 0;
+        return -2;
       }
       lrecl = fileinfo.__maxreclen;
     } else {
       fclose(in);
-      respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
-                       "Could not read dataset information");
-      return 0;
+      return -3;
     }
   }
   fclose(in);
@@ -366,44 +358,6 @@ void dsutilsExtractDatasetAndMemberName(const char *datasetPath,
 
 #undef DSPATH_PREFIX
 #undef DSPATH_SUFFIX
-
-void dsutilsRespondWithDYNALLOCError(HttpResponse *response,
-                              int rc, int sysRC, int sysRSN,
-                              const DynallocDatasetName *dsn,
-                              const DynallocMemberName *member,
-                              const char *site) {
-
-  if (rc ==  RC_DYNALLOC_SVC99_FAILED && sysRC == 4) {
-
-    if (sysRSN == 0x020C0000 || sysRSN == 0x02100000) {
-      respondWithMessage(response, HTTP_STATUS_FORBIDDEN,
-                        "Dataset \'%44.44s(%8.8s)\' busy (%s)",
-                        dsn->name, member->name, site);
-      return;
-    }
-
-    if (sysRSN == 0x02180000) {
-      respondWithMessage(response, HTTP_STATUS_NOT_FOUND,
-                        "Device not available for dataset \'%44.44s(%8.8s)\' "
-                        "(%s)", dsn->name, member->name, site);
-      return;
-    }
-
-    if (sysRSN == 0x023C0000) {
-      respondWithMessage(response, HTTP_STATUS_NOT_FOUND,
-                        "Catalog not available for dataset \'%44.44s(%8.8s)\' "
-                        "(%s)", dsn->name, member->name, site);
-      return;
-    }
-
-  }
-
-  respondWithMessage(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
-                    "DYNALLOC failed with RC = %d, DYN RC = %d, RSN = 0x%08X, "
-                    "dsn=\'%44.44s(%8.8s)\', (%s)", rc, sysRC, sysRSN,
-                    dsn->name, member->name, site);
-
-}
 
 #endif /* __ZOWE_OS_ZOS */
 

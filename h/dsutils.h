@@ -13,8 +13,6 @@
 #define __DSUTILS__ 1
 
 #include "httpserver.h"
-#include "dynalloc.h"
-
 
 #define INDEXED_DSCB 96
 
@@ -98,14 +96,12 @@ int dsutilsObtainDSCB1(const char *dsname, unsigned int dsnameLength, const char
 /**
  * @brief Gets the length of a dataset or respond an error.
  *
- * @param response a parameter to get a response when this 
- * function encountered an error
  * @param dsn a parameter to get the dataset name
  * @param ddpath a parameter to get dataset path
  * @return lrecl return the length of a dataset 
- * 0 this function encountered error 
+ * or this function encountered error 
  */
-int dsutilsGetLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath);
+int dsutilsGetLreclOr(const DatasetName *dsn, const char *ddPath);
 
 /**
  * @brief Validate if the dataset path is valid.
@@ -124,21 +120,6 @@ bool dsutilsIsDatasetPathValid(const char *path);
  */
 void dsutilsExtractDatasetAndMemberName(const char *datasetPath, DatasetName *dsn, DatasetMemberName *memberName);
 
-/**
- * @brief validation if allocation is error and respond
- *
- * @param response a parameter to get the
- * @param rc a parameter to get the 
- * @param sysrc a parameter to get 
- * @param sysrsn a parameter to get 
- * @param dsn a parameter to get 
- * @param member a parameter to get the
- * @param site a parameter to get the 
- */
-void dsutilsRespondWithDYNALLOCError(HttpResponse *response, int rc, int sysRC, int sysRSN,
-                              const DynallocDatasetName *dsn,
-                              const DynallocMemberName *member,
-                              const char *site);
 #endif
 
 
@@ -151,4 +132,3 @@ void dsutilsRespondWithDYNALLOCError(HttpResponse *response, int rc, int sysRC, 
 
   Copyright Contributors to the Zowe Project.
 */
-

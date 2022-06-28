@@ -265,9 +265,16 @@ static void respondWithSubmitDatasetInternal(HttpResponse* response,
   char ddPath[16];
   snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName->value);
 
-  int lrecl = dsutilsGetLreclOrRespondError(response, dsn, ddPath);
-  if (!lrecl) {
-    return;
+  int lrecl = dsutilsGetLreclOr(dsn, ddPath);
+  if (lrecl == -1) {
+    respondWithError(response, HTTP_STATUS_NOT_FOUND, "File could not be opened or does not exist");
+  }
+  else if (lrecl == -2){
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Undefined-length dataset");
+  }
+  else if (lrecl == -3){
+    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
+                       "Could not read dataset information");
   }
 
   if (lrecl){
@@ -358,6 +365,43 @@ static void respondWithSubmitDatasetInternal(HttpResponse* response,
   }
 }
 
+static void respondDYNALLOCerror(HttpResponse *response,
+                                     int rc, int sysRC, int sysRSN,
+                                     const DynallocDatasetName *dsn,
+                                     const DynallocMemberName *member,
+                                     const char *site) {
+
+  if (rc ==  RC_DYNALLOC_SVC99_FAILED && sysRC == 4) {
+
+    if (sysRSN == 0x020C0000 || sysRSN == 0x02100000) {
+      respondWithMessage(response, HTTP_STATUS_FORBIDDEN,
+                        "Dataset \'%44.44s(%8.8s)\' busy (%s)",
+                        dsn->name, member->name, site);
+      return;
+    }
+
+    if (sysRSN == 0x02180000) {
+      respondWithMessage(response, HTTP_STATUS_NOT_FOUND,
+                        "Device not available for dataset \'%44.44s(%8.8s)\' "
+                        "(%s)", dsn->name, member->name, site);
+      return;
+    }
+
+    if (sysRSN == 0x023C0000) {
+      respondWithMessage(response, HTTP_STATUS_NOT_FOUND,
+                        "Catalog not available for dataset \'%44.44s(%8.8s)\' "
+                        "(%s)", dsn->name, member->name, site);
+      return;
+    }
+
+  }
+  
+  respondWithMessage(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
+                    "DYNALLOC failed with RC = %d, DYN RC = %d, RSN = 0x%08X, "
+                    "dsn=\'%44.44s(%8.8s)\', (%s)", rc, sysRC, sysRSN,
+                    dsn->name, member->name, site);
+}
+
 static void respondWithSubmitDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 
   HttpRequest *request = response->request;
@@ -392,9 +436,8 @@ static void respondWithSubmitDataset(HttpResponse* response, char* absolutePath,
     		    "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN);
-    dsutilsRespondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
+    respondDYNALLOCerror(response, daRC, daSysRC, daSysRSN,
                              &daDsn, &daMember, "r");
-    return;
   }
   
   DDName ddName;
@@ -523,4 +566,3 @@ void responseJesServiceWithSubmitJobs(HttpResponse* response, int jsonMode) {
   
   Copyright Contributors to the Zowe Project.
 */
-
