@@ -76,6 +76,7 @@ xlclang \
   ${DEPS_DESTINATION}/${QUICKJS}/quickjs-libc.c \
   ${DEPS_DESTINATION}/${QUICKJS}/libunicode.c \
   ${DEPS_DESTINATION}/${QUICKJS}/libregexp.c \
+  ${DEPS_DESTINATION}/${QUICKJS}/porting/debugutil.c \
   ${DEPS_DESTINATION}/${QUICKJS}/porting/polyfill.c
 
 STEP1CC="$?"
@@ -104,11 +105,14 @@ xlclang \
   -D_OPEN_SYS_FILE_EXT=1 \
   -D_XOPEN_SOURCE=600 \
   -D_OPEN_THREADS=1 \
+  -DUSE_ZOWE_TLS=1 \
   -DCONFIG_VERSION=\"2021-03-27\" \
   -I "${DEPS_DESTINATION}/${LIBYAML}/include" \
   -I "${DEPS_DESTINATION}/${QUICKJS}" \
   -I ${COMMON}/h \
-  ${COMMON}/c/embeddedjs.c 
+  ${COMMON}/c/embeddedjs.c \
+  ${COMMON}/c/qjszos.c \
+  ${COMMON}/c/qjsnet.c 
 
 echo "Done with embedded JS interface"
 
@@ -153,8 +157,11 @@ if ! c89 \
   quickjs-libc.o \
   libunicode.o \
   libregexp.o \
+  debugutil.o \
   polyfill.o \
   embeddedjs.o \
+  qjszos.o  \
+  qjsnet.o \
   z_atomic.LIB64R.o \
   ${COMMON}/c/alloc.c \
   ${COMMON}/c/bpxskt.c \

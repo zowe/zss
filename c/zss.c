@@ -969,7 +969,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
   }
   if (webPluginListHead) {
     installWebPluginDefintionsService(webPluginListHead, server);
-  }
+  } 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s end result %d\n", __FUNCTION__, pluginDefinitionCount);
   return webPluginListHead;
 }
@@ -1015,25 +1015,20 @@ static JwkSettings *readJwkSettingsV2(ShortLivedHeap *slh, ConfigManager *config
   bool fallback = false;
 
   do {
-    printf("JOE JWK setting 0\n");
     if (!isMediationLayerEnabledV2(configmgr)){
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "APIML disabled\n");
       break;
     }
-    printf("JOE JWK setting 1\n");
     if (!readGatewaySettingsV2(configmgr, &host, &port)) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Gateway settings not found\n");
       break;
     }
-    printf("JOE JWK setting 2 host=%s port=%d\n",host,port);
     if (!tlsEnv) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "TLS settings not found\n");
       break;
     }
-    printf("JOE JWK setting 3\n");
     fallback = isJwtFallbackEnabledV2(configmgr);
     configured = true;
-    printf("JOE JWK setting 4\n");
   } while(0);
 
   if (!configured) {
@@ -1088,7 +1083,6 @@ static bool checkAndSetVariableV2(ConfigManager *configmgr,
   if (!getStatus && (strlen(value)+1 < targetMax)){
     int len = strlen(value);
     memcpy(target,value,len);
-    printf("JOE CASV '%s' -> '%s'\n",configVariableName,value);
     target[len] = 0;
     return true;
   } else{
@@ -1099,7 +1093,6 @@ static bool checkAndSetVariableV2(ConfigManager *configmgr,
 }
 
 static void initLoggingComponents(void) {
-  printf("JOE Initted logging \n");
   logConfigureComponent(NULL, LOG_COMP_ID_SECURITY, "ZSS Security API", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_DISCOVERY, "Zowe Discovery", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_RESTDATASET, "Zowe Dataset REST", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
@@ -1209,7 +1202,6 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
 				     TlsEnvironment **outTlsEnv){  
   Json *httpsConfig = NULL;
   int httpsGetStatus = cfgGetAnyC(configmgr,ZSS_CFGNAME,&httpsConfig,4,"components","zss","agent","https");
-  printf("JOE https settings httpGet= %d\n",httpsGetStatus);
   if (httpsGetStatus){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "https is NOT configured for this ZSS\n");
     return false;
@@ -1230,7 +1222,6 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
   bool useTls = false;
   cfgGetBooleanC(configmgr,ZSS_CFGNAME,&useTls,3,"components","zss","tls");
   bool isHttpsConfigured = useTls && settings->keyring;
-  printf("JOE useTls = %d isHttpsConfigured = %d\n",useTls,isHttpsConfigured);
   if (isHttpsConfigured){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
 	    settings->keyring,
@@ -1257,20 +1248,14 @@ static bool readGatewaySettingsV2(ConfigManager *configmgr,
 				  int *outGatewayPort
 				  ) {
   Json *gatewaySettings = NULL;
-  int gatewayGetStatus = cfgGetAnyC(configmgr,ZSS_CFGNAME,&gatewaySettings,5,"components","zss","node","mediationLayer","server");
+  int gatewayGetStatus = cfgGetAnyC(configmgr,ZSS_CFGNAME,&gatewaySettings,5,"components","zss","agent","mediationLayer","server");
   if (gatewayGetStatus){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "gateway is NOT configured for this ZSS\n");
     return false;
   }
   JsonObject *gatewaySettingsObject = jsonAsObject(gatewaySettings);
-  printf("JOE gateway settings at 0x%p\n",gatewaySettings);
-  fflush(stdout);
   *outGatewayHost = jsonObjectGetString(gatewaySettingsObject,"gatewayHostname");
   *outGatewayPort = jsonObjectGetNumber(gatewaySettingsObject,"gatewayPort");
-  printf("JOE GatewayV2: host=%s port=%d\n",*outGatewayHost,*outGatewayPort);
-  jsonPrinter *p = makeJsonPrinter(1);
-  jsonPrint(p,gatewaySettings);
-  fflush(stdout);
   return true;
 }
 
@@ -1283,7 +1268,7 @@ static bool readGatewaySettingsV2(ConfigManager *configmgr,
 static bool isMediationLayerEnabledV2(ConfigManager *configmgr) {
   /* JOE: Sean is this /comp/zss/node/mediationLayer/enabled */
   bool enabled = false;
-  int getStatus = cfgGetBooleanC(configmgr,ZSS_CFGNAME,&enabled,5,"components","zss","node","mediationLayer","enabled");
+  int getStatus = cfgGetBooleanC(configmgr,ZSS_CFGNAME,&enabled,5,"components","zss","agent","mediationLayer","enabled");
   if (getStatus == ZCFG_SUCCESS){
     return enabled;
   } else{
@@ -1308,7 +1293,6 @@ static bool isJwtFallbackEnabledV2(ConfigManager *configmgr){
   bool enabled = false;
   int getStatus = cfgGetBooleanC(configmgr,ZSS_CFGNAME,&enabled,5,"components","zss","agent","jwt","fallback");
   if (getStatus == ZCFG_SUCCESS){
-    printf("JOE, JWT fallback enabled = %d\n",enabled);
     return enabled;
   } else{    
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, 
@@ -1487,7 +1471,6 @@ static void readAndConfigureLogLevelFromConfig(LogComponentsMap *logComponent, C
   char *logCompName = NULL;
   int logCompLen = 0;
   while (logComponent->name != NULL) {
-    printf("JOE readCfgLogLevel for %s\n",logComponent->name);
     logCompLen = strlen(logComponent->name) + strlen (logCompPrefix) + 1;
     logCompName = (char*) safeMalloc(logCompLen, "Log Component Name");
     memset(logCompName, '\0', logCompLen);
@@ -1659,10 +1642,15 @@ int main(int argc, char **argv){
     /* HERE set up a directory from things from Sean */
     = makeConfigManager(); /* configs,schemas,1,stderr); */
   CFGConfig *theConfig = addConfig(configmgr,ZSS_CFGNAME);
-  cfgSetTraceLevel(configmgr,1);
+  cfgSetTraceLevel(configmgr,2);
   cfgSetTraceStream(configmgr,stderr);
   cfgSetConfigPath(configmgr,ZSS_CFGNAME,configs);
-  cfgLoadSchemas(configmgr,ZSS_CFGNAME,schemas);
+  int schemaLoadStatus = cfgLoadSchemas(configmgr,ZSS_CFGNAME,schemas);
+  if (schemaLoadStatus){
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS Could not load schemas, status=%d\n", schemaLoadStatus);
+    zssStatus = ZSS_STATUS_ERROR;
+    goto out_term_stcbase;
+  }
 
   if (cfgLoadConfiguration(configmgr,ZSS_CFGNAME) != 0){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS Could not load configurations\n");
@@ -1792,13 +1780,11 @@ int main(int argc, char **argv){
       }
     } else {
       isHttpsConfigured = readAgentHttpsSettingsV2(slh, configmgr, &address, &port, &tlsEnv);
-      printf("JOE https1: configged=%d tlsnv=0x%p\n",isHttpsConfigured,tlsEnv);
       if (isHttpsConfigured && !tlsEnv) {
         zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_HTTPS_INVALID_MSG);
         zssStatus = ZSS_STATUS_ERROR;
         goto out_term_stcbase;
       }
-      printf("JOE http2\n");
       if (!isHttpsConfigured) {
         readAgentAddressAndPortV2(configmgr, &address, &port);
       }
@@ -1810,7 +1796,6 @@ int main(int argc, char **argv){
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_SETTINGS_MSG, address, port,  isHttpsConfigured ? "https" : "http");
       
       char *cookieName = generateCookieNameV2(configmgr, port);
-      printf("JOE zss cookie nam '%s'\n",cookieName);
       if (isHttpsConfigured) {
         server = makeSecureHttpServer2(base, inetAddress, port, tlsEnv, requiredTLSFlag,
                                        cookieName, &returnCode, &reasonCode);
@@ -1831,7 +1816,6 @@ int main(int argc, char **argv){
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
       loadWebServerConfigV2(server, configmgr, htUsers, htGroups, defaultSeconds);
-      printf("JOE pluginsDir = '%s'\n",pluginsDir);
       readWebPluginDefinitions(server, slh, pluginsDir, configmgr, apimlStorageSettings);
       configureJwt(server, jwkSettings);
       installCertificateService(server);

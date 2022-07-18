@@ -7,9 +7,9 @@
   "required": [ "productDir", "siteDir", "instanceDir", "groupsDir", "usersDir", "pluginsDir", "dataserviceAuthentication", "agent" ],
   "additionalProperties": true,
   "properties": {
-    "node": {
+    "agent": {
       "type": "object",
-      "description": "Configuration options specific to the app-server and things it depends upon",
+      "description": "Configuration options specific to app-server agents, such as ZSS. These options are used to configure the agent, but also to tell app-server about the agent configuration",
       "additionalProperties": false,
       "properties": {
         "mediationLayer": {
@@ -37,8 +37,8 @@
                 },
                 "gatewayPort": {
                   "oneOf": [
-                    { "$ref": "/schemas/v2/server-common/#zoweTcpPort" },
-                    { "$ref": "/schemas/v2/server-common/#zoweReservedTcpPort" }, 
+                    { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
+                    { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" }, 
                   ],
                   "description": "The port where the Zowe Gateway service is running"
                 },
@@ -51,29 +51,30 @@
                 },
                 "enabled": {
                   "type": "boolean",
-                  "description": "Controls whether the app-server should register to the Zowe API Mediation Layer as a Eureka Client"
-                },
-                "cachingService": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "enabled": {
-                      "type": "boolean",
-                      "description": "Controls whether the app-server storage API can store in the caching service"
-                    }
-                  }
+                  "description":  "is Gateway and Discovery service enabled"
+                }
+              }
+            },
+            "serviceName": {
+              "type": "string",
+              "description": "What the agent will be named when found on the API Mediation Layer"
+            },
+            "enabled": {
+              "type": "boolean",
+              "description": "Controls whether the agent should register to the API Mediation Layer, and whether the app-server should contact it via the Mediation Layer"
+            },
+            "cachingService": {
+              "type": "object",
+              "additionalProperties": false,
+               "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Controls whether the app-server storage API can store in the caching service"
                 }
               }
             }
           }
-        }
-      }
-    },
-    "agent": {
-      "type": "object",
-      "description": "Configuration options specific to app-server agents, such as ZSS. These options are used to configure the agent, but also to tell app-server about the agent configuration",
-      "additionalProperties": false,
-      "properties": {
+        },
         "host": {
           "type": "string",
           "description": "Tells app-server which hostname or ip to communicate with the agent at"
@@ -93,6 +94,18 @@
             "ipAddresses": {
               "$ref": "#/$defs/ipsAndHostnames",
               "default": [ "0.0.0.0" ]
+            },
+            "label": {
+              "type": "string",
+              "description": "The label (aka alias), identifying the server's certificate in the key store"
+            },
+            "keyring": {
+              "type": "string",
+              "description": "This misnamed property is ICSF key ring identifier as '<user>/<ringName>' or USS file path to a .p12 format cert file"
+            },
+            "password": {
+              "type": "string",
+              "description": "The password to the keyring"
             }
           }
         },
@@ -103,8 +116,8 @@
           "properties": {
             "port": {
               "oneOf": [
-                { "$ref": "/schemas/v2/server-common/#zoweTcpPort" },
-                { "$ref": "/schemas/v2/server-common/#zoweReservedTcpPort" }, 
+                { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
+                { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" }, 
               ]
             },
             "attls": {
@@ -114,20 +127,6 @@
             },
             "ipAddresses": {
               "$ref": "#/$defs/ipsAndHostnames"
-            }
-          }
-        },
-        "mediationLayer": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "serviceName": {
-              "type": "string",
-              "description": "What the agent will be named when found on the API Mediation Layer"
-            },
-            "enabled": {
-              "type": "boolean",
-              "description": "Controls whether the agent should register to the API Mediation Layer, and whether the app-server should contact it via the Mediation Layer"
             }
           }
         },
