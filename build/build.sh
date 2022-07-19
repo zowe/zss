@@ -21,9 +21,9 @@ if [ -n "$1" ] && [ "$1" != "zss" ] && [ "$1" != "zis" ] || [ -n "$2" ]; then
   exit 2
 fi
 
-#if [ "$1" = "zss" ] || [ "$1" = "" ]; then
-#  "${WORKING_DIR}/build_zss.sh"
-#fi
+if [ "$1" = "zss" ] || [ "$1" = "" ]; then
+  "${WORKING_DIR}/build_zss.sh"
+fi
 
 if [ "$1" = "zis" ] || [ "$1" = "" ]; then
   "${WORKING_DIR}/build_zis.sh"
