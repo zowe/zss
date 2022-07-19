@@ -36,5 +36,5 @@ cp -r ../bak/bin .
 cp ../bak/manifest.yaml .
 cp -r ../bak/schemas .
 cp ../bak/apiml-static-reg.yaml.template .
-#extattr +p bin/zssServer
+extattr +p bin/zssServer
 extattr +p bin/zssServer64
