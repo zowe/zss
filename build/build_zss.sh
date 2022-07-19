@@ -143,7 +143,7 @@ xlc \
   -I ${ZSS}/h \
   -I ${GSKINC} \
   -I ${DEPS_DESTINATION}/${LIBYAML}/include \
-  -o /u/zossteam/jdevlin/git2022/zss/bin/zssServer \
+  -o ${ZSS}/bin/zssServer \
   api.o \
   reader.o \
   scanner.o \
