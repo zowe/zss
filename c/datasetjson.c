@@ -2770,7 +2770,7 @@ void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* ab
       char *overwriteParam = getQueryParam(response->request,"overwrite");
       int overwrite = !strcmp(overwriteParam, "true") ? TRUE : FALSE;
       FILE* memberExists = fopen(absolutePath,"r");
-      if (memberExists && overwrite != TRUE) {//Member already exists and overwrite wasn't specified
+      if (memberExists && overwrite != TRUE) {
         if (fclose(memberExists) != 0) {
             zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
             respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
@@ -2779,7 +2779,7 @@ void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* ab
           respondWithJsonError(response, "Member already exists and overwrite not specified", 400, "Bad Request");
         }
       }
-      else { // Member doesn't exist
+      else { 
         if (memberExists) {
           if (fclose(memberExists) != 0) {
             zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
