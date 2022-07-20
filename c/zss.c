@@ -1079,7 +1079,7 @@ static bool checkAndSetVariableV2(ConfigManager *configmgr,
 				  size_t targetMax){
   /* here */
   char *value;
-  int getStatus = cfgGetStringC(configmgr,ZSS_CFGNAME,&value,3,"components","app-server",configVariableName);
+  int getStatus = cfgGetStringC(configmgr,ZSS_CFGNAME,&value,3,"components","zss",configVariableName);
   if (!getStatus && (strlen(value)+1 < targetMax)){
     int len = strlen(value);
     memcpy(target,value,len);
@@ -1698,10 +1698,7 @@ int main(int argc, char **argv){
     int missingDirs = 0;
     if (!checkAndSetVariableV2(configmgr, "pluginsDir", pluginsDir, COMMON_PATH_MAX)) missingDirs++;
     if (!checkAndSetVariableV2(configmgr, "productDir", productDir, COMMON_PATH_MAX)) missingDirs++;
-    if (!checkAndSetVariableV2(configmgr, "siteDir", siteDir,  COMMON_PATH_MAX)) missingDirs++;
     if (!checkAndSetVariableV2(configmgr, "instanceDir", instanceDir, COMMON_PATH_MAX)) missingDirs++;
-    if (!checkAndSetVariableV2(configmgr, "groupsDir", groupsDir, COMMON_PATH_MAX)) missingDirs++;
-    if (!checkAndSetVariableV2(configmgr, "usersDir", usersDir, COMMON_PATH_MAX)) missingDirs++;
     /*     ZWED_productReg=enable
 	   ZWED_productVer=1.0
 	   ZWED_productPID= 8 characters
