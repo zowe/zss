@@ -4,9 +4,19 @@
   "title": "zss configuration",
   "description": "Configuration properties for zss, as specified within a configuration file such as zowe.yaml",
   "type": "object",
-  "required": [ "pluginsDir", "dataserviceAuthentication", "agent" ],
+  "required": [ "pluginsDir", "instanceDir", "productDir", "tls", "dataserviceAuthentication", "agent" ],
   "additionalProperties": true,
   "properties": {
+    "tls": {
+      "type": "boolean",
+      "description": "Whether or not the server should run in HTTPS or HTTP mode",
+      "default": true
+    },
+    "crossMemoryServerName": {
+      "type": "string",
+      "description": "The nickname of the ZIS server that exists on the same LPAR as ZSS",
+      "default": "ZWESIS_STD"
+    },
     "agent": {
       "type": "object",
       "description": "Configuration options specific to app-server agents, such as ZSS. These options are used to configure the agent, but also to tell app-server about the agent configuration",
@@ -43,14 +53,14 @@
                 "gatewayPort": {
                   "oneOf": [
                     { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
-                    { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" }, 
+                    { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" }
                   ],
                   "description": "The port where the Zowe Gateway service is running"
                 },
                 "port": {
                   "oneOf": [
                     { "$ref": "/schemas/v2/server-common/#zoweTcpPort" },
-                    { "$ref": "/schemas/v2/server-common/#zoweReservedTcpPort" }, 
+                    { "$ref": "/schemas/v2/server-common/#zoweReservedTcpPort" } 
                   ],
                   "description": "The port where the Zowe Discovery service is running"
                 },
@@ -80,10 +90,6 @@
             }
           }
         },
-        "host": {
-          "type": "string",
-          "description": "Tells app-server which hostname or ip to communicate with the agent at"
-        },
         "https": {
           "type": "object",
           "description": "Configures the agent to use HTTPS.",
@@ -93,6 +99,7 @@
               "oneOf": [
                 { "$ref": "/schemas/v2/server-common/#zoweTcpPort" },
                 { "$ref": "/schemas/v2/server-common/#zoweReservedTcpPort" }, 
+                { "type": "null" }
               ],
               "default": 7557
             },
@@ -101,15 +108,15 @@
               "default": [ "0.0.0.0" ]
             },
             "label": {
-              "type": "string",
+              "type": [ "string", "null" ],
               "description": "The label (aka alias), identifying the server's certificate in the key store"
             },
             "keyring": {
-              "type": "string",
+              "type": [ "string", "null" ],
               "description": "This misnamed property is ICSF key ring identifier as '<user>/<ringName>' or USS file path to a .p12 format cert file"
             },
             "password": {
-              "type": "string",
+              "type": [ "string", "null" ],
               "description": "The password to the keyring"
             }
           }
@@ -123,6 +130,7 @@
               "oneOf": [
                 { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
                 { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" }, 
+                { "type": "null" }
               ]
             },
             "attls": {
@@ -155,6 +163,14 @@
     "pluginsDir": {
       "type": "string",
       "description": "The location where plugin locator JSON files are found, which are used by the app-server and agent to locate and use plugins"
+    },
+    "instanceDir": {
+      "type": "string",
+      "description": "The location where ZSS may store additional configuration files"
+    },
+    "productDir": {
+      "type": "string",
+      "description": "The location where ZSS may read defaults for configuration files that would be overridden within instanceDir"
     },
     "dataserviceAuthentication": {
       "type": "object",
@@ -274,7 +290,7 @@
       "type": "string"
     },
     "ipsAndHostnames": {
-      "type": "array",
+      "type": [ "array", "null" ]
       "items": {
         "$ref": "#/$defs/ipOrHostname"
       },
