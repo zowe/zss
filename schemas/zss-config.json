@@ -4,7 +4,7 @@
   "title": "zss configuration",
   "description": "Configuration properties for zss, as specified within a configuration file such as zowe.yaml",
   "type": "object",
-  "required": [ "productDir", "siteDir", "instanceDir", "groupsDir", "usersDir", "pluginsDir", "dataserviceAuthentication", "agent" ],
+  "required": [ "pluginsDir", "dataserviceAuthentication", "agent" ],
   "additionalProperties": true,
   "properties": {
     "agent": {
@@ -12,6 +12,11 @@
       "description": "Configuration options specific to app-server agents, such as ZSS. These options are used to configure the agent, but also to tell app-server about the agent configuration",
       "additionalProperties": false,
       "properties": {
+        "64bit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether or not to run zss in 64 bit or 31 bit mode"
+        },
         "mediationLayer": {
           "type": "object",
           "description": "Properties relating to how the app-server should interact with and find the API Mediation Layer components",
@@ -146,26 +151,6 @@
           }
         }
       }
-    },
-    "productDir": {
-      "type": "string",
-      "description": "The location of the product scope of the configuration dataservice"
-    },
-    "siteDir": {
-      "type": "string",
-      "description": "The location of the site scope of the configuration dataservice"
-    },
-    "instanceDir": {
-      "type": "string",
-      "description": "The location of the instance scope of the configuration dataservice"
-    },
-    "groupsDir": {
-      "type": "string",
-      "description": "The location of the groups scope of the configuration dataservice"
-    },
-    "usersDir": {
-      "type": "string",
-      "description": "The location of the user scope of the configuration dataservice"
     },
     "pluginsDir": {
       "type": "string",
