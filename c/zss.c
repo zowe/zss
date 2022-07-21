@@ -346,10 +346,10 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
 #endif /* __ZOWE_OS_ZOS */
 
 static void loadWebServerConfigV2(HttpServer *server, 
-				  ConfigManager *configmgr,
-				  hashtable *htUsers,
-				  hashtable *htGroups, 
-				  int defaultSessionTimeout){
+                                  ConfigManager *configmgr,
+                                  hashtable *htUsers,
+                                  hashtable *htGroups, 
+                                  int defaultSessionTimeout){
   MVD_SETTINGS = NULL; /* JOE not supportable mvdSettings; */
   /* Disabled because this server is not being used by end users, but called by other servers
    * HttpService *mainService = makeGeneratedService("main", "/");
@@ -856,7 +856,7 @@ static char *formatDataServiceIdentifier(const char *unformattedIdentifier, size
 }
 
 static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLivedHeap *slh, char *dirname,
-						  ConfigManager *configmgr,
+                                                  ConfigManager *configmgr,
                                                   ApimlStorageSettings *apimlStorageSettings) {
   int pluginDefinitionCount = 0;
   int returnCode;
@@ -891,7 +891,7 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
             dumpJson(json);
             JsonObject *jsonObject = jsonAsObject(json);
             if (jsonObject) {
-	      bool logLevelWasSpecified = false;
+              bool logLevelWasSpecified = false;
               char *identifier = jsonObjectGetString(jsonObject, "identifier");
               char *pluginLocation = jsonObjectGetString(jsonObject, "pluginLocation");
               char *relativeTo = jsonObjectGetString(jsonObject, "relativeTo");
@@ -930,17 +930,17 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
                                   key,
                                   &(plugin->dataServices[i]->loggingIdentifier));
                           }
-			  uint64_t logCompID = plugin->dataServices[i]->loggingIdentifier;
+                          uint64_t logCompID = plugin->dataServices[i]->loggingIdentifier;
                           char *dataServiceIdentifier = formatDataServiceIdentifier(plugin->dataServices[i]->identifier, 
-										    identifierLength, '.');  
+                                                                                    identifierLength, '.');  
                           if (dataServiceIdentifier) {
-			    logLevelWasSpecified = false;
-			    int dataServiceLogLevel = getAndLimitLogLevel(configmgr, dataServiceIdentifier, &logLevelWasSpecified);
-			    if (logLevelWasSpecified){
-			      logSetLevel(NULL, logCompID, dataServiceLogLevel);
-			    }
+                            logLevelWasSpecified = false;
+                            int dataServiceLogLevel = getAndLimitLogLevel(configmgr, dataServiceIdentifier, &logLevelWasSpecified);
+                            if (logLevelWasSpecified){
+                              logSetLevel(NULL, logCompID, dataServiceLogLevel);
+                            }
                             safeFree(dataServiceIdentifier, identifierLength);
-			  }                                                
+                          }                                                
                         }
                       }
                     }
@@ -1049,11 +1049,11 @@ static JwkSettings *readJwkSettingsV2(ShortLivedHeap *slh, ConfigManager *config
 /* static const char defaultConfigPath[] = "../defaults/serverConfig/server.json"; */
 
 static void checkAndSetVariableWithEnvOverride(JsonObject *mvdSettings,
-					       const char* configVariableName,
-					       JsonObject *envSettings,
-					       const char* envConfigVariableName,
-					       char* target,
-					       size_t targetMax) {
+                                               const char* configVariableName,
+                                               JsonObject *envSettings,
+                                               const char* envConfigVariableName,
+                                               char* target,
+                                               size_t targetMax) {
   bool override=true;
   char* tempString = jsonObjectGetString(envSettings, envConfigVariableName);
   if(tempString == NULL) {
@@ -1074,9 +1074,9 @@ static void checkAndSetVariableWithEnvOverride(JsonObject *mvdSettings,
 }
 
 static bool checkAndSetVariableV2(ConfigManager *configmgr,
-				  const char *configVariableName,
-				  char *target,
-				  size_t targetMax){
+                                  const char *configVariableName,
+                                  char *target,
+                                  size_t targetMax){
   /* here */
   char *value;
   int getStatus = cfgGetStringC(configmgr,ZSS_CFGNAME,&value,3,"components","zss",configVariableName);
@@ -1087,7 +1087,7 @@ static bool checkAndSetVariableV2(ConfigManager *configmgr,
     return true;
   } else{
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, 
-	    "internal error accessing .components.zss.'%s', err=%d\n", configVariableName,getStatus);
+            "internal error accessing .components.zss.'%s', err=%d\n", configVariableName,getStatus);
     return false;
   }
 }
@@ -1143,7 +1143,7 @@ static void readAgentAddressAndPortV2(ConfigManager *configmgr, char **addressHa
     *addressHandle = address;
   } else{
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, 
-	    "internal error accessing .components.zss.agent.http.ipAddresses, err=%d\n", getStatus);
+            "internal error accessing .components.zss.agent.http.ipAddresses, err=%d\n", getStatus);
     *addressHandle = "127.0.0.1";  /* Non-ATTLS default */
   }
   /* no defaulting logic for port, and validation of schema should do good things */
@@ -1196,10 +1196,10 @@ static char* generateCookieName(JsonObject *envConfig, int port) {
 #define ENV_AGENT_HTTPS_KEY(key) AGENT_HTTPS_PREFIX key
 
 static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
-				     ConfigManager *configmgr,
-				     char **outAddress,
-				     int *outPort,
-				     TlsEnvironment **outTlsEnv){  
+                                     ConfigManager *configmgr,
+                                     char **outAddress,
+                                     int *outPort,
+                                     TlsEnvironment **outTlsEnv){  
   Json *httpsConfig = NULL;
   int httpsGetStatus = cfgGetAnyC(configmgr,ZSS_CFGNAME,&httpsConfig,4,"components","zss","agent","https");
   if (httpsGetStatus){
@@ -1224,10 +1224,10 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
   bool isHttpsConfigured = useTls && settings->keyring;
   if (isHttpsConfigured){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
-	    settings->keyring,
-	    settings->label ? settings->label : "(no label)",
-	    settings->password ? "****" : "(no password)",
-	    settings->stash ? settings->stash : "(no stash)");
+            settings->keyring,
+            settings->label ? settings->label : "(no label)",
+            settings->password ? "****" : "(no password)",
+            settings->stash ? settings->stash : "(no stash)");
     TlsEnvironment *tlsEnv = NULL;
     int rc = tlsInit(&tlsEnv, settings);
     if (rc != 0) {
@@ -1244,9 +1244,9 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
 
 /* Returns false if gateway host and port not found */
 static bool readGatewaySettingsV2(ConfigManager *configmgr,
-				  char **outGatewayHost,
-				  int *outGatewayPort
-				  ) {
+                                  char **outGatewayHost,
+                                  int *outGatewayPort
+                                  ) {
   Json *gatewaySettings = NULL;
   int gatewayGetStatus = cfgGetAnyC(configmgr,ZSS_CFGNAME,&gatewaySettings,5,"components","zss","agent","mediationLayer","server");
   if (gatewayGetStatus){
@@ -1273,7 +1273,7 @@ static bool isMediationLayerEnabledV2(ConfigManager *configmgr) {
     return enabled;
   } else{
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, 
-	    "internal error accessing .components.zss.agent.mediationLayer.enabled, err=%d\n", getStatus);
+            "internal error accessing .components.zss.agent.mediationLayer.enabled, err=%d\n", getStatus);
     return false;
   }
   /*
@@ -1296,7 +1296,7 @@ static bool isJwtFallbackEnabledV2(ConfigManager *configmgr){
     return enabled;
   } else{    
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, 
-	    "internal error accessing .components.zss.agent.mediationLayer.cachingService.enabled, err=%d\n", getStatus);
+            "internal error accessing .components.zss.agent.mediationLayer.cachingService.enabled, err=%d\n", getStatus);
     return false;
   }
 }
@@ -1329,7 +1329,7 @@ static bool isCachingServiceEnabledV2(ConfigManager *configmgr){
     return enabled;
   } else{    
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, 
-	    "internal error accessing .components.zss.agent.mediationLayer.cachingService.enabled, err=%d\n", getStatus);
+            "internal error accessing .components.zss.agent.mediationLayer.cachingService.enabled, err=%d\n", getStatus);
     return false;
   }
 }
@@ -1477,7 +1477,7 @@ static void readAndConfigureLogLevelFromConfig(LogComponentsMap *logComponent, C
     strcpy(logCompName, logCompPrefix);
     strcat(logCompName, logComponent->name);
     logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name,
-			  LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+                          LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
     if (true){
       int cfgStatus = cfgGetIntC(configmgr,ZSS_CFGNAME,&logLevel,4,"components","zss","logLevels",logCompName);
       if (!cfgStatus && isLogLevelValid(logLevel)) {
@@ -1508,7 +1508,7 @@ static int parseIntPair(char *s, int *i1Ptr, int *i2Ptr){
     char c = s[i];
     if (c == ','){
       if (commaPos){
-	return DOUBLE_COMMA;
+        return DOUBLE_COMMA;
       }
       commaPos = i;
     } else if (c < '0' || c > '9'){
@@ -1516,9 +1516,9 @@ static int parseIntPair(char *s, int *i1Ptr, int *i2Ptr){
     } else{
       printf("commaPos %d c %c\n",commaPos,c);
       if (commaPos){
-	i2 = (i2*10)+(c-'0');
+        i2 = (i2*10)+(c-'0');
       } else{
-	i1 = (i1*10)+(c-'0');
+        i1 = (i1*10)+(c-'0');
       }
     }
   }
@@ -1546,7 +1546,7 @@ static int forceLogToFile(char *logFileName){
 static char *getKeywordArg(char *key, int argc, char **argv){
   for (int aa=1; aa<argc; aa++){
     if (!strcmp(argv[aa],key) &&
-	(aa+1 < argc)){
+        (aa+1 < argc)){
       return argv[aa+1];
     }
   }
@@ -1706,16 +1706,16 @@ int main(int argc, char **argv){
     if (!checkAndSetVariableV2(configmgr, "productDir", productDir, COMMON_PATH_MAX)) missingDirs++;
     if (!checkAndSetVariableV2(configmgr, "instanceDir", instanceDir, COMMON_PATH_MAX)) missingDirs++;
     /*     ZWED_productReg=enable
-	   ZWED_productVer=1.0
-	   ZWED_productPID= 8 characters
-	   ZWED_productOwner= 16 characters
-	   ZWED_productName= 16 characters (edited) 
-	   */
+           ZWED_productVer=1.0
+           ZWED_productPID= 8 characters
+           ZWED_productOwner= 16 characters
+           ZWED_productName= 16 characters (edited) 
+           */
     if (checkAndSetVariableV2(configmgr, "productReg", productReg, COMMON_PATH_MAX) &&
-	checkAndSetVariableV2(configmgr, "productVer", productVer, COMMON_PATH_MAX) &&
-	checkAndSetVariableV2(configmgr, "productPID", productPID, COMMON_PATH_MAX) &&
-	checkAndSetVariableV2(configmgr, "productOwner", productOwner, COMMON_PATH_MAX) &&
-	checkAndSetVariableV2(configmgr, "productName",  productName, COMMON_PATH_MAX)){
+        checkAndSetVariableV2(configmgr, "productVer", productVer, COMMON_PATH_MAX) &&
+        checkAndSetVariableV2(configmgr, "productPID", productPID, COMMON_PATH_MAX) &&
+        checkAndSetVariableV2(configmgr, "productOwner", productOwner, COMMON_PATH_MAX) &&
+        checkAndSetVariableV2(configmgr, "productName",  productName, COMMON_PATH_MAX)){
       hasProductReg = true;
     }
     if (missingDirs){
@@ -1778,7 +1778,7 @@ int main(int argc, char **argv){
         zssStatus = ZSS_STATUS_ERROR;
         goto out_term_stcbase;
       } else{
-	httpServerEnablePipes(server,fromDispatcherFD,toDispatcherFD);
+        httpServerEnablePipes(server,fromDispatcherFD,toDispatcherFD);
         server->singleUserAuthBlob = authBlob16;
       }
     } else {

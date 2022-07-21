@@ -347,10 +347,6 @@
           "$ref": "#/$defs/logLevel"
         }
       }
-    },
-    "privilegedServerName": {
-      "type": "string",
-      "description": "The nickname of the ZIS server to be used"
     }
   },
   "$defs": {
