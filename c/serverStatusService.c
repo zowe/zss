@@ -39,7 +39,9 @@
 #include "httpserver.h"
 #include "logging.h"
 #include "zssLogging.h"
+#include "configmgr.h"
 #include "serverStatusService.h"
+#include "zss.h"
 
 #ifdef __ZOWE_OS_ZOS
 
@@ -49,7 +51,7 @@ static inline bool strne(const char *a, const char *b) {
   return a != NULL && b != NULL && strcmp(a, b) != 0;
 }
 
-void installServerStatusService(HttpServer *server, JsonObject *serverSettings, char* productVer) {
+void installServerStatusService(HttpServer *server, char* productVer) {
   HttpService *httpService = makeGeneratedService("Server_Status_Service", "/server/agent/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->authFlags |= SERVICE_AUTH_FLAG_OPTIONAL;
@@ -58,7 +60,6 @@ void installServerStatusService(HttpServer *server, JsonObject *serverSettings, 
   httpService->doImpersonation = TRUE;
   ServerAgentContext *context = (ServerAgentContext*)safeMalloc(sizeof(ServerAgentContext), "ServerAgentContext");
   if (context != NULL) {
-    context->serverConfig = serverSettings;
     context->productVersion[sizeof(context->productVersion) - 1] = '\0';
     strncpy(context->productVersion, productVer, sizeof(context->productVersion) - 1);
   }
@@ -66,7 +67,7 @@ void installServerStatusService(HttpServer *server, JsonObject *serverSettings, 
   registerHttpService(server, httpService);
 }
 
-int respondWithServerConfig(HttpResponse *response, JsonObject* config) {
+static int respondWithServerConfig(HttpResponse *response, JsonObject* config) {
   jsonPrinter *out = respondWithJsonPrinter(response);
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
@@ -80,7 +81,7 @@ int respondWithServerConfig(HttpResponse *response, JsonObject* config) {
   return 0;
 }
 
-int respondWithServerRoutes(HttpResponse *response, bool allowFullAccess) {
+static int respondWithServerRoutes(HttpResponse *response, bool allowFullAccess) {
   jsonPrinter *out = respondWithJsonPrinter(response);
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
@@ -120,15 +121,16 @@ int respondWithServerRoutes(HttpResponse *response, bool allowFullAccess) {
   return 0;
 }
 
-int respondWithLogLevels(HttpResponse *response, ServerAgentContext *context) {
+static int respondWithLogLevels(HttpResponse *response, ServerAgentContext *context, ConfigManager *configmgr){
   jsonPrinter *out = respondWithJsonPrinter(response);
-  JsonObject *logLevels = jsonObjectGetObject(context->serverConfig, "logLevels");
+  Json *logLevelsJson = NULL;
+  int cfgGetStatus = cfgGetAnyC(configmgr,ZSS_CFGNAME,&logLevelsJson,3,"components","zss","logLevel");
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(out);
-  if (logLevels) {
-    jsonPrintObject(out, logLevels);
+  if (cfgGetStatus == ZCFG_SUCCESS) {
+    jsonPrintObject(out, jsonAsObject(logLevelsJson));
   }
   jsonEnd(out);
   finishResponse(response);
@@ -138,7 +140,8 @@ int respondWithLogLevels(HttpResponse *response, ServerAgentContext *context) {
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 256
 #endif
-int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *context, bool allowFullAccess) {
+static int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *context, 
+					ConfigManager *configmgr, bool allowFullAccess) {
   /*Information about parameters for smf_unc: https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.erbb700/smfp.htm#smfp*/
   extern char **environ;
   struct utsname unameRet;
@@ -166,8 +169,10 @@ int respondWithServerEnvironment(HttpResponse *response, ServerAgentContext *con
       }
       jsonAddString(out, "timestamp", tstamp);
     }
-    if (getenv("ZWES_LOG_FILE") != NULL) {
-      jsonAddString(out, "logDirectory", getenv("ZWES_LOG_FILE"));
+    char *logDirectory;
+    int logDirStatus = cfgGetStringC(configmgr,ZSS_CFGNAME,&logDirectory,2,"zowe","logDirectory");
+    if (logDirStatus == ZCFG_SUCCESS){
+      jsonAddString(out, "logDirectory", logDirectory);
     } else {
       jsonAddString(out, "logDirectory", "ZWES_LOG_FILE not defined in environment variables");
     }
@@ -240,11 +245,16 @@ static bool statusEndPointRequireAuthAndRBAC(const char *endpoint) {
 
 static int serveStatus(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
+  HttpServer *server = httpResponseServer(response);
+  ConfigManager *configmgr = httpServerConfigManager(server);
+
   ServerAgentContext *context = service->userPointer;
   //This service is conditional on RBAC being enabled because it is a 
   //sensitive URL that only RBAC authorized users should be able to get full access
-  JsonObject *dataserviceAuth = jsonObjectGetObject(context->serverConfig, "dataserviceAuthentication");
-  int rbacParm = jsonObjectGetBoolean(dataserviceAuth, "rbac");
+  Json *dataserviceAuthJson = NULL;
+  int cfgGetStatus = cfgGetAnyC(configmgr,ZSS_CFGNAME,&dataserviceAuthJson,3,"components", "app-server", "dataserviceAuthentication");
+  JsonObject *dataserviceAuth = (cfgGetStatus == ZCFG_SUCCESS ? jsonAsObject(dataserviceAuthJson) : NULL);
+  int rbacParm = dataserviceAuth ? jsonObjectGetBoolean(dataserviceAuth, "rbac") : 0;
   int isAuthenticated = response->request->authenticated;
   bool allowFullAccess = isAuthenticated && rbacParm;
   if (!strcmp(request->method, methodGET)) {
@@ -262,10 +272,12 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
     if (!strcmp(l1, "")) {
       return respondWithServerRoutes(response, allowFullAccess);
     } else if (!strcmp(l1, "config")) {
-      return respondWithServerConfig(response, context->serverConfig);
+      Json *config = cfgGetConfigData(configmgr,ZSS_CFGNAME);
+      return respondWithServerConfig(response, (config ? jsonAsObject(config) : NULL));
     } else if (!strcmp(l1, "log")) {
-      char* logDir = getenv("ZWES_LOG_FILE");
-      if (strne(logDir, "")) {
+      char *logDir;
+      int logDirStatus = cfgGetStringC(configmgr,ZSS_CFGNAME,&logDir,2,"zowe","logDirectory");
+      if (logDirStatus == ZCFG_SUCCESS){
         respondWithUnixFile2(NULL, response, logDir, 0, 0, false);
         return 0;
       } else {
@@ -273,11 +285,11 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
          return -1;
       }
     } else if (!strcmp(l1, "logLevels")) {
-      return respondWithLogLevels(response, context);
+      return respondWithLogLevels(response, context, configmgr);
     } else if (!strcmp(l1, "environment")) {
-      return respondWithServerEnvironment(response, context, allowFullAccess);
+      return respondWithServerEnvironment(response, context, configmgr, allowFullAccess);
     } else if (!strcmp(l1, "services")) {
-      return respondWithServices(response, service->server);
+      return respondWithServices(response, server);
     } else {
       respondWithJsonError(response, "Invalid path", 400, "Bad Request");
       return -1;

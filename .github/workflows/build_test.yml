@@ -32,6 +32,20 @@ jobs:
         with: 
             submodules: true
 
+      - name: '[Dep 1] Libyaml'
+        uses: actions/checkout@v3
+        with:
+          repository: yaml/libyaml
+          path: deps/zss/libyaml
+          ref: '0.2.5'
+
+      - name: '[Dep 2] Quickjs'
+        uses: actions/checkout@v3
+        with:
+          repository: joenemo/quickjs-portable
+          path: deps/zss/quickjs
+          ref: 'main'
+
       - name: '[Prep 2] Setup jFrog CLI'
         uses: jfrog/setup-jfrog-cli@v2
         env:
