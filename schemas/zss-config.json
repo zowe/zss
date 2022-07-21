@@ -59,8 +59,8 @@
                 },
                 "port": {
                   "oneOf": [
-                    { "$ref": "/schemas/v2/server-common/#zoweTcpPort" },
-                    { "$ref": "/schemas/v2/server-common/#zoweReservedTcpPort" } 
+                    { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
+                    { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" } 
                   ],
                   "description": "The port where the Zowe Discovery service is running"
                 },
@@ -97,8 +97,8 @@
           "properties": {
             "port": {
               "oneOf": [
-                { "$ref": "/schemas/v2/server-common/#zoweTcpPort" },
-                { "$ref": "/schemas/v2/server-common/#zoweReservedTcpPort" }, 
+                { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
+                { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" }, 
                 { "type": "null" }
               ],
               "default": 7557
@@ -198,7 +198,7 @@
                 "plugins": {
                   "type": "array",
                   "items": {
-                    "$ref": "/schemas/v2/server-common/#zoweReverseDomainNotation"
+                    "$ref": "/schemas/v2/server-common#zoweReverseDomainNotation"
                   },
                   "uniqueItems": true
                 }
@@ -275,6 +275,74 @@
           "description": "Controls logging of JWK use for SSO",
           "$ref": "#/$defs/logLevel"
         },
+        "_zss.alloc": {
+          "description": "Controls logging of JWK use for SSO",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.utils": {
+          "description": "Controls logging of util library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.collections": {
+          "description": "Controls logging of collection structure library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.serialization": {
+          "description": "Controls logging of serialiation library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.zlparser": {
+          "description": "Controls logging of zlparser library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.zlcompiler": {
+          "description": "Controls logging of zlcompiler library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.zlruntime": {
+          "description": "Controls logging of zlruntime library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.stcbase": {
+          "description": "Controls logging of STC Base functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.httpserver": {
+          "description": "Controls logging of the http server base",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.discovery": {
+          "description": "Controls logging of discovery tools",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.cms": {
+          "description": "Controls logging of cms library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.lpa": {
+          "description": "Controls logging of lpa library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.resetdataset": {
+          "description": "Controls logging of resetdataset functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.restfile": {
+          "description": "Controls logging of the REST api for files",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.zos": {
+          "description": "Controls logging of zos utility library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.httpclient": {
+          "description": "Controls logging of http client calls",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.jwt": {
+          "description": "Controls logging of JWT library functions",
+          "$ref": "#/$defs/logLevel"
+        },
         "^.*$": {
           "$ref": "#/$defs/logLevel"
         }
@@ -290,7 +358,7 @@
       "type": "string"
     },
     "ipsAndHostnames": {
-      "type": [ "array", "null" ]
+      "type": [ "array", "null" ],
       "items": {
         "$ref": "#/$defs/ipOrHostname"
       },
