@@ -4,6 +4,10 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `2.3.0`
+
+- Enhancment: ZSS now utilizes the configuration parameters present in the zowe configuration file via the configmgr, simplifying the startup of ZSS and increasing the validation of its parameters. The file zss/defaults.yaml shows the default configuration parameters of zss, in combination with the schema of the parameters within zss/schemas, though some parameters are derived from zowe-wide parameters or from other components when they involve those other components.
+
 ## `2.0.0`
 
 - Breaking change: Cookie name now has a suffix which includes the port or if in an HA instance, the HA ID.
