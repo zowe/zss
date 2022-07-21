@@ -1087,7 +1087,7 @@ static bool checkAndSetVariableV2(ConfigManager *configmgr,
     return true;
   } else{
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, 
-	    "internal error accessing .components.app-server.'%s', err=%d\n", configVariableName,getStatus);
+	    "internal error accessing .components.zss.'%s', err=%d\n", configVariableName,getStatus);
     return false;
   }
 }
@@ -1476,14 +1476,12 @@ static void readAndConfigureLogLevelFromConfig(LogComponentsMap *logComponent, C
     memset(logCompName, '\0', logCompLen);
     strcpy(logCompName, logCompPrefix);
     strcat(logCompName, logComponent->name);
-    printf("  logCompName=%s\n",logCompName);
     logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name,
 			  LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
     if (true){
       int cfgStatus = cfgGetIntC(configmgr,ZSS_CFGNAME,&logLevel,4,"components","zss","logLevels",logCompName);
-      printf("  level from config is %d, status=%d\n",logLevel,cfgStatus);
       if (!cfgStatus && isLogLevelValid(logLevel)) {
-	logSetLevel(NULL, logComponent->compID, logLevel);  
+        logSetLevel(NULL, logComponent->compID, logLevel);  
       }
     }
     safeFree(logCompName, logCompLen);
@@ -1631,19 +1629,27 @@ int main(int argc, char **argv){
   char *tempString;
   hashtable *htUsers = NULL;
   hashtable *htGroups = NULL;
-  char *schemas = getKeywordArg("-schemas",argc,argv);
-  char *configs = getKeywordArg("-configs",argc,argv);
+  char *schemas = getKeywordArg("--schemas",argc,argv);
+  char *configs = getKeywordArg("--configs",argc,argv);
+  char *configmgrTraceLevelString = getKeywordArg("--configTrace",argc,argv);
   if (schemas == NULL || configs == NULL){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS 2.x requires schemas and config\n");
     zssStatus = ZSS_STATUS_ERROR;
     goto out_term_stcbase;
   }
+  int configmgrTraceLevel = 0;
+  if (configmgrTraceLevelString != NULL) {
+    long int configmgrTraceConverted =  strtol(configmgrTraceLevelString, NULL, 10);
+    if (configmgrTraceConverted > 0 && configmgrTraceConverted < 6) {
+      configmgrTraceLevel = (int)configmgrTraceConverted;
+    }
+  }
   ConfigManager *configmgr
     /* HERE set up a directory from things from Sean */
     = makeConfigManager(); /* configs,schemas,1,stderr); */
   CFGConfig *theConfig = addConfig(configmgr,ZSS_CFGNAME);
-  cfgSetTraceLevel(configmgr,2);
   cfgSetTraceStream(configmgr,stderr);
+  cfgSetTraceLevel(configmgr, configmgrTraceLevel);
   cfgSetConfigPath(configmgr,ZSS_CFGNAME,configs);
   int schemaLoadStatus = cfgLoadSchemas(configmgr,ZSS_CFGNAME,schemas);
   if (schemaLoadStatus){

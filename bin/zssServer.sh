@@ -167,9 +167,9 @@ else
 fi
 
 if [ "$ZWES_LOG_FILE" = "/dev/null" ]; then
-  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ ${ZSS_SERVER} -schemas "${ZWES_SCHEMA_PATHS}" -configs "${ZWES_CONFIG}" 2>&1
+  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ ${ZSS_SERVER} --schemas "${ZWES_SCHEMA_PATHS}" --configs "${ZWES_CONFIG}" 2>&1
 else
-  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ ${ZSS_SERVER} -schemas "${ZWES_SCHEMA_PATHS}" -configs "${ZWES_CONFIG}" 2>&1 | tee $ZWES_LOG_FILE
+  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ ${ZSS_SERVER} --schemas "${ZWES_SCHEMA_PATHS}" --configs "${ZWES_CONFIG}" 2>&1 | tee $ZWES_LOG_FILE
 fi
 # This program and the accompanying materials are
 # made available under the terms of the Eclipse Public License v2.0 which accompanies

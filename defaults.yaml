@@ -1,24 +1,23 @@
 components:
   zss:
     port: 7557
-    crossMemoryServerName: ${{ zowe.environments.ZWED_privilegedServerName ? zowe.environments.ZWED_privilegedServerName : zowe.environments.ZWES_XMEM_SERVER_NAME ? zowe.environments.ZWES_XMEM_SERVER_NAME : "ZWESIS_STD" }}
+    crossMemoryServerName: ${{ ()=> { if (zowe.environments?.ZWED_privilegedServerName) { return zowe.environments.ZWED_privilegedServerName } else { if (zowe.environments?.ZWES_XMEM_SERVER_NAME) { return zowe.environments.ZWES_XMEM_SERVER_NAME } else { return "ZWESIS_STD" } } }() }}
     tls: true
     productDir: ${{ zowe.runtimeDirectory }}/components/zss/defaults
     pluginsDir: ${{ zowe.workspaceDirectory }}/app-server/plugins
     instanceDir: ${{ zowe.workspaceDirectory }}/zss
     dataserviceAuthentication:
-      rbac: ${{ components.app-server.dataserviceAuthentication.rbac ? components.app-server.dataserviceAuthentication.rbac : false }}
+      rbac: ${{ ()=> { if (components['app-server']?.dataserviceAuthentication?.rbac) { return components['app-server'].dataserviceAuthentication.rbac } else { return false } }() }}
     agent:
       64bit: true
       jwt:
         fallback: true
       https:
-        keyring: ${{ components.zss.tls ? zowe.certificate.keystore.type == "JCERACFKS" ? zowe.certificate.keystore.file.substring(15) : zowe.certificate.keystore.file : null }}
-        password: ${{ components.zss.tls ? zowe.certificate.keystore.password : null }}
-        label: ${{ components.zss.tls ? zowe.certificate.keystore.alias : null }}
-        port: ${{ components.zss.tls ? components.zss.port : null }}
-        ipAddresses: ${{ components.zss.tls ? zowe.environments.ZWED_agent_https_ipAddresses ? zowe.environments.ZWED_agent_https_ipAddresses.split(',') : [ '0.0.0.0' ] : null }}
+        keyring: ${{ ()=> { if (components.zss.tls) { if (zowe.certificate.keystore.type == "JCERACFKS") { return zowe.certificate.keystore.file.substring(15) } else { return zowe.certificate.keystore.file } } else { return null } }() }}
+        password: ${{ ()=> { if (components.zss.tls) { return zowe.certificate.keystore.password } else { null } }() }}
+        label: ${{ ()=> { if (components.zss.tls) { return zowe.certificate.keystore.alias } else { return null } }() }}
+        port: ${{ ()=> { if (components.zss.tls) { return  components.zss.port } else { return null } }() }}
+        ipAddresses: ${{ ()=> { if (components.zss.tls){ if (zowe.environments?.ZWED_agent_https_ipAddresses){ return zowe.environments.ZWED_agent_https_ipAddresses.split(',') } else { let array = []; array.push('0.0.0.0'); return array; } } else { return null } }() }}
       http:
-        port: ${{ components.zss.tls ? null : components.zss.port }}
-        ipAddresses: ${{ components.zss.tls ? null : zowe.environments.ZWED_agent_http_ipAddresses ? zowe.environments.ZWED_agent_http_ipAddresses.split(',') : [ '127.0.0.1' ] }}
-    
+        port: ${{ ()=> { if (components.zss.tls) { return null } else { return components.zss.port } }() }}
+        ipAddresses: ${{ () => { if (components.zss.tls) { return null } else { if (zowe.environments?.ZWED_agent_http_ipAddresses) {  return zowe.environments.ZWED_agent_http_ipAddresses.split(',') } else { return [ '127.0.0.1' ] } } }() }}
