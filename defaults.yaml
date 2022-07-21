@@ -17,7 +17,22 @@ components:
         password: ${{ ()=> { if (components.zss.tls) { return zowe.certificate.keystore.password } else { null } }() }}
         label: ${{ ()=> { if (components.zss.tls) { return zowe.certificate.keystore.alias } else { return null } }() }}
         port: ${{ ()=> { if (components.zss.tls) { return  components.zss.port } else { return null } }() }}
-        ipAddresses: ${{ ()=> { if (components.zss.tls){ if (zowe.environments?.ZWED_agent_https_ipAddresses){ return zowe.environments.ZWED_agent_https_ipAddresses.split(',') } else { let array = []; array.push('0.0.0.0'); return array; } } else { return null } }() }}
+        ipAddresses: ${{ ()=> { if (components.zss.tls){ if (zowe.environments?.ZWED_agent_https_ipAddresses){ return zowe.environments.ZWED_agent_https_ipAddresses.split(',') } else { return [ '0.0.0.0' ] } } else { return null } }() }}
       http:
         port: ${{ ()=> { if (components.zss.tls) { return null } else { return components.zss.port } }() }}
         ipAddresses: ${{ () => { if (components.zss.tls) { return null } else { if (zowe.environments?.ZWED_agent_http_ipAddresses) {  return zowe.environments.ZWED_agent_http_ipAddresses.split(',') } else { return [ '127.0.0.1' ] } } }() }}
+      mediationLayer:
+        server:
+          isHttps: true
+          enabled: ${{ components.gateway.enabled }}
+          gatewayHostname: ${{ std.getenv('ZWE_haInstance_hostname') }}
+          hostname: ${{ std.getenv('ZWE_haInstance_hostname') }}
+          gatewayPort: ${{ components.gateway.port }}
+          port: ${{ components.discovery.port }}
+        cachingService:
+          enabled: ${{ components['caching-service'].enabled }}
+        enabled: ${{ components.discovery.enabled }}
+        serviceName: "zss"
+      handshakeTimeout: 30000
+
+        
