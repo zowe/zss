@@ -1508,6 +1508,18 @@ static void logLevelConfiguratorV2(ConfigManager *configmgr){
   readAndConfigureLogLevelFromConfig(logComponent, configmgr, LOGGING_COMPONENT_PREFIX);
   LogComponentsMap *zssLogComponent = (LogComponentsMap *)zssLogComponents;
   readAndConfigureLogLevelFromConfig(zssLogComponent, configmgr, LOGGING_COMPONENT_PREFIX);
+
+  /* special (old!) ones that arent real loggers, just trace conditionals */  
+  TraceDefinition *traceDef = traceDefs;
+  int logLevel;
+
+  while (traceDef->name != 0){
+    int cfgStatus = cfgGetIntC(configmgr,ZSS_CFGNAME,&logLevel,4,"components","zss","logLevels",(char*) traceDef->name);
+    if (!cfgStatus && isLogLevelValid(logLevel)) {
+      traceDef->function(logLevel);
+    }
+    ++traceDef;
+  }
 }
 
 #define NOT_INTEGER 8

@@ -679,6 +679,8 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
   char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
   unsigned int currUnixTime = (unsigned)time(NULL);
 
+  zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_DEBUG, "Serve unix file contents method=%s, path=%s\n",request->method, routeFileName);
+
   if (!strcmp(request->method, methodPUT)) {
     UploadSessionTracker *tracker = service->userPointer;
 
