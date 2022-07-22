@@ -14,6 +14,9 @@
 
 COMPONENT_HOME=${ZWE_zowe_runtimeDirectory}/components/zss
 
+# Some builtin plugins reference themselves via this, so we need to know where app-server is even if not running
+export ZLUX_ROOT_DIR=${ZWE_zowe_runtimeDirectory}/components/app-server/share
+
 if [ -n "${ZWE_components_zss_instanceDir}" ]; then
   mkdir -p "${ZWE_components_zss_instanceDir}"
 fi
