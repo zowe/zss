@@ -155,7 +155,12 @@
             "fallback": {
               "type": "boolean",
               "description": "Whether the agent will issue and accept cookies from itself in the event a JWT cannot be provided"
-            }
+            },
+            "retryIntervalSeconds": {
+              "type": "integer",
+              "description": "The time in seconds to wait between attempts to reach the JWT provider in case they are inaccessible",
+              "minimum": 1,
+              "maximum": 60
           }
         }
       }
