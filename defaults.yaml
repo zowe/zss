@@ -12,6 +12,7 @@ components:
       64bit: true
       jwt:
         fallback: true
+        retryIntervalSeconds: 10
       https:
         keyring: ${{ ()=> { if (components.zss.tls) { if (zowe.certificate.keystore.type == "JCERACFKS") { return zowe.certificate.keystore.file.substring(15) } else { return zowe.certificate.keystore.file } } else { return null } }() }}
         password: ${{ ()=> { if (components.zss.tls) { return zowe.certificate.keystore.password } else { null } }() }}

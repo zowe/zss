@@ -25,6 +25,7 @@ struct JwkSettings_tag {
   int timeoutSeconds;
   char *path;
   bool fallback;
+  int retryIntervalSeconds;
 };
 
 struct JwkContext_tag {

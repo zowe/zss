@@ -1040,6 +1040,7 @@ static JwkSettings *readJwkSettingsV2(ShortLivedHeap *slh, ConfigManager *config
   settings->host = host; 
   settings->port = port;
   settings->tlsEnv = tlsEnv;
+  settings->retryIntervalSeconds=getJwtRetryIntervalSeconds(configmgr);
   settings->timeoutSeconds = 10;
   settings->path = "/gateway/api/v1/auth/keys/public/current";
   settings->fallback = fallback;
@@ -1301,6 +1302,19 @@ static bool isJwtFallbackEnabledV2(ConfigManager *configmgr){
   }
 }
 
+static int getJwtRetryIntervalSeconds(ConfigManager *configmgr) {
+  int retryVal = 0;
+  int retryDefault = 10;
+  int getStatus = cfgGetIntC(configmgr, ZSS_CFGNAME, &retryVal, 5, "components", "zss", "agent", "jwt", "retryIntervalSeconds");
+  if (getStatus != ZCFG_SUCCESS) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "Error loading components.zss.agent.jwt.retryIntervalSeconds, defaulting to %d\n", retryDefault);
+    return retryDefault;
+  } else{
+    return retryVal;
+  }
+}
+
+
 static bool isJwtFallbackEnabled(JsonObject *serverConfig, JsonObject *envSettings) {
   Json *fallbackJson = jsonObjectGetPropertyValue(envSettings, ENV_AGENT_JWT_KEY("fallback"));
   if (fallbackJson) {
@@ -1494,6 +1508,18 @@ static void logLevelConfiguratorV2(ConfigManager *configmgr){
   readAndConfigureLogLevelFromConfig(logComponent, configmgr, LOGGING_COMPONENT_PREFIX);
   LogComponentsMap *zssLogComponent = (LogComponentsMap *)zssLogComponents;
   readAndConfigureLogLevelFromConfig(zssLogComponent, configmgr, LOGGING_COMPONENT_PREFIX);
+
+  /* special (old!) ones that arent real loggers, just trace conditionals */  
+  TraceDefinition *traceDef = traceDefs;
+  int logLevel;
+
+  while (traceDef->name != 0){
+    int cfgStatus = cfgGetIntC(configmgr,ZSS_CFGNAME,&logLevel,4,"components","zss","logLevels",(char*) traceDef->name);
+    if (!cfgStatus && isLogLevelValid(logLevel)) {
+      traceDef->function(logLevel);
+    }
+    ++traceDef;
+  }
 }
 
 #define NOT_INTEGER 8
