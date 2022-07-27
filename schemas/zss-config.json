@@ -161,6 +161,7 @@
               "description": "The time in seconds to wait between attempts to reach the JWT provider in case they are inaccessible",
               "minimum": 1,
               "maximum": 60
+            }
           }
         }
       }
