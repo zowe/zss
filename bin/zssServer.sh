@@ -10,38 +10,41 @@
 
 export _BPXK_AUTOCVT=ON
 
-if [ -e "../bin/app-server.sh" ]
-then
-  in_app_server=true
-else
-  in_app_server=false
-fi
-if $in_app_server
-then
-  ZSS_FILE=../bin/zssServer
-  ZSS_COMPONENT=${ZWE_zowe_runtimeDirectory}/components/zss/bin
-  if test -f "$ZSS_FILE"; then
-    ZSS_SCRIPT_DIR=$(cd `dirname $0`/../bin && pwd)
-  elif [ -d "$ZSS_COMPONENT" ]; then
-    ZSS_SCRIPT_DIR=$ZSS_COMPONENT
-  fi
-  ../bin/convert-env.sh
-else
-  ZSS_SCRIPT_DIR=$(cd `dirname $0` && pwd)
-  . ${ZSS_SCRIPT_DIR}/../../app-server/share/zlux-app-server/bin/convert-env.sh
-  yamlConverter="${ZSS_SCRIPT_DIR}/../../app-server/share/zlux-server-framework/utils/yamlConfig.js"
-  env_converted_from_yaml=$(node $yamlConverter --components 'zss app-server' 2>/dev/null)
-  if [ -n "$env_converted_from_yaml" ]; then
-    eval "$env_converted_from_yaml"
+# Get component home dir if defined, otherwise set it based on runtimeDirectory
+if [ -z "${ZWES_COMPONENT_HOME}" ]; then
+  if [ -z "${ZWE_zowe_runtimeDirectory}" ]; then
+    echo 'ZWE_zowe_runtimeDirectory is not defined. Run with ZWES_COMPONENT_HOME defined to the path of the zss root folder or ZWE_zowe_runtimeDirectory defined to the path of a zowe install that includes zowe core schemas and zss within /components/zss'
+  else
+    ZWES_COMPONENT_HOME="${ZWE_zowe_runtimeDirectory}/components/zss"
   fi
 fi
- # It's still possible to provide a json config
-if [ -e "$ZSS_CONFIG_FILE" ]
-then
-  CONFIG_FILE=$ZSS_CONFIG_FILE
+
+# Get schema paths if defined, otherwise set it based on runtimeDirectory
+if [ -z "${ZWES_SCHEMA_PATHS}" ]; then
+  if [ -z "${ZWE_zowe_runtimeDirectory}" ]; then
+    echo "ZWE_zowe_runtimeDirectory is not defined. Run with ZWES_SCHEA_PATHS defined to the colon-separated file paths of zowe json schemas used to validate the ZSS configuration yaml file, or have ZWE_zowe_runtimeDirectory defined to the path of a zowe install that includes zowe core schemas and zss within /components/zss"
+  fi
 fi
-# in case when no server.json, zss can be configured with env vars 
-# when zss is ready to read yaml config directly check whether CONFIG_FILE=~/.zowe/zowe.yaml exists
+
+# Get config path or fail
+if [ -z "${ZWE_CLI_PARAMETER_CONFIG}" ]; then
+  echo "ZWE_CLI_PARAMETER_CONFIG is not defined. Rerun script with it defined to a list of paths to zowe.yaml files such as /path/to/zowe.yaml or FILE(/yaml1.yaml):LIB(other.yaml):FILE(/path/to/yaml3.yaml)"
+fi
+
+# Take in our defaults
+ZWES_CONFIG="FILE(${ZWE_CLI_PARAMETER_CONFIG}):FILE(${ZWES_COMPONENT_HOME}/defaults.yaml)"
+
+# Essential parameters now set up.
+
+ZSS_SCRIPT_DIR="${ZWES_COMPONENT_HOME}/bin"
+
+ZWES_SCHEMA_PATHS="${ZWES_COMPONENT_HOME}/schemas/zowe-schema.json:${ZWE_zowe_runtimeDirectory}/schemas/zowe-yaml-schema.json:${ZWE_zowe_runtimeDirectory}/schemas/server-common.json:${ZWES_COMPONENT_HOME}/schemas/zss-config.json"
+
+
+# this is to resolve ZSS bin path in LIBPATH variable.
+LIBPATH="${LIBPATH}:${ZSS_SCRIPT_DIR}"
+
+#### Log file initialization ####
 if [ -n "$ZWES_LOG_FILE" ]
 then
   if [[ $ZWES_LOG_FILE == /* ]]
@@ -79,7 +82,7 @@ else
       ZWES_LOG_FILE=/dev/null
     fi
   fi
-  ZLUX_ROTATE_LOGS=0
+  ZWES_ROTATE_LOGS=0
   if [ -d "$ZWES_LOG_DIR" ] && [ -z "$ZWES_LOG_FILE" ]
   then
     ZWES_LOG_FILE="$ZWES_LOG_DIR/zssServer-`date +%Y-%m-%d-%H-%M`.log"
@@ -95,11 +98,11 @@ else
     fi
     if [ $ZWES_LOGS_TO_KEEP -ge 0 ]
     then
-      ZLUX_ROTATE_LOGS=1
+      ZWES_ROTATE_LOGS=1
     fi
   fi
   #Clean up excess logs, if appropriate.
-  if [ $ZLUX_ROTATE_LOGS -ne 0 ]
+  if [ $ZWES_ROTATE_LOGS -ne 0 ]
   then
     for f in `ls -r -1 $ZWES_LOG_DIR/zssServer-*.log 2>/dev/null | tail +$ZWES_LOGS_TO_KEEP`
     do
@@ -147,14 +150,26 @@ then
   echo file "$ZWES_LOG_FILE" is not writable. Logging disabled.
   ZWES_LOG_FILE=/dev/null
 fi
-#Determined log file.  Run zssServer.
+#### Log file determined ####
+
+# Startup zss
 export dir=`dirname "$0"`
 cd $ZSS_SCRIPT_DIR
-if [ -f "$CONFIG_FILE" ]
-then
-  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ./zssServer "${CONFIG_FILE}" 2>&1 | tee $ZWES_LOG_FILE
+
+# determine amode for zssServer 
+ZSS_SERVER_31="./zssServer"
+ZSS_SERVER_64="./zssServer64"
+
+if [ "$ZWE_components_zss_agent_64bit" = "true" ] && [ -x "${ZSS_SERVER_64}" ]; then
+  ZSS_SERVER="${ZSS_SERVER_64}"
 else
-  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ1 ./zssServer 2>&1 | tee $ZWES_LOG_FILE
+  ZSS_SERVER="${ZSS_SERVER_31}"
+fi
+
+if [ "$ZWES_LOG_FILE" = "/dev/null" ]; then
+  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ ${ZSS_SERVER} --schemas "${ZWES_SCHEMA_PATHS}" --configs "${ZWES_CONFIG}" 2>&1
+else
+  _BPX_SHAREAS=NO _BPX_JOBNAME=${ZOWE_PREFIX}SZ ${ZSS_SERVER} --schemas "${ZWES_SCHEMA_PATHS}" --configs "${ZWES_CONFIG}" 2>&1 | tee $ZWES_LOG_FILE
 fi
 # This program and the accompanying materials are
 # made available under the terms of the Eclipse Public License v2.0 which accompanies
