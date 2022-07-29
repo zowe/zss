@@ -10,6 +10,7 @@ All notable changes to the ZSS package will be documented in this file.
 - Enhancement: Improved startup time due to using the configmgr to process plugin registration, and only when the app-server is not enabled, as the app-server does the same thing.
 - Bugfix: Fixed an 0C4 error within the /unixfile API in 31 bit mode. This was preventing files from being shown in the editor.
 - Bugfix: 0C4 error messages from dataservices are now shown under the SEVERE log instead of the DEBUG log, so that issues can be spotted more easily.
+- Bugfix: 0C4 when lht hashmap functions were called with negative key
 
 ## `2.0.0`
 
