@@ -1,0 +1,377 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "https://zowe.org/schemas/v2/zss-config",
+  "title": "zss configuration",
+  "description": "Configuration properties for zss, as specified within a configuration file such as zowe.yaml",
+  "type": "object",
+  "required": [ "pluginsDir", "instanceDir", "productDir", "tls", "dataserviceAuthentication", "agent" ],
+  "additionalProperties": true,
+  "properties": {
+    "tls": {
+      "type": "boolean",
+      "description": "Whether or not the server should run in HTTPS or HTTP mode",
+      "default": true
+    },
+    "crossMemoryServerName": {
+      "type": "string",
+      "description": "The nickname of the ZIS server that exists on the same LPAR as ZSS",
+      "default": "ZWESIS_STD"
+    },
+    "agent": {
+      "type": "object",
+      "description": "Configuration options specific to app-server agents, such as ZSS. These options are used to configure the agent, but also to tell app-server about the agent configuration",
+      "additionalProperties": false,
+      "properties": {
+        "64bit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether or not to run zss in 64 bit or 31 bit mode"
+        },
+        "mediationLayer": {
+          "type": "object",
+          "description": "Properties relating to how the app-server should interact with and find the API Mediation Layer components",
+          "additionalProperties": false,
+          "properties": {
+            "server": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "isHttps": {
+                  "type": "boolean",
+                  "description": "Controls if connections to the API Mediation Layer gateway and/or discovery service should be HTTP or HTTPS"
+                },
+                "gatewayHostname": {
+                  "type": "string",
+                  "format": "hostname",
+                  "description": "The hostname or IP where the Zowe Gateway service is running. When not specified, the hostname property is used instead"
+                },
+                "hostname": {
+                  "type": "string",
+                  "format": "hostname",
+                  "description": "The hostname or IP where the Zowe Discovery service is running"
+                },
+                "gatewayPort": {
+                  "oneOf": [
+                    { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
+                    { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" }
+                  ],
+                  "description": "The port where the Zowe Gateway service is running"
+                },
+                "port": {
+                  "oneOf": [
+                    { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
+                    { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" } 
+                  ],
+                  "description": "The port where the Zowe Discovery service is running"
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "description":  "is Gateway and Discovery service enabled"
+                }
+              }
+            },
+            "serviceName": {
+              "type": "string",
+              "description": "What the agent will be named when found on the API Mediation Layer"
+            },
+            "enabled": {
+              "type": "boolean",
+              "description": "Controls whether the agent should register to the API Mediation Layer, and whether the app-server should contact it via the Mediation Layer"
+            },
+            "cachingService": {
+              "type": "object",
+              "additionalProperties": false,
+               "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Controls whether the app-server storage API can store in the caching service"
+                }
+              }
+            }
+          }
+        },
+        "https": {
+          "type": "object",
+          "description": "Configures the agent to use HTTPS.",
+          "additionalProperties": false,
+          "properties": {
+            "port": {
+              "oneOf": [
+                { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
+                { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" }, 
+                { "type": "null" }
+              ],
+              "default": 7557
+            },
+            "ipAddresses": {
+              "$ref": "#/$defs/ipsAndHostnames",
+              "default": [ "0.0.0.0" ]
+            },
+            "label": {
+              "type": [ "string", "null" ],
+              "description": "The label (aka alias), identifying the server's certificate in the key store"
+            },
+            "keyring": {
+              "type": [ "string", "null" ],
+              "description": "This misnamed property is ICSF key ring identifier as '<user>/<ringName>' or USS file path to a .p12 format cert file"
+            },
+            "password": {
+              "type": [ "string", "null" ],
+              "description": "The password to the keyring"
+            }
+          }
+        },
+        "http": {
+          "type": "object",
+          "description": "Configures the agent to use HTTP. When using AT-TLS, this object should be defined but with http.attls=true. It is insecure and absolutely not recommended to use http without AT-TLS",
+          "additionalProperties": false,
+          "properties": {
+            "port": {
+              "oneOf": [
+                { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
+                { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" }, 
+                { "type": "null" }
+              ]
+            },
+            "attls": {
+              "type": "boolean",
+              "default": false,
+              "description": "Tells the app-server whether or not the agent should be reached using HTTPS or HTTP when contacting the HTTP port"
+            },
+            "ipAddresses": {
+              "$ref": "#/$defs/ipsAndHostnames"
+            }
+          }
+        },
+        "handshakeTimeout": {
+          "type": "integer",
+          "default": 30000,
+          "description": "The timeout in milliseconds on the startup check the app-server will do to find its agent and check agent capabilities"
+        },
+        "jwt": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fallback": {
+              "type": "boolean",
+              "description": "Whether the agent will issue and accept cookies from itself in the event a JWT cannot be provided"
+            },
+            "retryIntervalSeconds": {
+              "type": "integer",
+              "description": "The time in seconds to wait between attempts to reach the JWT provider in case they are inaccessible",
+              "minimum": 1,
+              "maximum": 60
+            }
+          }
+        }
+      }
+    },
+    "pluginsDir": {
+      "type": "string",
+      "description": "The location where plugin locator JSON files are found, which are used by the app-server and agent to locate and use plugins"
+    },
+    "instanceDir": {
+      "type": "string",
+      "description": "The location where ZSS may store additional configuration files"
+    },
+    "productDir": {
+      "type": "string",
+      "description": "The location where ZSS may read defaults for configuration files that would be overridden within instanceDir"
+    },
+    "dataserviceAuthentication": {
+      "type": "object",
+      "description": "Describes how the app-server will utilize the auth plugins it finds and loads at startup",
+      "additionalProperties": false,
+      "properties": {
+        "rbac": {
+          "type": "boolean",
+          "description": "Determines whether or not the app-server will issue authorization requests to the authentication plugins for each HTTP(S) request to achieve Role Based Access Control",
+          "default": false
+        },
+        "defaultAuthentication": {
+          "type": "string",
+          "description": "Instructs the app-server which authentication category to issue auth requests to if a specific one was not specified by the caller or plugin",
+          "default": "fallback"
+        },
+        "implementationDefaults": {
+          "type": "object",
+          "deprecated": true,
+          "patternProperties": {
+            "^.*$": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "plugins": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "/schemas/v2/server-common#zoweReverseDomainNotation"
+                  },
+                  "uniqueItems": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "logLevels": {
+      "type": "object",
+      "patternProperties": {
+        "_zss.traceLevel": {
+          "description": "Controls general server logging verbosity.",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.fileTrace": {
+          "description": "Logs file serving behavior (if file serving is enabled).",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.socketTrace": {
+          "description": "Logs general TCP Socket behavior.",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.httpParseTrace": {
+          "description": "Logs parsing of HTTP messages.",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.httpDispatchTrace": {
+          "description": "Logs dispatching of HTTP messages to dataservices.",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.httpHeadersTrace": {
+          "description": "Logs parsing and setting of HTTP headers.",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.httpSocketTrace": {
+          "description": "Logs TCP socket behavior for HTTP.",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.httpCloseConversationTrace": {
+          "description": "Logs HTTP behavior for when an HTTP conversation ends.",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.httpAuthTrace": {
+          "description": "Logs behavior for session security.",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.mvdserver": {
+          "description": "Generic logging for ZSS items not covered by other loggers",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.ctds": {
+          "description": "Controls logging of the built-in CTDS service",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.security": {
+          "description": "Controls logging of the built-in security service",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.unixfile": {
+          "description": "Controls logging of the built-in unixfile service",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.dataservice": {
+          "description": "Controls logging of generic dataservice tasks",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.apimlstorage": {
+          "description": "Controls logging of the dataservice storage API",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.jwk": {
+          "description": "Controls logging of JWK use for SSO",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.alloc": {
+          "description": "Controls logging of JWK use for SSO",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.utils": {
+          "description": "Controls logging of util library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.collections": {
+          "description": "Controls logging of collection structure library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.serialization": {
+          "description": "Controls logging of serialiation library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.zlparser": {
+          "description": "Controls logging of zlparser library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.zlcompiler": {
+          "description": "Controls logging of zlcompiler library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.zlruntime": {
+          "description": "Controls logging of zlruntime library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.stcbase": {
+          "description": "Controls logging of STC Base functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.httpserver": {
+          "description": "Controls logging of the http server base",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.discovery": {
+          "description": "Controls logging of discovery tools",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.cms": {
+          "description": "Controls logging of cms library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.lpa": {
+          "description": "Controls logging of lpa library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.resetdataset": {
+          "description": "Controls logging of resetdataset functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.restfile": {
+          "description": "Controls logging of the REST api for files",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.zos": {
+          "description": "Controls logging of zos utility library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.httpclient": {
+          "description": "Controls logging of http client calls",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.jwt": {
+          "description": "Controls logging of JWT library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "^.*$": {
+          "$ref": "#/$defs/logLevel"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ipOrHostname": { 
+      "type": "string"
+    },
+    "ipsAndHostnames": {
+      "type": [ "array", "null" ],
+      "items": {
+        "$ref": "#/$defs/ipOrHostname"
+      },
+      "uniqueItems": true
+    },
+    "logLevel": {
+      "type": "integer",
+      "description": "Log level verbosity where 0 is least verbose (errors only), 5 is most verbose (trace) and 2 is default (info)",
+      "default": 2,
+      "minimum": 0,
+      "maximum": 5
+    }
+  }
+}

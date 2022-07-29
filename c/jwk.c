@@ -85,7 +85,7 @@ static int jwkTaskMain(RLETask *task) {
   JwkContext *context = (JwkContext*)task->userPointer;
   JwkSettings *settings = context->settings;
   const int maxAttempts = 1000;
-  const int retryIntervalSeconds = 30;
+  const int retryIntervalSeconds = settings->retryIntervalSeconds;
   bool success = false;
 
   for (int i = 0; i < maxAttempts; i++) {
@@ -220,7 +220,6 @@ static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientC
     __atoe_l(responseEbcdic, contentLength);
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JWK response: %s\n", responseEbcdic);
     char errorBuf[1024];
-    ShortLivedHeap *slh = session->slh;
     jsonBody = jsonParseUnterminatedUtf8String(slh, CCSID_IBM1047, body, contentLength, errorBuf, sizeof(errorBuf));
     if (!jsonBody) {
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "error parsing JSON response: %s\n", errorBuf);
