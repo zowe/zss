@@ -426,4 +426,4 @@
 #endif 
 
 void dynamicZISUndefinedStub(void);
-int dynamicZISVersion();
+int dynamicZISVersion(void);

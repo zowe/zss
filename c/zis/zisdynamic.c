@@ -35,66 +35,203 @@
 #include "zis/service.h"
 #include "zis/client.h"
 #include "zis/zisstubs.h"
+#include "zis/message.h"
+
+#define ZISDYN_VERSION "1.0.0"
+
+#define ZISDYN_PLUGIN_NAME      "ZISDYNAMIC      "
+#define ZISDYN_PLUGIN_NICKNAME  "ZDYN"
+#define ZISDYN_PLUGIN_VERSION   1
+
+#define RC_ZISDYN_OK 0
+#define RC_ZISDYN_UNSUPPORTED_ZIS 8
+#define RC_ZISDYN_ALLOC_FAILED 16
+#define RC_ZISDYN_ENV_ERROR 17
+
+ZOWE_PRAGMA_PACK
 
 typedef struct DynamicPluginData_tag {
   uint64_t initTime;
   char     unused[56];
-
 } DynamicPluginData;
 
-static int installDynamicLinkageVector(ZISContext *context, void *dynamicLinkageVector){
+ZOWE_PRAGMA_PACK_RESET
+
+static void initStubVector(void **stubVector);
+
+static int installDynamicLinkageVector(ZISContext *context,
+                                       void *dynamicLinkageVector) {
   ZISServerAnchor *serverAnchor = context->zisAnchor;
-  
-  if (serverAnchor->flags & ZIS_SERVER_ANCHOR_FLAG_DYNLINK){
+
+  if (serverAnchor->flags & ZIS_SERVER_ANCHOR_FLAG_DYNLINK) {
     CrossMemoryServerGlobalArea *cmsGA = context->cmsGA;
     cmsGA->dynamicLinkageVector = dynamicLinkageVector;
-    return 0;
-  } else{
-    return 12;
+    return RC_ZISDYN_OK;
+  } else {
+    return RC_ZISDYN_UNSUPPORTED_ZIS;
   }
 }
 
-
-
 static int initZISDynamic(struct ZISContext_tag *context,
-			  ZISPlugin *plugin,
-			  ZISPluginAnchor *anchor) {
+                          ZISPlugin *plugin,
+                          ZISPluginAnchor *anchor) {
+
+  zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZISDYN_LOG_STARTUP_MSG,
+          ZISDYN_VERSION, ZIS_STUBS_VERSION);
+
   DynamicPluginData *pluginData = (DynamicPluginData *)&anchor->pluginData;
-  
+  int installStatus = RC_ZISDYN_OK;
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+          ZIS_LOG_DEBUG_MSG_ID" Initializing ZIS Dynamic Base plugin "
+          "anchor=0x%p pluginData=0x%p\n", anchor, pluginData);
+
   __asm(" STCK %0 " : "=m"(pluginData->initTime) :);
+
+  CAA *caa = (CAA *) getCAA();
+  if (caa == NULL) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+            ZISDYN_LOG_INIT_ERROR_MSG" CAA not found");
+    installStatus = RC_ZISDYN_ENV_ERROR;
+    goto out;
+  }
+
+  void **stubVector =
+      (void *) cmAlloc(sizeof(void *) * MAX_ZIS_STUBS, ZVTE_SUBPOOL, ZVTE_KEY);
+  if (stubVector == NULL) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+            ZISDYN_LOG_INIT_ERROR_MSG" stub vector not allocated");
+    installStatus = RC_ZISDYN_ALLOC_FAILED;
+    goto out;
+  }
+
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+          ZIS_LOG_DEBUG_MSG_ID" Built Stub Vector at 0x%p\n", stubVector);
+
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+          ZIS_LOG_DEBUG_MSG_ID" ZIS Dynamic in SUP, "
+          "ZISServerAnchor at 0x%p caa=0x%p\n", context->zisAnchor, caa);
+
+  int wasProblem = supervisorMode(TRUE);
+  int oldKey = setKey(0);
+  {
+    RLETask *rleTask = caa->rleTask;
+    RLEAnchor *rleAnchor = rleTask->anchor;
+    rleAnchor->metalDynamicLinkageVector = stubVector;
+    initStubVector(stubVector);
+    installStatus = installDynamicLinkageVector(context, stubVector);
+  }
+  setKey(oldKey);
+  if (wasProblem) {
+    supervisorMode(FALSE);
+  }
+
+  if (installStatus) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
+            "Could not install dynamic linkage stub vector, rc=%d\n",
+            installStatus);
+  }
+    
+
+  out:
+
+  if (installStatus == RC_ZISDYN_OK) {
+    zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZISDYN_LOG_STARTED_MSG);
+  } else {
+    zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZISDYN_LOG_STARTUP_FAILED_MSG,
+            installStatus);
+  }
+
+  /* jam this into our favorite zvte */
+
+  return installStatus;
+}
+
+static int termZISDynamic(struct ZISContext_tag *context,
+                          ZISPlugin *plugin,
+                          ZISPluginAnchor *anchor) {
+
+  zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZISDYN_LOG_TERM_MSG);
+
+  DynamicPluginData *pluginData = (DynamicPluginData *) &anchor->pluginData;
+  pluginData->initTime = -1;
+
+  zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZISDYN_LOG_TERMED_MSG);
+
+  return RC_ZISDYN_OK;
+}
+
+static int handleZISDynamicCommands(struct ZISContext_tag *context,
+                                    ZISPlugin *plugin,
+                                    ZISPluginAnchor *anchor,
+                                    const CMSModifyCommand *command,
+                                    CMSModifyCommandStatus *status) {
   
-  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, "Initializing ZIS Dynamic Base plugin (Mk1) anchor=0x%p pluginData=0x%p\n",
-	 anchor,pluginData);
+  if (command->commandVerb == NULL) {
+    return RC_ZISDYN_OK;
+  }
 
-  void **stubVector = 
-    (void*)cmAlloc(sizeof(void*)*MAX_ZIS_STUBS, ZVTE_SUBPOOL, ZVTE_KEY);
+  if (command->argCount != 1) {
+    return RC_ZISDYN_OK;
+  }
 
-  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, "Built Stub Vector at 0x%p, but before ZVTE install\n",
-	  stubVector);
+  if (!strcmp(command->commandVerb, "D") ||
+      !strcmp(command->commandVerb, "DIS") ||
+      !strcmp(command->commandVerb, "DISPLAY")) {
 
-  ZISServerAnchor *serverAnchor = context->zisAnchor;
-  CAA *caa = (CAA*)getCAA();
+    if (!strcmp(command->args[0], "STATUS")) {
 
-  int installStatus = 0;
-  if (stubVector){
-    int wasProblem = supervisorMode(TRUE);
+      DynamicPluginData *pluginData = (DynamicPluginData *)&anchor->pluginData;
 
-    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, "ZIS Dynamic (Mk2) in SUPERVISOR ZISServerAnchor at 0x%p caa=0x%p\n",
-	    serverAnchor,caa);
+      zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO,
+              ZISDYN_LOG_CMD_RESP_MSG" Plug-in v%d - anchor = 0x%p, "
+                                     "init TOD = %16.16llX\n",
+              plugin->pluginVersion, anchor, pluginData->initTime);
 
-    int oldKey = setKey(0);
-
-    if (caa){
-      RLETask *rleTask = caa->rleTask;
-      RLEAnchor *rleAnchor = rleTask->anchor;
-      rleAnchor->metalDynamicLinkageVector = stubVector;
+      *status = CMS_MODIFY_COMMAND_STATUS_CONSUMED;
     }
 
-    /* special initialization for slot 0 and all unused slots */
-    for (int s=0; s<MAX_ZIS_STUBS; s++){
-      stubVector[s] = (void*)dynamicZISUndefinedStub;
-    }
+  }
 
+  return RC_ZISDYN_OK;
+}
+
+void dynamicZISUndefinedStub(void) {
+  __asm(" ABEND 777,REASON=8 ":::);
+}
+
+int dynamicZISVersion(void) {
+  return ZIS_STUBS_VERSION;
+}
+
+ZISPlugin *getPluginDescriptor(void) {
+
+  ZISPluginName pluginName = {.text = ZISDYN_PLUGIN_NAME};
+  ZISPluginNickname pluginNickname = {.text = ZISDYN_PLUGIN_NICKNAME};
+
+  ZISPlugin *plugin = zisCreatePlugin(pluginName, pluginNickname,
+                                      initZISDynamic,  /* function */
+                                      termZISDynamic,
+                                      handleZISDynamicCommands,
+                                      ZISDYN_PLUGIN_VERSION,
+                                      0,  /* service count */
+                                      ZIS_PLUGIN_FLAG_LPA);
+  if (plugin == NULL) {
+    return NULL;
+  }
+
+  return plugin;
+}
+
+
+static void initStubVector(void **stubVector) {
+
+  /* special initialization for slot 0 and all unused slots */
+  for (int s = 0; s < MAX_ZIS_STUBS; s++) {
+    stubVector[s] = (void *) dynamicZISUndefinedStub;
+  }
+
+  /* block with generated code */
+  {
     stubVector[ZIS_STUB_DYNZISVR] = (void*)dynamicZISVersion;
     stubVector[ZIS_STUB_SHR64TKN] = (void*)shrmem64GetAddressSpaceToken;
     stubVector[ZIS_STUB_SHR64ALC] = (void*)shrmem64Alloc;
@@ -373,102 +510,6 @@ static int initZISDynamic(struct ZISContext_tag *context,
     stubVector[ZIS_STUB_LPAADD  ] = (void*)lpaAdd;
     stubVector[ZIS_STUB_LPADEL  ] = (void*)lpaDelete;
     stubVector[ZIS_STUB_CMADDPRM] = (void*)cmsAddConfigParm;
-
-    installStatus = installDynamicLinkageVector(context,stubVector);
-    setKey(oldKey);
-
-    if (wasProblem){
-      supervisorMode(FALSE);
-    }
-
-    if (installStatus){
-      zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING, "Could not install dynamic linkage stub vector, rc=%d\n",
-	      installStatus);
-    }
-    
   }
 
-  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO, "Stub Vector installed in CMS Global Area\n");
-
-  /* jam this into our favorite zvte */
-
-  return RC_ZIS_PLUGIN_OK;
 }
-
-static int termZISDynamic(struct ZISContext_tag *context,
-			  ZISPlugin *plugin,
-			  ZISPluginAnchor *anchor) {
-
-  DynamicPluginData *pluginData = (DynamicPluginData *)&anchor->pluginData;
-
-  pluginData->initTime = -1;
-
-  return RC_ZIS_PLUGIN_OK;
-}
-
-static int handleZISDynamicCommands(struct ZISContext_tag *context,
-				    ZISPlugin *plugin,
-				    ZISPluginAnchor *anchor,
-				    const CMSModifyCommand *command,
-				    CMSModifyCommandStatus *status) {
-  
-  if (command->commandVerb == NULL) {
-    return RC_ZIS_PLUGIN_OK;
-  }
-
-  if (command->argCount != 1) {
-    return RC_ZIS_PLUGIN_OK;
-  }
-
-  if (!strcmp(command->commandVerb, "D") ||
-      !strcmp(command->commandVerb, "DIS") ||
-      !strcmp(command->commandVerb, "DISPLAY")) {
-
-    if (!strcmp(command->args[0], "STATUS")) {
-
-      DynamicPluginData *pluginData = (DynamicPluginData *)&anchor->pluginData;
-
-      /* We can use zowelog but I don't want to link with a lot of unnecessary
-       * object files.  */
-      cmsPrintf(&context->cmServer->name,
-                "Inzpect plug-in v%d - anchor = 0x%p, init TOD = %16.16llX\n",
-                plugin->pluginVersion, anchor, pluginData->initTime);
-
-      *status = CMS_MODIFY_COMMAND_STATUS_CONSUMED;
-    }
-
-  }
-
-  return RC_ZIS_PLUGIN_OK;
-}
-
-void dynamicZISUndefinedStub(void){
-  __asm(" ABEND 777,REASON=8 ":::);
-}
-
-int dynamicZISVersion(){
-  return ZIS_STUBS_VERSION;
-}
-
-ZISPlugin *getPluginDescriptor() {
-  ZISPluginName pluginName = {.text = "ZISDYNAMIC      "};
-  ZISPluginNickname pluginNickname = {.text = "ZDYN"};
-
-  ZISPlugin *plugin = zisCreatePlugin(pluginName, pluginNickname,
-                                      initZISDynamic,  /* function */
-				      termZISDynamic,
-				      handleZISDynamicCommands,
-                                      1,  /* version */
-				      0,  /* service count */
-				      ZIS_PLUGIN_FLAG_LPA);
-  if (plugin == NULL) {
-    return NULL;
-  }
-
-  return plugin;
-}
-
-
-
-
-
