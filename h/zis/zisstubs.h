@@ -265,25 +265,6 @@
 #define ZIS_STUB_ZISUSVCA 245 /* zisUpdateServiceAnchor mapped */
 #define ZIS_STUB_ZISUSAUT 246 /* zisServiceUseSpecificAuth mapped */
 
-/* zosfile, unixfile 250-289 */
-
-#define ZIS_STUB_FILEOPEN 250 /* fileOpen */
-#define ZIS_STUB_FILEREAD 251 /* fileRead */
-#define ZIS_STUB_FILWRITE 252 /* fileWrite */
-#define ZIS_STUB_FILGTCHR 253 /* fileGetChar */
-#define ZIS_STUB_FILECOPY 254 /* fileCopy */
-#define ZIS_STUB_FILRNAME 255 /* fileRename */
-#define ZIS_STUB_FILDLETE 256 /* fileDelete */
-
-#define ZIS_STUB_FILEINFO 260 /* fileInfo */
-#define ZIS_STUB_FNFOISDR 261 /* fileInfoIsDirectory */
-#define ZIS_STUB_FNFOSIZE 262 /* fileInfoSize */
-#define ZIS_STUB_FNFOCCID 263 /* fileInfoCCSID */
-#define ZIS_STUB_FILUXCRT 264 /* fileInfoUnixCreationTime */
-#define ZIS_STUB_FILISOEF 265 /* fileEOF */
-#define ZIS_STUB_FILGINOD 266 /* fileGetINode */
-#define ZIS_STUB_FILDEVID 267 /* fileGetDeviceID */
-#define ZIS_STUB_FILCLOSE 268 /* fileClose */
 
 /* zis/plugin 290-299 - These are pragmaMAP not ifndef __LONGNAME__ */
 /* #define ZIS_STUB_ZISAPLGN 290 does not EXIST */
