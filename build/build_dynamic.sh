@@ -41,7 +41,6 @@ $COMMON/c/recovery.c \
 $COMMON/c/scheduling.c \
 $COMMON/c/pause-element.c \
 $COMMON/c/shrmem64.c \
-$COMMON/c/zosfile.c \
 $COMMON/c/zos.c \
 $COMMON/c/zvt.c \
 $COMMON/c/cellpool.c \
@@ -68,7 +67,6 @@ as "${ASFLAGS[@]}" -aegimrsx=qsam.asm qsam.s
 as "${ASFLAGS[@]}" -aegimrsx=timeutls.asm timeutls.s
 as "${ASFLAGS[@]}" -aegimrsx=utils.asm utils.s
 as "${ASFLAGS[@]}" -aegimrsx=zos.asm zos.s
-as "${ASFLAGS[@]}" -aegimrsx=zosfile.asm zosfile.s
 as "${ASFLAGS[@]}" -aegimrsx=le.asm le.s
 as "${ASFLAGS[@]}" -aegimrsx=recovery.asm recovery.s
 as "${ASFLAGS[@]}" -aegimrsx=scheduling.asm scheduling.s
@@ -110,7 +108,6 @@ timeutls.o \
 utils.o \
 xlate.o \
 zos.o \
-zosfile.o \
 zvt.o \
 cellpool.o \
 nametoken.o \
