@@ -2590,7 +2590,7 @@ static int configureTextunitsFromContentBody(JsonObject *object, int *configsCou
             rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, toi, DALBLKLN, configsCount, inputTextUnit);
           }
         }
-      } else if(!strcmp(propString, "status")) {
+      } else if(!strcmp(propString, "disp")) {
         if (!strcmp(valueString, "OLD")){
           parmDefn = DISP_OLD;
         } else if (!strcmp(valueString, "MOD")){
@@ -2604,8 +2604,6 @@ static int configureTextunitsFromContentBody(JsonObject *object, int *configsCou
       } else if (!strcmp(propString, "ndisp")) {
         if (!strcmp(valueString, "UNCATLG")){
           parmDefn = DISP_UNCATLG;
-        } else if (!strcmp(valueString, "DELETE")){
-          parmDefn = DISP_DELETE;
         } else if (!strcmp(valueString, "KEEP")){
           parmDefn = DISP_KEEP;
         } else {
@@ -2633,15 +2631,6 @@ static int configureTextunitsFromContentBody(JsonObject *object, int *configsCou
       } else if(!strcmp(propString, "retdd")) {
         if (valueStrLen <= DD_NAME_LEN){
           rc = setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, &(valueString)[0], 0, DALRTDDN, configsCount, inputTextUnit);
-        }
-      } else if(!strcmp(propString, "spin")) {
-        if (!strcmp(valueString, "UNALLOC")){
-          parmDefn = SPIN_UNALLOC;
-        } else if (!strcmp(valueString, "ENDJOB")){
-          parmDefn = SPIN_ENDJOB;
-        }
-        if(parmDefn != DALDSORG_NULL) {
-          rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALSPIN, configsCount, inputTextUnit);
         }
       } else if(!strcmp(propString, "strcls")) {
         if (valueStrLen <= CLASS_WRITER_SIZE){
