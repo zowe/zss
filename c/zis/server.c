@@ -82,6 +82,8 @@ See details in the ZSS Cross Memory Server installation guide
 
 #define ZIS_PARMLIB_PARM_SERVER_NAME          CMS_PROD_ID".NAME"
 
+#define ZIS_DYN_LINKAGE_PLUGIN_MOD_NAME       CMS_PROD_ID".ISDL"
+
 /* Check this for backward compatibility with the compile-time dev mode. */
 #ifndef ZIS_LPA_DEV_MODE
 #define ZIS_LPA_DEV_MODE 0
@@ -388,10 +390,8 @@ static int callPluginInit(ZISContext *context, ZISPlugin *plugin,
     if (recoveryRC == RC_RCV_OK) {
 
       if (plugin->init != NULL) {
-	TCB *tcb = getTCB();
         zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
-                "About to init plugin \'%.4s\' in TCB=0x%p\n", 
-		plugin->nickname.text, tcb);
+                "About to init plugin \'%.4s\'\n", plugin->nickname.text);
         int initRC = plugin->init(context, plugin, anchor);
         zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
                 "Plugin init()-ed, rc=%d\n", initRC);
@@ -1010,24 +1010,37 @@ typedef struct ContextAndState_tag {
   bool        lookingForDynamicPlugin;
 } ContextAndState;
 
+/**
+ * @brief Check if the plugin satisfies the provided condition.
+ * @param moduleName The plugin's module name.
+ * @param dynLinkPluginNeeded The only condition - whether the plugin is the
+ * dynamic linkage plugin or not.
+ * @return @c true if the plugin satisfies the condition, otherwise @c false.
+ */
+static bool isPluginSuitable(const char *moduleName, bool dynLinkPluginNeeded) {
+  /* This little bit of magic forces ZWES.PLUGIN.DYNBASE to be installed first
+   * if it exists in the PARMLIB */
+  if (dynLinkPluginNeeded) {
+    if (strcmp(moduleName, ZIS_DYN_LINKAGE_PLUGIN_MOD_NAME)) {
+      return false;
+    }
+  } else {
+    if (!strcmp(moduleName, ZIS_DYN_LINKAGE_PLUGIN_MOD_NAME)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static void visitPluginParm(const char *name, const char *value,
                             void *userData) {
 
   if (strstr(name, "ZWES.PLUGIN.") != name) {
     return;
   }
-  /* This little bit of magic forces ZWES.PLUGIN.DYNBASE to be installed first
-     if it exists in the PARMLIB */
+
   ContextAndState *contextAndState = userData;
-  if (contextAndState->lookingForDynamicPlugin){
-    if (strcmp(name,"ZWES.PLUGIN.DYNBASE")){
-      return;
-    }
-  } else{
-    if (!strcmp(name,"ZWES.PLUGIN.DYNBASE")){
-      return;
-    }
-  }
+
   const char *pluginName = name + strlen("ZWES.PLUGIN.");
   zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
           "visitPluginParm %s value=%s\n",
@@ -1039,6 +1052,15 @@ static void visitPluginParm(const char *name, const char *value,
     return;
   }
 
+  /* This check helps to organize the plugin deployment in the following order:
+   * 1. The dynamic linkage plugin
+   * 2. Everything else
+   * Such logic ensures that any plugins relying on the dynamic linkage plugin
+   * will be able to use it during their initialization.
+   */
+  if (!isPluginSuitable(value, contextAndState->lookingForDynamicPlugin)) {
+    return;
+  }
 
   EightCharString moduleName = {"        "};
   size_t moduleNameLength = strlen(value);
@@ -1094,7 +1116,7 @@ ZISServerAnchor *createZISServerAnchor() {
   return anchor;
 }
 
-static void updateZISServerAnchor(ZISServerAnchor *anchor){
+static void enableDynLink(ZISServerAnchor *anchor) {
   /* new feature bit for dynamic linking - Fall 2021 */
   anchor->flags |= ZIS_SERVER_ANCHOR_FLAG_DYNLINK;
 }
@@ -1121,8 +1143,9 @@ static int initGlobalResources(ZISContext *context) {
       return RC_ZIS_ERROR;
     }
     cmsGA->userServerAnchor = anchor;
-  } else{
-    updateZISServerAnchor(anchor);
+  } else {
+    // make sure any existing anchors supports dynamic linkage now
+    enableDynLink(anchor);
   }
   context->zisAnchor = anchor;
 
@@ -1536,30 +1559,21 @@ static int runCoreServer(ZISContext *context) {
   return RC_ZIS_OK;
 }
 
+static void printDiagInfo(const STCBase *base) {
+  RLEAnchor *rleAnchor = base->rleAnchor;
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+          "ZIS Server Start rleAnchor 0x%p:\n", rleAnchor);
+  zowedump(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+           (void *) rleAnchor, sizeof(RLEAnchor));
+}
+
 static int run(STCBase *base, const ZISMainFunctionParms *mainParms) {
 
   initLoggin();
 
   printStartMessage();
 
-  TCB *tcb = getTCB();
-
-  RLEAnchor *rleAnchor = base->rleAnchor;
-  if (rleAnchor){
-    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
-	    "ZIS Server Start rleAnchor exists 0x%p in tcb=0x%p\n",rleAnchor,tcb);
-    zowedump(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
-	     (void*)rleAnchor,
-	     sizeof(RLEAnchor));
-    
-  } else{
-    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
-	    "ZIS Server Start rleAnchor does not exist\n");
-    rleAnchor = makeRLEAnchor();
-    initRLEEnvironment(rleAnchor);
-    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_INFO,
-	    "ZIS Server start building rleAnchor\n");
-  }
+  printDiagInfo(base);
 
   ZISContext context = makeContext(base);
 
