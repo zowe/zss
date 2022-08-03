@@ -1,5 +1,4 @@
 #include <metal/metal.h>
-#include <metal/stdbool.h>
 #include <metal/stddef.h>
 #include <metal/stdint.h>
 #include <metal/stdlib.h>
@@ -18,16 +17,13 @@
 #include "le.h"
 #include "unixfile.h"
 #include "recovery.h"
-#include "zos.h"
 #include "shrmem64.h"
 #include "cmutils.h"
 #include "pause-element.h"
 #include "scheduling.h"
 #include "xlate.h"
 
-#include "cmutils.h"
 #include "crossmemory.h"
-#include "shrmem64.h"
 #include "cpool64.h"
 #include "zis/zisstubs.h"
 #include "zis/plugin.h"
