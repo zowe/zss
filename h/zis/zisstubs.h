@@ -369,6 +369,7 @@
 #define ZIS_STUB_ZOSCLCKD 1017 /* isCallerLocked */
 #define ZIS_STUB_ZOSCSRB 1018 /* isCallerSRB */
 #define ZIS_STUB_GETASCBJ 1019 /* getASCBJobname */ 
+#define ZIS_STUB_GETECVT  1037 /* getECVT */
 
 // zowe-common-c/h/utils.h
 #define ZIS_STUB_SLHFREE 1020 /* SLHFree */
