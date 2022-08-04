@@ -82,7 +82,7 @@ See details in the ZSS Cross Memory Server installation guide
 
 #define ZIS_PARMLIB_PARM_SERVER_NAME          CMS_PROD_ID".NAME"
 
-#define ZIS_DYN_LINKAGE_PLUGIN_MOD_NAME       CMS_PROD_ID".ISDL"
+#define ZIS_DYN_LINKAGE_PLUGIN_MOD_NAME       CMS_PROD_ID"ISDL"
 
 /* Check this for backward compatibility with the compile-time dev mode. */
 #ifndef ZIS_LPA_DEV_MODE
