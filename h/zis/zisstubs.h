@@ -29,7 +29,7 @@
     
  */
 
-#define MAX_ZIS_STUBS 1000
+#define MAX_ZIS_STUBS 2000
 
 #define ZIS_STUB_DYNZISUD  0  /* dynamicZISUndefinedStub */
 #define ZIS_STUB_DYNZISVR  1  /* dynamicZISVersion       */

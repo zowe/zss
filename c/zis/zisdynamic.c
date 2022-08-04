@@ -44,12 +44,17 @@
 #define RC_ZISDYN_ALLOC_FAILED 16
 #define RC_ZISDYN_ENV_ERROR 17
 
+#define STATIC_ASSERT($expr) typedef char p[($expr) ? 1 : -1]
+
 ZOWE_PRAGMA_PACK
 
 typedef struct DynamicPluginData_tag {
   uint64_t initTime;
-  char     unused[56];
+  void **stubVector;
+  char unused[48];
 } DynamicPluginData;
+
+STATIC_ASSERT(sizeof(DynamicPluginData) <= sizeof(ZISPluginData));
 
 ZOWE_PRAGMA_PACK_RESET
 
@@ -91,6 +96,7 @@ static int initZISDynamic(struct ZISContext_tag *context,
     goto out;
   }
 
+  // TODO check and reuse the existing vector
   void **stubVector =
       (void *) cmAlloc(sizeof(void *) * MAX_ZIS_STUBS, ZVTE_SUBPOOL, ZVTE_KEY);
   if (stubVector == NULL) {
@@ -121,6 +127,8 @@ static int initZISDynamic(struct ZISContext_tag *context,
     supervisorMode(FALSE);
   }
 
+  pluginData->stubVector = stubVector;
+
   if (installStatus) {
     zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_WARNING,
             "Could not install dynamic linkage stub vector, rc=%d\n",
@@ -150,6 +158,10 @@ static int termZISDynamic(struct ZISContext_tag *context,
 
   DynamicPluginData *pluginData = (DynamicPluginData *) &anchor->pluginData;
   pluginData->initTime = -1;
+  if (pluginData->stubVector) {
+    cmFree2((void **)&pluginData->stubVector,
+            sizeof(void *) * MAX_ZIS_STUBS, ZVTE_SUBPOOL, ZVTE_KEY);
+  }
 
   zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZISDYN_LOG_TERMED_MSG);
 
