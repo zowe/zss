@@ -48,9 +48,35 @@
 
 ZOWE_PRAGMA_PACK
 
+typedef struct ZISDynStubVector_tag {
+
+#define ZISDYN_STUB_VEC_EYECATCHER    "ZWESISSV"
+#define ZISDYN_STUB_VEC_VERSION       1
+#define ZISDYN_STUB_VEC_KEY           ZVT_KEY
+#define ZISDYN_STUB_VEC_SUBPOOL       ZVT_SUBPOOL
+
+  char eyecatcher[8];
+  uint8_t version;
+  uint8_t key;
+  uint8_t subpool;
+  char reserved1[1];
+  uint16_t size;
+  char reserved2[2];
+  /* Offset 0x10 */
+  uint64_t creationTime;
+  char jobName[8];
+  /* Offset 0x20 */
+  uint16_t asid;
+  char reserved22[6];
+
+  /* Offset 0x28 */
+  void *slots[MAX_ZIS_STUBS];
+
+} ZISDynStubVector;
+
 typedef struct DynamicPluginData_tag {
   uint64_t initTime;
-  void **stubVector;
+  ZISDynStubVector *stubVector;
   char unused[48];
 } DynamicPluginData;
 
@@ -58,7 +84,29 @@ STATIC_ASSERT(sizeof(DynamicPluginData) <= sizeof(ZISPluginData));
 
 ZOWE_PRAGMA_PACK_RESET
 
-static void initStubVector(void **stubVector);
+static void initStubVector(ZISDynStubVector *stubVector);
+
+static ZISDynStubVector *makeStubVector(void) {
+
+  ZISDynStubVector *vector = cmAlloc(sizeof(ZISDynStubVector),
+                                     ZISDYN_STUB_VEC_SUBPOOL,
+                                     ZISDYN_STUB_VEC_KEY);
+  if (vector == NULL) {
+    return NULL;
+  }
+
+  initStubVector(vector);
+
+  return vector;
+}
+
+static void deleteStubVector(ZISDynStubVector **vectorAddr) {
+  if (*vectorAddr == NULL) {
+    return;
+  }
+  cmFree2((void **)vectorAddr, (*vectorAddr)->size,
+          ZISDYN_STUB_VEC_SUBPOOL, ZISDYN_STUB_VEC_KEY);
+}
 
 static int installDynamicLinkageVector(ZISContext *context,
                                        void *dynamicLinkageVector) {
@@ -97,11 +145,10 @@ static int initZISDynamic(struct ZISContext_tag *context,
   }
 
   // TODO check and reuse the existing vector
-  void **stubVector =
-      (void *) cmAlloc(sizeof(void *) * MAX_ZIS_STUBS, ZVTE_SUBPOOL, ZVTE_KEY);
+  ZISDynStubVector *stubVector = makeStubVector();
   if (stubVector == NULL) {
     zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
-            ZISDYN_LOG_INIT_ERROR_MSG" stub vector not allocated");
+            ZISDYN_LOG_INIT_ERROR_MSG" stub vector not created");
     installStatus = RC_ZISDYN_ALLOC_FAILED;
     goto out;
   }
@@ -116,7 +163,6 @@ static int initZISDynamic(struct ZISContext_tag *context,
   RLETask *rleTask = caa->rleTask;
   RLEAnchor *rleAnchor = rleTask->anchor;
   rleAnchor->metalDynamicLinkageVector = stubVector;
-  initStubVector(stubVector);
   installStatus = installDynamicLinkageVector(context, stubVector);
 
   pluginData->stubVector = stubVector;
@@ -150,10 +196,7 @@ static int termZISDynamic(struct ZISContext_tag *context,
 
   DynamicPluginData *pluginData = (DynamicPluginData *) &anchor->pluginData;
   pluginData->initTime = -1;
-  if (pluginData->stubVector) {
-    cmFree2((void **)&pluginData->stubVector,
-            sizeof(void *) * MAX_ZIS_STUBS, ZVTE_SUBPOOL, ZVTE_KEY);
-  }
+  deleteStubVector(&pluginData->stubVector);
 
   zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZISDYN_LOG_TERMED_MSG);
 
@@ -224,17 +267,37 @@ ZISPlugin *getPluginDescriptor(void) {
 
 static void assignSlots(void **stubVector);
 
-static void initStubVector(void **stubVector) {
+static void initStubVector(ZISDynStubVector *vector) {
 
   int wasProblem = supervisorMode(TRUE);
   int oldKey = setKey(0);
 
-  /* special initialization for slot 0 and all unused slots */
-  for (int s = 0; s < MAX_ZIS_STUBS; s++) {
-    stubVector[s] = (void *) dynamicZISUndefinedStub;
+  memset(vector, 0, sizeof(ZISDynStubVector));
+  memcpy(vector->eyecatcher, ZISDYN_STUB_VEC_EYECATCHER,
+         sizeof(vector->eyecatcher));
+  vector->version = ZISDYN_STUB_VEC_VERSION;
+  vector->key = ZISDYN_STUB_VEC_KEY;
+  vector->subpool = ZISDYN_STUB_VEC_SUBPOOL;
+  vector->size = sizeof(ZISDynStubVector);
+  __stck((void *)&vector->creationTime);
+
+  ASCB *ascb = getASCB();
+
+  char *jobName = getASCBJobname(ascb);
+  if (jobName) {
+    memcpy(vector->jobName, jobName, sizeof(vector->jobName));
+  } else {
+    memset(vector->jobName, ' ', sizeof(vector->jobName));
   }
 
-  assignSlots(stubVector);
+  vector->asid = ascb->ascbasid;
+
+  /* special initialization for slot 0 and all unused slots */
+  for (int s = 0; s < sizeof(vector->slots) / sizeof(vector->slots[0]); s++) {
+    vector->slots[s] = (void *) dynamicZISUndefinedStub;
+  }
+
+  assignSlots(vector->slots);
 
   setKey(oldKey);
   if (wasProblem) {
