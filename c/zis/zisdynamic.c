@@ -28,6 +28,7 @@
 #include "zis/zisstubs.h"
 #include "zis/plugin.h"
 #include "zis/server.h"
+#include "zis/server-api.h"
 #include "zis/service.h"
 #include "zis/client.h"
 #include "zis/zisstubs.h"
@@ -54,6 +55,7 @@ typedef struct ZISDynStubVector_tag {
 #define ZISDYN_STUB_VEC_VERSION       1
 #define ZISDYN_STUB_VEC_KEY           ZVT_KEY
 #define ZISDYN_STUB_VEC_SUBPOOL       ZVT_SUBPOOL
+#define ZISDYN_STUB_VEC_HEADER_SIZE   0x28
 
   char eyecatcher[8];
   uint8_t version;
@@ -67,8 +69,10 @@ typedef struct ZISDynStubVector_tag {
   char jobName[8];
   /* Offset 0x20 */
   uint16_t asid;
-  char reserved22[6];
+  char reserved22[4];
 
+  /* Offset 0x26 */
+  uint16_t stubsVersion;
   /* Offset 0x28 */
   void *slots[MAX_ZIS_STUBS];
 
@@ -100,12 +104,39 @@ static ZISDynStubVector *makeStubVector(void) {
   return vector;
 }
 
-static void deleteStubVector(ZISDynStubVector **vectorAddr) {
-  if (*vectorAddr == NULL) {
+static void deleteStubVector(ZISDynStubVector *vectorAddr) {
+  if (vectorAddr == NULL) {
     return;
   }
-  cmFree2((void **)vectorAddr, (*vectorAddr)->size,
-          ZISDYN_STUB_VEC_SUBPOOL, ZISDYN_STUB_VEC_KEY);
+  cmFree(vectorAddr, vectorAddr->size, ZISDYN_STUB_VEC_SUBPOOL,
+         ZISDYN_STUB_VEC_KEY);
+}
+
+static bool isStubVectorValid(const ZISDynStubVector *vector,
+                              const char **reason) {
+  if (memcmp(vector->eyecatcher, ZISDYN_STUB_VEC_EYECATCHER,
+             sizeof(vector->eyecatcher))) {
+    *reason = "bad eyecatcher";
+    return false;
+  }
+  if (vector->version > ZISDYN_STUB_VEC_VERSION) {
+    *reason = "incompatible version";
+    return false;
+  }
+  if (vector->size < sizeof(ZISDynStubVector)) {
+    *reason = "insufficient size";
+    return false;
+  }
+  if (vector->key != ZISDYN_STUB_VEC_KEY) {
+    *reason = "unexpected key";
+    return false;
+  }
+  if (vector->subpool != ZISDYN_STUB_VEC_SUBPOOL) {
+    *reason = "unexpected subpool";
+    return false;
+  }
+  *reason = "";
+  return true;
 }
 
 static int installDynamicLinkageVector(ZISContext *context,
@@ -128,13 +159,18 @@ static int initZISDynamic(struct ZISContext_tag *context,
   zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZISDYN_LOG_STARTUP_MSG,
           ZISDYN_VERSION, ZIS_STUBS_VERSION);
 
+  bool isLPADevMode = zisIsLPADevModeOn(context);
+  if (isLPADevMode) {
+    zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZISDYN_LOG_DEV_MODE_MSG);
+  }
+
   DynamicPluginData *pluginData = (DynamicPluginData *)&anchor->pluginData;
   int installStatus = RC_ZISDYN_OK;
   zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
           ZIS_LOG_DEBUG_MSG_ID" Initializing ZIS Dynamic Base plugin "
           "anchor=0x%p pluginData=0x%p\n", anchor, pluginData);
 
-  __asm(" STCK %0 " : "=m"(pluginData->initTime) :);
+  __stck((void *)&pluginData->initTime);
 
   CAA *caa = (CAA *) getCAA();
   if (caa == NULL) {
@@ -144,17 +180,44 @@ static int initZISDynamic(struct ZISContext_tag *context,
     goto out;
   }
 
-  // TODO check and reuse the existing vector
-  ZISDynStubVector *stubVector = makeStubVector();
+  ZISDynStubVector *stubVector = pluginData->stubVector;
+  pluginData->stubVector = NULL;
+  if (stubVector != NULL) {
+    const char *reasonInvalid = "";
+    if (!isStubVectorValid(stubVector, &reasonInvalid)) {
+      zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
+              ZISDYN_LOG_STUB_DISCARDED_MSG, stubVector, reasonInvalid);
+      zowedump(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_WARNING,
+               stubVector, ZISDYN_STUB_VEC_HEADER_SIZE);
+      stubVector = NULL;
+    } else if (isLPADevMode) {
+      deleteStubVector(stubVector);
+      zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO,
+              ZISDYN_LOG_STUB_DELETED_MSG, stubVector);
+      stubVector = NULL;
+    }
+  }
+
   if (stubVector == NULL) {
-    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
-            ZISDYN_LOG_INIT_ERROR_MSG" stub vector not created");
-    installStatus = RC_ZISDYN_ALLOC_FAILED;
-    goto out;
+    stubVector = makeStubVector();
+    if (stubVector == NULL) {
+      zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE,
+              ZISDYN_LOG_INIT_ERROR_MSG" stub vector not created");
+      installStatus = RC_ZISDYN_ALLOC_FAILED;
+      goto out;
+    }
+    zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO,
+            ZISDYN_LOG_STUB_CREATED_MSG, stubVector);
+  } else {
+    initStubVector(stubVector);
+    zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO,
+            ZISDYN_LOG_STUB_REUSED_MSG, stubVector);
   }
 
   zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
-          ZIS_LOG_DEBUG_MSG_ID" Built Stub Vector at 0x%p\n", stubVector);
+          ZIS_LOG_DEBUG_MSG_ID" stub vector at 0x%p\n", stubVector);
+  zowedump(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
+           stubVector, sizeof(ZISDynStubVector));
 
   zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
           ZIS_LOG_DEBUG_MSG_ID" ZIS Dynamic in SUP, "
@@ -172,7 +235,6 @@ static int initZISDynamic(struct ZISContext_tag *context,
             "Could not install dynamic linkage stub vector, rc=%d\n",
             installStatus);
   }
-    
 
   out:
 
@@ -196,7 +258,6 @@ static int termZISDynamic(struct ZISContext_tag *context,
 
   DynamicPluginData *pluginData = (DynamicPluginData *) &anchor->pluginData;
   pluginData->initTime = -1;
-  deleteStubVector(&pluginData->stubVector);
 
   zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZISDYN_LOG_TERMED_MSG);
 
@@ -297,6 +358,7 @@ static void initStubVector(ZISDynStubVector *vector) {
     vector->slots[s] = (void *) dynamicZISUndefinedStub;
   }
 
+  vector->stubsVersion = ZIS_STUBS_VERSION;
   assignSlots(vector->slots);
 
   setKey(oldKey);
