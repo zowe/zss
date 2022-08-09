@@ -51,6 +51,7 @@ $COMMON/c/stcbase.c \
 $COMMON/c/isgenq.c \
 $COMMON/c/resmgr.c \
 $ZSS/c/zis/plugin.c \
+$ZSS/c/zis/server-api.c \
 $ZSS/c/zis/service.c \
 $ZSS/c/zis/client.c \
 $ZSS/c/zis/parm.c \
@@ -82,6 +83,7 @@ as "${ASFLAGS[@]}" -aegimrsx=stcbase.asm stcbase.s
 as "${ASFLAGS[@]}" -aegimrsx=isgenq.asm isgenq.s
 as "${ASFLAGS[@]}" -aegimrsx=resmgr.asm resmgr.s
 as "${ASFLAGS[@]}" -aegimrsx=plugin.asm plugin.s
+as "${ASFLAGS[@]}" -aegimrsx=server-api.asm server-api.s
 as "${ASFLAGS[@]}" -aegimrsx=service.asm service.s
 as "${ASFLAGS[@]}" -aegimrsx=client.asm client.s
 as "${ASFLAGS[@]}" -aegimrsx=parm.asm parm.s
@@ -117,6 +119,7 @@ stcbase.o \
 isgenq.o \
 resmgr.o \
 plugin.o \
+server-api.o \
 service.o \
 client.o \
 parm.o \

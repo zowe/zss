@@ -38,6 +38,7 @@
 #include "zis/plugin.h"
 #include "zis/server.h"
 #include "zis/service.h"
+#include "zis/server-api.h"
 
 #include "zis/services/auth.h"
 #include "zis/services/nwm.h"
@@ -84,10 +85,6 @@ See details in the ZSS Cross Memory Server installation guide
 
 #define ZIS_DYN_LINKAGE_PLUGIN_MOD_NAME       CMS_PROD_ID"ISDL"
 
-/* Check this for backward compatibility with the compile-time dev mode. */
-#ifndef ZIS_LPA_DEV_MODE
-#define ZIS_LPA_DEV_MODE 0
-#endif
 
 static int zisRouteService(struct CrossMemoryServerGlobalArea_tag *globalArea,
                            struct CrossMemoryService_tag *service,
@@ -626,11 +623,6 @@ static int installServices(ZISContext *context, ZISPlugin *plugin,
   return RC_ZIS_OK;
 }
 
-static bool isLPADevMode(const ZISContext *context) {
-  int devFlags = CMS_SERVER_FLAG_DEV_MODE_LPA | CMS_SERVER_FLAG_DEV_MODE;
-  return (context->cmsFlags & devFlags) || ZIS_LPA_DEV_MODE;
-}
-
 static int relocatePluginToLPAIfNeeded(ZISContext *context,
                                        ZISPlugin **pluginAddr,
                                        ZISPluginAnchor *anchor,
@@ -655,7 +647,7 @@ static int relocatePluginToLPAIfNeeded(ZISContext *context,
       lpaDiscarded = true;
     }
 
-    if (isLPADevMode(context)) {
+    if (zisIsLPADevModeOn(context)) {
 
       zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
               " Plugin LPA dev mode enabled, issuing CSVDYLPA DELETE of "
@@ -718,7 +710,7 @@ static int removePluginFromLPAIfNeeded(ZISContext *context,
 
   if (lpaPresent) {
 
-    if (isLPADevMode(context)) {
+    if (zisIsLPADevModeOn(context)) {
 
       zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
               " Plugin LPA dev mode enabled, issuing CSVDYLPA DELETE of "
