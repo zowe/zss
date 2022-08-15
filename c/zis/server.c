@@ -1004,8 +1004,8 @@ typedef struct ContextAndState_tag {
 
 /**
  * @brief Check if the plugin satisfies the provided condition.
- * @param moduleName The plugin's module name.
- * @param dynLinkPluginNeeded The only condition - whether the plugin is the
+ * @param[in] moduleName The plugin's module name.
+ * @param[in] dynLinkPluginNeeded The only condition - whether the plugin is the
  * dynamic linkage plugin or not.
  * @return @c true if the plugin satisfies the condition, otherwise @c false.
  */

@@ -36,7 +36,7 @@
 
 #include "crossmemory.h"
 #include "cpool64.h"
-#include "zis/zisstubs.h"
+#include "zis/zisdynamic.h"
 #include "zis/plugin.h"
 #include "zis/server.h"
 #include "zis/server-api.h"
@@ -45,7 +45,21 @@
 #include "zis/zisstubs.h"
 #include "zis/message.h"
 
-#define ZISDYN_VERSION "1.0.0"
+#ifndef ZISDYN_MAJOR_VERSION
+#define ZISDYN_MAJOR_VERSION 0
+#endif
+
+#ifndef ZISDYN_MINOR_VERSION
+#define ZISDYN_MINOR_VERSION 0
+#endif
+
+#ifndef ZISDYN_REVISION
+#define ZISDYN_REVISION 0
+#endif
+
+#ifndef ZISDYN_VERSION_DATE_STAMP
+#define ZISDYN_VERSION_DATE_STAMP 0
+#endif
 
 #define ZISDYN_PLUGIN_NAME      "ZISDYNAMIC      "
 #define ZISDYN_PLUGIN_NICKNAME  "ZDYN"
@@ -168,7 +182,8 @@ static int initZISDynamic(struct ZISContext_tag *context,
                           ZISPluginAnchor *anchor) {
 
   zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZISDYN_LOG_STARTUP_MSG,
-          ZISDYN_VERSION, ZIS_STUBS_VERSION);
+          ZISDYN_MAJOR_VERSION, ZISDYN_MINOR_VERSION, ZISDYN_REVISION,
+          ZISDYN_VERSION_DATE_STAMP, ZIS_STUBS_VERSION);
 
   bool isLPADevMode = zisIsLPADevModeOn(context);
   if (isLPADevMode) {
@@ -310,12 +325,18 @@ static int handleZISDynamicCommands(struct ZISContext_tag *context,
   return RC_ZISDYN_OK;
 }
 
-void dynamicZISUndefinedStub(void) {
+static void zisdynUndefinedStub(void) {
   __asm(" ABEND 777,REASON=8 ":::);
 }
 
-int dynamicZISVersion(void) {
+int zisdynGetStubVersion(void) {
   return ZIS_STUBS_VERSION;
+}
+
+void zisdynGetPluginVersion(int *major, int *minor, int *revision) {
+  *major = ZISDYN_MAJOR_VERSION;
+  *minor = ZISDYN_MINOR_VERSION;
+  *revision = ZISDYN_REVISION;
 }
 
 ZISPlugin *getPluginDescriptor(void) {
@@ -366,7 +387,7 @@ static void initStubVector(ZISDynStubVector *vector) {
 
   /* special initialization for slot 0 and all unused slots */
   for (int s = 0; s < sizeof(vector->slots) / sizeof(vector->slots[0]); s++) {
-    vector->slots[s] = (void *) dynamicZISUndefinedStub;
+    vector->slots[s] = (void *) zisdynUndefinedStub;
   }
 
   vector->stubsVersion = ZIS_STUBS_VERSION;
@@ -381,7 +402,10 @@ static void initStubVector(ZISDynStubVector *vector) {
 
 static void assignSlots(void **stubVector) {
   /* generated code */
-  stubVector[ZIS_STUB_DYNZISVR] = (void*)dynamicZISVersion;
+  stubVector[ZIS_STUB_ZISDYNSV] = (void *)zisdynGetStubVersion;
+  stubVector[ZIS_STUB_ZISDYNPV] = (void *)zisdynGetPluginVersion;
+  stubVector[ZIS_STUB_ZISGVRSN] = (void *)zisGetServerVersion;
+  stubVector[ZIS_STUB_ZISLPADV] = (void *)zisIsLPADevModeOn;
   stubVector[ZIS_STUB_SHR64TKN] = (void*)shrmem64GetAddressSpaceToken;
   stubVector[ZIS_STUB_SHR64ALC] = (void*)shrmem64Alloc;
   stubVector[ZIS_STUB_SHR64AL2] = (void*)shrmem64Alloc2;
