@@ -23,7 +23,19 @@ ASFLAGS=(-mgoff -mobject -mflag=nocont --TERM --RENT)
 
 LDFLAGS=(-V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus)
 
+echo "********************************************************************************"
+echo "Building ZIS Dynamic Linkage Base plugin..."
+
+IFS='.' read -r major minor micro < "${ZSS}/version.txt"
+date_stamp=$(date +%Y%m%d)
+echo "Version: $major.$minor.$micro"
+echo "Date stamp: $date_stamp"
+
 xlc "${CFLAGS[@]}" -DRCVR_CPOOL_STATES \
+  -DZISDYN_MAJOR_VERSION="$major" \
+  -DZISDYN_MINOR_VERSION="$minor" \
+  -DZISDYN_REVISION="$micro" \
+  -DZISDYN_VERSION_DATE_STAMP="$date_stamp" \
 $COMMON/c/alloc.c \
 $COMMON/c/cmutils.c \
 $COMMON/c/collections.c \
@@ -125,3 +137,5 @@ client.o \
 parm.o \
 zisdynamic.o \
 > ZWESISDL.link
+
+echo "Build successful"

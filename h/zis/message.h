@@ -249,7 +249,7 @@
 /* ZIS dynamic linkage plugin messages */
 
 #define ZISDYN_LOG_STARTUP_MSG_ID               ZIS_MSG_PRFX"0200I"
-#define ZISDYN_LOG_STARTUP_MSG_TEXT             "ZIS Dynamic Base plugin starting, version %s, stub version %d"
+#define ZISDYN_LOG_STARTUP_MSG_TEXT             "ZIS Dynamic Base plugin starting, version %d.%d.%d+%d, stub version %d"
 #define ZISDYN_LOG_STARTUP_MSG                  ZISDYN_LOG_STARTUP_MSG_ID" "ZISDYN_LOG_STARTUP_MSG_TEXT
 
 #define ZISDYN_LOG_STARTED_MSG_ID               ZIS_MSG_PRFX"0201I"

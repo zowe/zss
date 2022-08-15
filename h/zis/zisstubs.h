@@ -42,8 +42,11 @@
 
 #define MAX_ZIS_STUBS 2000
 
-#define ZIS_STUB_DYNZISUD  0  /* dynamicZISUndefinedStub */
-#define ZIS_STUB_DYNZISVR  1  /* dynamicZISVersion       */
+#define ZIS_STUB_DYNZISUD  0  /* zisdynUndefinedStub  */
+#define ZIS_STUB_ZISDYNSV  1  /* zisdynGetStubVersion */
+#define ZIS_STUB_ZISDYNPV  2  /* zisdynGetPluginVersion */
+#define ZIS_STUB_ZISGVRSN  3  /* zisGetServerVersion */
+#define ZIS_STUB_ZISLPADV  4  /* zisIsLPADevModeOn */
 
 #define ZIS_STUB_SHR64TKN 10  /* shrmem64GetAddressSpaceToken  */
 #define ZIS_STUB_SHR64ALC 11  /* shrmem64Alloc       */
@@ -418,8 +421,6 @@
 #define dynamicZISVersion DYNZISVR
 #endif 
 
-void dynamicZISUndefinedStub(void);
-int dynamicZISVersion(void);
 
 /*
   This program and the accompanying materials are

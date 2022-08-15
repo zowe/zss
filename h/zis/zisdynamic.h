@@ -1,4 +1,3 @@
-
 /*
   This program and the accompanying materials are
   made available under the terms of the Eclipse Public License v2.0 which accompanies
@@ -9,32 +8,28 @@
   Copyright Contributors to the Zowe Project.
 */
 
+#ifndef ZIS_ZISDYNAMIC_H_
+#define ZIS_ZISDYNAMIC_H_
 
-#ifndef METTLE
-#error Metal C header only
-#endif
-
-#include <metal/metal.h>
-#include <metal/stdbool.h>
-
-#pragma map(zisGetServerVersion, "ZISGVRSN")
-#pragma map(zisIsLPADevModeOn, "ZISLPADV")
+#pragma map(zisdynGetStubVersion, "ZISDYNSV")
+#pragma map(zisdynGetPluginVersion, "ZISDYNPV")
 
 /**
- * Get the version of ZIS.
- * @param[out] major The major ZIS version.
- * @param[out] minor The minor ZIS version.
- * @param[out] revision The revision of ZIS (aka the patch version).
+ * Get the version of the stub vector.
+ * @return @c The version of the stub vector.
  */
-void zisGetServerVersion(int *major, int *minor, int *revision);
+int zisdynGetStubVersion(void);
+
 
 /**
- * Check if the LPA dev mode has been enabled.
- * @param[in] context The server context.
- * @return @c true if on, otherwise @c false.
+ * Get the version of the dynamic linkage plugin.
+ * @param[out] major The major plugin version.
+ * @param[out] minor The minor plugin version.
+ * @param[out] revision The revision of the plugin (aka the patch version).
  */
-bool zisIsLPADevModeOn(const struct ZISContext_tag *context);
+void zisdynGetPluginVersion(int *major, int *minor, int *revision);
 
+#endif /* ZIS_ZISDYNAMIC_H_ */
 
 /*
   This program and the accompanying materials are
