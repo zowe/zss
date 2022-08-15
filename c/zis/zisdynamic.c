@@ -156,7 +156,7 @@ static int installDynamicLinkageVector(ZISContext *context,
 
   if (serverAnchor->flags & ZIS_SERVER_ANCHOR_FLAG_DYNLINK) {
     CrossMemoryServerGlobalArea *cmsGA = context->cmsGA;
-    cmsGA->dynamicLinkageVector = dynamicLinkageVector;
+    cmsGA->userServerDynLinkVector = dynamicLinkageVector;
     return RC_ZISDYN_OK;
   } else {
     return RC_ZISDYN_UNSUPPORTED_ZIS;
