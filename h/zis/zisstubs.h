@@ -32,11 +32,11 @@
 
     A ZIS Plugin should in its pluginInit callback check if version is at least a certain number.
 
-    int dynVersion = dynamicZISVersion();
+    int dynVersion = zisdynGetStubVersion();
 
   Use case 2:  A non-Plugin Metal C program
 
-    int dynVersion = dynamicZISVersion();
+    int dynVersion = zisdynGetStubVersion();
     
  */
 
