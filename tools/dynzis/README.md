@@ -17,7 +17,7 @@ The Stub generator is a simple java program with no external dependencies.   It 
 The exported, dynamically linked symbols that ZIS plugins and other ZIS clients can use is enumerated in the ZOWE/zss repo under zss/h/zis/zisstubs.h.  This file should be sftp-ed
 to a local directory which has the java program.   The ZISStubGenerator will generate a stub file that can be linked with a ZIS client or plugin to provide dynamic linkage with the following invocation. 
 
-`java com.zossteam.zis.ZISStubGenerator asm zisstubs.h >> zisstubs.s`
+`java org.zowe.zis.ZISStubGenerator asm zisstubs.h >> zisstubs.s`
 
 The generated zisstubs.s assembly language file should be copied to zss/c/zis/zisstubs.s
 
@@ -25,6 +25,6 @@ The generated zisstubs.s assembly language file should be copied to zss/c/zis/zi
 
 There is a section of code in zss/c/zis/zisdynamic.c that initializes the jump vector.    Calling the following invocation generates new initialization code.  
 
-`java com.zossteam.zis.ZISStubGenerator init zisstubs.h`
+`java org.zowe.zis.ZISStubGenerator init zisstubs.h`
 
 This generates code to standard out that should be cut and paste into the initialization in zisdynamic.c.  It is hundreds of lines long and pretty obvious-looking.  
