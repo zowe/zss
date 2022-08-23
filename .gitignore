@@ -15,6 +15,7 @@ build/*.o
 build/*.s
 *.asm
 *.lst
+*.class
 
 # workspace content should be updated by program
 .pax/*
