@@ -54,6 +54,19 @@ public class ZISStubGenerator {
                     "         END"
             };
 
+    private static final String[] initCopyright =
+            {
+                    "/*",
+                    "  This program and the accompanying materials are",
+                    "  made available under the terms of the Eclipse Public License v2.0 which accompanies",
+                    "  this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html",
+                    "",
+                    "  SPDX-License-Identifier: EPL-2.0",
+                    "",
+                    "  Copyright Contributors to the Zowe Project.",
+                    "*/",
+            };
+
     private void writeLines(PrintStream out, String[] lines) {
         for (String line : lines) {
             out.printf("%s\n", line);
@@ -69,6 +82,8 @@ public class ZISStubGenerator {
         BufferedReader reader = openEbcdic(hFileName);
         if (generateASM) {
             writeLines(out, hlasmProlog);
+        } else {
+            writeLines(out, initCopyright);
         }
 
         Set<Integer> indices = new HashSet<>();
@@ -107,7 +122,7 @@ public class ZISStubGenerator {
                         out.printf("%-8.8s ALIAS C'%s'\n", symbol, functionName);
                     }
                     switch (dispatchMode) {
-                        case ZVTE -> {
+                        case ZVTE: {
                             out.printf("%-8.8s LLGT 15,16(0,0)       CVT\n", symbol);
                             out.print("         LLGT 15,X'8C'(,15)    ECVT\n");
                             out.print("         LLGT 15,X'CC'(,15)    CSRCTABL\n");
@@ -115,14 +130,18 @@ public class ZISStubGenerator {
                             out.print("         LLGT 15,X'9C'(,15)    FIRST ZVTE (the ZIS)\n");
                             out.print("         LG   15,X'80'(,15)    ZIS STUB VECTOR\n");
                             out.print("         LA   15,X'28'(,15)    Slots address\n");
+                            break;
                         }
-                        case R12 -> {
+                        case R12: {
                             out.printf("%-8.8s LLGT 15,X'2A8'(,12)   Get the (R)LE CAA's RLETask\n", symbol);
                             out.print("         LLGT 15,X'38'(,15)   Get the RLETasks RLEAnchor\n");
                             out.print("         LG   15,X'18'(,15)   Get the Stub Vector \n");
                             out.print("         LA   15,X'28'(,15)   Slots address\n");
+                            break;
                         }
-                        default -> throw new IllegalStateException("unknown dispatch mode " + dispatchMode);
+                        default: {
+                            throw new IllegalStateException("unknown dispatch mode " + dispatchMode);
+                        }
                     }
                     out.printf("         LG   15,X'%02X'(,15)    %s\n", index * 8, symbol);
                     out.print("         BR   15\n");
@@ -140,7 +159,10 @@ public class ZISStubGenerator {
         }
         if (generateASM) {
             writeLines(out, hlasmEpilog);
+        } else {
+            writeLines(out, initCopyright);
         }
+
         reader.close();
     }
 
