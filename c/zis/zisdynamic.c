@@ -177,6 +177,11 @@ static int installDynamicLinkageVector(ZISContext *context,
   }
 }
 
+static void uninstallDynamicLinkageVector(ZISContext *context) {
+  CrossMemoryServerGlobalArea *cmsGA = context->cmsGA;
+  cmsGA->userServerDynLinkVector = NULL;
+}
+
 static int initZISDynamic(struct ZISContext_tag *context,
                           ZISPlugin *plugin,
                           ZISPluginAnchor *anchor) {
@@ -284,6 +289,10 @@ static int termZISDynamic(struct ZISContext_tag *context,
 
   DynamicPluginData *pluginData = (DynamicPluginData *) &anchor->pluginData;
   pluginData->initTime = -1;
+
+  if (zisIsLPADevModeOn(context)) {
+    uninstallDynamicLinkageVector(context);
+  }
 
   zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZISDYN_LOG_TERMED_MSG);
 
