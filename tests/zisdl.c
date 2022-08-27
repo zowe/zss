@@ -26,6 +26,7 @@
 #define RC_NO_CMS_NAME 8
 #define RC_BAD_NAME 9
 #define RC_NO_LOOKUP 10
+#define RC_UNSUPPORTED_CMS 11
 
 
 int main() {
@@ -53,11 +54,14 @@ int main() {
   }
 
   int rsn = -1;
-  CrossMemoryServerGlobalArea *ga = lookup(&cmsName, &rsn);
+  const CrossMemoryServerGlobalArea *ga = lookup(&cmsName, &rsn);
   if (ga == NULL) {
     return (rsn << 4) + RC_CMS_NOT_FOUND;
   }
 
+  if (!CMS_DYNLINK_SUPPORTED(ga)) {
+   return RC_UNSUPPORTED_CMS;
+  }
 
   CMS_SETUP_DYNLINK_ENV(ga);
   {
