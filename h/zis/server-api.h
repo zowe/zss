@@ -9,6 +9,8 @@
   Copyright Contributors to the Zowe Project.
 */
 
+#ifndef ZIS_SERVER_API_H_
+#define ZIS_SERVER_API_H_
 
 #ifndef METTLE
 #error Metal C header only
@@ -35,6 +37,7 @@ void zisGetServerVersion(int *major, int *minor, int *revision);
  */
 bool zisIsLPADevModeOn(const struct ZISContext_tag *context);
 
+#endif /* ZIS_SERVER_API_H_ */
 
 /*
   This program and the accompanying materials are
