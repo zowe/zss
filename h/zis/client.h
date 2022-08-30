@@ -44,13 +44,14 @@
 #define zisDeleteProfile            ZISDLPRF
 #define zisGiveAccessToProfile      ZISGAPRF
 #define zisRevokeAccessToProfile    ZISRAPRF
-#define zisCheckAccessToProfile     ZISCAPRF
 #define zisExtractGroupProfiles     ZISXGRPP
 #define zisExtractGroupAccessList   ZISXGRPA
 #define zisAddGroup                 ZISADDGP
 #define zisDeleteGroup              ZISDELGP
 #define zisConnectToGroup           ZISADDCN
 #define zisRemoveFromGroup          ZISREMCN
+#define zisGenerateOrValidateSafIdtWithAppl ZISGVSAA
+#define zisGenerateOrValidateSafIdt         ZISGVSAF
 
 #endif
 
