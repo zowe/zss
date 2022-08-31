@@ -4,14 +4,29 @@
   "title": "zss configuration",
   "description": "Configuration properties for zss, as specified within a configuration file such as zowe.yaml",
   "type": "object",
-  "required": [ "productDir", "siteDir", "instanceDir", "groupsDir", "usersDir", "pluginsDir", "dataserviceAuthentication", "agent" ],
+  "required": [ "pluginsDir", "instanceDir", "productDir", "tls", "dataserviceAuthentication", "agent" ],
   "additionalProperties": true,
   "properties": {
-    "node": {
+    "tls": {
+      "type": "boolean",
+      "description": "Whether or not the server should run in HTTPS or HTTP mode",
+      "default": true
+    },
+    "crossMemoryServerName": {
+      "type": "string",
+      "description": "The nickname of the ZIS server that exists on the same LPAR as ZSS",
+      "default": "ZWESIS_STD"
+    },
+    "agent": {
       "type": "object",
-      "description": "Configuration options specific to the app-server and things it depends upon",
+      "description": "Configuration options specific to app-server agents, such as ZSS. These options are used to configure the agent, but also to tell app-server about the agent configuration",
       "additionalProperties": false,
       "properties": {
+        "64bit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether or not to run zss in 64 bit or 31 bit mode"
+        },
         "mediationLayer": {
           "type": "object",
           "description": "Properties relating to how the app-server should interact with and find the API Mediation Layer components",
@@ -37,46 +52,43 @@
                 },
                 "gatewayPort": {
                   "oneOf": [
-                    { "$ref": "/schemas/v2/server-common/#zoweTcpPort" },
-                    { "$ref": "/schemas/v2/server-common/#zoweReservedTcpPort" }, 
+                    { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
+                    { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" }
                   ],
                   "description": "The port where the Zowe Gateway service is running"
                 },
                 "port": {
                   "oneOf": [
-                    { "$ref": "/schemas/v2/server-common/#zoweTcpPort" },
-                    { "$ref": "/schemas/v2/server-common/#zoweReservedTcpPort" }, 
+                    { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
+                    { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" } 
                   ],
                   "description": "The port where the Zowe Discovery service is running"
                 },
                 "enabled": {
                   "type": "boolean",
-                  "description": "Controls whether the app-server should register to the Zowe API Mediation Layer as a Eureka Client"
-                },
-                "cachingService": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "enabled": {
-                      "type": "boolean",
-                      "description": "Controls whether the app-server storage API can store in the caching service"
-                    }
-                  }
+                  "description":  "is Gateway and Discovery service enabled"
+                }
+              }
+            },
+            "serviceName": {
+              "type": "string",
+              "description": "What the agent will be named when found on the API Mediation Layer"
+            },
+            "enabled": {
+              "type": "boolean",
+              "description": "Controls whether the agent should register to the API Mediation Layer, and whether the app-server should contact it via the Mediation Layer"
+            },
+            "cachingService": {
+              "type": "object",
+              "additionalProperties": false,
+               "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Controls whether the app-server storage API can store in the caching service"
                 }
               }
             }
           }
-        }
-      }
-    },
-    "agent": {
-      "type": "object",
-      "description": "Configuration options specific to app-server agents, such as ZSS. These options are used to configure the agent, but also to tell app-server about the agent configuration",
-      "additionalProperties": false,
-      "properties": {
-        "host": {
-          "type": "string",
-          "description": "Tells app-server which hostname or ip to communicate with the agent at"
         },
         "https": {
           "type": "object",
@@ -85,14 +97,27 @@
           "properties": {
             "port": {
               "oneOf": [
-                { "$ref": "/schemas/v2/server-common/#zoweTcpPort" },
-                { "$ref": "/schemas/v2/server-common/#zoweReservedTcpPort" }, 
+                { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
+                { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" }, 
+                { "type": "null" }
               ],
               "default": 7557
             },
             "ipAddresses": {
               "$ref": "#/$defs/ipsAndHostnames",
               "default": [ "0.0.0.0" ]
+            },
+            "label": {
+              "type": [ "string", "null" ],
+              "description": "The label (aka alias), identifying the server's certificate in the key store"
+            },
+            "keyring": {
+              "type": [ "string", "null" ],
+              "description": "This misnamed property is ICSF key ring identifier as '<user>/<ringName>' or USS file path to a .p12 format cert file"
+            },
+            "password": {
+              "type": [ "string", "null" ],
+              "description": "The password to the keyring"
             }
           }
         },
@@ -103,8 +128,9 @@
           "properties": {
             "port": {
               "oneOf": [
-                { "$ref": "/schemas/v2/server-common/#zoweTcpPort" },
-                { "$ref": "/schemas/v2/server-common/#zoweReservedTcpPort" }, 
+                { "$ref": "/schemas/v2/server-common#zoweTcpPort" },
+                { "$ref": "/schemas/v2/server-common#zoweReservedTcpPort" }, 
+                { "type": "null" }
               ]
             },
             "attls": {
@@ -114,20 +140,6 @@
             },
             "ipAddresses": {
               "$ref": "#/$defs/ipsAndHostnames"
-            }
-          }
-        },
-        "mediationLayer": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "serviceName": {
-              "type": "string",
-              "description": "What the agent will be named when found on the API Mediation Layer"
-            },
-            "enabled": {
-              "type": "boolean",
-              "description": "Controls whether the agent should register to the API Mediation Layer, and whether the app-server should contact it via the Mediation Layer"
             }
           }
         },
@@ -143,34 +155,28 @@
             "fallback": {
               "type": "boolean",
               "description": "Whether the agent will issue and accept cookies from itself in the event a JWT cannot be provided"
+            },
+            "retryIntervalSeconds": {
+              "type": "integer",
+              "description": "The time in seconds to wait between attempts to reach the JWT provider in case they are inaccessible",
+              "minimum": 1,
+              "maximum": 60
             }
           }
         }
       }
     },
-    "productDir": {
-      "type": "string",
-      "description": "The location of the product scope of the configuration dataservice"
-    },
-    "siteDir": {
-      "type": "string",
-      "description": "The location of the site scope of the configuration dataservice"
-    },
-    "instanceDir": {
-      "type": "string",
-      "description": "The location of the instance scope of the configuration dataservice"
-    },
-    "groupsDir": {
-      "type": "string",
-      "description": "The location of the groups scope of the configuration dataservice"
-    },
-    "usersDir": {
-      "type": "string",
-      "description": "The location of the user scope of the configuration dataservice"
-    },
     "pluginsDir": {
       "type": "string",
       "description": "The location where plugin locator JSON files are found, which are used by the app-server and agent to locate and use plugins"
+    },
+    "instanceDir": {
+      "type": "string",
+      "description": "The location where ZSS may store additional configuration files"
+    },
+    "productDir": {
+      "type": "string",
+      "description": "The location where ZSS may read defaults for configuration files that would be overridden within instanceDir"
     },
     "dataserviceAuthentication": {
       "type": "object",
@@ -198,7 +204,7 @@
                 "plugins": {
                   "type": "array",
                   "items": {
-                    "$ref": "/schemas/v2/server-common/#zoweReverseDomainNotation"
+                    "$ref": "/schemas/v2/server-common#zoweReverseDomainNotation"
                   },
                   "uniqueItems": true
                 }
@@ -275,14 +281,78 @@
           "description": "Controls logging of JWK use for SSO",
           "$ref": "#/$defs/logLevel"
         },
+        "_zss.alloc": {
+          "description": "Controls logging of JWK use for SSO",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.utils": {
+          "description": "Controls logging of util library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.collections": {
+          "description": "Controls logging of collection structure library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.serialization": {
+          "description": "Controls logging of serialiation library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.zlparser": {
+          "description": "Controls logging of zlparser library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.zlcompiler": {
+          "description": "Controls logging of zlcompiler library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.zlruntime": {
+          "description": "Controls logging of zlruntime library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.stcbase": {
+          "description": "Controls logging of STC Base functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.httpserver": {
+          "description": "Controls logging of the http server base",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.discovery": {
+          "description": "Controls logging of discovery tools",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.cms": {
+          "description": "Controls logging of cms library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.lpa": {
+          "description": "Controls logging of lpa library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.resetdataset": {
+          "description": "Controls logging of resetdataset functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.restfile": {
+          "description": "Controls logging of the REST api for files",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.zos": {
+          "description": "Controls logging of zos utility library functions",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.httpclient": {
+          "description": "Controls logging of http client calls",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.jwt": {
+          "description": "Controls logging of JWT library functions",
+          "$ref": "#/$defs/logLevel"
+        },
         "^.*$": {
           "$ref": "#/$defs/logLevel"
         }
       }
-    },
-    "privilegedServerName": {
-      "type": "string",
-      "description": "The nickname of the ZIS server to be used"
     }
   },
   "$defs": {
@@ -290,7 +360,7 @@
       "type": "string"
     },
     "ipsAndHostnames": {
-      "type": "array",
+      "type": [ "array", "null" ],
       "items": {
         "$ref": "#/$defs/ipOrHostname"
       },
