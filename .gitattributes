@@ -13,6 +13,7 @@
 # git's files (which MUST be ASCII)
 .gitattributes   git-encoding=iso8859-1 zos-working-tree-encoding=iso8859-1
 .gitignore       git-encoding=iso8859-1 zos-working-tree-encoding=iso8859-1
+# Java needs to be iso8859-1
 *.java           git-encoding=iso8859-1 zos-working-tree-encoding=iso8859-1
 # Binary files, selected by file extension.
 #
