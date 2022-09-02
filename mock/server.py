@@ -7,12 +7,12 @@
 #
 # Copyright Contributors to the Zowe Project.
 #
-
+import os
 from flask import Flask
 from flask import request
 import base64
 from flask import make_response
-
+import math
 app = Flask(__name__)
 
 ###  TODO:
@@ -22,6 +22,18 @@ app = Flask(__name__)
 global_username = "mock"
 global_password = "pass"
 global_password_expired = False
+
+# check if its in high avaibility mode
+isHaMode = False;
+if('ZWE_HA_INSTANCES_COUNT' in os.environ):
+    if (not math.isnan(os.environ['ZWE_HA_INSTANCES_COUNT']) and os.environ['ZWE_HA_INSTANCES_COUNT']>1):
+        isHaMode=True
+
+# if theres no such env var declared, then we set to 5000 by default
+if(os.getenv('FLASK_RUN_PORT') == None):
+     os.environ['FLASK_RUN_PORT'] ='5000'
+
+global_port = os.getenv('FLASK_RUN_PORT')
 
 global_datasets = [
     {
@@ -170,8 +182,12 @@ def login():
         if request.get_json()['password'] == global_password:
             if global_password_expired == False:
                 resp = make_response("Login Successful")
-                resp.set_cookie("jedHTTPSession", "xrQdqvc2J7WWlew2OXU1RtwwUXXD9KGJ35x5IZTrSrX18y80OVBI8A")
-                return resp
+                if isHaMode is True:
+                    resp.set_cookie("jedHTTPSession.1" , "xrQdqvc2J7WWlew2OXU1RtwwUXXD9KGJ35x5IZTrSrX18y80OVBI8A")
+                    return resp, 200
+                else:
+                   resp.set_cookie("jedHTTPSession." + global_port, "xrQdqvc2J7WWlew2OXU1RtwwUXXD9KGJ35x5IZTrSrX18y80OVBI8A")
+                   return resp, 200
             else:
                 return "Password Expired", 428
     return "Incorrect Login Info", 400
@@ -536,5 +552,5 @@ def unixfile_copy(subpath):
         return {"msg": "File Successfully Copied"}
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=global_port,debug=True)
 
