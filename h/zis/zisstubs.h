@@ -316,8 +316,8 @@
 #define ZIS_STUB_LGPRSERR 398 /* printStderr */
 
 /* lpa, 410-419 */
-#define ZIS_STUB_LPAADD   410 /* lpaAdd */
-#define ZIS_STUB_LPADEL   411 /* lpaDelete */
+#define ZIS_STUB_LPAADD   410 /* lpaAdd mapped */
+#define ZIS_STUB_LPADEL   411 /* lpaDelete mapped */
 
 /* metalio, 420-439 */
 /* #define ZIS_STUB_GTNMTKFT 420 getNameTokenFunctionTable - Defunct */
