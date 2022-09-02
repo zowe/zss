@@ -87,7 +87,7 @@ typedef struct Volser_tag {
 static int getVolserForDataset(const DatasetName *dataset, Volser *volser);
 static bool memberExists(char* dsName, DynallocMemberName daMemberName);
 static int getDSCB(DatasetName *dsName, char* dscb, int bufferSize);
-static int configureTextunitsFromContentBody(JsonObject *object, int *configsCount, TextUnit **inputTextUnit);
+static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit);
 
 
 static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
@@ -2525,12 +2525,20 @@ void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQue
 #endif /* __ZOWE_OS_ZOS */
 }
 
-static int configureTextunitsFromContentBody(JsonObject *object, int *configsCount, TextUnit **inputTextUnit) {
+static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit) {
   JsonProperty *currentProp = jsonObjectGetFirstProperty(object);
   Json *value = NULL;
   int parmDefn = DALDSORG_NULL;
   int type = TEXT_UNIT_NULL;
   int rc = 0;
+
+  parmDefn = DISP_NEW; //ONLY one for create
+  rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALSTATS, configsCount, inputTextUnit);
+
+
+  // most parameters below explained here https://www.ibm.com/docs/en/zos/2.1.0?topic=dfsms-zos-using-data-sets
+  // or here https://www.ibm.com/docs/en/zos/2.1.0?topic=function-non-jcl-dynamic-allocation-functions
+  // or here https://www.ibm.com/docs/en/zos/2.1.0?topic=function-dsname-allocation-text-units
   while(currentProp != NULL){
     value = jsonPropertyGetValue(currentProp);
     char *valueString = jsonAsString(value);
@@ -2543,6 +2551,7 @@ static int configureTextunitsFromContentBody(JsonObject *object, int *configsCou
         parmDefn = (!strcmp(valueString, "PS")) ? DALDSORG_PS : DALDSORG_PO;
         rc = setTextUnit(TEXT_UNIT_INT16, 0, NULL, parmDefn, DALDSORG, configsCount, inputTextUnit);
       } else if(!strcmp(propString, "blksz")) {
+        // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-blksize-parameter
         long toi = strtol(valueString, NULL, 0);
         if(errno != ERANGE){
           if (toi <= 0x7FF8 && toi >= 0) { //<-- If DASD, if tape, it can be 80000000
@@ -2584,54 +2593,23 @@ static int configureTextunitsFromContentBody(JsonObject *object, int *configsCou
         }
         rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, setRECFM, DALRECFM, configsCount, inputTextUnit);
       } else if(!strcmp(propString, "blkln")) {
+        // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-block-length-specification-key-0009
         long toi = strtol(valueString, NULL, 0);
         if (errno != ERANGE) {
           if (toi <= 0xFFFF || toi >= 0){
             rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, toi, DALBLKLN, configsCount, inputTextUnit);
           }
         }
-      } else if(!strcmp(propString, "disp")) {
-        if (!strcmp(valueString, "OLD")){
-          parmDefn = DISP_OLD;
-        } else if (!strcmp(valueString, "MOD")){
-          parmDefn = DISP_MOD;
-        } else if (!strcmp(valueString, "SHARE")){
-          parmDefn = DISP_SHARE;
-        } else {
-          parmDefn = DISP_NEW;
-        }
-        rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALSTATS, configsCount, inputTextUnit);
       } else if (!strcmp(propString, "ndisp")) {
-        if (!strcmp(valueString, "UNCATLG")){
-          parmDefn = DISP_UNCATLG;
-        } else if (!strcmp(valueString, "KEEP")){
+        if (!strcmp(valueString, "KEEP")){
           parmDefn = DISP_KEEP;
         } else {
           parmDefn = DISP_CATLG;
         }
         rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALNDISP, configsCount, inputTextUnit);
       } else if(!strcmp(propString, "unit")) {
+        // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-unit-parameter
         rc = setTextUnit(TEXT_UNIT_STRING, valueStrLen, &(valueString)[0], 0, DALUNIT, configsCount, inputTextUnit);
-      } else if(!strcmp(propString, "spgnm")) {
-        if (valueStrLen <= CLASS_WRITER_SIZE){
-          rc = setTextUnit(TEXT_UNIT_STRING, valueStrLen, &(valueString)[0], 0, DALSPGNM, configsCount, inputTextUnit);
-        }
-      } else if(!strcmp(propString, "close")) {
-        if (!strcmp(valueString, "true")){
-          rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, DALCLOSE, configsCount, inputTextUnit);
-        }
-      } else if(!strcmp(propString, "dummy")) {
-        if (!strcmp(valueString, "true")){
-          rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, DALDUMMY, configsCount, inputTextUnit);
-        }
-      } else if(!strcmp(propString, "dcbdd")) {
-        if (valueStrLen <= DD_NAME_LEN){
-          rc = setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, &(valueString)[0], 0, DALDCBDD, configsCount, inputTextUnit);
-        }
-      } else if(!strcmp(propString, "retdd")) {
-        if (valueStrLen <= DD_NAME_LEN){
-          rc = setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, &(valueString)[0], 0, DALRTDDN, configsCount, inputTextUnit);
-        }
       } else if(!strcmp(propString, "strcls")) {
         if (valueStrLen <= CLASS_WRITER_SIZE){
           rc = setTextUnit(TEXT_UNIT_STRING, CLASS_WRITER_SIZE, &(valueString)[0], 0, DALSTCL, configsCount, inputTextUnit);
@@ -2648,6 +2626,7 @@ static int configureTextunitsFromContentBody(JsonObject *object, int *configsCou
         if (!strcmp(valueString, "CYL")) {
           parmDefn = DALCYL;
         } else if (!strcmp(valueString, "TRK")) {
+          // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-track-space-type-trk-specification-key-0007
           parmDefn = DALTRK;
         }
         if(parmDefn != DALDSORG_NULL) {
@@ -2675,6 +2654,7 @@ static int configureTextunitsFromContentBody(JsonObject *object, int *configsCou
           }
         }
       } else if(!strcmp(propString, "avgr")) {
+        // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-avgrec-parameter
         if (!strcmp(valueString, "M")) {
           parmDefn = DALDSORG_MREC;
         } else if (!strcmp(valueString, "K")) {
@@ -2686,12 +2666,11 @@ static int configureTextunitsFromContentBody(JsonObject *object, int *configsCou
           rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALAVGR, configsCount, inputTextUnit);
         }
       } else if(!strcmp(propString, "dsnt")) {
+        // https://www.ibm.com/docs/en/zos/2.3.0?topic=jcl-allocating-system-managed-data-sets
         if (!strcmp(valueString, "PDSE")) {
           parmDefn = DALDSORG_PDSE;
         } else if (!strcmp(valueString, "PDS")) {
           parmDefn = DALDSORG_PDS;
-        } else if (!strcmp(valueString, "PIPE")) {
-          parmDefn = DALDSORG_PIPE;
         } else if (!strcmp(valueString, "HFS")) {
           parmDefn = DALDSORG_HFS;
         } else if (!strcmp(valueString, "EXTREQ")) {
@@ -2862,7 +2841,7 @@ void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
           returnCode = setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, ddNameBuffer, 0, DALDDNAM, &configsCount, inputTextUnit);
         }
         if(returnCode == 0) {
-          returnCode = configureTextunitsFromContentBody(jsonObject, &configsCount, inputTextUnit);
+          returnCode = setDatasetAttributesForCreation(jsonObject, &configsCount, inputTextUnit);
         }
       }     
     } else {
