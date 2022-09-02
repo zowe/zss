@@ -57,8 +57,22 @@
 
 #define NOOP(...)
 
-extern const char
-    *ZIS_COPY_RC_DESCRIPTION[RC_ZIS_SNRFSRV_SHARED_OBJ_DETACH_FAILED + 1];
+static const char *ZIS_COPY_RC_DESCRIPTION[] = {
+        [RC_ZIS_SNRFSRV_OK] = "Ok",
+        [RC_ZIS_SNRFSRV_PARMLIST_NULL] = "Parm list is null",
+        [RC_ZIS_SNRFSRV_BAD_EYECATCHER] = "Bad eyecatcher",
+        [RC_ZIS_SNRFSRV_BAD_DEST] = "Bad destination",
+        [RC_ZIS_SNRFSRV_BAD_ASCB] = "Bad ASCB",
+        [RC_ZIS_SNRFSRV_BAD_SIZE] = "Bad size",
+        [RC_ZIS_SNRFSRV_ECSA_ALLOC_FAILED] = "ESCA allocation failed",
+        [RC_ZIS_SNRFSRV_RECOVERY_ERROR] = "Recovery error",
+        [RC_ZIS_SNRFSRV_SRC_ASSB_ABEND] = "ASSB abended",
+        [RC_ZIS_SNRFSRV_SRC_IEAMSCHD_ABEND] = "IEAMSCHD abended",
+        [RC_ZIS_SNRFSRV_SRC_IEAMSCHD_FAILED] = "IEAMSCHD failed",
+        [RC_ZIS_SNRFSRV_SHARED_OBJ_ALLOC_FAILED] = "Shared object allocation failed",
+        [RC_ZIS_SNRFSRV_SHARED_OBJ_SHARE_FAILED] = "Shared object sharing failed",
+        [RC_ZIS_SNRFSRV_SHARED_OBJ_DETACH_FAILED] = "Shared object detach failed "
+};
 
 #define FORMAT_RC($rc, $arr) (\
   ($rc >= 0 && $rc < sizeof($arr) / sizeof($arr[0]))? \
@@ -124,7 +138,21 @@ int zisCopyDataFromAddressSpace(const CrossMemoryServerName *serverName,
                                 int srcKey, ASCB *ascb,
                                 ZISCopyServiceStatus *result);
 
-extern const char *ZIS_AUTH_RC_DESCRIPTION[RC_ZIS_AUTHSRV_MAX_RC + 1];
+static const char *ZIS_AUTH_RC_DESCRIPTION[] = {
+        [RC_ZIS_AUTHSRV_OK] = "Ok",
+        [RC_ZIS_AUTHSRV_PARMLIST_NULL] = "Parm list is null",
+        [RC_ZIS_AUTHSRV_BAD_EYECATCHER] = "Bad eyecatcher",
+        [RC_ZIS_AUTHSRV_DELETE_FAILED] = "Deleting ACEE failed",
+        [RC_ZIS_AUTHSRV_CREATE_FAILED] = "Creating ACEE failed",
+        [RC_ZIS_AUTHSRV_UNKNOWN_FUNCTION_CODE] = "Unknown function code",
+        [RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG] = "Input string too long",
+        [RC_ZIS_AUTHSRV_INSTALL_RECOVERY_FAILED] = "Installing recovery failed",
+        [RC_ZIS_AUTHSRV_SAF_ABENDED] = "SAF abended",
+        [RC_ZIS_AUTHSRV_SAF_ERROR] = "SAF error",
+        [RC_ZIS_AUTHSRV_SAF_NO_DECISION] = "No SAF decision",
+        [RC_ZIS_AUTHSRV_USER_CLASS_NOT_READ] = CMS_PROD_ID" class read failed",
+        [RC_ZIS_AUTHSRV_USER_CLASS_TOO_LONG] = CMS_PROD_ID" class is too long",
+};
 
 typedef struct ZISAuthServiceStatus_tag {
   ZISServiceStatus baseStatus;
@@ -188,13 +216,29 @@ int zisExtractUserProfiles(const CrossMemoryServerName *serverName,
                            ZISUserProfileServiceStatus *status,
                            int traceLevel);
 
-extern const char *ZIS_UPRFSRV_SERVICE_RC_DESCRIPTION[];
-extern const char *ZIS_UPRFSRV_WRAPPER_RC_DESCRIPTION[];
+static const char *ZIS_UPRFSRV_SERVICE_RC_DESCRIPTION[] = {
+        [RC_ZIS_UPRFSRV_OK] = "Ok",
+        [RC_ZIS_UPRFSRV_PARMLIST_NULL] = "Parm list is null",
+        [RC_ZIS_UPRFSRV_BAD_EYECATCHER] = "Bad eyecatcher",
+        [RC_ZIS_UPRFSRV_USER_ID_TOO_LONG] = "User ID is too long",
+        [RC_ZIS_UPRFSRV_RESULT_BUFF_NULL] = "Result buffer is null",
+        [RC_ZIS_UPRFSRV_PROFILE_COUNT_NULL] = "Profile count is null",
+        [RC_ZIS_UPRFSRV_IMPERSONATION_MISSING] = "Impersonation is required",
+        [RC_ZIS_UPRFSRV_INTERNAL_SERVICE_FAILED] = "R_admin service failed",
+        [RC_ZIS_UPRFSRV_ALLOC_FAILED] = "Alloc function failed",
+        [RC_ZIS_UPRFSRV_UNSUPPORTED_ESM] = "ESM not supported"
+};
 
 #define RC_ZIS_SRVC_UPRFSRV_USER_ID_TOO_LONG        (ZIS_MAX_GEN_SRVC_RC + 1)
 #define RC_ZIS_SRVC_UPRFSRV_RESULT_BUFF_NULL        (ZIS_MAX_GEN_SRVC_RC + 2)
 #define RC_ZIS_SRVC_UPRFSRV_PROFILE_COUNT_NULL      (ZIS_MAX_GEN_SRVC_RC + 3)
 #define RC_ZIS_SRVC_UPRFSRV_MAX_RC                  (ZIS_MAX_GEN_SRVC_RC + 3)
+
+static const char *ZIS_UPRFSRV_WRAPPER_RC_DESCRIPTION[] = {
+    [RC_ZIS_SRVC_UPRFSRV_USER_ID_TOO_LONG] = "User ID is too long",
+    [RC_ZIS_SRVC_UPRFSRV_RESULT_BUFF_NULL] = "Result buffer is null",
+    [RC_ZIS_SRVC_UPRFSRV_PROFILE_COUNT_NULL] = "Profile count is null"
+};
 
 typedef struct ZISGenresProfileServiceStatus_tag {
   ZISServiceStatus baseStatus;
@@ -212,14 +256,33 @@ int zisExtractGenresProfiles(const CrossMemoryServerName *serverName,
                              ZISGenresProfileServiceStatus *status,
                              int traceLevel);
 
-extern const char *ZIS_GRPRFSRV_SERVICE_RC_DESCRIPTION[];
-extern const char *ZIS_GRPRFSRV_WRAPPER_RC_DESCRIPTION[];
+static const char *ZIS_GRPRFSRV_SERVICE_RC_DESCRIPTION[] = {
+        [RC_ZIS_GRPRFSRV_OK] = "Ok",
+        [RC_ZIS_GRPRFSRV_PARMLIST_NULL] = "Parm list is null",
+        [RC_ZIS_GRPRFSRV_BAD_EYECATCHER] = "Bad eyecatcher",
+        [RC_ZIS_GRPRFSRV_CLASS_TOO_LONG] = "Class is too long",
+        [RC_ZIS_GRPRFSRV_PROFILE_TOO_LONG] = "Profile is too long",
+        [RC_ZIS_GRPRFSRV_RESULT_BUFF_NULL] = "Result buffer is null",
+        [RC_ZIS_GRPRFSRV_PROFILE_COUNT_NULL] = "Profile count is null",
+        [RC_ZIS_GRPRFSRV_IMPERSONATION_MISSING] = "Impersonation is required",
+        [RC_ZIS_GRPRFSRV_INTERNAL_SERVICE_FAILED] = "R_admin failed",
+        [RC_ZIS_GRPRFSRV_ALLOC_FAILED] = "Alloc function failed",
+        [RC_ZIS_GRPRFSRV_USER_CLASS_NOT_READ] = CMS_PROD_ID" class is not read",
+        [RC_ZIS_GRPRFSRV_UNSUPPORTED_ESM] = "ESM not supported"
+};
 
 #define RC_ZIS_SRVC_GRPRFSRV_CLASS_TOO_LONG        (ZIS_MAX_GEN_SRVC_RC + 1)
 #define RC_ZIS_SRVC_GRPRFSRV_PROFILE_TOO_LONG      (ZIS_MAX_GEN_SRVC_RC + 2)
 #define RC_ZIS_SRVC_GRPRFSRV_RESULT_BUFF_NULL      (ZIS_MAX_GEN_SRVC_RC + 3)
 #define RC_ZIS_SRVC_GRPRFSRV_PROFILE_COUNT_NULL    (ZIS_MAX_GEN_SRVC_RC + 4)
 #define RC_ZIS_SRVC_GRPRFSRV_MAX_RC                (ZIS_MAX_GEN_SRVC_RC + 4)
+
+static const char *ZIS_GRPRFSRV_WRAPPER_RC_DESCRIPTION[] = {
+    [RC_ZIS_SRVC_GRPRFSRV_CLASS_TOO_LONG] = "Class is too long",
+    [RC_ZIS_SRVC_GRPRFSRV_PROFILE_TOO_LONG] = "Profile is too long",
+    [RC_ZIS_SRVC_GRPRFSRV_RESULT_BUFF_NULL] = "Result buffer is null",
+    [RC_ZIS_SRVC_GRPRFSRV_PROFILE_COUNT_NULL] = "Profile count is null"
+};
 
 typedef struct ZISGenresAccessListServiceStatus_tag {
   ZISServiceStatus baseStatus;
@@ -237,8 +300,20 @@ int zisExtractGenresAccessList(const CrossMemoryServerName *serverName,
                                ZISGenresAccessListServiceStatus *status,
                                int traceLevel);
 
-extern const char *ZIS_ACSLSRV_SERVICE_RC_DESCRIPTION[];
-extern const char *ZIS_ACSLSRV_WRAPPER_RC_DESCRIPTION[];
+static const char *ZIS_ACSLSRV_SERVICE_RC_DESCRIPTION[] = {
+        [RC_ZIS_ACSLSRV_OK] = "Ok",
+        [RC_ZIS_ACSLSRV_PARMLIST_NULL] = "Parm list is null",
+        [RC_ZIS_ACSLSRV_BAD_EYECATCHER] = "Bad eyecatcher",
+        [RC_ZIS_ACSLSRV_CLASS_TOO_LONG] = "Class is too long",
+        [RC_ZIS_ACSLSRV_PROFILE_TOO_LONG] = "Profile is too long",
+        [RC_ZIS_ACSLSRV_RESULT_BUFF_NULL] = "Result buffer is null",
+        [RC_ZIS_ACSLSRV_IMPERSONATION_MISSING] = "Impersonation is required",
+        [RC_ZIS_ACSLSRV_ALLOC_FAILED] = "Alloc function failed",
+        [RC_ZIS_ACSLSRV_INTERNAL_SERVICE_FAILED] = "R_admin failed",
+        [RC_ZIS_ACSLSRV_INSUFFICIENT_SPACE] = "Provided buffer is too small",
+        [RC_ZIS_ACSLSRV_USER_CLASS_NOT_READ] = CMS_PROD_ID" class is not read",
+        [RC_ZIS_ACSLSRV_UNSUPPORTED_ESM] = "ESM not supported"
+};
 
 #define RC_ZIS_SRVC_ACSLSRV_CLASS_TOO_LONG          (ZIS_MAX_GEN_SRVC_RC + 1)
 #define RC_ZIS_SRVC_ACSLSRV_PROFILE_NULL            (ZIS_MAX_GEN_SRVC_RC + 2)
@@ -247,6 +322,15 @@ extern const char *ZIS_ACSLSRV_WRAPPER_RC_DESCRIPTION[];
 #define RC_ZIS_SRVC_ACSLSRV_ENTRY_COUNT_NULL        (ZIS_MAX_GEN_SRVC_RC + 5)
 #define RC_ZIS_SRVC_ACSLSRV_INSUFFICIENT_BUFFER     (ZIS_MAX_GEN_SRVC_RC + 6)
 #define RC_ZIS_SRVC_ACSLSRV_MAX_RC                  (ZIS_MAX_GEN_SRVC_RC + 6)
+
+static const char *ZIS_ACSLSRV_WRAPPER_RC_DESCRIPTION[] = {
+        [RC_ZIS_SRVC_ACSLSRV_CLASS_TOO_LONG] = "Class is too long",
+        [RC_ZIS_SRVC_ACSLSRV_PROFILE_NULL] = "Profile is null",
+        [RC_ZIS_SRVC_ACSLSRV_PROFILE_TOO_LONG] = "Profile is too long",
+        [RC_ZIS_SRVC_ACSLSRV_RESULT_BUFF_NULL] = "Result buffer is null",
+        [RC_ZIS_SRVC_ACSLSRV_ENTRY_COUNT_NULL] = "Entry count is null",
+        [RC_ZIS_SRVC_ACSLSRV_INSUFFICIENT_BUFFER] = "Provided buffer is too small"
+};
 
 typedef struct ZISGenresAdminServiceStatus_tag {
   ZISServiceStatus baseStatus;
@@ -288,8 +372,25 @@ int zisRevokeAccessToProfile(const CrossMemoryServerName *serverName,
                              ZISGenresAdminServiceStatus *status,
                              int traceLevel);
 
-extern const char *ZIS_GSADMNSRV_SERVICE_RC_DESCRIPTION[];
-extern const char *ZIS_GSADMNSRV_WRAPPER_RC_DESCRIPTION[];
+static const char *ZIS_GSADMNSRV_SERVICE_RC_DESCRIPTION[] = {
+        [RC_ZIS_GSADMNSRV_OK] = "Ok",
+        [RC_ZIS_GSADMNSRV_PARMLIST_NULL] = "Parm list is null",
+        [RC_ZIS_GSADMNSRV_BAD_EYECATCHER] = "Bad eyecatcher",
+        [RC_ZIS_GSADMNSRV_PROF_TOO_LONG] = "Profile is too long",
+        [RC_ZIS_GSADMNSRV_UNSUPPORTED_PRODUCT] = "Unsupported product",
+        [RC_ZIS_GSADMNSRV_USER_ID_NULL] = "User ID is null",
+        [RC_ZIS_GSADMNSRV_USER_ID_TOO_LONG] = "User ID is too long",
+        [RC_ZIS_GSADMNSRV_IMPERSONATION_MISSING] = "Impersonation is required",
+        [RC_ZIS_GSADMNSRV_BAD_FUNCTION] = "Bad function",
+        [RC_ZIS_GSADMNSRV_BAD_ACCESS_TYPE] = "Bad access type",
+        [RC_ZIS_GSADMNSRV_INTERNAL_SERVICE_FAILED] = "R_admin failed",
+        [RC_ZIS_GSADMNSRV_PARM_INTERNAL_ERROR] = "Parm list creation failed",
+        [RC_ZIS_GSADMNSRV_USER_CLASS_TOO_LONG] = CMS_PROD_ID" class is too long",
+        [RC_ZIS_GSADMNSRV_USER_CLASS_NOT_READ] = CMS_PROD_ID" class read failed",
+        [RC_ZIS_GSADMNSRV_AUTOREFRESH_NOT_READ] = "Auto refresh option read failed",
+        [RC_ZIS_GSADMNSRV_OWNER_TOO_LONG] = "Owner name is too long",
+        [RC_ZIS_GSADMNSRV_UNSUPPORTED_ESM] = "ESM not supported"
+};
 
 #define RC_ZIS_SRVC_PADMIN_USERID_NULL            (ZIS_MAX_GEN_SRVC_RC + 1)
 #define RC_ZIS_SRVC_PADMIN_USERID_TOO_LONG        (ZIS_MAX_GEN_SRVC_RC + 2)
@@ -299,6 +400,14 @@ extern const char *ZIS_GSADMNSRV_WRAPPER_RC_DESCRIPTION[];
 #define RC_ZIS_SRVC_PADMIN_OWNER_TOO_LONG         (ZIS_MAX_GEN_SRVC_RC + 6)
 #define RC_ZIS_SRVC_PADMIN_OPER_CMD_NULL          (ZIS_MAX_GEN_SRVC_RC + 7)
 #define RC_ZIS_SRVC_PADMIN_MAX_RC                 (ZIS_MAX_GEN_SRVC_RC + 7)
+
+static const char *ZIS_GSADMNSRV_WRAPPER_RC_DESCRIPTION[] = {
+        [RC_ZIS_SRVC_PADMIN_USERID_NULL] = "User ID is null",
+        [RC_ZIS_SRVC_PADMIN_USERID_TOO_LONG] = "User ID is too long",
+        [RC_ZIS_SRVC_PADMIN_PROFILE_NULL] = "Profile is null",
+        [RC_ZIS_SRVC_PADMIN_PROFILE_TOO_LONG] = "Profile is too long",
+        [RC_ZIS_SRVC_PADMIN_OPER_CMD_NULL] = "Operator command is null"
+};
 
 typedef struct ZISGroupProfileServiceStatus_tag {
   ZISServiceStatus baseStatus;
@@ -315,14 +424,31 @@ int zisExtractGroupProfiles(const CrossMemoryServerName *serverName,
                             ZISGroupProfileServiceStatus *status,
                             int traceLevel);
 
-extern const char *ZIS_GPPRFSRV_SERVICE_RC_DESCRIPTION[];
-extern const char *ZIS_GPPRFSRV_WRAPPER_RC_DESCRIPTION[];
+static const char *ZIS_GPPRFSRV_SERVICE_RC_DESCRIPTION[] = {
+        [RC_ZIS_GPPRFSRV_OK] = "Ok",
+        [RC_ZIS_GPPRFSRV_PARMLIST_NULL] = "Parm list is null",
+        [RC_ZIS_GPPRFSRV_BAD_EYECATCHER] = "Bad eyecatcher",
+        [RC_ZIS_GPPRFSRV_GROUP_TOO_LONG] = "Group is too long",
+        [RC_ZIS_GPPRFSRV_RESULT_BUFF_NULL] = "Result buffer is null",
+        [RC_ZIS_GPPRFSRV_PROFILE_COUNT_NULL] = "Profile count is null",
+        [RC_ZIS_GPPRFSRV_IMPERSONATION_MISSING] = "Impersonation is required",
+        [RC_ZIS_GPPRFSRV_INTERNAL_SERVICE_FAILED] = "R_admin failed",
+        [RC_ZIS_GPPRFSRV_ALLOC_FAILED] = "Alloc function failed",
+        [RC_ZIS_GPPRFSRV_UNSUPPORTED_ESM] = "ESM not supported"
+};
 
 #define RC_ZIS_SRVC_GPPRFSRV_CLASS_TOO_LONG         (ZIS_MAX_GEN_SRVC_RC + 1)
 #define RC_ZIS_SRVC_GPPRFSRV_GROUP_TOO_LONG         (ZIS_MAX_GEN_SRVC_RC + 2)
 #define RC_ZIS_SRVC_GPPRFSRV_RESULT_BUFF_NULL       (ZIS_MAX_GEN_SRVC_RC + 3)
 #define RC_ZIS_SRVC_GPPRFSRV_PROFILE_COUNT_NULL     (ZIS_MAX_GEN_SRVC_RC + 4)
 #define RC_ZIS_SRVC_GPPRFSRV_MAX_RC                 (ZIS_MAX_GEN_SRVC_RC + 4)
+
+static const char *ZIS_GPPRFSRV_WRAPPER_RC_DESCRIPTION[] = {
+        [RC_ZIS_SRVC_GPPRFSRV_CLASS_TOO_LONG] = "Class is too long",
+        [RC_ZIS_SRVC_GPPRFSRV_GROUP_TOO_LONG] = "Group is too long",
+        [RC_ZIS_SRVC_GPPRFSRV_RESULT_BUFF_NULL] = "Result buffer is null",
+        [RC_ZIS_SRVC_GPPRFSRV_PROFILE_COUNT_NULL] = "Profile count is null"
+};
 
 typedef struct ZISGroupAccessListServiceStatus_tag {
   ZISServiceStatus baseStatus;
@@ -339,8 +465,18 @@ int zisExtractGroupAccessList(const CrossMemoryServerName *serverName,
                               ZISGroupAccessListServiceStatus *status,
                               int traceLevel);
 
-extern const char *ZIS_GRPALSRV_SERVICE_RC_DESCRIPTION[];
-extern const char *ZIS_GRPALSRV_WRAPPER_RC_DESCRIPTION[];
+static const char *ZIS_GRPALSRV_SERVICE_RC_DESCRIPTION[] = {
+        [RC_ZIS_GRPALSRV_OK] = "Ok",
+        [RC_ZIS_GRPALSRV_PARMLIST_NULL] = "Parm list is null",
+        [RC_ZIS_GRPALSRV_BAD_EYECATCHER] = "Bad eyecatcher",
+        [RC_ZIS_GRPALSRV_GROUP_TOO_LONG] = "Group is too long",
+        [RC_ZIS_GRPALSRV_RESULT_BUFF_NULL] = "Result buffer is null",
+        [RC_ZIS_GRPALSRV_IMPERSONATION_MISSING] = "Impersonation is required",
+        [RC_ZIS_GRPALSRV_ALLOC_FAILED] = "Alloc function failed",
+        [RC_ZIS_GRPALSRV_INTERNAL_SERVICE_FAILED] = "R_admin failed",
+        [RC_ZIS_GRPALSRV_INSUFFICIENT_SPACE] = "Provided buffer is too small",
+        [RC_ZIS_GRPALSRV_UNSUPPORTED_ESM] = "ESM not supported"
+};
 
 #define RC_ZIS_SRVC_GRPALSRV_GROUP_NULL             (ZIS_MAX_GEN_SRVC_RC + 1)
 #define RC_ZIS_SRVC_GRPALSRV_GROUP_TOO_LONG         (ZIS_MAX_GEN_SRVC_RC + 2)
@@ -348,6 +484,14 @@ extern const char *ZIS_GRPALSRV_WRAPPER_RC_DESCRIPTION[];
 #define RC_ZIS_SRVC_GRPALSRV_ENTRY_COUNT_NULL       (ZIS_MAX_GEN_SRVC_RC + 4)
 #define RC_ZIS_SRVC_GRPALSRV_INSUFFICIENT_BUFFER    (ZIS_MAX_GEN_SRVC_RC + 5)
 #define RC_ZIS_SRVC_GRPALSRV_MAX_RC                 (ZIS_MAX_GEN_SRVC_RC + 6)
+
+static const char *ZIS_GRPALSRV_WRAPPER_RC_DESCRIPTION[] = {
+    [RC_ZIS_SRVC_GRPALSRV_GROUP_NULL] = "Group is null",
+    [RC_ZIS_SRVC_GRPALSRV_GROUP_TOO_LONG] = "Group is too long",
+    [RC_ZIS_SRVC_GRPALSRV_RESULT_BUFF_NULL] = "Result buffer is null",
+    [RC_ZIS_SRVC_GRPALSRV_ENTRY_COUNT_NULL] = "Entry count is null",
+    [RC_ZIS_SRVC_GRPALSRV_INSUFFICIENT_BUFFER] = "Provided buffer is too small"
+};
 
 typedef struct ZISGroupAdminServiceStatus_tag {
   ZISServiceStatus baseStatus;
@@ -389,8 +533,24 @@ int zisRemoveFromGroup(const CrossMemoryServerName *serverName,
                        ZISGroupAdminServiceStatus *status,
                        int traceLevel);
 
-extern const char *ZIS_GRPASRV_SERVICE_RC_DESCRIPTION[];
-extern const char *ZIS_GRPASRV_WRAPPER_RC_DESCRIPTION[];
+static const char *ZIS_GRPASRV_SERVICE_RC_DESCRIPTION[] = {
+        [RC_ZIS_GRPASRV_OK] = "Ok",
+        [RC_ZIS_GRPASRV_PARMLIST_NULL] = "Parm list is null",
+        [RC_ZIS_GRPASRV_BAD_EYECATCHER] = "Bad eyecatcher",
+        [RC_ZIS_GRPASRV_GROUP_TOO_LONG] = "Group is too long",
+        [RC_ZIS_GRPASRV_SUPGROUP_TOO_LONG] = "Superior group is too long",
+        [RC_ZIS_GRPASRV_UNSUPPORTED_PRODUCT] = "Unsupported product",
+        [RC_ZIS_GRPASRV_USER_ID_TOO_LONG] = "User ID is too long",
+        [RC_ZIS_GRPASRV_IMPERSONATION_MISSING] = "Impersonation is required",
+        [RC_ZIS_GRPASRV_BAD_FUNCTION] = "Bad function",
+        [RC_ZIS_GRPASRV_BAD_ACCESS_TYPE] = "Bad access type",
+        [RC_ZIS_GRPASRV_INTERNAL_SERVICE_FAILED] = "R_admin failed",
+        [RC_ZIS_GRPASRV_PARM_INTERNAL_ERROR] = "Parm list creation failed",
+        [RC_ZIS_GRPASRV_USER_CLASS_TOO_LONG] = CMS_PROD_ID" class is too long",
+        [RC_ZIS_GRPASRV_USER_CLASS_NOT_READ] = CMS_PROD_ID" class read failed",
+        [RC_ZIS_GRPASRV_AUTOREFRESH_NOT_READ] = "Auto refresh option read failed",
+        [RC_ZIS_GRPASRV_UNSUPPORTED_ESM] = "ESM not supported"
+};
 
 #define RC_ZIS_SRVC_GADMIN_GROUP_NULL             (ZIS_MAX_GEN_SRVC_RC + 1)
 #define RC_ZIS_SRVC_GADMIN_GROUP_TOO_LONG         (ZIS_MAX_GEN_SRVC_RC + 2)
@@ -400,6 +560,14 @@ extern const char *ZIS_GRPASRV_WRAPPER_RC_DESCRIPTION[];
 #define RC_ZIS_SRVC_GADMIN_USERID_TOO_LONG        (ZIS_MAX_GEN_SRVC_RC + 6)
 #define RC_ZIS_SRVC_GADMIN_OPER_CMD_NULL          (ZIS_MAX_GEN_SRVC_RC + 7)
 #define RC_ZIS_SRVC_GADMIN_MAX_RC                 (ZIS_MAX_GEN_SRVC_RC + 7)
+
+static const char *ZIS_GRPASRV_WRAPPER_RC_DESCRIPTION[] = {
+        [RC_ZIS_SRVC_GADMIN_GROUP_NULL] = "Group is null",
+        [RC_ZIS_SRVC_GADMIN_GROUP_TOO_LONG] = "Group is too long",
+        [RC_ZIS_SRVC_GADMIN_SUPGROUP_NULL] = "Superior group is null",
+        [RC_ZIS_SRVC_GADMIN_SUPGROUP_TOO_LONG] = "Superior group is too long",
+        [RC_ZIS_SRVC_GADMIN_OPER_CMD_NULL] = "Operator command is null"
+};
 
 typedef struct ZISNWMJobName_tag {
   char value[8];
