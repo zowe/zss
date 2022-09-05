@@ -31,7 +31,6 @@
 #define ZIS_PARM_TEST_PARM_NAME   "TEST_ZIS_PARM"
 #define ZIS_PARM_TEST_PARM_VALUE  "THIS VALUE MUST BE AVAILABLE IN ANY SERVICE"
 
-#ifndef __LONGNAME__
 #pragma map(zisMakeParmSet, "ZISMAKPS")
 #pragma map(zisRemoveParmSet, "ZISREMPS")
 #pragma map(zisReadParmlib, "ZISRDLIB")
@@ -40,7 +39,6 @@
 #pragma map(zisGetParmValue, "ZISGETPV")
 #pragma map(zisLoadParmsToCMServer, "ZISLOADP")
 #pragma map(zisIterateParms, "ZISITERP")
-#endif
 
 ZOWE_PRAGMA_PACK
 
