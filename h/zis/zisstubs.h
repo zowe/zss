@@ -76,14 +76,14 @@
 #define ZIS_STUB_ZISGVSAF 73 /* zisGenerateOrValidateSafIdt */
 
 /* zis/parm, 80-89 */
-#define ZIS_STUB_ZISMAKPS 80 /* zisMakeParmSet */
-#define ZIS_STUB_ZISREMPS 81 /* zisRemoveParmSet */
-#define ZIS_STUB_ZISRDLIB 82 /* zisReadParmlib */
-#define ZIS_STUB_ZISRDMPR 83 /* zisReadMainParms */
-#define ZIS_STUB_ZISPUTPV 84 /* zisPutParmValue */
-#define ZIS_STUB_ZISGETPV 85 /* zisGetParmValue */
-#define ZIS_STUB_ZISLOADP 86 /* zisLoadParmsToCMServer */
-#define ZIS_STUB_ZISITERP 87 /* zisIterateParms */
+#define ZIS_STUB_ZISMAKPS 80 /* zisMakeParmSet mapped */
+#define ZIS_STUB_ZISREMPS 81 /* zisRemoveParmSet mapped */
+#define ZIS_STUB_ZISRDLIB 82 /* zisReadParmlib mapped */
+#define ZIS_STUB_ZISRDMPR 83 /* zisReadMainParms mapped */
+#define ZIS_STUB_ZISPUTPV 84 /* zisPutParmValue mapped */
+#define ZIS_STUB_ZISGETPV 85 /* zisGetParmValue mapped */
+#define ZIS_STUB_ZISLOADP 86 /* zisLoadParmsToCMServer mapped */
+#define ZIS_STUB_ZISITERP 87 /* zisIterateParms mapped */
 
 /* zis/plugin, 90-99 */
 #define ZIS_STUB_ZISCPLGN 90 /* zisCreatePlugin mapped */
@@ -471,201 +471,207 @@
 #define ZIS_STUB_RCVRUSSI 610 /* recoveryUpdateStateServiceInfo */
 #define ZIS_STUB_RCVRGACD 611 /* recoveryGetABENDCode */
 
-/* scheduling, 620-629 */
-#define ZIS_STUB_SCHZOSWT 620 /* zosWait */
-#define ZIS_STUB_SCHZOSWL 621 /* zosWaitList */
-#define ZIS_STUB_SCHZOSPT 622 /* zosPost */
-#define ZIS_STUB_SCHSRLET 623 /* startRLETask */
+/* resmgr, 620-629 */
+#define ZIS_STUB_RMGRATRM 620 /* resmgrAddTaskResourceManager */
+#define ZIS_STUB_RMGRAARM 621 /* resmgrAddAddressSpaceResourceManager */
+#define ZIS_STUB_RMGRDTRM 622 /* resmgrDeleteTaskResourceManager */
+#define ZIS_STUB_RMGRDARM 623 /* resmgrDeleteAddressSpaceResourceManager */
 
-/* shrmem64, 630-649 */
-#define ZIS_STUB_SHR64TKN 630 /* shrmem64GetAddressSpaceToken */
-#define ZIS_STUB_SHR64ALC 631 /* shrmem64Alloc */
-#define ZIS_STUB_SHR64AL2 632 /* shrmem64Alloc2 */
-#define ZIS_STUB_SHR64CAL 633 /* shrmem64CommonAlloc */
-#define ZIS_STUB_SHR64CA2 634 /* shrmem64CommonAlloc2 */
-#define ZIS_STUB_SHR64REL 635 /* shrmem64Release */
-#define ZIS_STUB_SHR64REA 636 /* shrmem64ReleaseAll */
-#define ZIS_STUB_SHR64GAC 637 /* shrmem64GetAccess */
-#define ZIS_STUB_SHR64GA2 638 /* shrmem64GetAccess2 */
-#define ZIS_STUB_SHR64RAC 639 /* shrmem64RemoveAccess */
-#define ZIS_STUB_SHR64RA2 640 /* shrmem64RemoveAccess2 */
+/* scheduling, 630-639 */
+#define ZIS_STUB_SCHZOSWT 630 /* zosWait */
+#define ZIS_STUB_SCHZOSWL 631 /* zosWaitList */
+#define ZIS_STUB_SCHZOSPT 632 /* zosPost */
+#define ZIS_STUB_SCHSRLET 633 /* startRLETask */
 
-/* timeutls, 650-669 */
-#define ZIS_STUB_GETSTCK  650 /* getSTCK */
-#define ZIS_STUB_GETSTCKU 651 /* getSTCKU */
-#define ZIS_STUB_CONVTODL 652 /* convertTODToLocal */
-#define ZIS_STUB_TZDIFFOR 653 /* timeZoneDifferenceFor */
-#define ZIS_STUB_STCKCONV 654 /* stckToTimestamp */
-#define ZIS_STUB_CONVTOD  655 /* timestampToSTCK */
-#define ZIS_STUB_MIDNIGHT 656 /* timeFromMidnight */
-#define ZIS_STUB_STCKYYMD 657 /* stckFromYYYYMMDD */
-#define ZIS_STUB_ELPSTIME 658 /* elapsedTime */
-#define ZIS_STUB_STCKUNIX 659 /* stckToUnix */
-#define ZIS_STUB_STCK2USM 660 /* stckToUnixSecondsAndMicros */
-#define ZIS_STUB_CONVUNIX 661 /* unixToTimestamp */
-#define ZIS_STUB_GTDAYMNT 662 /* getDayAndMonth */
-#define ZIS_STUB_SNPRNTLT 663 /* snprintLocalTime */
+/* shrmem64, 640-659 */
+#define ZIS_STUB_SHR64TKN 640 /* shrmem64GetAddressSpaceToken */
+#define ZIS_STUB_SHR64ALC 641 /* shrmem64Alloc */
+#define ZIS_STUB_SHR64AL2 642 /* shrmem64Alloc2 */
+#define ZIS_STUB_SHR64CAL 643 /* shrmem64CommonAlloc */
+#define ZIS_STUB_SHR64CA2 644 /* shrmem64CommonAlloc2 */
+#define ZIS_STUB_SHR64REL 645 /* shrmem64Release */
+#define ZIS_STUB_SHR64REA 646 /* shrmem64ReleaseAll */
+#define ZIS_STUB_SHR64GAC 647 /* shrmem64GetAccess */
+#define ZIS_STUB_SHR64GA2 648 /* shrmem64GetAccess2 */
+#define ZIS_STUB_SHR64RAC 649 /* shrmem64RemoveAccess */
+#define ZIS_STUB_SHR64RA2 650 /* shrmem64RemoveAccess2 */
 
-/* utils, 670-769 */
-#define ZIS_STUB_STRCPSAF 670 /* strcopy_safe */
-#define ZIS_STUB_INDEXOF  671 /* indexOf */
-#define ZIS_STUB_IDXSTR   672 /* indexOfString */
-#define ZIS_STUB_LIDXSTR  673 /* lastIndexOfString */
-#define ZIS_STUB_LINDEXOF 674 /* lastIndexOf */
-#define ZIS_STUB_IDXSTRNS 675 /* indexOfStringInsensitive */
-#define ZIS_STUB_ISZEROS  676 /* isZeros */
-#define ZIS_STUB_ISBLANKS 677 /* isBlanks */
-#define ZIS_STUB_HASTEXT  678 /* hasText */
-#define ZIS_STUB_PARSEINT 679 /* parseInt */
-#define ZIS_STUB_PSINTINT 680 /* parseInitialInt */
-#define ZIS_STUB_NULLTERM 681 /* nullTerminate */
-#define ZIS_STUB_ISCHARAN 682 /* isCharAN */
-#define ZIS_STUB_TKGTDCML 683 /* tknGetDecimal */
-#define ZIS_STUB_TKGTQOTD 684 /* tknGetQuoted */
-#define ZIS_STUB_TKGTANUM 685 /* tknGetAlphanumeric */
-#define ZIS_STUB_TKGTSTND 686 /* tknGetStandard */
-#define ZIS_STUB_TKGTNWSP 687 /* tknGetNonWhitespace */
-#define ZIS_STUB_TKGTTERM 688 /* tknGetTerminating */
-#define ZIS_STUB_TKTXEQLS 689 /* tknTextEquals */
-#define ZIS_STUB_FREETKN  690 /* freeToken */
-#define ZIS_STUB_TKNTEXT  691 /* tknText */
-#define ZIS_STUB_TKNINT   692 /* tknInt */
-#define ZIS_STUB_TKNLNGTH 693 /* tknLength */
-#define ZIS_STUB_DMPBUFFR 694 /* dumpbuffer */
-#define ZIS_STUB_DMPBUFFA 695 /* dumpbufferA */
-#define ZIS_STUB_HEXFILL  696 /* hexFill */
-#define ZIS_STUB_SMPHXFIL 697 /* simpleHexFill */
-#define ZIS_STUB_SMPHXPRT 698 /* simpleHexPrint */
-#define ZIS_STUB_SMPHXPRL 699 /* simpleHexPrintLower */
-#define ZIS_STUB_HEXDUMP  700 /* hexdump */
-#define ZIS_STUB_DMPBFFR2 701 /* dumpbuffer2 */
-#define ZIS_STUB_DMPBFFRS 702 /* dumpBufferToStream */
-#define ZIS_STUB_CMPIGNCS 703 /* compareIgnoringCase */
-#define ZIS_STUB_STRUPCAS 704 /* strupcase */
-#define ZIS_STUB_MAKESLH  705 /* makeShortLivedHeap */
-#define ZIS_STUB_MAKSLH64 706 /* makeShortLivedHeap64 */
-#define ZIS_STUB_SLHALLOC 707 /* SLHAlloc */
-#define ZIS_STUB_SLHFREE  708 /* SLHFree */
-#define ZIS_STUB_NYMALLOC 709 /* noisyMalloc */
-#define ZIS_STUB_DECODB32 710 /* base32Encode */
-#define ZIS_STUB_ENCODB32 711 /* base32Decode */
-#define ZIS_STUB_DECODB64 712 /* decodeBase64 */
-#define ZIS_STUB_DECDB64U 713 /* decodeBase64Unterminated */
-#define ZIS_STUB_ENCODB64 714 /* encodeBase64 */
-#define ZIS_STUB_ENCDB64N 715 /* encodeBase64NoAlloc */
-#define ZIS_STUB_B642BURL 716 /* base64ToBase64url */
-#define ZIS_STUB_B64URLTB 717 /* base64urlToBase64 */
-#define ZIS_STUB_CLNURLPV 718 /* cleanURLParamValue */
-#define ZIS_STUB_PCTENCOD 719 /* percentEncode */
-#define ZIS_STUB_DSTUNASC 720 /* destructivelyUnasciify */
-#define ZIS_STUB_MAKESLST 721 /* makeStringList */
-#define ZIS_STUB_SLSTLEN  722 /* stringListLength */
-#define ZIS_STUB_SLSTPRNT 723 /* stringListPrint */
-#define ZIS_STUB_SLSTCTNS 724 /* stringListContains */
-#define ZIS_STUB_SLSTLAST 725 /* stringListLast */
-#define ZIS_STUB_ADSLSTUQ 726 /* addToStringListUnique */
-#define ZIS_STUB_ADSLST   727 /* addToStringList */
-#define ZIS_STUB_SLSTELT1 728 /* firstStringListElt */
-#define ZIS_STUB_STRCNCAT 729 /* stringConcatenate */
-#define ZIS_STUB_MKBFCHST 730 /* makeBufferCharStream */
-#define ZIS_STUB_CSTRPOSN 731 /* charStreamPosition */
-#define ZIS_STUB_CSTRGET  732 /* charStreamGet */
-#define ZIS_STUB_CSTREOF  733 /* charStreamEOF */
-#define ZIS_STUB_CSTRCLOS 734 /* charStreamClose */
-#define ZIS_STUB_CSTRFREE 735 /* charStreamFree */
-#define ZIS_STUB_PADWSPCS 736 /* padWithSpaces */
-#define ZIS_STUB_RPLTRMNL 737 /* replaceTerminateNulls */
-#define ZIS_STUB_CNVINTST 738 /* convertIntToString */
-#define ZIS_STUB_HEXTODEC 739 /* hexToDec */
-#define ZIS_STUB_DECTOHEX 740 /* decToHex */
-#define ZIS_STUB_COMPSEQS 741 /* compareSequences */
-#define ZIS_STUB_DEC2OCT  742 /* decimalToOctal */
-#define ZIS_STUB_UNX2ISO  743 /* convertUnixToISO */
-#define ZIS_STUB_MATCHWLD 744 /* matchWithWildcards */
-#define ZIS_STUB_STRISDIG 745 /* stringIsDigit */
-#define ZIS_STUB_TRMRIGHT 746 /* trimRight */
-#define ZIS_STUB_ISPASPHR 747 /* isPassPhrase */
+/* timeutls, 660-679 */
+#define ZIS_STUB_GETSTCK  660 /* getSTCK */
+#define ZIS_STUB_GETSTCKU 661 /* getSTCKU */
+#define ZIS_STUB_CONVTODL 662 /* convertTODToLocal */
+#define ZIS_STUB_TZDIFFOR 663 /* timeZoneDifferenceFor */
+#define ZIS_STUB_STCKCONV 664 /* stckToTimestamp */
+#define ZIS_STUB_CONVTOD  665 /* timestampToSTCK */
+#define ZIS_STUB_MIDNIGHT 666 /* timeFromMidnight */
+#define ZIS_STUB_STCKYYMD 667 /* stckFromYYYYMMDD */
+#define ZIS_STUB_ELPSTIME 668 /* elapsedTime */
+#define ZIS_STUB_STCKUNIX 669 /* stckToUnix */
+#define ZIS_STUB_STCK2USM 670 /* stckToUnixSecondsAndMicros */
+#define ZIS_STUB_CONVUNIX 671 /* unixToTimestamp */
+#define ZIS_STUB_GTDAYMNT 672 /* getDayAndMonth */
+#define ZIS_STUB_SNPRNTLT 673 /* snprintLocalTime */
 
-/* vsam, 770-799 */
-#define ZIS_STUB_MAKEACB  770 /* makeACB */
-#define ZIS_STUB_VOPCLACB 771 /* opencloseACB */
-#define ZIS_STUB_OPENACB  772 /* openACB */
-#define ZIS_STUB_CLOSEACB 773 /* closeACB */
-#define ZIS_STUB_MODRPL   774 /* modRPL */
-#define ZIS_STUB_VSPOINT  775 /* point */
-#define ZIS_STUB_VPUTREC  776 /* putRecord */
-#define ZIS_STUB_VGETREC  777 /* getRecord */
-#define ZIS_STUB_VMKDBUFF 778 /* makeDataBuffer */
-#define ZIS_STUB_VFRDBUFF 779 /* freeDataBuffer */
-#define ZIS_STUB_VPNBYRBA 780 /* pointByRBA */
-#define ZIS_STUB_VPNBYKEY 781 /* pointByKey */
-#define ZIS_STUB_VPNBYREC 782 /* pointByRecord */
-#define ZIS_STUB_VPNBYCI  783 /* pointByCI */
-#define ZIS_STUB_VALLOCDS 784 /* allocateDataset */
-#define ZIS_STUB_VDEFAIX  785 /* defineAIX */
-#define ZIS_STUB_DELCLUST 786 /* deleteCluster */
+/* utils, 680-779 */
+#define ZIS_STUB_STRCPSAF 680 /* strcopy_safe */
+#define ZIS_STUB_INDEXOF  681 /* indexOf */
+#define ZIS_STUB_IDXSTR   682 /* indexOfString */
+#define ZIS_STUB_LIDXSTR  683 /* lastIndexOfString */
+#define ZIS_STUB_LINDEXOF 684 /* lastIndexOf */
+#define ZIS_STUB_IDXSTRNS 685 /* indexOfStringInsensitive */
+#define ZIS_STUB_ISZEROS  686 /* isZeros */
+#define ZIS_STUB_ISBLANKS 687 /* isBlanks */
+#define ZIS_STUB_HASTEXT  688 /* hasText */
+#define ZIS_STUB_PARSEINT 689 /* parseInt */
+#define ZIS_STUB_PSINTINT 690 /* parseInitialInt */
+#define ZIS_STUB_NULLTERM 691 /* nullTerminate */
+#define ZIS_STUB_ISCHARAN 692 /* isCharAN */
+#define ZIS_STUB_TKGTDCML 693 /* tknGetDecimal */
+#define ZIS_STUB_TKGTQOTD 694 /* tknGetQuoted */
+#define ZIS_STUB_TKGTANUM 695 /* tknGetAlphanumeric */
+#define ZIS_STUB_TKGTSTND 696 /* tknGetStandard */
+#define ZIS_STUB_TKGTNWSP 697 /* tknGetNonWhitespace */
+#define ZIS_STUB_TKGTTERM 698 /* tknGetTerminating */
+#define ZIS_STUB_TKTXEQLS 699 /* tknTextEquals */
+#define ZIS_STUB_FREETKN  700 /* freeToken */
+#define ZIS_STUB_TKNTEXT  701 /* tknText */
+#define ZIS_STUB_TKNINT   702 /* tknInt */
+#define ZIS_STUB_TKNLNGTH 703 /* tknLength */
+#define ZIS_STUB_DMPBUFFR 704 /* dumpbuffer */
+#define ZIS_STUB_DMPBUFFA 705 /* dumpbufferA */
+#define ZIS_STUB_HEXFILL  706 /* hexFill */
+#define ZIS_STUB_SMPHXFIL 707 /* simpleHexFill */
+#define ZIS_STUB_SMPHXPRT 708 /* simpleHexPrint */
+#define ZIS_STUB_SMPHXPRL 709 /* simpleHexPrintLower */
+#define ZIS_STUB_HEXDUMP  710 /* hexdump */
+#define ZIS_STUB_DMPBFFR2 711 /* dumpbuffer2 */
+#define ZIS_STUB_DMPBFFRS 712 /* dumpBufferToStream */
+#define ZIS_STUB_CMPIGNCS 713 /* compareIgnoringCase */
+#define ZIS_STUB_STRUPCAS 714 /* strupcase */
+#define ZIS_STUB_MAKESLH  715 /* makeShortLivedHeap */
+#define ZIS_STUB_MAKSLH64 716 /* makeShortLivedHeap64 */
+#define ZIS_STUB_SLHALLOC 717 /* SLHAlloc */
+#define ZIS_STUB_SLHFREE  718 /* SLHFree */
+#define ZIS_STUB_NYMALLOC 719 /* noisyMalloc */
+#define ZIS_STUB_DECODB32 720 /* base32Encode */
+#define ZIS_STUB_ENCODB32 721 /* base32Decode */
+#define ZIS_STUB_DECODB64 722 /* decodeBase64 */
+#define ZIS_STUB_DECDB64U 723 /* decodeBase64Unterminated */
+#define ZIS_STUB_ENCODB64 724 /* encodeBase64 */
+#define ZIS_STUB_ENCDB64N 725 /* encodeBase64NoAlloc */
+#define ZIS_STUB_B642BURL 726 /* base64ToBase64url */
+#define ZIS_STUB_B64URLTB 727 /* base64urlToBase64 */
+#define ZIS_STUB_CLNURLPV 728 /* cleanURLParamValue */
+#define ZIS_STUB_PCTENCOD 729 /* percentEncode */
+#define ZIS_STUB_DSTUNASC 730 /* destructivelyUnasciify */
+#define ZIS_STUB_MAKESLST 731 /* makeStringList */
+#define ZIS_STUB_SLSTLEN  732 /* stringListLength */
+#define ZIS_STUB_SLSTPRNT 733 /* stringListPrint */
+#define ZIS_STUB_SLSTCTNS 734 /* stringListContains */
+#define ZIS_STUB_SLSTLAST 735 /* stringListLast */
+#define ZIS_STUB_ADSLSTUQ 736 /* addToStringListUnique */
+#define ZIS_STUB_ADSLST   737 /* addToStringList */
+#define ZIS_STUB_SLSTELT1 738 /* firstStringListElt */
+#define ZIS_STUB_STRCNCAT 739 /* stringConcatenate */
+#define ZIS_STUB_MKBFCHST 740 /* makeBufferCharStream */
+#define ZIS_STUB_CSTRPOSN 741 /* charStreamPosition */
+#define ZIS_STUB_CSTRGET  742 /* charStreamGet */
+#define ZIS_STUB_CSTREOF  743 /* charStreamEOF */
+#define ZIS_STUB_CSTRCLOS 744 /* charStreamClose */
+#define ZIS_STUB_CSTRFREE 745 /* charStreamFree */
+#define ZIS_STUB_PADWSPCS 746 /* padWithSpaces */
+#define ZIS_STUB_RPLTRMNL 747 /* replaceTerminateNulls */
+#define ZIS_STUB_CNVINTST 748 /* convertIntToString */
+#define ZIS_STUB_HEXTODEC 749 /* hexToDec */
+#define ZIS_STUB_DECTOHEX 750 /* decToHex */
+#define ZIS_STUB_COMPSEQS 751 /* compareSequences */
+#define ZIS_STUB_DEC2OCT  752 /* decimalToOctal */
+#define ZIS_STUB_UNX2ISO  753 /* convertUnixToISO */
+#define ZIS_STUB_MATCHWLD 754 /* matchWithWildcards */
+#define ZIS_STUB_STRISDIG 755 /* stringIsDigit */
+#define ZIS_STUB_TRMRIGHT 756 /* trimRight */
+#define ZIS_STUB_ISPASPHR 757 /* isPassPhrase */
 
-/* xlate, 800-809 */
-#define ZIS_STUB_E2A      800 /* e2a */
-#define ZIS_STUB_A2E      801 /* a2e */
+/* vsam, 780-809 */
+#define ZIS_STUB_MAKEACB  780 /* makeACB */
+#define ZIS_STUB_VOPCLACB 781 /* opencloseACB */
+#define ZIS_STUB_OPENACB  782 /* openACB */
+#define ZIS_STUB_CLOSEACB 783 /* closeACB */
+#define ZIS_STUB_MODRPL   784 /* modRPL */
+#define ZIS_STUB_VSPOINT  785 /* point */
+#define ZIS_STUB_VPUTREC  786 /* putRecord */
+#define ZIS_STUB_VGETREC  787 /* getRecord */
+#define ZIS_STUB_VMKDBUFF 788 /* makeDataBuffer */
+#define ZIS_STUB_VFRDBUFF 789 /* freeDataBuffer */
+#define ZIS_STUB_VPNBYRBA 790 /* pointByRBA */
+#define ZIS_STUB_VPNBYKEY 791 /* pointByKey */
+#define ZIS_STUB_VPNBYREC 792 /* pointByRecord */
+#define ZIS_STUB_VPNBYCI  793 /* pointByCI */
+#define ZIS_STUB_VALLOCDS 794 /* allocateDataset */
+#define ZIS_STUB_VDEFAIX  795 /* defineAIX */
+#define ZIS_STUB_DELCLUST 796 /* deleteCluster */
 
-/* zos, 810-869 */
-#define ZIS_STUB_EXTRPSW  810 /* extractPSW */
-#define ZIS_STUB_SUPRMODE 811 /* supervisorMode */
-#define ZIS_STUB_SETKEY   812 /* setKey */
-#define ZIS_STUB_DDEXISTS 813 /* ddnameExists */
-#define ZIS_STUB_ATOMINCR 814 /* atomicIncrement */
-#define ZIS_STUB_GTCRACEE 815 /* getCurrentACEE */
-#define ZIS_STUB_GTFCHTCB 816 /* getFirstChildTCB */
-#define ZIS_STUB_GTPRTTCB 817 /* getParentTCB */
-#define ZIS_STUB_GTNXSTCB 818 /* getNextSiblingTCB */
-#define ZIS_STUB_GETCVT   819 /* getCVT */
-#define ZIS_STUB_GETATCVT 820 /* getATCVT */
-#define ZIS_STUB_GETCSTBL 821 /* getIEACSTBL */
-#define ZIS_STUB_GETCVTPR 822 /* getCVTPrefix */
-#define ZIS_STUB_GETECVT  823 /* getECVT */
-#define ZIS_STUB_GETTCB   824 /* getTCB */
-#define ZIS_STUB_GETSTCB  825 /* getSTCB */
-#define ZIS_STUB_GETOTCB  826 /* getOTCB */
-#define ZIS_STUB_GETASCB  827 /* getASCB */
-#define ZIS_STUB_GETASXB  828 /* getASXB */
-#define ZIS_STUB_GETASSB  829 /* getASSB */
-#define ZIS_STUB_GETJSAB  830 /* getJSAB */
-#define ZIS_STUB_GTSPLXNM 831 /* getSysplexName */
-#define ZIS_STUB_GTSYSTNM 832 /* getSystemName */
-#define ZIS_STUB_GETDSAB  833 /* getDSAB */
-#define ZIS_STUB_DSABOMVS 834 /* dsabIsOMVS */
-#define ZIS_STUB_LOCATE   835 /* locate */
-#define ZIS_STUB_GETR13   836 /* getR13 */
-#define ZIS_STUB_GETR12   837 /* getR12 */
-#define ZIS_STUB_GETASCBJ 838 /* getASCBJobname */
-#define ZIS_STUB_LOADBYNA 839 /* loadByName */
-#define ZIS_STUB_LOADBNML 840 /* loadByNameLocally */
-#define ZIS_STUB_ZOSCLCKD 841 /* isCallerLocked */
-#define ZIS_STUB_ZOSCSRB  842 /* isCallerSRB */
-#define ZIS_STUB_ZOSCXMEM 843 /* isCallerCrossMemory */
-#define ZIS_STUB_GADSACEE 844 /* getAddressSpaceAcee */
-#define ZIS_STUB_GTSKACEE 845 /* getTaskAcee */
-#define ZIS_STUB_STSKACEE 846 /* setTaskAcee */
-#define ZIS_STUB_SAFVRIFY 847 /* safVerify */
-#define ZIS_STUB_SAFVRFY2 848 /* safVerify2 */
-#define ZIS_STUB_SAFVRFY3 849 /* safVerify3 */
-#define ZIS_STUB_SAFVRFY4 850 /* safVerify4 */
-#define ZIS_STUB_SAFVRFY5 851 /* safVerify5 */
-#define ZIS_STUB_SAFVRFY6 852 /* safVerify6 */
-#define ZIS_STUB_SAFVRFY7 853 /* safVerify7 */
-#define ZIS_STUB_SAFAUTH  854 /* safAuth */
-#define ZIS_STUB_SAFAUTHS 855 /* safAuthStatus */
-#define ZIS_STUB_SAFSTAT  856 /* safStat */
-#define ZIS_STUB_GETSAFPL 857 /* getSafProfileMaxLen */
+/* xlate, 810-819 */
+#define ZIS_STUB_E2A      810 /* e2a */
+#define ZIS_STUB_A2E      811 /* a2e */
 
-/* zvt, 870-879 */
-#define ZIS_STUB_ZVTINIT  870 /* zvtInit mapped */
-#define ZIS_STUB_ZVTGET   871 /* zvtGet mapped */
-#define ZIS_STUB_ZVTAENTR 872 /* zvtAllocEntry mapped */
-#define ZIS_STUB_ZVTFENTR 873 /* zvtFreeEntry mapped */
-#define ZIS_STUB_ZVTGXMLR 874 /* zvtGetCMSLookupRoutineAnchor mapped */
-#define ZIS_STUB_ZVTSXMLR 875 /* zvtSetCMSLookupRoutineAnchor mapped */
+/* zos, 820-879 */
+#define ZIS_STUB_EXTRPSW  820 /* extractPSW */
+#define ZIS_STUB_SUPRMODE 821 /* supervisorMode */
+#define ZIS_STUB_SETKEY   822 /* setKey */
+#define ZIS_STUB_DDEXISTS 823 /* ddnameExists */
+#define ZIS_STUB_ATOMINCR 824 /* atomicIncrement */
+#define ZIS_STUB_GTCRACEE 825 /* getCurrentACEE */
+#define ZIS_STUB_GTFCHTCB 826 /* getFirstChildTCB */
+#define ZIS_STUB_GTPRTTCB 827 /* getParentTCB */
+#define ZIS_STUB_GTNXSTCB 828 /* getNextSiblingTCB */
+#define ZIS_STUB_GETCVT   829 /* getCVT */
+#define ZIS_STUB_GETATCVT 830 /* getATCVT */
+#define ZIS_STUB_GETCSTBL 831 /* getIEACSTBL */
+#define ZIS_STUB_GETCVTPR 832 /* getCVTPrefix */
+#define ZIS_STUB_GETECVT  833 /* getECVT */
+#define ZIS_STUB_GETTCB   834 /* getTCB */
+#define ZIS_STUB_GETSTCB  835 /* getSTCB */
+#define ZIS_STUB_GETOTCB  836 /* getOTCB */
+#define ZIS_STUB_GETASCB  837 /* getASCB */
+#define ZIS_STUB_GETASXB  838 /* getASXB */
+#define ZIS_STUB_GETASSB  839 /* getASSB */
+#define ZIS_STUB_GETJSAB  840 /* getJSAB */
+#define ZIS_STUB_GTSPLXNM 841 /* getSysplexName */
+#define ZIS_STUB_GTSYSTNM 842 /* getSystemName */
+#define ZIS_STUB_GETDSAB  843 /* getDSAB */
+#define ZIS_STUB_DSABOMVS 844 /* dsabIsOMVS */
+#define ZIS_STUB_LOCATE   845 /* locate */
+#define ZIS_STUB_GETR13   846 /* getR13 */
+#define ZIS_STUB_GETR12   847 /* getR12 */
+#define ZIS_STUB_GETASCBJ 848 /* getASCBJobname */
+#define ZIS_STUB_LOADBYNA 849 /* loadByName */
+#define ZIS_STUB_LOADBNML 850 /* loadByNameLocally */
+#define ZIS_STUB_ZOSCLCKD 851 /* isCallerLocked */
+#define ZIS_STUB_ZOSCSRB  852 /* isCallerSRB */
+#define ZIS_STUB_ZOSCXMEM 853 /* isCallerCrossMemory */
+#define ZIS_STUB_GADSACEE 854 /* getAddressSpaceAcee */
+#define ZIS_STUB_GTSKACEE 855 /* getTaskAcee */
+#define ZIS_STUB_STSKACEE 856 /* setTaskAcee */
+#define ZIS_STUB_SAFVRIFY 857 /* safVerify */
+#define ZIS_STUB_SAFVRFY2 858 /* safVerify2 */
+#define ZIS_STUB_SAFVRFY3 859 /* safVerify3 */
+#define ZIS_STUB_SAFVRFY4 860 /* safVerify4 */
+#define ZIS_STUB_SAFVRFY5 861 /* safVerify5 */
+#define ZIS_STUB_SAFVRFY6 862 /* safVerify6 */
+#define ZIS_STUB_SAFVRFY7 863 /* safVerify7 */
+#define ZIS_STUB_SAFAUTH  864 /* safAuth */
+#define ZIS_STUB_SAFAUTHS 865 /* safAuthStatus */
+#define ZIS_STUB_SAFSTAT  866 /* safStat */
+#define ZIS_STUB_GETSAFPL 867 /* getSafProfileMaxLen */
+
+/* zvt, 880-889 */
+#define ZIS_STUB_ZVTINIT  880 /* zvtInit mapped */
+#define ZIS_STUB_ZVTGET   881 /* zvtGet mapped */
+#define ZIS_STUB_ZVTAENTR 882 /* zvtAllocEntry mapped */
+#define ZIS_STUB_ZVTFENTR 883 /* zvtFreeEntry mapped */
+#define ZIS_STUB_ZVTGXMLR 884 /* zvtGetCMSLookupRoutineAnchor mapped */
+#define ZIS_STUB_ZVTSXMLR 885 /* zvtSetCMSLookupRoutineAnchor mapped */
 
 #endif /* ZIS_ZISSTUBS_H_ */
 
