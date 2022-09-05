@@ -16,9 +16,6 @@
 #error Metal C header only
 #endif
 
-#include <metal/metal.h>
-#include <metal/stdbool.h>
-
 #pragma map(zisGetServerVersion, "ZISGVRSN")
 #pragma map(zisIsLPADevModeOn, "ZISLPADV")
 
@@ -35,7 +32,7 @@ void zisGetServerVersion(int *major, int *minor, int *revision);
  * @param[in] context The server context.
  * @return @c true if on, otherwise @c false.
  */
-bool zisIsLPADevModeOn(const struct ZISContext_tag *context);
+_Bool zisIsLPADevModeOn(const struct ZISContext_tag *context);
 
 #endif /* ZIS_SERVER_API_H_ */
 
