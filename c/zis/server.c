@@ -84,7 +84,7 @@ See details in the ZSS Cross Memory Server installation guide
 
 #define ZIS_PARMLIB_PARM_SERVER_NAME          CMS_PROD_ID".NAME"
 
-#define ZIS_DYN_LINKAGE_PLUGIN_MOD_NAME       CMS_PROD_ID"ISDL"
+#define ZIS_DYN_LINKAGE_PLUGIN_MOD_SUFFIX     "ISDL"
 
 
 static int zisRouteService(struct CrossMemoryServerGlobalArea_tag *globalArea,
@@ -1005,20 +1005,23 @@ typedef struct ContextAndState_tag {
 
 /**
  * @brief Check if the plugin satisfies the provided condition.
+ * @param[in] context The ZIS server context.
  * @param[in] moduleName The plugin's module name.
  * @param[in] dynLinkPluginNeeded The only condition - whether the plugin is the
  * dynamic linkage plugin or not.
  * @return @c true if the plugin satisfies the condition, otherwise @c false.
  */
-static bool isPluginSuitable(const char *moduleName, bool dynLinkPluginNeeded) {
+static bool isPluginSuitable(const ZISContext *context,
+                             const char *moduleName,
+                             bool dynLinkPluginNeeded) {
   /* This little bit of magic forces ZWES.PLUGIN.DYNBASE to be installed first
    * if it exists in the PARMLIB */
   if (dynLinkPluginNeeded) {
-    if (strcmp(moduleName, ZIS_DYN_LINKAGE_PLUGIN_MOD_NAME)) {
+    if (strcmp(moduleName, context->dynlinkModuleNameNullTerm)) {
       return false;
     }
   } else {
-    if (!strcmp(moduleName, ZIS_DYN_LINKAGE_PLUGIN_MOD_NAME)) {
+    if (!strcmp(moduleName, context->dynlinkModuleNameNullTerm)) {
       return false;
     }
   }
@@ -1051,7 +1054,8 @@ static void visitPluginParm(const char *name, const char *value,
    * Such logic ensures that any plugins relying on the dynamic linkage plugin
    * will be able to use it during their initialization.
    */
-  if (!isPluginSuitable(value, contextAndState->lookingForDynamicPlugin)) {
+  if (!isPluginSuitable(contextAndState->context, value,
+                        contextAndState->lookingForDynamicPlugin)) {
     return;
   }
 
@@ -1327,21 +1331,14 @@ typedef struct PARMBLIBMember_tag {
   char nameNullTerm[16];
 } PARMLIBMember;
 
-static int extractPARMLIBMemberName(ZISParmSet *parms,
+static int extractPARMLIBMemberName(const ZISContext *context,
                                     PARMLIBMember *member) {
-
-  EightCharString currModuleName;
-  int modRC = getCurrentModuleName(&currModuleName);
-  if (modRC != 0) {
-    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
-            ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG, modRC);
-    return RC_ZIS_ERROR;
-  }
 
   /* find out if MEM has been specified in the JCL and use it to create
    * the parmlib member name */
 
-  const char *memberSuffix = zisGetParmValue(parms, ZIS_PARM_MEMBER_SUFFIX);
+  const char *memberSuffix = zisGetParmValue(context->parms,
+                                             ZIS_PARM_MEMBER_SUFFIX);
   if (memberSuffix == NULL) {
     memberSuffix = ZIS_PARM_MEMBER_DEFAULT_SUFFIX;
   }
@@ -1349,7 +1346,7 @@ static int extractPARMLIBMemberName(ZISParmSet *parms,
   memset(member->nameNullTerm, 0, sizeof(member->nameNullTerm));
   if (strlen(memberSuffix) == ZIS_PARM_MEMBER_SUFFIX_SIZE) {
     // copy the 3-letter element ID and the subcomponent
-    memcpy(member->nameNullTerm, currModuleName.text, 4);
+    memcpy(member->nameNullTerm, context->zisModuleName.text, 4);
     strcat(member->nameNullTerm, "IP"); // fixed part
     strcat(member->nameNullTerm, memberSuffix);
   } else {
@@ -1357,6 +1354,21 @@ static int extractPARMLIBMemberName(ZISParmSet *parms,
             ZIS_LOG_CXMS_BAD_PMEM_SUFFIX_MSG, memberSuffix);
     return RC_ZIS_ERROR;
   }
+
+  return RC_ZIS_OK;
+}
+
+static int initContext(ZISContext *context) {
+
+  int modRC = getCurrentModuleName(&context->zisModuleName);
+  if (modRC != 0) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+            ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG, modRC);
+    return RC_ZIS_ERROR;
+  }
+
+  memcpy(context->dynlinkModuleNameNullTerm, context->zisModuleName.text, 4);
+  strcat(context->dynlinkModuleNameNullTerm, ZIS_DYN_LINKAGE_PLUGIN_MOD_SUFFIX);
 
   return RC_ZIS_OK;
 }
@@ -1387,7 +1399,7 @@ static int loadConfig(ZISContext *context,
   }
 
   PARMLIBMember parmlibMember;
-  int parmlibRC = extractPARMLIBMemberName(context->parms, &parmlibMember);
+  int parmlibRC = extractPARMLIBMemberName(context, &parmlibMember);
   if (parmlibRC != RC_ZIS_OK) {
     zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE, ZIS_LOG_CONFIG_FAILURE_MSG,
             "PARMLIB member not extracted", parmlibRC);
@@ -1577,6 +1589,11 @@ static int run(STCBase *base, const ZISMainFunctionParms *mainParms) {
 
   int status = RC_ZIS_OK;
   do {
+
+    status = initContext(&context);
+    if (status != RC_ZIS_OK) {
+      break;
+    }
 
     status = loadConfig(&context, mainParms);
     if (status != RC_ZIS_OK) {
