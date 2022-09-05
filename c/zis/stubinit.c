@@ -107,7 +107,6 @@
     stubVector[ZIS_STUB_ASTERMIN] = (void*)addressSpaceTerminate;
     stubVector[ZIS_STUB_ASEXTRCT] = (void*)addressSpaceExtractParm;
     stubVector[ZIS_STUB_GETLOCHN] = (void*)getLocalHostName;
-    stubVector[ZIS_STUB_GETSOCDI] = (void*)getSocketDebugID;
     stubVector[ZIS_STUB_GETLOCAD] = (void*)getLocalHostAddress;
     stubVector[ZIS_STUB_GETADRBN] = (void*)getAddressByName;
     stubVector[ZIS_STUB_GETSOCNM] = (void*)getSocketName;
@@ -118,7 +117,6 @@
     stubVector[ZIS_STUB_TCPSERVR] = (void*)tcpServer;
     stubVector[ZIS_STUB_TCPCLIE3] = (void*)tcpClient3;
     stubVector[ZIS_STUB_TCPSERV2] = (void*)tcpServer2;
-    stubVector[ZIS_STUB_MAKSPSOC] = (void*)makePipeBasedSyntheticSocket;
     stubVector[ZIS_STUB_BPXSLEEP] = (void*)bpxSleep;
     stubVector[ZIS_STUB_TCPIOCTR] = (void*)tcpIOControl;
     stubVector[ZIS_STUB_UDPPEER ] = (void*)udpPeer;
@@ -137,7 +135,6 @@
     stubVector[ZIS_STUB_SETSKTRB] = (void*)setSocketReadBufferSize;
     stubVector[ZIS_STUB_SETSOCBM] = (void*)setSocketBlockingMode;
     stubVector[ZIS_STUB_SETSKTOP] = (void*)setSocketOption;
-    stubVector[ZIS_STUB_SOCKSEND] = (void*)socketSend;
     stubVector[ZIS_STUB_SOCACCPT] = (void*)socketAccept;
     stubVector[ZIS_STUB_SOCCLOSE] = (void*)socketClose;
     stubVector[ZIS_STUB_EXSELECT] = (void*)extendedSelect;
@@ -291,8 +288,6 @@
     stubVector[ZIS_STUB_LGSETLVL] = (void*)logSetLevel;
     stubVector[ZIS_STUB_LGGETLVL] = (void*)logGetLevel;
     stubVector[ZIS_STUB_LGSHTRCE] = (void*)logShouldTraceInternal;
-    stubVector[ZIS_STUB_LGGLOGCX] = (void*)logGetExternalContext;
-    stubVector[ZIS_STUB_LGSLOGCX] = (void*)logSetExternalContext;
     stubVector[ZIS_STUB_LGPRSOUT] = (void*)printStdout;
     stubVector[ZIS_STUB_LGPRSERR] = (void*)printStderr;
     stubVector[ZIS_STUB_LPAADD  ] = (void*)lpaAdd;
@@ -356,7 +351,7 @@
     stubVector[ZIS_STUB_BPAMFIND] = (void*)bpamFind;
     stubVector[ZIS_STUB_BPAMREAD] = (void*)bpamRead;
     stubVector[ZIS_STUB_BPAMRD2 ] = (void*)bpamRead2;
-    stubVector[ZIS_STUB_RADMXUP ] = (void*)radminExtractUserProfiles;
+    stubVector[ZIS_STUB_RADMXPRF] = (void*)radminExtractProfiles;
     stubVector[ZIS_STUB_RADMXBUP] = (void*)radminExtractBasicUserProfileInfo;
     stubVector[ZIS_STUB_RADMXBRP] = (void*)radminExtractBasicGenresProfileInfo;
     stubVector[ZIS_STUB_RADMXBGP] = (void*)radminExtractBasicGroupProfileInfo;
@@ -497,8 +492,6 @@
     stubVector[ZIS_STUB_VSPOINT ] = (void*)point;
     stubVector[ZIS_STUB_VPUTREC ] = (void*)putRecord;
     stubVector[ZIS_STUB_VGETREC ] = (void*)getRecord;
-    stubVector[ZIS_STUB_VMKDBUFF] = (void*)makeDataBuffer;
-    stubVector[ZIS_STUB_VFRDBUFF] = (void*)freeDataBuffer;
     stubVector[ZIS_STUB_VPNBYRBA] = (void*)pointByRBA;
     stubVector[ZIS_STUB_VPNBYKEY] = (void*)pointByKey;
     stubVector[ZIS_STUB_VPNBYREC] = (void*)pointByRecord;
@@ -555,7 +548,6 @@
     stubVector[ZIS_STUB_SAFAUTH ] = (void*)safAuth;
     stubVector[ZIS_STUB_SAFAUTHS] = (void*)safAuthStatus;
     stubVector[ZIS_STUB_SAFSTAT ] = (void*)safStat;
-    stubVector[ZIS_STUB_GETSAFPL] = (void*)getSafProfileMaxLen;
     stubVector[ZIS_STUB_ZVTINIT ] = (void*)zvtInit;
     stubVector[ZIS_STUB_ZVTGET  ] = (void*)zvtGet;
     stubVector[ZIS_STUB_ZVTAENTR] = (void*)zvtAllocEntry;

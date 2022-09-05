@@ -163,7 +163,7 @@
 
 /* bpxnet, 200-249 */
 #define ZIS_STUB_GETLOCHN 200 /* getLocalHostName */
-#define ZIS_STUB_GETSOCDI 201 /* getSocketDebugID */
+/* #define ZIS_STUB_GETSOCDI 201 getSocketDebugID - no metal impl */
 #define ZIS_STUB_GETLOCAD 202 /* getLocalHostAddress */
 #define ZIS_STUB_GETADRBN 203 /* getAddressByName */
 #define ZIS_STUB_GETSOCNM 204 /* getSocketName */
@@ -174,7 +174,7 @@
 #define ZIS_STUB_TCPSERVR 209 /* tcpServer */
 #define ZIS_STUB_TCPCLIE3 210 /* tcpClient3 */
 #define ZIS_STUB_TCPSERV2 211 /* tcpServer2 */
-#define ZIS_STUB_MAKSPSOC 212 /* makePipeBasedSyntheticSocket */
+/* #define ZIS_STUB_MAKSPSOC 212 makePipeBasedSyntheticSocket - no metal imlp */
 #define ZIS_STUB_BPXSLEEP 213 /* bpxSleep */
 #define ZIS_STUB_TCPIOCTR 214 /* tcpIOControl */
 #define ZIS_STUB_UDPPEER  215 /* udpPeer */
@@ -193,7 +193,7 @@
 #define ZIS_STUB_SETSKTRB 228 /* setSocketReadBufferSize */
 #define ZIS_STUB_SETSOCBM 229 /* setSocketBlockingMode */
 #define ZIS_STUB_SETSKTOP 230 /* setSocketOption */
-#define ZIS_STUB_SOCKSEND 231 /* socketSend */
+/* #define ZIS_STUB_SOCKSEND 231 socketSend - no metal impl */
 #define ZIS_STUB_SOCACCPT 232 /* socketAccept */
 #define ZIS_STUB_SOCCLOSE 233 /* socketClose */
 #define ZIS_STUB_EXSELECT 234 /* extendedSelect */
@@ -367,8 +367,8 @@
 #define ZIS_STUB_LGSETLVL 462 /* logSetLevel */
 #define ZIS_STUB_LGGETLVL 463 /* logGetLevel */
 #define ZIS_STUB_LGSHTRCE 464 /* logShouldTraceInternal */
-#define ZIS_STUB_LGGLOGCX 465 /* logGetExternalContext */
-#define ZIS_STUB_LGSLOGCX 466 /* logSetExternalContext */
+/* #define ZIS_STUB_LGGLOGCX 465 logGetExternalContext - provider stub */
+/* #define ZIS_STUB_LGSLOGCX 466 logSetExternalContext - provider stub */
 #define ZIS_STUB_LGPRSOUT 467 /* printStdout */
 #define ZIS_STUB_LGPRSERR 468 /* printStderr */
 
@@ -446,7 +446,7 @@
 #define ZIS_STUB_BPAMRD2  573 /* bpamRead2 */
 
 /* radmin, 580-599 */
-#define ZIS_STUB_RADMXUP  580 /* radminExtractUserProfiles mapped */
+#define ZIS_STUB_RADMXPRF 580 /* radminExtractProfiles mapped */
 #define ZIS_STUB_RADMXBUP 581 /* radminExtractBasicUserProfileInfo mapped */
 #define ZIS_STUB_RADMXBRP 582 /* radminExtractBasicGenresProfileInfo mapped */
 #define ZIS_STUB_RADMXBGP 583 /* radminExtractBasicGroupProfileInfo mapped */
@@ -601,8 +601,8 @@
 #define ZIS_STUB_VSPOINT  785 /* point */
 #define ZIS_STUB_VPUTREC  786 /* putRecord */
 #define ZIS_STUB_VGETREC  787 /* getRecord */
-#define ZIS_STUB_VMKDBUFF 788 /* makeDataBuffer */
-#define ZIS_STUB_VFRDBUFF 789 /* freeDataBuffer */
+/* #define ZIS_STUB_VMKDBUFF 788 makeDataBuffer - No body */
+/* #define ZIS_STUB_VFRDBUFF 789 freeDataBuffer - No body */
 #define ZIS_STUB_VPNBYRBA 790 /* pointByRBA */
 #define ZIS_STUB_VPNBYKEY 791 /* pointByKey */
 #define ZIS_STUB_VPNBYREC 792 /* pointByRecord */
@@ -663,7 +663,7 @@
 #define ZIS_STUB_SAFAUTH  864 /* safAuth */
 #define ZIS_STUB_SAFAUTHS 865 /* safAuthStatus */
 #define ZIS_STUB_SAFSTAT  866 /* safStat */
-#define ZIS_STUB_GETSAFPL 867 /* getSafProfileMaxLen */
+/* #define ZIS_STUB_GETSAFPL 867 getSafProfileMaxLen - no body */
 
 /* zvt, 880-889 */
 #define ZIS_STUB_ZVTINIT  880 /* zvtInit mapped */
