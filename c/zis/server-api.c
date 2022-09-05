@@ -26,7 +26,7 @@
 #define ZIS_LPA_DEV_MODE 0
 #endif
 
-bool zisIsLPADevModeOn(const ZISContext *context) {
+_Bool zisIsLPADevModeOn(const ZISContext *context) {
   int devFlags = CMS_SERVER_FLAG_DEV_MODE_LPA | CMS_SERVER_FLAG_DEV_MODE;
   return (context->cmsFlags & devFlags) || ZIS_LPA_DEV_MODE;
 }
