@@ -378,6 +378,10 @@
     stubVector[ZIS_STUB_RCVRURSI] = (void*)recoveryUpdateRouterServiceInfo;
     stubVector[ZIS_STUB_RCVRUSSI] = (void*)recoveryUpdateStateServiceInfo;
     stubVector[ZIS_STUB_RCVRGACD] = (void*)recoveryGetABENDCode;
+    stubVector[ZIS_STUB_RMGRATRM] = (void*)resmgrAddTaskResourceManager;
+    stubVector[ZIS_STUB_RMGRAARM] = (void*)resmgrAddAddressSpaceResourceManager;
+    stubVector[ZIS_STUB_RMGRDTRM] = (void*)resmgrDeleteTaskResourceManager;
+    stubVector[ZIS_STUB_RMGRDARM] = (void*)resmgrDeleteAddressSpaceResourceManager;
     stubVector[ZIS_STUB_SCHZOSWT] = (void*)zosWait;
     stubVector[ZIS_STUB_SCHZOSWL] = (void*)zosWaitList;
     stubVector[ZIS_STUB_SCHZOSPT] = (void*)zosPost;
