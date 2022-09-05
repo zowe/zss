@@ -27,6 +27,8 @@
  */
 void zisGetServerVersion(int *major, int *minor, int *revision);
 
+struct ZISContext_tag;
+
 /**
  * Check if the LPA dev mode has been enabled.
  * @param[in] context The server context.
