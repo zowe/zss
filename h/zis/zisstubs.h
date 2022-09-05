@@ -285,7 +285,15 @@
 #define ZIS_STUB_CPL64DEL 353 /* iarcp64Delete */
 
 /* crossmemory, 360-379 */
+/* #define ZIS_STUB_CMINILOG 300 cmsInitializeLogging - not in CMS_CLIENT */
+/* #define ZIS_STUB_CMMCMSRV 301 makeCrossMemoryServer - not in CMS_CLIENT */
+/* #define ZIS_STUB_CMMCMSR2 302 makeCrossMemoryServer2  - not in CMS_CLIENT */
+/* #define ZIS_STUB_CMMCRSRV 303 removeCrossMemoryServer - not in CMS_CLIENT */
+/* #define ZIS_STUB_CMCMSSPP 304 cmsSetPoolParameters - not in CMS_CLIENT */
+/* #define ZIS_STUB_CMCMSRSR 305 cmsRegisterService - not in CMS_CLIENT */
+/* #define ZIS_STUB_CMCMAINL 306 cmsStartMainLoop - not in CMS_CLIENT */
 #define ZIS_STUB_CMGETGA  360 /* cmsGetGlobalArea */
+/* #define ZIS_STUB_CMADDPRM 308 cmsAddConfigParm - not in CMS_CLIENT */
 #define ZIS_STUB_CMTSAUTH 361 /* cmsTestAuth */
 #define ZIS_STUB_CMCMSRCS 362 /* cmsCallService */
 #define ZIS_STUB_CMCALLS2 363 /* cmsCallService2 */
@@ -298,6 +306,10 @@
 #define ZIS_STUB_CMGETLOG 370 /* cmsGetPCLogLevel */
 #define ZIS_STUB_CMGETSTS 371 /* cmsGetStatus */
 #define ZIS_STUB_CMMKSNAM 372 /* cmsMakeServerName */
+/* #define ZIS_STUB_CMECSAAL 341 cmsAllocateECSAStorage - not in CMS_CLIENT */
+/* #define ZIS_STUB_CMECSAFR 342 cmsFreeECSAStorage - not in CMS_CLIENT */
+/* #define ZIS_STUB_CMECSAA2 343 cmsAllocateECSAStorage2 - not in CMS_CLIENT */
+/* #define ZIS_STUB_CMECSAF2 344 cmsFreeECSAStorage2 - not in CMS_CLIENT */
 
 /* dynalloc, 380-409 */
 #define ZIS_STUB_DYNASTXU 380 /* createSimpleTextUnit mapped */
@@ -377,9 +389,11 @@
 #define ZIS_STUB_LPADEL   481 /* lpaDelete mapped */
 
 /* metalio, 490-509 */
+/* #define ZIS_STUB_GTNMTKFT 420 getNameTokenFunctionTable - defunct */
 #define ZIS_STUB_GTNMTKVL 490 /* getNameTokenValue */
 #define ZIS_STUB_CRNMTKPR 491 /* createNameTokenPair */
 #define ZIS_STUB_DLNMTKPR 492 /* deleteNameTokenPair */
+/* #define ZIS_STUB_INITSYTS 424 initSysouts - not used */
 #define ZIS_STUB_GTSYSOUT 493 /* getSYSOUTStruct */
 #define ZIS_STUB_WTOPRNF  494 /* wtoPrintf */
 #define ZIS_STUB_AWTOPRNF 495 /* authWTOPrintf */
@@ -470,6 +484,8 @@
 #define ZIS_STUB_RCVRURSI 609 /* recoveryUpdateRouterServiceInfo */
 #define ZIS_STUB_RCVRUSSI 610 /* recoveryUpdateStateServiceInfo */
 #define ZIS_STUB_RCVRGACD 611 /* recoveryGetABENDCode */
+/* #define ZIS_STUB_RCVRNFNE 522 - defunct */
+/* #define ZIS_STUB_SHRCVRST 523 - defunct  */
 
 /* resmgr, 620-629 */
 #define ZIS_STUB_RMGRATRM 620 /* resmgrAddTaskResourceManager */
