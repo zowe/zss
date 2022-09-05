@@ -42,7 +42,7 @@ done
 
 
 ld -V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus -e main \
--o "//'$USER.DEV.OMDS.TEST.LOADLIB(ZISDLTST)'" \
+-o "//'$USER.DEV.LOADLIB(ZISDLTST)'" \
 zisdl.o \
 stubs.o \
 > ZISDLTST.link

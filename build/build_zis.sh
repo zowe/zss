@@ -94,7 +94,7 @@ done
 
 
 ld -V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus \
-  -e main -o "//'${USER}.DEV.OMDS.TEST.LOADLIB(ZWESIS01)'" \
+  -e main -o "//'${USER}.DEV.LOADLIB(ZWESIS01)'" \
   alloc.o \
   cellpool.o \
   cmutils.o \
@@ -133,7 +133,7 @@ ld -V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus \
   > ZWESIS01.link
 
 ld -V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus \
-  -e main -o "//'${USER}.DEV.OMDS.TEST.LOADLIB(ZWESAUX)'" \
+  -e main -o "//'${USER}.DEV.LOADLIB(ZWESAUX)'" \
   alloc.o \
   as.o \
   cellpool.o \
