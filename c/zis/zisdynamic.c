@@ -336,11 +336,33 @@ static int handleZISDynamicCommands(struct ZISContext_tag *context,
     if (!strcmp(command->args[0], "STATUS")) {
 
       DynamicPluginData *pluginData = (DynamicPluginData *)&anchor->pluginData;
-
+      ZISDynStubVector *stubVector = pluginData->stubVector;
       zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO,
-              ZISDYN_LOG_CMD_RESP_MSG" Plug-in v%d - anchor = 0x%p, "
-                                     "init TOD = %16.16llX\n",
-              plugin->pluginVersion, anchor, pluginData->initTime);
+              ZISDYN_LOG_CMD_RESP_MSG" Plug-in anchor address = 0x%p\n"
+              "            Version          = %u\n"
+              "            Init TOD         = %016llX\n"
+              "          ZIS stub vector address = 0x%p\n"
+              "            Version          = %u\n"
+              "            Key              = %u\n"
+              "            Subpool          = %u\n"
+              "            Size             = %u\n"
+              "            Creation TOD     = %016llX\n"
+              "            Job name         = %-8.8s\n"
+              "            Job ASID         = 0x%04X\n"
+              "            Stubs version    = %u\n",
+              anchor, plugin->pluginVersion, pluginData->initTime,
+              stubVector,
+              stubVector->version,
+              stubVector->key,
+              stubVector->subpool,
+              stubVector->size,
+              stubVector->creationTime,
+              stubVector->jobName,
+              stubVector->asid,
+              stubVector->stubsVersion
+      );
+      zowedump(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
+               stubVector, stubVector->size);
 
       *status = CMS_MODIFY_COMMAND_STATUS_CONSUMED;
     }
