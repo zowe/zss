@@ -29,6 +29,10 @@ if('ZWE_HA_INSTANCES_COUNT' in os.environ):
     if (not math.isnan(os.environ['ZWE_HA_INSTANCES_COUNT']) and os.environ['ZWE_HA_INSTANCES_COUNT']>1):
         isHaMode=True
 
+if(not 'ZWE_zowe_cookieIdentifier' in os.environ):
+   os.environ['ZWE_zowe_cookieIdentifier']='1'
+cookieIdentifier =os.getenv('ZWE_zowe_cookieIdentifier') 
+
 # if theres no such env var declared, then we set to 5000 by default
 if(os.getenv('FLASK_RUN_PORT') == None):
      os.environ['FLASK_RUN_PORT'] ='5000'
@@ -183,7 +187,7 @@ def login():
             if global_password_expired == False:
                 resp = make_response("Login Successful")
                 if isHaMode is True:
-                    resp.set_cookie("jedHTTPSession.1" , "xrQdqvc2J7WWlew2OXU1RtwwUXXD9KGJ35x5IZTrSrX18y80OVBI8A")
+                    resp.set_cookie("jedHTTPSession" + cookieIdentifier , "xrQdqvc2J7WWlew2OXU1RtwwUXXD9KGJ35x5IZTrSrX18y80OVBI8A")
                     return resp, 200
                 else:
                    resp.set_cookie("jedHTTPSession." + global_port, "xrQdqvc2J7WWlew2OXU1RtwwUXXD9KGJ35x5IZTrSrX18y80OVBI8A")
