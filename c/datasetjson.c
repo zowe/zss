@@ -2615,13 +2615,6 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
           }
           rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALNDISP, configsCount, inputTextUnit);
         }
-      } else if(!strcmp(propString, "unit")) {
-        // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-unit-parameter
-        char *valueString = jsonAsString(value);
-        if (valueString != NULL) {
-          int valueStrLen = strlen(valueString);
-          rc = setTextUnit(TEXT_UNIT_STRING, valueStrLen, &(valueString)[0], 0, DALUNIT, configsCount, inputTextUnit);
-        }
       } else if(!strcmp(propString, "strcls")) {
         char *valueString = jsonAsString(value);
         if (valueString != NULL) {
