@@ -2621,15 +2621,27 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
         if (valueString != NULL) {
           int valueStrLen = strlen(valueString);
           rc = setTextUnit(TEXT_UNIT_STRING, valueStrLen, &(valueString)[0], 0, DALUNIT, configsCount, inputTextUnit);
-        } else if(!strcmp(propString, "strcls")) {
+        }
+      } else if(!strcmp(propString, "strcls")) {
+        char *valueString = jsonAsString(value);
+        if (valueString != NULL) {
+          int valueStrLen = strlen(valueString);
           if (valueStrLen <= CLASS_WRITER_SIZE){
             rc = setTextUnit(TEXT_UNIT_STRING, CLASS_WRITER_SIZE, &(valueString)[0], 0, DALSTCL, configsCount, inputTextUnit);
           }
-        } else if(!strcmp(propString, "mngcls")) {
+        }
+      } else if(!strcmp(propString, "mngcls")) {
+        char *valueString = jsonAsString(value);
+        if (valueString != NULL) {
+          int valueStrLen = strlen(valueString);
           if (valueStrLen <= CLASS_WRITER_SIZE){
             rc = setTextUnit(TEXT_UNIT_STRING, CLASS_WRITER_SIZE, &(valueString)[0], 0, DALMGCL, configsCount, inputTextUnit);
           }
-        } else if(!strcmp(propString, "datacls")) {
+        }
+      } else if(!strcmp(propString, "datacls")) {
+        char *valueString = jsonAsString(value);
+        if (valueString != NULL) {
+          int valueStrLen = strlen(valueString);
           if (valueStrLen <= CLASS_WRITER_SIZE){
             rc = setTextUnit(TEXT_UNIT_STRING, CLASS_WRITER_SIZE, &(valueString)[0], 0, DALDACL, configsCount, inputTextUnit);
           }
