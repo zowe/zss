@@ -2541,149 +2541,162 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
   // or here https://www.ibm.com/docs/en/zos/2.1.0?topic=function-dsname-allocation-text-units
   while(currentProp != NULL){
     value = jsonPropertyGetValue(currentProp);
-    char *valueString = jsonAsString(value);
+    char *propString = jsonPropertyGetKey(currentProp);
 
-    if(valueString != NULL){
+    if(propString != NULL){
       errno = 0;
       int valueStrLen = strlen(valueString);
-      char *propString = jsonPropertyGetKey(currentProp);
       if (!strcmp(propString, "dsorg")) {
-        parmDefn = (!strcmp(valueString, "PS")) ? DALDSORG_PS : DALDSORG_PO;
-        rc = setTextUnit(TEXT_UNIT_INT16, 0, NULL, parmDefn, DALDSORG, configsCount, inputTextUnit);
+        char *valueString = jsonAsString(value);
+        if (valueString != NULL) {
+          parmDefn = (!strcmp(valueString, "PS")) ? DALDSORG_PS : DALDSORG_PO;
+          rc = setTextUnit(TEXT_UNIT_INT16, 0, NULL, parmDefn, DALDSORG, configsCount, inputTextUnit);
+        }
       } else if(!strcmp(propString, "blksz")) {
         // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-blksize-parameter
-        long toi = strtol(valueString, NULL, 0);
-        if(errno != ERANGE){
-          if (toi <= 0x7FF8 && toi >= 0) { //<-- If DASD, if tape, it can be 80000000
+        int64_t valueInt = jsonAsInt64(value);
+        if(valueInt != 0){
+          if (valueInt <= 0x7FF8 && valueInt >= 0) { //<-- If DASD, if tape, it can be 80000000
             type = TEXT_UNIT_INT16;
-          } else if (toi <= 0x80000000){
+          } else if (valueInt <= 0x80000000){
             type = TEXT_UNIT_LONGINT;
           }
           if(type != TEXT_UNIT_NULL) {
-            rc = setTextUnit(type, 0, NULL, toi, DALBLKSZ, configsCount, inputTextUnit);
+            rc = setTextUnit(type, 0, NULL, valueInt, DALBLKSZ, configsCount, inputTextUnit);
           }
         }
       } else if(!strcmp(propString, "lrecl")) {
-        long toi = strtol(valueString, NULL, 0);
-        if (errno != ERANGE){
-          if (toi == 0x8000 || (toi <= 0x7FF8 && toi >= 0)) {
-            rc = setTextUnit(TEXT_UNIT_INT16, 0, NULL, toi, DALLRECL, configsCount, inputTextUnit);
-          }
+        int valueInt = jsonAsNumber(value);
+        if (valueInt == 0x8000 || (valueInt <= 0x7FF8 && valueInt >= 0)) {
+          rc = setTextUnit(TEXT_UNIT_INT16, 0, NULL, valueInt, DALLRECL, configsCount, inputTextUnit);
         }
       } else if(!strcmp(propString, "volser")) {
-        if (valueStrLen <= VOLSER_SIZE){
-          rc = setTextUnit(TEXT_UNIT_STRING, VOLSER_SIZE, &(valueString)[0], 0, DALVLSER, configsCount, inputTextUnit);
+        char *valueString = jsonAsString(value);
+        if (valueString != NULL) {
+          if (valueStrLen <= VOLSER_SIZE){
+            rc = setTextUnit(TEXT_UNIT_STRING, VOLSER_SIZE, &(valueString)[0], 0, DALVLSER, configsCount, inputTextUnit);
+          }
         }
       } else if(!strcmp(propString, "recfm")) {
-        int setRECFM = 0;
-        if (indexOf(valueString, valueStrLen, 'A', 0) != -1){
-          setRECFM = setRECFM | DALRECFM_A;
+        char *valueString = jsonAsString(value);
+        if (valueString != NULL) {
+          int setRECFM = 0;
+          if (indexOf(valueString, valueStrLen, 'A', 0) != -1){
+            setRECFM = setRECFM | DALRECFM_A;
+          }
+          if (indexOf(valueString, valueStrLen, 'B', 0) != -1){
+            setRECFM = setRECFM | DALRECFM_B;
+          }
+          if (indexOf(valueString, valueStrLen, 'V', 0) != -1){
+            setRECFM = setRECFM | DALRECFM_V;
+          }
+          if (indexOf(valueString, valueStrLen, 'F', 0) != -1){
+            setRECFM = setRECFM | DALRECFM_F;
+          }
+          if (indexOf(valueString, valueStrLen, 'U', 0) != -1){
+            setRECFM = setRECFM | DALRECFM_U;
+          }
+          rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, setRECFM, DALRECFM, configsCount, inputTextUnit);
         }
-        if (indexOf(valueString, valueStrLen, 'B', 0) != -1){
-          setRECFM = setRECFM | DALRECFM_B;
-        }
-        if (indexOf(valueString, valueStrLen, 'V', 0) != -1){
-          setRECFM = setRECFM | DALRECFM_V;
-        }
-        if (indexOf(valueString, valueStrLen, 'F', 0) != -1){
-          setRECFM = setRECFM | DALRECFM_F;
-        }
-        if (indexOf(valueString, valueStrLen, 'U', 0) != -1){
-          setRECFM = setRECFM | DALRECFM_U;
-        }
-        rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, setRECFM, DALRECFM, configsCount, inputTextUnit);
       } else if(!strcmp(propString, "blkln")) {
         // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-block-length-specification-key-0009
-        long toi = strtol(valueString, NULL, 0);
-        if (errno != ERANGE) {
-          if (toi <= 0xFFFF || toi >= 0){
-            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, toi, DALBLKLN, configsCount, inputTextUnit);
-          }
+        int valueInt = jsonAsNumber(value);
+        if (valueInt <= 0xFFFF && valueInt >= 0){
+          rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALBLKLN, configsCount, inputTextUnit);
         }
       } else if (!strcmp(propString, "ndisp")) {
-        if (!strcmp(valueString, "KEEP")){
-          parmDefn = DISP_KEEP;
-        } else {
-          parmDefn = DISP_CATLG;
+        char *valueString = jsonAsString(value);
+        if (valueString != NULL) {
+          if (!strcmp(valueString, "KEEP")){
+            parmDefn = DISP_KEEP;
+          } else {
+            parmDefn = DISP_CATLG;
+          }
+          rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALNDISP, configsCount, inputTextUnit);
         }
-        rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALNDISP, configsCount, inputTextUnit);
       } else if(!strcmp(propString, "unit")) {
         // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-unit-parameter
-        rc = setTextUnit(TEXT_UNIT_STRING, valueStrLen, &(valueString)[0], 0, DALUNIT, configsCount, inputTextUnit);
-      } else if(!strcmp(propString, "strcls")) {
-        if (valueStrLen <= CLASS_WRITER_SIZE){
-          rc = setTextUnit(TEXT_UNIT_STRING, CLASS_WRITER_SIZE, &(valueString)[0], 0, DALSTCL, configsCount, inputTextUnit);
-        }
-      } else if(!strcmp(propString, "mngcls")) {
-        if (valueStrLen <= CLASS_WRITER_SIZE){
-          rc = setTextUnit(TEXT_UNIT_STRING, CLASS_WRITER_SIZE, &(valueString)[0], 0, DALMGCL, configsCount, inputTextUnit);
-        }
-      } else if(!strcmp(propString, "datacls")) {
-        if (valueStrLen <= CLASS_WRITER_SIZE){
-          rc = setTextUnit(TEXT_UNIT_STRING, CLASS_WRITER_SIZE, &(valueString)[0], 0, DALDACL, configsCount, inputTextUnit);
+        char *valueString = jsonAsString(value);
+        if (valueString != NULL) {
+          rc = setTextUnit(TEXT_UNIT_STRING, valueStrLen, &(valueString)[0], 0, DALUNIT, configsCount, inputTextUnit);
+        } else if(!strcmp(propString, "strcls")) {
+          if (valueStrLen <= CLASS_WRITER_SIZE){
+            rc = setTextUnit(TEXT_UNIT_STRING, CLASS_WRITER_SIZE, &(valueString)[0], 0, DALSTCL, configsCount, inputTextUnit);
+          }
+        } else if(!strcmp(propString, "mngcls")) {
+          if (valueStrLen <= CLASS_WRITER_SIZE){
+            rc = setTextUnit(TEXT_UNIT_STRING, CLASS_WRITER_SIZE, &(valueString)[0], 0, DALMGCL, configsCount, inputTextUnit);
+          }
+        } else if(!strcmp(propString, "datacls")) {
+          if (valueStrLen <= CLASS_WRITER_SIZE){
+            rc = setTextUnit(TEXT_UNIT_STRING, CLASS_WRITER_SIZE, &(valueString)[0], 0, DALDACL, configsCount, inputTextUnit);
+          }
         }
       } else if(!strcmp(propString, "space")) {
-        if (!strcmp(valueString, "CYL")) {
-          parmDefn = DALCYL;
-        } else if (!strcmp(valueString, "TRK")) {
-          // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-track-space-type-trk-specification-key-0007
-          parmDefn = DALTRK;
-        }
-        if(parmDefn != DALDSORG_NULL) {
-          rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, parmDefn, configsCount, inputTextUnit);
+        char *valueString = jsonAsString(value);
+        if (valueString != NULL) {
+          if (!strcmp(valueString, "CYL")) {
+            parmDefn = DALCYL;
+          } else if (!strcmp(valueString, "TRK")) {
+            // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-track-space-type-trk-specification-key-0007
+            parmDefn = DALTRK;
+          }
+          if(parmDefn != DALDSORG_NULL) {
+            rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, parmDefn, configsCount, inputTextUnit);
+          }
         }
       } else if(!strcmp(propString, "dir")) {
-        long toi = strtol(valueString, NULL, 0);
-        if (errno != ERANGE) {
-          if (toi <= 0xFFFFFF || toi >= 0) {
-            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, toi, DALDIR, configsCount, inputTextUnit);
-          }
+        int valueInt = jsonAsNumber(value);
+        if (valueInt <= 0xFFFFFF && valueInt >= 0) {
+          rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALDIR, configsCount, inputTextUnit);
         }
       } else if(!strcmp(propString, "prime")) {
-        long toi = strtol(valueString, NULL, 0);
-        if (errno != ERANGE) {
-          if (toi <= 0xFFFFFF || toi >= 0) {
-            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, toi, DALPRIME, configsCount, inputTextUnit);
-          }
+        int valueInt = jsonAsNumber(value);
+        if (valueInt <= 0xFFFFFF && valueInt >= 0) {
+          rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALPRIME, configsCount, inputTextUnit);
         }
       } else if(!strcmp(propString, "secnd")) {
-        long toi = strtol(valueString, NULL, 0);
-        if (errno != ERANGE) {
-          if (toi <= 0xFFFFFF || toi >= 0) {
-            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, toi, DALSECND, configsCount, inputTextUnit);
-          }
+        int valueInt = jsonAsNumber(value);
+        if (valueInt <= 0xFFFFFF && valueInt >= 0) {
+          rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALSECND, configsCount, inputTextUnit);
         }
       } else if(!strcmp(propString, "avgr")) {
         // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-avgrec-parameter
-        if (!strcmp(valueString, "M")) {
-          parmDefn = DALDSORG_MREC;
-        } else if (!strcmp(valueString, "K")) {
-          parmDefn = DALDSORG_KREC;
-        } else if (!strcmp(valueString, "U")) {
-          parmDefn = DALDSORG_UREC;
-        }
-        if(parmDefn != DALDSORG_NULL) {
-          rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALAVGR, configsCount, inputTextUnit);
+        char *valueString = jsonAsString(value);
+        if (valueString != NULL) {
+          if (!strcmp(valueString, "M")) {
+            parmDefn = DALDSORG_MREC;
+          } else if (!strcmp(valueString, "K")) {
+            parmDefn = DALDSORG_KREC;
+          } else if (!strcmp(valueString, "U")) {
+            parmDefn = DALDSORG_UREC;
+          }
+          if(parmDefn != DALDSORG_NULL) {
+            rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALAVGR, configsCount, inputTextUnit);
+          }
         }
       } else if(!strcmp(propString, "dsnt")) {
         // https://www.ibm.com/docs/en/zos/2.3.0?topic=jcl-allocating-system-managed-data-sets
-        if (!strcmp(valueString, "PDSE")) {
-          parmDefn = DALDSORG_PDSE;
-        } else if (!strcmp(valueString, "PDS")) {
-          parmDefn = DALDSORG_PDS;
-        } else if (!strcmp(valueString, "HFS")) {
-          parmDefn = DALDSORG_HFS;
-        } else if (!strcmp(valueString, "EXTREQ")) {
-          parmDefn = DALDSORG_EXTREQ;
-        } else if (!strcmp(valueString, "EXTPREF")) {
-          parmDefn = DALDSORG_EXTPREF;
-        } else if (!strcmp(valueString, "BASIC")) {
-          parmDefn = DALDSORG_BASIC;
-        } else if (!strcmp(valueString, "LARGE")) {
-          parmDefn = DALDSORG_LARGE;
-        }
-        if(parmDefn != DALDSORG_NULL) {
-          rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALDSNT, configsCount, inputTextUnit);
+        char *valueString = jsonAsString(value);
+        if (valueString != NULL) {
+          if (!strcmp(valueString, "PDSE")) {
+            parmDefn = DALDSORG_PDSE;
+          } else if (!strcmp(valueString, "PDS")) {
+            parmDefn = DALDSORG_PDS;
+          } else if (!strcmp(valueString, "HFS")) {
+            parmDefn = DALDSORG_HFS;
+          } else if (!strcmp(valueString, "EXTREQ")) {
+            parmDefn = DALDSORG_EXTREQ;
+          } else if (!strcmp(valueString, "EXTPREF")) {
+            parmDefn = DALDSORG_EXTPREF;
+          } else if (!strcmp(valueString, "BASIC")) {
+            parmDefn = DALDSORG_BASIC;
+          } else if (!strcmp(valueString, "LARGE")) {
+            parmDefn = DALDSORG_LARGE;
+          }
+          if(parmDefn != DALDSORG_NULL) {
+            rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALDSNT, configsCount, inputTextUnit);
+          }
         }
       }
       
