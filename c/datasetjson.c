@@ -2545,7 +2545,6 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
 
     if(propString != NULL){
       errno = 0;
-      int valueStrLen = strlen(valueString);
       if (!strcmp(propString, "dsorg")) {
         char *valueString = jsonAsString(value);
         if (valueString != NULL) {
@@ -2573,6 +2572,7 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
       } else if(!strcmp(propString, "volser")) {
         char *valueString = jsonAsString(value);
         if (valueString != NULL) {
+          int valueStrLen = strlen(valueString);
           if (valueStrLen <= VOLSER_SIZE){
             rc = setTextUnit(TEXT_UNIT_STRING, VOLSER_SIZE, &(valueString)[0], 0, DALVLSER, configsCount, inputTextUnit);
           }
@@ -2580,6 +2580,7 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
       } else if(!strcmp(propString, "recfm")) {
         char *valueString = jsonAsString(value);
         if (valueString != NULL) {
+          int valueStrLen = strlen(valueString);
           int setRECFM = 0;
           if (indexOf(valueString, valueStrLen, 'A', 0) != -1){
             setRECFM = setRECFM | DALRECFM_A;
@@ -2618,6 +2619,7 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
         // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-unit-parameter
         char *valueString = jsonAsString(value);
         if (valueString != NULL) {
+          int valueStrLen = strlen(valueString);
           rc = setTextUnit(TEXT_UNIT_STRING, valueStrLen, &(valueString)[0], 0, DALUNIT, configsCount, inputTextUnit);
         } else if(!strcmp(propString, "strcls")) {
           if (valueStrLen <= CLASS_WRITER_SIZE){
