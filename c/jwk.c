@@ -222,7 +222,8 @@ static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientC
     char errorBuf[1024];
     jsonBody = jsonParseUnterminatedUtf8String(slh, CCSID_IBM1047, body, contentLength, errorBuf, sizeof(errorBuf));
     if (!jsonBody) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error parsing JSON response: %s\n", errorBuf);
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error parsing JSON response\n");
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JSON response: %s\n", errorBuf);
       *statusOut = JWK_STATUS_JSON_RESPONSE_ERROR;
       return NULL;
     } else {
@@ -282,7 +283,8 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
   char modulus[strlen(modulusBase64Url)+1];
   int modulusLen = 0;
   if (!decodeBase64Url(modulusBase64Url, modulus, &modulusLen)) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to decode modulus '%s'\n", modulusBase64Url);
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to decode modulus\n");
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "modulus '%s'\n", modulusBase64Url);
     *statusOut = JWK_STATUS_UNRECOGNIZED_FMT_ERROR;
     return;
   }
@@ -290,7 +292,8 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
   char exponent[strlen(exponentBase64Url)+1];
   int exponentLen = 0;
   if (!decodeBase64Url(exponentBase64Url, exponent, &exponentLen)) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to decode exponent '%s' - %s\n", exponentBase64Url, jwkGetStrStatus(status));
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to decode exponent\n");
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "exponent '%s' - %s\n", exponentBase64Url, jwkGetStrStatus(status));
     *statusOut = JWK_STATUS_UNRECOGNIZED_FMT_ERROR;
     return;
   }
