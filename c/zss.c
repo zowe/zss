@@ -1078,8 +1078,7 @@ static bool checkAndSetVariableV2(ConfigManager *configmgr,
                                   const char *configVariableName,
                                   char *target,
                                   size_t targetMax,
-				  bool isRequired){
-  /* here */
+                                  bool isRequired){
   char *value;
   int getStatus = cfgGetStringC(configmgr,ZSS_CFGNAME,&value,3,"components","zss",configVariableName);
   if (!getStatus && (strlen(value)+1 < targetMax)){
