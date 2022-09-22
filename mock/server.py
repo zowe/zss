@@ -30,14 +30,14 @@ if('ZWE_HA_INSTANCES_COUNT' in os.environ):
         isHaMode=True
 
 if(not 'ZWE_zowe_cookieIdentifier' in os.environ):
-   os.environ['ZWE_zowe_cookieIdentifier']='1'
-cookieIdentifier =os.getenv('ZWE_zowe_cookieIdentifier') 
-
+    cookieIdentifier ='1'
+else:
+    cookieIdentifier =os.getenv('ZWE_zowe_cookieIdentifier')
 # if theres no such env var declared, then we set to 5000 by default
 if(os.getenv('FLASK_RUN_PORT') == None):
-     os.environ['FLASK_RUN_PORT'] ='5000'
-
-global_port = os.getenv('FLASK_RUN_PORT')
+     global_port = '5000'
+else:
+     global_port = os.getenv('FLASK_RUN_PORT')
 
 global_datasets = [
     {
