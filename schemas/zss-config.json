@@ -4,7 +4,6 @@
   "title": "zss configuration",
   "description": "Configuration properties for zss, as specified within a configuration file such as zowe.yaml",
   "type": "object",
-  "required": [ "pluginsDir", "instanceDir", "productDir", "tls", "dataserviceAuthentication", "agent" ],
   "additionalProperties": true,
   "properties": {
     "tls": {
