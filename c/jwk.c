@@ -85,7 +85,7 @@ static int jwkTaskMain(RLETask *task) {
   JwkContext *context = (JwkContext*)task->userPointer;
   JwkSettings *settings = context->settings;
   const int maxAttempts = 1000;
-  const int retryIntervalSeconds = 30;
+  const int retryIntervalSeconds = settings->retryIntervalSeconds;
   bool success = false;
 
   for (int i = 0; i < maxAttempts; i++) {

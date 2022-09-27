@@ -7,9 +7,9 @@
       "properties": {
         "components": {
           "type": "object",
+          "additionalProperties": true,
           "properties": {
-            "additionalProperties": true,
-            "app-server": {
+            "zss": {
               "allOf": [
                 { "$ref": "/schemas/v2/server-base#zoweComponent" },                
                 { "$ref": "/schemas/v2/zss-config"}

@@ -15,10 +15,9 @@
 
 typedef struct ServerAgentContext_tag{
   char productVersion[40];
-  JsonObject *serverConfig;
 } ServerAgentContext;
 
-void installServerStatusService(HttpServer *server, JsonObject* serverSettings, char* productVer);
+void installServerStatusService(HttpServer *server, char* productVer);
 
 #endif /* __SERVER_STATUS_H__ */
 
