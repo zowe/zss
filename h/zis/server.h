@@ -31,7 +31,11 @@ typedef struct ZISContext_tag {
   struct ZISServerAnchor_tag *zisAnchor;
   struct ZISPlugin_tag *firstPlugin;
   int cmsFlags;
+  EightCharString zisModuleName;
+  char dynlinkModuleNameNullTerm[9];
 } ZISContext;
+
+#define ZIS_SERVER_ANCHOR_FLAG_DYNLINK 0x0001    /* supports dynamic linkage */
 
 typedef struct ZISServerAnchor_tag {
   char eyecatcher[8];

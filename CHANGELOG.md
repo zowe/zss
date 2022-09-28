@@ -7,6 +7,7 @@ All notable changes to the ZSS package will be documented in this file.
 ## `2.4.0`
 
 - Enhancement: ZSS /datasetContents now has a PUT API for creating datasets.
+- Enhancement: ZIS dynamic linkage support
 
 ## `2.3.0`
 
