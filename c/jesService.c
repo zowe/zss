@@ -117,7 +117,15 @@ void installJesService(HttpServer *server) {
 static char* getJobID(RPLCommon *rpl){
   
   __asm(
-		  "  ENDREQ RPL=(%0) \n"
+#ifdef _LP64
+      " SAM31                 \n"
+      " SYSSTATE AMODE64=NO   \n"
+#endif
+      "  ENDREQ RPL=(%0) \n"
+#ifdef _LP64
+      " SAM64                 \n"
+      " SYSSTATE AMODE64=YES  \n"
+#endif
 		  :
 		  :"r"(rpl)
 		  :);
@@ -218,10 +226,12 @@ static void responseWithSubmitJCLContents(HttpResponse* response, const char* jc
   /*passed record length check and type check*/
   int bytesWritten = 0;
   int recordsWritten = 0;
-  char recordBuffer[maxRecordLength+1];
-  
-  char *record = jobLines;
+  int recordBuffersize = maxRecordLength + 1;
+  char *recordBuffer = safeMalloc(recordBuffersize, "recordBufferSubmitContent");
+  char *record = safeMalloc(recordBuffersize, "recordSubmitContent");
   char *jobID;
+  
+  record = jobLines;
 
   for (int jclLinecnt = 0; jclLinecnt < numLines; jclLinecnt++) {
     int recordLength = strlen(record);
@@ -229,7 +239,7 @@ static void responseWithSubmitJCLContents(HttpResponse* response, const char* jc
       record = " ";
       recordLength = 1;
     }
-    snprintf (recordBuffer, sizeof(recordBuffer), "%-*s", maxRecordLength, record);
+    snprintf (recordBuffer, recordBuffersize, "%-*s", maxRecordLength, record);
 
     /* output to INTRDR */
     putRecord(outACB, recordBuffer, maxRecordLength);
@@ -248,6 +258,9 @@ static void responseWithSubmitJCLContents(HttpResponse* response, const char* jc
   }
 
   responseWithJobDetails(response, uJobID, TRUE);
+
+  safeFree(recordBuffer,recordBuffersize);
+  safeFree(record,recordBuffersize);
 
   closeACB(outACB, ACB_MODE_OUTPUT);
 
@@ -320,10 +333,9 @@ static void respondWithSubmitDatasetInternal(HttpResponse* response,
     }
 
     int bufferSize = DATA_STREAM_BUFFER_SIZE + 1;
-    char buffer[bufferSize];
-    char record[bufferSize];
+    char *buffer = safeMalloc(bufferSize, "bufferSubmitDataset");
+    char *record = safeMalloc(bufferSize, "recordSubmitDataset");
     char *jobID;
-    int contentLength = 0;
     int bytesRead = 0;
     if (in) {
       while (!feof(in)){
@@ -332,7 +344,6 @@ static void respondWithSubmitDatasetInternal(HttpResponse* response,
           memset(record, ' ', bytesRead);
           memcpy(record, buffer, bytesRead - 1);
           putRecord(outACB, record, bytesRead);
-          contentLength = contentLength + bytesRead;
         } 
         else if (ferror(in)) {
           int inFileError = ferror(in);
@@ -352,9 +363,9 @@ static void respondWithSubmitDatasetInternal(HttpResponse* response,
         respondWithMessage(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
         "BAD_REQUEST failed with RC = %d, Submit input data does not start with a valid job line", MAXCC_12);
       }
-
       responseWithJobDetails(response, uJobID, TRUE);
-
+      safeFree(buffer,bufferSize);
+      safeFree(record,bufferSize);
       closeACB(outACB, ACB_MODE_OUTPUT);
       fclose(in);
 
