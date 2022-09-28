@@ -117,6 +117,15 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     fflush(stdout);
     deleteDatasetOrMember(response, filename);
   }
+  else if (!strcmp(request->method, methodPUT)) {
+    char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
+    char *percentDecoded = cleanURLParamValue(response->slh, l1);
+    char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
+    char *filename = stringConcatenate(response->slh, filenamep1, "'");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Allocating dataset: %s\n", filename);
+    fflush(stdout);
+    newDataset(response, filename, TRUE);
+  }
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
 

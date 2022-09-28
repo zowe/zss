@@ -1077,8 +1077,8 @@ static void checkAndSetVariableWithEnvOverride(JsonObject *mvdSettings,
 static bool checkAndSetVariableV2(ConfigManager *configmgr,
                                   const char *configVariableName,
                                   char *target,
-                                  size_t targetMax){
-  /* here */
+                                  size_t targetMax,
+                                  bool isRequired){
   char *value;
   int getStatus = cfgGetStringC(configmgr,ZSS_CFGNAME,&value,3,"components","zss",configVariableName);
   if (!getStatus && (strlen(value)+1 < targetMax)){
@@ -1087,7 +1087,7 @@ static bool checkAndSetVariableV2(ConfigManager *configmgr,
     target[len] = 0;
     return true;
   } else{
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, 
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, (isRequired ? ZOWE_LOG_SEVERE : ZOWE_LOG_DEBUG),
             "internal error accessing .components.zss.'%s', err=%d\n", configVariableName,getStatus);
     return false;
   }
@@ -1728,20 +1728,20 @@ int main(int argc, char **argv){
   bool hasProductReg = false;
   if (configmgr) { /* mvdSettings */
     int missingDirs = 0;
-    if (!checkAndSetVariableV2(configmgr, "pluginsDir", pluginsDir, COMMON_PATH_MAX)) missingDirs++;
-    if (!checkAndSetVariableV2(configmgr, "productDir", productDir, COMMON_PATH_MAX)) missingDirs++;
-    if (!checkAndSetVariableV2(configmgr, "instanceDir", instanceDir, COMMON_PATH_MAX)) missingDirs++;
+    if (!checkAndSetVariableV2(configmgr, "pluginsDir", pluginsDir, COMMON_PATH_MAX, true)) missingDirs++;
+    if (!checkAndSetVariableV2(configmgr, "productDir", productDir, COMMON_PATH_MAX, true)) missingDirs++;
+    if (!checkAndSetVariableV2(configmgr, "instanceDir", instanceDir, COMMON_PATH_MAX, true)) missingDirs++;
     /*     ZWED_productReg=enable
            ZWED_productVer=1.0
            ZWED_productPID= 8 characters
            ZWED_productOwner= 16 characters
            ZWED_productName= 16 characters (edited) 
            */
-    if (checkAndSetVariableV2(configmgr, "productReg", productReg, COMMON_PATH_MAX) &&
-        checkAndSetVariableV2(configmgr, "productVer", productVer, COMMON_PATH_MAX) &&
-        checkAndSetVariableV2(configmgr, "productPID", productPID, COMMON_PATH_MAX) &&
-        checkAndSetVariableV2(configmgr, "productOwner", productOwner, COMMON_PATH_MAX) &&
-        checkAndSetVariableV2(configmgr, "productName",  productName, COMMON_PATH_MAX)){
+    if (checkAndSetVariableV2(configmgr, "productReg", productReg, COMMON_PATH_MAX, false) &&
+        checkAndSetVariableV2(configmgr, "productVer", productVer, COMMON_PATH_MAX, false) &&
+        checkAndSetVariableV2(configmgr, "productPID", productPID, COMMON_PATH_MAX, false) &&
+        checkAndSetVariableV2(configmgr, "productOwner", productOwner, COMMON_PATH_MAX, false) &&
+        checkAndSetVariableV2(configmgr, "productName",  productName, COMMON_PATH_MAX, false)){
       hasProductReg = true;
     }
     if (missingDirs){
