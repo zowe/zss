@@ -114,8 +114,8 @@ ZOWE_PRAGMA_PACK_RESET
 
 typedef ZISPlugin *(ZISPluginDescriptorFunction)();
 
-#pragma map(zisAllocatePlugin, "ZISAPLGN")
-#pragma map(zisFreePlugin, "ZISFPLGN")
+#pragma map(zisCreatePlugin, "ZISCPLGN")
+#pragma map(zisDestroyPlugin, "ZISDSTPL")
 #pragma map(zisPluginAddService, "ZISPLGAS")
 #pragma map(zisCreatePluginAnchor, "ZISPLGCA")
 #pragma map(zisRemovePluginAnchor, "ZISPLGRM")
