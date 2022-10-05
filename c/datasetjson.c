@@ -2866,6 +2866,7 @@ void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
       }     
     } else {
       respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid JSON request body");
+      return;
     }
   }
   if (returnCode == 0) {
