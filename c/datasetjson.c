@@ -2866,6 +2866,7 @@ void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
       }     
     } else {
       respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid JSON request body");
+      return;
     }
   }
   if (returnCode == 0) {
@@ -2880,7 +2881,7 @@ void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
     }
   }
   if (returnCode) {
-    zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
+    zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_WARNING,
             "error: ds alloc dsn=\'%44.44s\' dd=\'%8.8s\', sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, ddNameBuffer, returnCode, reasonCode);
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to allocate a DD for ACB");
@@ -2889,7 +2890,7 @@ void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
   memcpy(daDDName.name, ddNameBuffer, DD_NAME_LEN);
   daRC = dynallocUnallocDatasetByDDName(&daDDName, DYNALLOC_UNALLOC_FLAG_NONE, &returnCode, &reasonCode);
   if (daRC != RC_DYNALLOC_OK) {
-    zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
+    zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_WARNING,
             "error: ds unalloc dsn=\'%44.44s\' dd=\'%8.8s\', rc=%d sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, daDDName.name, daRC, returnCode, reasonCode);
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to deallocate DDNAME");
