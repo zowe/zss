@@ -30,6 +30,7 @@
 #pragma linkage(IRRSIM00, OS)
 
 #define MAP_CERTIFICATE_TO_USERNAME 0x0006
+#define MAP_DN_TO_USERNAME 0x0008
 #define SUCCESS_RC 0
 #define SUCCESS_RC_SAF 0
 #define SUCCESS_RC_RACF 0
@@ -109,7 +110,7 @@ static void respondWithInvalidMethod(HttpResponse *response) {
     finishResponse(response);
 }
 
-static void respondWithBadRequest(HttpResponse *response) {
+static void respondWithBadRequest(HttpResponse *response, char *value) {
     jsonPrinter *p = respondWithJsonPrinter(response);
 
     setResponseStatus(response, 400, "Bad Request");
@@ -118,7 +119,7 @@ static void respondWithBadRequest(HttpResponse *response) {
 
     jsonStart(p);
     {
-      jsonAddString(p, "error", "The length of the certificate is longer than 4096 bytes");
+      jsonAddString(p, "error", value);
     }
     jsonEnd(p);
 
@@ -131,20 +132,38 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
 
   if (!strcmp(request->method, methodPOST))
   {
-    RUsermapParamList *userMapCertificateStructure 
+    RUsermapParamList *userMapStructure
       = (RUsermapParamList*)safeMalloc31(sizeof(RUsermapParamList),"RUsermapParamList");
-    memset(userMapCertificateStructure, 0, sizeof(RUsermapParamList));
+    memset(userMapStructure, 0, sizeof(RUsermapParamList));
 
-    if(request->contentLength > sizeof(userMapCertificateStructure->certificate) || request->contentLength < 0) {
-      respondWithBadRequest(response);
-      return 0;
+    char *found;
+    found = strstr(request->uri,"x509");
+    if(found != NULL) {
+    //  Certificate to user mapping
+        if(request->contentLength > sizeof(userMapStructure->certificate) || request->contentLength < 0) {
+          respondWithBadRequest(response, "The length of the certificate is longer than 4096 bytes");
+          return 0;
+        }
+
+        userMapStructure->certificateLength = request->contentLength;
+        memset(userMapStructure->certificate, 0, request->contentLength);
+        memcpy(userMapStructure->certificate, request->contentBody, request->contentLength);
+
+        userMapStructure->functionCode = MAP_CERTIFICATE_TO_USERNAME;
+    } else {
+    //    DN to user mapping
+         if(request->contentLength > sizeof(userMapStructure->distinguishedName) || request->contentLength < 0) {
+              respondWithBadRequest(response, "The length of the distinguished name is more than 246 bytes");
+              return 0;
+        }
+
+        userMapStructure->distinguishedNameLength = request->contentLength;
+        memset(userMapStructure->distinguishedName, 0, request->contentLength);
+        memcpy(userMapStructure->distinguishedName, request->contentBody, request->contentLength);
+
+        userMapStructure->functionCode = MAP_DN_TO_USERNAME;
     }
 
-    userMapCertificateStructure->certificateLength = request->contentLength;
-    memset(userMapCertificateStructure->certificate, 0, request->contentLength);
-    memcpy(userMapCertificateStructure->certificate, request->contentBody, request->contentLength);
-
-    userMapCertificateStructure->functionCode = MAP_CERTIFICATE_TO_USERNAME;
     int rc;
 
 #ifdef _LP64 
@@ -161,45 +180,45 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
           " SAM64 \n"
           " ST 15,%0"
 	  :
-	  :"m"(userMapCertificateStructure),"m"(rc)
+	  :"m"(userMapStructure),"m"(rc)
 	  :"r14","r15");
 #else
     rc = IRRSIM00(
-        &userMapCertificateStructure->workarea, // WORKAREA
-        &userMapCertificateStructure->safRcAlet  , // ALET
-        &userMapCertificateStructure->returnCode,
-        &userMapCertificateStructure->racfRcAlet,
-        &userMapCertificateStructure->returnCodeRacf,
-        &userMapCertificateStructure->racfReasonAlet,
-        &userMapCertificateStructure->reasonCodeRacf,
-        &userMapCertificateStructure->fcAlet,
-        &userMapCertificateStructure->functionCode,
-        &userMapCertificateStructure->optionWord,
-        &userMapCertificateStructure->useridLengthRacf,
-        &userMapCertificateStructure->certificateLength,
-        &userMapCertificateStructure->applicationIdLength,
-        &userMapCertificateStructure->distinguishedNameLength,
-        &userMapCertificateStructure->registryNameLength
+        &userMapStructure->workarea, // WORKAREA
+        &userMapStructure->safRcAlet  , // ALET
+        &userMapStructure->returnCode,
+        &userMapStructure->racfRcAlet,
+        &userMapStructure->returnCodeRacf,
+        &userMapStructure->racfReasonAlet,
+        &userMapStructure->reasonCodeRacf,
+        &userMapStructure->fcAlet,
+        &userMapStructure->functionCode,
+        &userMapStructure->optionWord,
+        &userMapStructure->useridLengthRacf,
+        &userMapStructure->certificateLength,
+        &userMapStructure->applicationIdLength,
+        &userMapStructure->distinguishedNameLength,
+        &userMapStructure->registryNameLength
     );
 #endif
 
     jsonPrinter *p = respondWithJsonPrinter(response);
 
-    setValidResponseCode(response, rc, userMapCertificateStructure->returnCode, userMapCertificateStructure->returnCodeRacf, userMapCertificateStructure->reasonCodeRacf);
+    setValidResponseCode(response, rc, userMapStructure->returnCode, userMapStructure->returnCodeRacf, userMapStructure->reasonCodeRacf);
     setDefaultJSONRESTHeaders(response);
     writeHeader(response);
     
     jsonStart(p);
     {
-      jsonAddString(p, "userid", userMapCertificateStructure->useridRacf);
+      jsonAddString(p, "userid", userMapStructure->useridRacf);
       jsonAddInt(p, "returnCode", rc);
-      jsonAddInt(p, "safReturnCode", userMapCertificateStructure->returnCode);
-      jsonAddInt(p, "racfReturnCode", userMapCertificateStructure->returnCodeRacf);
-      jsonAddInt(p, "racfReasonCode", userMapCertificateStructure->reasonCodeRacf);
+      jsonAddInt(p, "safReturnCode", userMapStructure->returnCode);
+      jsonAddInt(p, "racfReturnCode", userMapStructure->returnCodeRacf);
+      jsonAddInt(p, "racfReasonCode", userMapStructure->reasonCodeRacf);
     }
     jsonEnd(p);
 
-    safeFree31((char*)userMapCertificateStructure,sizeof(RUsermapParamList));
+    safeFree31((char*)userMapStructure,sizeof(RUsermapParamList));
     finishResponse(response);
   }
   else
@@ -210,9 +229,9 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
   return 0;
 }
 
-void installCertificateService(HttpServer *server)
+void installUserMappingService(HttpServer *server)
 {
-  HttpService *httpService = makeGeneratedService("CertificateService", "/certificate/x509/**");
+  HttpService *httpService = makeGeneratedService("UserMappingService", "/user-mapping/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = serveMappingService;
   httpService->runInSubtask = TRUE;
