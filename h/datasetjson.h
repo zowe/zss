@@ -23,6 +23,9 @@
 
 #define SAF_AUTHORIZATION_READ 0x04
 #define SAF_AUTHORIZATION_UPDATE 0x08
+#define MEMBER_MAX 8
+#define DATASET_PATH_MAX 44
+#define DATASET_MEMBER_MAXLEN DATASET_PATH_MAX + MEMBER_MAX + 6 /* 6 is for extra characters in filepath -- //, '', () */
 
 typedef struct MetadataQueryCache_tag{
   EntryDataSet *cachedHLQSet;
@@ -62,6 +65,7 @@ void respondWithDataset(HttpResponse* response, char* absolutePath, int jsonMode
 void respondWithVSAMDataset(HttpResponse* response, char* absolutePath, hashtable *acbTable, int jsonMode);
 void respondWithDatasetMetadata(HttpResponse *response);
 void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQueryCache);
+void newDataset(HttpResponse* response, char* absolutePath, int jsonMode);
 void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode);
 void updateVSAMDataset(HttpResponse* response, char* absolutePath, hashtable *acbTable, int jsonMode);
 void deleteVSAMDataset(HttpResponse* response, char* absolutePath);
