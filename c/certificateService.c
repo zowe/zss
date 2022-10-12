@@ -126,18 +126,6 @@ static void respondWithBadRequest(HttpResponse *response, char *value) {
     finishResponse(response);
 }
 
-Json *parseContentBody(HttpRequest *request) {
-
-  char *inPtr = request->contentBody;
-  char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
-  int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
-  char errBuf[1024];
-
-  if (nativeBody == NULL) {
-    return NULL;
-  }
-  return jsonParseUnterminatedString(request->slh, nativeBody, inLen, errBuf, sizeof(errBuf));
-}
 
 static int serveMappingService(HttpService *service, HttpResponse *response)
 {
@@ -169,7 +157,10 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
               respondWithBadRequest(response, "The length of the distinguished name is more than 246 bytes");
               return 0;
         }
-        Json *body = parseContentBody(request);
+
+        char *nb = copyStringToNative(request->slh, request->contentBody, strlen(request->contentBody));
+        char errB[2048];
+        Json *body = jsonParseUnterminatedString(request->slh, nb, strlen(nb), errB, sizeof(errB));
         JsonObject *jsonObject = jsonAsObject(body);
         char *distinguishedId = jsonObjectGetString(jsonObject, "dn");
         if( distinguishedId == NULL || strlen(distinguishedId)) {
