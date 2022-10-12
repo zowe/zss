@@ -156,10 +156,24 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
               respondWithBadRequest(response, "The length of the distinguished name is more than 246 bytes");
               return 0;
         }
-
-        userMapStructure->distinguishedNameLength = request->contentLength;
-        memset(userMapStructure->distinguishedName, 0, request->contentLength);
-        memcpy(userMapStructure->distinguishedName, request->contentBody, request->contentLength);
+        Json *body = parseContentBody(request);
+        JsonObject *jsonObject = jsonAsObject(body);
+        char *distinguishedId = jsonObjectGetString(jsonObject, "dn");
+        if( distinguishedId == NULL || strlen(distinguishedId)) {
+            respondWithBadRequest(response, "dn field not included in request body ");
+            return 0;
+        }
+        userMapStructure->distinguishedNameLength = strlen(distinguishedId);
+        memset(userMapStructure->distinguishedName, 0, strlen(distinguishedId));
+        memcpy(userMapStructure->distinguishedName, distinguishedId, strlen(distinguishedId));
+        char *realm = jsonObjectGetString(jsonObject, "realm");
+        if( realm == NULL || strlen(realm)) {
+            respondWithBadRequest(response, "realm field not included in request body ");
+            return 0;
+        }
+        userMapStructure->registryNameLength = strlen(realm);
+        memset(userMapStructure->registryName, 0, strlen(realm));
+        memcpy(userMapStructure->registryName, realm, strlen(realm));
 
         userMapStructure->functionCode = MAP_DN_TO_USERNAME;
     }
