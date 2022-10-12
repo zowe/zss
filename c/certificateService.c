@@ -126,6 +126,19 @@ static void respondWithBadRequest(HttpResponse *response, char *value) {
     finishResponse(response);
 }
 
+Json *parseContentBody(HttpRequest *request) {
+
+  char *inPtr = request->contentBody;
+  char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
+  int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
+  char errBuf[1024];
+
+  if (nativeBody == NULL) {
+    return NULL;
+  }
+  return jsonParseUnterminatedString(request->slh, nativeBody, inLen, errBuf, sizeof(errBuf));
+}
+
 static int serveMappingService(HttpService *service, HttpResponse *response)
 {
   HttpRequest *request = response->request;
