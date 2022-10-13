@@ -156,19 +156,17 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         userMapStructure.functionCode = MAP_CERTIFICATE_TO_USERNAME;
     } else {
     //    Distinguished ID to user mapping
-         if(request->contentLength > sizeof(userMapStructure.distinguishedName) || request->contentLength < 0) {
-              respondWithBadRequest(response, "The length of the distinguished name is more than 246 bytes");
-              return 0;
-        }
-
         char *nb = copyStringToNative(request->slh, request->contentBody, strlen(request->contentBody));
         char errB[2048];
         Json *body = jsonParseUnterminatedString(request->slh, nb, strlen(nb), errB, sizeof(errB));
         JsonObject *jsonObject = jsonAsObject(body);
 
         char *distinguishedId = jsonObjectGetString(jsonObject, "dn");
-        if( distinguishedId == NULL || strlen(distinguishedId) == 0) {
+        if(distinguishedId == NULL || strlen(distinguishedId) == 0) {
             respondWithBadRequest(response, "dn field not included in request body");
+            return 0;
+        } else if(strlen(distinguishedId) > sizeof(userMapStructure.distinguishedName)){
+            respondWithBadRequest(response, "The length of the distinguished name is more than 246 bytes");
             return 0;
         }
         e2a(distinguishedId, strlen(distinguishedId));
@@ -177,10 +175,13 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         memcpy(userMapStructure.distinguishedName, distinguishedId, strlen(distinguishedId));
 
         char *registry = jsonObjectGetString(jsonObject, "registry");
-        if( registry == NULL || strlen(registry) == 0) {
+        if(registry == NULL || strlen(registry) == 0) {
             respondWithBadRequest(response, "registry field not included in request body");
             return 0;
-        }
+        } else if(strlen(registry) > sizeof(userMapStructure.registryName)){
+             respondWithBadRequest(response, "The length of the registry name is more than 255 bytes");
+             return 0;
+         }
         e2a(registry, strlen(registry));
         userMapStructure.registryNameLength = strlen(registry);
         memset(userMapStructure.registryName, 0, strlen(registry));
