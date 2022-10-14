@@ -136,8 +136,12 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
     RUsermapParamList userMapStructure = {0};
 
     memset(&userMapStructure, 0, sizeof(RUsermapParamList));
-
-    char translatedURL[256];
+    int urlLength = strlen(request->uri);
+    if(urlLength < 0 || urlLength > 256) {
+        respondWithBadRequest(response, "URL length is not in range from 0 to 256 bytes.");
+        return 0;
+    }
+    char translatedURL[urlLength];
     memcpy(translatedURL, request->uri, strlen(request->uri));
     a2e(translatedURL, sizeof(translatedURL));
     char *found = strstr(translatedURL,"x509");
