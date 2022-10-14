@@ -137,8 +137,8 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
 
     memset(&userMapStructure, 0, sizeof(RUsermapParamList));
     int urlLength = strlen(request->uri);
-    if(urlLength < 0 || urlLength > 256) {
-        respondWithBadRequest(response, "URL length is not in range from 0 to 256 bytes.");
+    if(urlLength < 0 || urlLength > 64) {
+        respondWithBadRequest(response, "URL length is not in range from 0 to 64 bytes.");
         return 0;
     }
     char translatedURL[urlLength];
