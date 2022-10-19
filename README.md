@@ -6,7 +6,7 @@ SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the Zowe Project.
 
-# ZSS - Zowe System Services Server for enabling low-level microservices
+## ZSS - Zowe System Services Server for enabling low-level microservices
 
 ## How to build ZSS and the cross-memory server
 
