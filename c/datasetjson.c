@@ -2696,13 +2696,13 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
           if (jsonObjectHasKey(object, "prime")) { //in tracks for blkln
             int primeSize = jsonObjectGetNumber(object, "prime");
             if (primeSize <= 0xFFFFFF && primeSize >= 0) {
-              rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, setDSSizeValueFromType(primeSize, spaceType), DALPRIME, configsCount, inputTextUnit);
+              rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, getDSSizeValueFromType(primeSize, spaceType), DALPRIME, configsCount, inputTextUnit);
             }
           }
           if (jsonObjectHasKey(object, "secnd")) { //in tracks for blkln
             int secondarySize = jsonObjectGetNumber(object, "secnd");
             if (secondarySize <= 0xFFFFFF && secondarySize >= 0) {
-              rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, setDSSizeValueFromType(secondarySize, spaceType), DALSECND, configsCount, inputTextUnit);
+              rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, getDSSizeValueFromType(secondarySize, spaceType), DALSECND, configsCount, inputTextUnit);
             }
           }
         }
