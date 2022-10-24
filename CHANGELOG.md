@@ -4,6 +4,10 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `2.5.0`
+
+- Enhancement: ZSS dataset creation api now supports space values of "BYTE", "KB", and "MB" instead of just "CYL" and "TRK"
+
 ## `2.4.0`
 
 - Enhancement: ZSS /datasetContents now has a PUT API for creating datasets.
