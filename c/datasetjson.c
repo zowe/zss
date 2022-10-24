@@ -2561,10 +2561,6 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
   // most parameters below explained here https://www.ibm.com/docs/en/zos/2.1.0?topic=dfsms-zos-using-data-sets
   // or here https://www.ibm.com/docs/en/zos/2.1.0?topic=function-non-jcl-dynamic-allocation-functions
   // or here https://www.ibm.com/docs/en/zos/2.1.0?topic=function-dsname-allocation-text-units
-
-  int primeSize = 0;
-  int secondarySize = 0;
-  char *spaceType = NULL;
   
   while(currentProp != NULL){
     value = jsonPropertyGetValue(currentProp);
@@ -2626,11 +2622,24 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
           }
           rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, setRECFM, DALRECFM, configsCount, inputTextUnit);
         }
-      } else if(!strcmp(propString, "blkln")) {
+      } else if(!strcmp(propString, "blkln")
+                && !jsonObjectHasKey(object, "space")) { //mutually exclusive with daltrk, dalcyl
         // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-block-length-specification-key-0009
         int valueInt = jsonAsNumber(value);
         if (valueInt <= 0xFFFF && valueInt >= 0){
           rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALBLKLN, configsCount, inputTextUnit);
+        }
+        if (jsonObjectHasKey(object, "prime")) { //in tracks for blkln
+          int primeSize = jsonObjectGetNumber(object, "prime");
+          if (primeSize <= 0xFFFFFF && primeSize >= 0) {
+            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, primeSize, DALPRIME, configsCount, inputTextUnit);
+          }
+        }
+        if (jsonObjectHasKey(object, "secnd")) { //in tracks for blkln
+          int secondarySize = jsonObjectGetNumber(object, "secnd");
+          if (secondarySize <= 0xFFFFFF && secondarySize >= 0) {
+            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, secondarySize, DALSECND, configsCount, inputTextUnit);
+          }
         }
       } else if (!strcmp(propString, "ndisp")) {
         char *valueString = jsonAsString(value);
@@ -2684,23 +2693,23 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
           if(parmDefn != DALDSORG_NULL) {
             rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, parmDefn, configsCount, inputTextUnit);
           }
+          if (jsonObjectHasKey(object, "prime")) { //in tracks for blkln
+            int primeSize = jsonObjectGetNumber(object, "prime");
+            if (primeSize <= 0xFFFFFF && primeSize >= 0) {
+              rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, setDSSizeValueFromType(primeSize, spaceType), DALPRIME, configsCount, inputTextUnit);
+            }
+          }
+          if (jsonObjectHasKey(object, "secnd")) { //in tracks for blkln
+            int secondarySize = jsonObjectGetNumber(object, "secnd");
+            if (secondarySize <= 0xFFFFFF && secondarySize >= 0) {
+              rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, setDSSizeValueFromType(secondarySize, spaceType), DALSECND, configsCount, inputTextUnit);
+            }
+          }
         }
       } else if(!strcmp(propString, "dir")) {
         int valueInt = jsonAsNumber(value);
         if (valueInt <= 0xFFFFFF && valueInt >= 0) {
           rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALDIR, configsCount, inputTextUnit);
-        }
-      } else if(!strcmp(propString, "prime")) {
-        int valueInt = jsonAsNumber(value);
-        if (valueInt <= 0xFFFFFF && valueInt >= 0) {
-          if (spaceType != NULL) {            
-            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, setDSSizeValueFromType(valueInt), DALPRIME, configsCount, inputTextUnit);
-          }
-        }
-      } else if(!strcmp(propString, "secnd")) {
-        int valueInt = jsonAsNumber(value);
-        if (valueInt <= 0xFFFFFF && valueInt >= 0) {
-          rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, setDSSizeValueFromType(valueInt), DALSECND, configsCount, inputTextUnit);
         }
       } else if(!strcmp(propString, "avgr")) {
         // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-avgrec-parameter
