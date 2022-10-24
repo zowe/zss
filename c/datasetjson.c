@@ -2532,7 +2532,7 @@ void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQue
 
 /* Returns a quantity of tracks or cylinders for dynalloc in case the user asked for bytes */
 /* Yes, these are approximations but if people really want exact numbers they should use cyl & trk */
-static int getDSSizeValueFromType(int quantity, char *type) {
+static int getDSSizeValueFromType(int quantity, char *spaceType) {
   if (!strcmp(spaceType, "CYL")) {
     return quantity;
   } else if (!strcmp(spaceType, "TRK")) {
