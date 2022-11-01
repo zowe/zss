@@ -117,10 +117,11 @@ ZOWE_PRAGMA_PACK_RESET
 
 #pragma map(zisCreateService, "ZISCRSVC")
 #pragma map(zisCreateSpaceSwitchService, "ZISCSWSV")
-#pragma map(zisCreateCurrentPrimaryService, "ZISCCPSVC")
-#pragma map(zisCreateServiceAnchor, "ZISSERVCA")
-#pragma map(zisRemoveServiceAnchor, "ZISSERVRA")
-#pragma map(zisUpdateServiceAnchor, "ZISSERVUA")
+#pragma map(zisCreateCurrentPrimaryService, "ZISCCPSV")
+#pragma map(zisCreateServiceAnchor, "ZISCSVCA")
+#pragma map(zisRemoveServiceAnchor, "ZISRSVCA")
+#pragma map(zisUpdateServiceAnchor, "ZISUSVCA")
+#pragma map(zisServiceUseSpecificAuth, "ZISUSAUT")
 
 ZISService zisCreateService(ZISServiceName name, int flags,
                             ZISServiceInitFunction *initFunction,
