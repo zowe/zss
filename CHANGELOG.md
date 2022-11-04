@@ -4,9 +4,14 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `2.5.0`
+
+- Bugfix: In 2.3 and 2.4, 'safkeyring://' syntax stopped working, only allowing 'safkeyring:////'. Now, support for both is restored.
+
 ## `2.4.0`
 
 - Enhancement: ZSS /datasetContents now has a PUT API for creating datasets.
+- Enhancement: ZIS dynamic linkage support
 
 ## `2.3.0`
 

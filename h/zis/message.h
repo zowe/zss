@@ -112,6 +112,10 @@
 #define ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG_TEXT  "ZSS Cross-Memory server PARMLIB member name not determined, RC = %d"
 #define ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG       ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG_ID" "ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG_TEXT
 
+#define ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG_ID     ZIS_MSG_PRFX"0021E"
+#define ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG_TEXT   "ZSS Cross-Memory server module member name not determined, RC = %d"
+#define ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG        ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG_ID" "ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG_TEXT
+
 /* ZIS AUX messages */
 
 #define ZISAUX_LOG_STARTUP_MSG_ID               ZIS_MSG_PRFX"0050I"
@@ -245,6 +249,60 @@
 #define ZISAUX_LOG_LEGACY_API_MSG_ID            ZIS_MSG_PRFX"0082W"
 #define ZISAUX_LOG_LEGACY_API_MSG_TEXT          "Legacy API has been detected, some functionality may be limited"
 #define ZISAUX_LOG_LEGACY_API_MSG               ZISAUX_LOG_LEGACY_API_MSG_ID" "ZISAUX_LOG_LEGACY_API_MSG_TEXT
+
+/* ZIS dynamic linkage plugin messages */
+
+#define ZISDYN_LOG_STARTUP_MSG_ID               ZIS_MSG_PRFX"0200I"
+#define ZISDYN_LOG_STARTUP_MSG_TEXT             "ZIS Dynamic Base plugin starting, version %d.%d.%d+%d, stub version %d"
+#define ZISDYN_LOG_STARTUP_MSG                  ZISDYN_LOG_STARTUP_MSG_ID" "ZISDYN_LOG_STARTUP_MSG_TEXT
+
+#define ZISDYN_LOG_STARTED_MSG_ID               ZIS_MSG_PRFX"0201I"
+#define ZISDYN_LOG_STARTED_MSG_TEXT             "ZIS Dynamic Base plugin successfully started"
+#define ZISDYN_LOG_STARTED_MSG                  ZISDYN_LOG_STARTED_MSG_ID" "ZISDYN_LOG_STARTED_MSG_TEXT
+
+#define ZISDYN_LOG_STARTUP_FAILED_MSG_ID        ZIS_MSG_PRFX"0202E"
+#define ZISDYN_LOG_STARTUP_FAILED_MSG_TEXT      "ZIS Dynamic Base plugin startup failed, status = %d"
+#define ZISDYN_LOG_STARTUP_FAILED_MSG           ZISDYN_LOG_STARTUP_FAILED_MSG_ID" "ZISDYN_LOG_STARTUP_FAILED_MSG_TEXT
+
+#define ZISDYN_LOG_INIT_ERROR_MSG_ID            ZIS_MSG_PRFX"0203E"
+#define ZISDYN_LOG_INIT_ERROR_MSG_TEXT          "ZIS Dynamic Base plugin init error -"
+#define ZISDYN_LOG_INIT_ERROR_MSG               ZISDYN_LOG_INIT_ERROR_MSG_ID" "ZISDYN_LOG_INIT_ERROR_MSG_TEXT
+
+#define ZISDYN_LOG_TERM_MSG_ID                  ZIS_MSG_PRFX"0204I"
+#define ZISDYN_LOG_TERM_MSG_TEXT                "ZIS Dynamic Base plugin terminating"
+#define ZISDYN_LOG_TERM_MSG                     ZISDYN_LOG_TERM_MSG_ID" "ZISDYN_LOG_TERM_MSG_TEXT
+
+#define ZISDYN_LOG_TERMED_MSG_ID                ZIS_MSG_PRFX"02045"
+#define ZISDYN_LOG_TERMED_MSG_TEXT              "ZIS Dynamic Base plugin successfully terminated"
+#define ZISDYN_LOG_TERMED_MSG                   ZISDYN_LOG_TERMED_MSG_ID" "ZISDYN_LOG_TERMED_MSG_TEXT
+
+#define ZISDYN_LOG_TERM_FAILED_MSG_ID           ZIS_MSG_PRFX"0206E"
+#define ZISDYN_LOG_TERM_FAILED_MSG_TEXT         "ZIS Dynamic Base plugin terminated with error"
+#define ZISDYN_LOG_TERM_FAILED_MSG              ZISDYN_LOG_TERM_FAILED_MSG_ID" "ZISDYN_LOG_TERM_FAILED_MSG_TEXT
+
+#define ZISDYN_LOG_CMD_RESP_MSG_ID              ZIS_MSG_PRFX"0207I"
+#define ZISDYN_LOG_CMD_RESP_TEXT                ""
+#define ZISDYN_LOG_CMD_RESP_MSG                 ZISDYN_LOG_CMD_RESP_MSG_ID""ZISDYN_LOG_CMD_RESP_TEXT
+
+#define ZISDYN_LOG_STUB_CREATED_MSG_ID          ZIS_MSG_PRFX"0208I"
+#define ZISDYN_LOG_STUB_CREATED_MSG_TEXT        "Stub vector has been created at %p"
+#define ZISDYN_LOG_STUB_CREATED_MSG             ZISDYN_LOG_STUB_CREATED_MSG_ID" "ZISDYN_LOG_STUB_CREATED_MSG_TEXT
+
+#define ZISDYN_LOG_STUB_REUSED_MSG_ID           ZIS_MSG_PRFX"0210I"
+#define ZISDYN_LOG_STUB_REUSED_MSG_TEXT         "Stub vector at % p has been reused"
+#define ZISDYN_LOG_STUB_REUSED_MSG              ZISDYN_LOG_STUB_REUSED_MSG_ID" "ZISDYN_LOG_STUB_REUSED_MSG_TEXT
+
+#define ZISDYN_LOG_STUB_DELETED_MSG_ID          ZIS_MSG_PRFX"0211I"
+#define ZISDYN_LOG_STUB_DELETED_MSG_TEXT        "Stub vector at % p has been deleted"
+#define ZISDYN_LOG_STUB_DELETED_MSG             ZISDYN_LOG_STUB_DELETED_MSG_ID" "ZISDYN_LOG_STUB_DELETED_MSG_TEXT
+
+#define ZISDYN_LOG_STUB_DISCARDED_MSG_ID        ZIS_MSG_PRFX"0212W"
+#define ZISDYN_LOG_STUB_DISCARDED_MSG_TEXT      "Stub vector at %p is discarded due to %s:"
+#define ZISDYN_LOG_STUB_DISCARDED_MSG           ZISDYN_LOG_STUB_DISCARDED_MSG_ID" "ZISDYN_LOG_STUB_DISCARDED_MSG_TEXT
+
+#define ZISDYN_LOG_DEV_MODE_MSG_ID              ZIS_MSG_PRFX"0213W"
+#define ZISDYN_LOG_DEV_MODE_MSG_TEXT            "ZIS Dynamic base plugin development mode is enabled"
+#define ZISDYN_LOG_DEV_MODE_MSG                 ZISDYN_LOG_DEV_MODE_MSG_ID" "ZISDYN_LOG_DEV_MODE_MSG_TEXT
 
 #endif /* ZIS_MSG_H_ */
 
