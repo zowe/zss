@@ -90,6 +90,10 @@
 
 ZOWE_PRAGMA_PACK
 
+#define ZIS_MIN_MAJOR_VERSION   ZIS_MAJOR_VERSION
+#define ZIS_MIN_MINOR_VERSION   ZIS_MINOR_VERSION
+#define ZIS_MIN_REVISION        ZIS_REVISION
+
 typedef struct ZISDynStubVector_tag {
 
 #define ZISDYN_STUB_VEC_EYECATCHER    "ZWESISSV"
@@ -386,7 +390,43 @@ void zisdynGetPluginVersion(int *major, int *minor, int *revision) {
   *revision = ZISDYN_REVISION;
 }
 
+static int verifyZISVersion(void) {
+
+  int zisMajor = 0;
+  int zisMinor = 0;
+  int zisRev = 0;
+  zisGetServerVersion(&zisMajor, &zisMinor, &zisRev);
+  zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
+          "ZIS major=%d, minor=%d, rev=%d\n", zisMajor, zisMinor, zisRev);
+
+  if (zisMajor != ZISDYN_MAJOR_VERSION) {
+    goto out_bad_version;
+  }
+  if (zisMinor < ZISDYN_MINOR_VERSION) {
+    goto out_bad_version;
+  }
+  if (zisMinor == ZISDYN_MINOR_VERSION && zisRev < ZISDYN_REVISION) {
+    goto out_bad_version;
+  }
+
+  return 0;
+
+  out_bad_version:
+  zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE,
+          ZISDYN_LOG_BAD_ZIS_VERSION_MSG,
+          ZIS_MIN_MAJOR_VERSION,
+          ZIS_MIN_MINOR_VERSION,
+          ZIS_MIN_REVISION,
+          ZIS_MIN_MAJOR_VERSION + 1,
+          zisMajor, zisMinor, zisRev);
+  return -1;
+}
+
 ZISPlugin *getPluginDescriptor(void) {
+
+  if (verifyZISVersion() != 0) {
+    return NULL;
+  }
 
   ZISPluginName pluginName = {.text = ZISDYN_PLUGIN_NAME};
   ZISPluginNickname pluginNickname = {.text = ZISDYN_PLUGIN_NICKNAME};
