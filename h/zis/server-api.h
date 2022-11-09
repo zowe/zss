@@ -20,7 +20,7 @@
 #pragma map(zisIsLPADevModeOn, "ZISLPADV")
 
 /**
- * Get the version of ZIS.
+ * Get the version of ZIS. In case of failure, all the results are set to -1.
  * @param[out] major The major ZIS version.
  * @param[out] minor The minor ZIS version.
  * @param[out] revision The revision of ZIS (aka the patch version).

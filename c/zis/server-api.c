@@ -32,9 +32,34 @@ _Bool zisIsLPADevModeOn(const ZISContext *context) {
 }
 
 void zisGetServerVersion(int *major, int *minor, int *revision) {
-  *major = ZIS_MAJOR_VERSION;
-  *minor = ZIS_MINOR_VERSION;
-  *revision = ZIS_REVISION;
+  *major = -1;
+  *minor = -1;
+  *revision = -1;
+  CAA *caa = (CAA *)getCAA();
+  if (caa == NULL) {
+    return;
+  }
+  RLETask *task = caa->rleTask;
+  if (task == NULL) {
+    return;
+  }
+  RLEAnchor *rleAnchor = task->anchor;
+  if (rleAnchor == NULL) {
+    return;
+  }
+  ZISContext *context = NULL;
+  if (getRLEApplicationAnchor(rleAnchor, (void **)&context)) {
+    return;
+  }
+  if (!(context->zisAnchor->flags & ZIS_SERVER_ANCHOR_VERSIONED_CONTEXT)) {
+    return;
+  }
+  if (context->version < ZIS_CONTEXT_VERSION_ZIS_VERSION_SUPPORT) {
+    return;
+  }
+  *major = context->zisVersion.major;
+  *minor = context->zisVersion.minor;
+  *revision = context->zisVersion.revision;
 }
 
 /*
