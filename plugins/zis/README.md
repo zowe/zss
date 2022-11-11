@@ -5,6 +5,7 @@ this distribution, and is available at https://www.eclipse.org/legal/epl-v20.htm
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the Zowe Project.
+___
 
 # ZIS plugin development
 
@@ -579,3 +580,13 @@ You should see the following messages IDs when the dev mode is on:
 
 Additionally, the dynamic linkage plugin will remove its old stub vector from
 common storage, since it can no longer reference the old LPA plugin module. 
+
+___
+
+This program and the accompanying materials are
+made available under the terms of the Eclipse Public License v2.0 which accompanies
+this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the Zowe Project.
