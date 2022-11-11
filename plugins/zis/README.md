@@ -104,7 +104,7 @@ ZIS has the ability to be extended with third-party plugins. Usually, a plugin
 consists of a single load module and a line of configuration. This document 
 will specifically go into details on how to develop and use ZIS plugins.
 
-Throughout this document we'll use snippets from the sample plugin code in [zss/plugins/zis/sample/](https://github.com/zowe/zss/tree/974fc01526b49f1c692f96a71a22c7dc11eb36e8/plugins/zis/sample).
+Throughout this document we'll use snippets from the sample plugin code in [zss/plugins/zis/sample/](https://github.com/zowe/zss/tree/82c6f2d30951d64fb1bb6487c2dde92700b91552/plugins/zis/sample).
 Refer to that source for the full plugin sample.
 
 ## Plugin structure
@@ -114,7 +114,7 @@ A ZIS plugin is a load module with the following characteristics:
 * AMODE 64
 * Reentrant
 * The result of call a ZIS plugin lod module is a plugin descriptor data 
-structure mapped by the C struct [`ZISPlugin`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/plugin.h#L81-L112)
+structure mapped by the C struct [`ZISPlugin`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/plugin.h#L81-L112)
  
 ### Services
 Each plugin consists of 0 or more services which are invoked via the PC 
@@ -184,9 +184,9 @@ problem state applications.
 
 ### Plugin descriptor
 
-A valid plugin must return the address of the [`ZISPlugin`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/plugin.h#L81-L112)
+A valid plugin must return the address of the [`ZISPlugin`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/plugin.h#L81-L112)
 struct describing the plugin itself and its services. That struct is created 
-using the [`zisCreatePlugin`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/plugin.h#L139)
+using the [`zisCreatePlugin`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/plugin.h#L139)
 function.
 
 Here's an example of how to use it:
@@ -207,19 +207,19 @@ For now the most important parameters are the plugin name, nickname, flags and
 version.
 
 ##### Plugin name
-* Mapped by the [`ZISPluginName`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/plugin.h#L40)
+* Mapped by the [`ZISPluginName`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/plugin.h#L40)
 struct
 * A 16-character printable EBCDIC string
 * Uniquely identifies a plugin within ZIS
 ##### Plugin nickname
-* Mapped by the [`ZISPluginNickname`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/plugin.h#L45)
+* Mapped by the [`ZISPluginNickname`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/plugin.h#L45)
 struct
 * A 4-character printable EBCDIC string
 * Uniquely identifies a plugin for modify commands within ZIS
 ##### Plugin flags
 * Control various aspects of a plugin
 * By default, plugin modules are only loaded into the private ZIS storage, but
-when the [`ZIS_PLUGIN_FLAG_LPA`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/plugin.h#L63) 
+when the [`ZIS_PLUGIN_FLAG_LPA`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/plugin.h#L63) 
 flag is set, the module will be loaded to LPA
 ##### Plugin version
 * ZIS uses the plugin version value to refresh the plugin module in LPA if
@@ -230,7 +230,7 @@ discarded and the new version is loaded
 must be incremented, so that the LPA module gets refreshed. During development
 process that can be avoided, see [LPA dev mode](#lpa-dev-mode).
 
-Please refer to the [`zisCreatePlugin` doc](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/plugin.h#L124-L138) 
+Please refer to the [`zisCreatePlugin` doc](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/plugin.h#L124-L138) 
 for more details.
 
 ### Plugin services
@@ -238,7 +238,7 @@ for more details.
 Once we have our plugin descriptor, we can start creating and adding services to
 the plugin.
 
-A service can be created with the [`zisCreateService`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/service.h#L137) 
+A service can be created with the [`zisCreateService`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/service.h#L137) 
 function.
 
 ```c
@@ -253,11 +253,11 @@ ZISService service = zisCreateService(
 ```
 
 The parameters we're interested in at the moment are the service name, flags
-and the "serve" function (see more details in [`zisCreateService` doc](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/service.h#L126-L136)
+and the "serve" function (see more details in [`zisCreateService` doc](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/service.h#L126-L136)
 ).
 
 ##### Service name
-* Mapped by the [`ZISServiceName`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/service.h#L42)
+* Mapped by the [`ZISServiceName`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/service.h#L42)
 struct
 * A 16-character printable EBCDIC string
 * Uniquely identifies a service within its plugin
@@ -275,7 +275,7 @@ section)
 PC-cp ZIS handler (i.e. either the ZIS A/S or caller's primary A/S)
 
 After a service has been created, it should be added to the plugin descriptor 
-using the [`zisPluginAddService`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/plugin.h#L164) 
+using the [`zisPluginAddService`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/plugin.h#L164) 
 function.
 
 ### Putting it all together
@@ -363,14 +363,14 @@ Plugin modules are linked using the `ld` linker.
 **There is no requirement to link-edit plugin load modules with AC(1).**
 
 You can find the complete build script with all the options in the sample plugin 
-(see [`zss/plugins/zis/sample/build.sh`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/plugins/zis/sample/build.sh)
+(see [`zss/plugins/zis/sample/build.sh`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/plugins/zis/sample/build.sh)
 ).
 
 ### Dynamic linkage stub
 
 Starting from Zowe v2.4 ZIS plugins can use dynamic linkage. That is achieved
 by linking plugin modules with a special HLASM-based stub. The stub is
-generated using the tools in [`zss/tools/dynzis`](https://github.com/zowe/zss/tree/974fc01526b49f1c692f96a71a22c7dc11eb36e8/tools/dynzis).
+generated using the tools in [`zss/tools/dynzis`](https://github.com/zowe/zss/tree/82c6f2d30951d64fb1bb6487c2dde92700b91552/tools/dynzis).
 
 An example of how to generate the stub.
 ```shell
@@ -382,7 +382,7 @@ java  -cp zss/tools/dynzis org.zowe.zis.ZISStubGenerator asm zss/h/zis/zisstubs.
 
 Once the stub has been generated, assemble and link it with your plugin objects.
 
-See [zss/tools/dynzis/README.md](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/tools/dynzis/README.md) 
+See [zss/tools/dynzis/README.md](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/tools/dynzis/README.md) 
 for more details.
 
 ## Deploying a plugin
@@ -493,9 +493,9 @@ cmCopyToSecondaryWithCallerKey(serviceParmList, &localParmList,
 
 #### Function return codes
 
-Your "serve" function must return [`RC_ZIS_SRVC_OK`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/service.h#L201) 
+Your "serve" function must return [`RC_ZIS_SRVC_OK`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/service.h#L201) 
 in case of success and for any other return values the value larger than 
-[`ZIS_MAX_GEN_SRVC_RC`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/service.h#L215) 
+[`ZIS_MAX_GEN_SRVC_RC`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/service.h#L215) 
 must be used.
 
 For example:
@@ -509,7 +509,7 @@ The values in the range (`RC_ZIS_SRVC_OK`, `ZIS_MAX_GEN_SRVC_RC`] are reserved.
 
 ### PC-ss vs PC-cp service
 
-Depending on the nature of your service, set the [`ZIS_SERVICE_FLAG_SPACE_SWITCH`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/service.h#L96) 
+Depending on the nature of your service, set the [`ZIS_SERVICE_FLAG_SPACE_SWITCH`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/service.h#L96) 
 flag so that the service is invoked in either the PC-ss or PC-cp ZIS program 
 call handler. The main differences between PC-ss and PC-cp are described below.
 
@@ -523,15 +523,15 @@ call handler. The main differences between PC-ss and PC-cp are described below.
 ##### Notes
 1. The code used by a PC-cp service must be in commonly addressable storage 
 (to facilitate that ZIS can automatically place the plugin module in LPA, see
-[`ZIS_PLUGIN_FLAG_LPA`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/plugin.h#L90))
+[`ZIS_PLUGIN_FLAG_LPA`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/plugin.h#L90))
 
 ### Plugin security
 
 Every ZIS caller must have READ access to the "ZWES.IS" profile in the "FACILITY"
 class. In addition to that, plugin developers can add another SAF check via
-the [`zisServiceUseSpecificAuth`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/service.h#L187) function.
+the [`zisServiceUseSpecificAuth`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/service.h#L187) function.
 
-First, set the [`ZIS_SERVICE_FLAG_SPECIFIC_AUTH`](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/service.h#L97) 
+First, set the [`ZIS_SERVICE_FLAG_SPECIFIC_AUTH`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/service.h#L97) 
 flag when creating a service, then call `zisServiceUseSpecificAuth` to set the 
 SAF profile to which you wish the callers' READ access to be checked
 when calling the service.
@@ -574,7 +574,7 @@ ZWES.DEV_MODE.LPA=YES
 
 You should see the following messages IDs when the dev mode is on:
 * [ZWES0247W](https://github.com/zowe/zowe-common-c/blob/4f2732d0e781aec89b39f862262d5014a97c09b7/h/crossmemory.h#L1043-L1047)
-* [ZWES0213W](https://github.com/zowe/zss/blob/974fc01526b49f1c692f96a71a22c7dc11eb36e8/h/zis/message.h#L303-L305) 
+* [ZWES0213W](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/message.h#L303-L305) 
 (if the dynamic linkage plugin is used)
 
 Additionally, the dynamic linkage plugin will remove its old stub vector from
