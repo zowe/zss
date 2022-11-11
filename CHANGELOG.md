@@ -7,6 +7,8 @@ All notable changes to the ZSS package will be documented in this file.
 ## `2.5.0`
 
 - Bugfix: In 2.3 and 2.4, 'safkeyring://' syntax stopped working, only allowing 'safkeyring:////'. Now, support for both is restored.
+- Support ZIS runtime version check 
+- Update the dynamic linkage stub vector to include new functions
 
 ## `2.4.0`
 
