@@ -18,7 +18,8 @@ COMMON="../../deps/zowe-common-c"
 echo "********************************************************************************"
 echo "Building ZIS Dynamic Linkage test..."
 
-mkdir -p "${WORKING_DIR}/tmp-zisdl" && cd "$_"
+mkdir -p "${WORKING_DIR}/tmp-zisdl"
+cd ${WORKING_DIR}/tmp-zisdl
 
 xlc -S -M -qmetal -q64 -DMETTLE=1 \
   -qreserved_reg=r12 \
