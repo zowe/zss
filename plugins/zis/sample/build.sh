@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 # This program and the accompanying materials are
@@ -13,13 +13,13 @@ ZSS=../../../../../zss
 COMMON=$ZSS/deps/zowe-common-c
 
 # compile, assembler and linker flags for the sample plugin
-CFLAGS=(-S -qmetal -DMETTLE=1 -q64 -qreserved_reg=r12 -qroconst -qlongname)
-ASFLAGS=(-mgoff -mobject --RENT)
-LDFLAGS=(-b reus=rent -b case=mixed)
-CFLAGS_INFO=(-qlist= -qaggregate -qexpmac -qsource -qoffset -qxref)
-LDFLAGS_INFO=(-V -b map -b xref)
+CFLAGS="-S -qmetal -DMETTLE=1 -q64 -qreserved_reg=r12 -qroconst -qlongname"
+ASFLAGS="-mgoff -mobject --RENT"
+LDFLAGS="-b reus=rent -b case=mixed"
+CFLAGS_INFO="-qlist= -qaggregate -qexpmac -qsource -qoffset -qxref"
+LDFLAGS_INFO="-V -b map -b xref"
 
-PLUGIN_INCLUDES=(-I $COMMON/h -I $ZSS/h -I .)
+PLUGIN_INCLUDES="-I ${COMMON}/h -I ${ZSS}/h -I ."
 
 # build the sample plugin
 # - build the java generator tool and generate the HLASM stubs for dynamic linkage
@@ -31,11 +31,11 @@ javac -encoding iso8859-1 ${ZSS}/tools/dynzis/org/zowe/zis/ZISStubGenerator.java
 java  -cp ${ZSS}/tools/dynzis org.zowe.zis.ZISStubGenerator asm \
  ${ZSS}/h/zis/zisstubs.h > dynzis.s
 
-xlc "${CFLAGS[@]}" "${CFLAGS_INFO[@]}" "${PLUGIN_INCLUDES[@]}" \
+xlc ${CFLAGS} ${CFLAGS_INFO} ${PLUGIN_INCLUDES} \
  $ZSS/plugins/zis/sample/sample_plugin.c
-as "${ASFLAGS[@]}" -aegimrsx=sample_plugin.asm sample_plugin.s
-as "${ASFLAGS[@]}" -aegimrsx=dynzis.asm dynzis.s
-ld "${LDFLAGS[@]}" "${LDFLAGS_INFO[@]}" -e getPluginDescriptor \
+as ${ASFLAGS} -aegimrsx=sample_plugin.asm sample_plugin.s
+as ${ASFLAGS} -aegimrsx=dynzis.asm dynzis.s
+ld ${LDFLAGS} ${LDFLAGS_INFO} -e getPluginDescriptor \
 -o "//'$USER.DEV.LOADLIB(ZISSAMPL)'" \
 sample_plugin.o dynzis.o > sample_plugin.link
 cd ..
