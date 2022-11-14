@@ -1,11 +1,4 @@
 #!/bin/sh
-#
-# OMEGAMON Open Data
-# V1R1M0
-# 5698-B6603 © Copyright Rocket Software, Inc. or its affiliates. 2021.
-# All rights reserved.
-#
-
 set -e
 
 ################################################################################
