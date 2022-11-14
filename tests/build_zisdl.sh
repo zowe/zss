@@ -1,11 +1,4 @@
 #!/bin/sh
-#
-# OMEGAMON Open Data
-# V1R1M0
-# 5698-B6603 © Copyright Rocket Software, Inc. or its affiliates. 2021.
-# All rights reserved.
-#
-
 set -e
 
 ################################################################################
@@ -25,14 +18,17 @@ COMMON="../../deps/zowe-common-c"
 echo "********************************************************************************"
 echo "Building ZIS Dynamic Linkage test..."
 
-mkdir -p "${WORKING_DIR}/tmp-zisdl" && cd "$_"
+mkdir -p "${WORKING_DIR}/tmp-zisdl"
+cd ${WORKING_DIR}/tmp-zisdl
+
+javac -encoding iso8859-1 ${ZSS}/tools/dynzis/org/zowe/zis/ZISStubGenerator.java
+java  -cp ${ZSS}/tools/dynzis org.zowe.zis.ZISStubGenerator asm \
+ ${ZSS}/h/zis/zisstubs.h > stubs.s
 
 xlc -S -M -qmetal -q64 -DMETTLE=1 \
   -qreserved_reg=r12 \
   -Wc,arch\(8\),agg,exp,list\(\),so\(\),off,xref,roconst,longname,lp64 \
   -I ${COMMON}/h -I ${ZSS}/h ../zisdl.c
-
-cp ${ZSS}/c/zis/stubs.s .
 
 for file in \
     zisdl stubs
