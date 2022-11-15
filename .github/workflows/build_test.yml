@@ -2,9 +2,9 @@ name: Build and Test Workflow
 on:
   push:
     branches:
-      - staging 
-      - master
-      - rc 
+      - v1.x/staging 
+      - v1.x/master
+      - v1.x/rc 
   pull_request:
     types: [opened, reopened, synchronize]
   workflow_dispatch:
