@@ -86,7 +86,8 @@ struct ZISPlugin_tag {
 #define ZIS_PLUGIN_VERSION  1
   unsigned int size;
   int flags;
-#define ZIS_PLUGIN_FLAG_LPA 0x00000001
+#define ZIS_PLUGIN_FLAG_NONE    0x00000000
+#define ZIS_PLUGIN_FLAG_LPA     0x00000001
   unsigned int maxServiceCount;
 
   /* These are used by the server */
@@ -120,6 +121,21 @@ typedef ZISPlugin *(ZISPluginDescriptorFunction)();
 #pragma map(zisCreatePluginAnchor, "ZISPLGCA")
 #pragma map(zisRemovePluginAnchor, "ZISPLGRM")
 
+/**
+ * @brief Create a plugin descriptor.
+ * @param[in] name The plugin name (unique within ZIS).
+ * @param[in] nickname The plugin nickname unique within ZIS.
+ * @param[in] initFunction The init callback function invoked at ZIS startup.
+ * @param[in] termFunction The term callback function invoked at ZIS termination.
+ * @param[in] commandFunction The command handler function invoked when a user
+ * issues a modify command using the plugin's nickname as target.
+ * @param[in] version The plugin version (when bumped forces ZIS to load the new
+ * version of the plugin module to LPA if it's an LPA plugin).
+ * @param[in] serviceCount The number of services in this plugin.
+ * @param[in] flags Various flags (use the @c ZIS_PLUGIN_FLAG_xxxx values).
+ * @return The descriptor address if success, @c NULL in case of an allocation
+ * error.
+ */
 ZISPlugin *zisCreatePlugin(ZISPluginName name,
                            ZISPluginNickname nickname,
                            ZISPuginInitFunction *initFunction,
@@ -129,8 +145,22 @@ ZISPlugin *zisCreatePlugin(ZISPluginName name,
                            unsigned int serviceCount,
                            int flags);
 
+/**
+ * @brief Remove the plugin descriptor (releases its memory).
+ * @param[in,out] plugin The plugin descriptor to be removed.
+ */
 void zisDestroyPlugin(ZISPlugin *plugin);
 
+/**
+ * @brief Add a service to a plugin.
+ * @param[in,out] plugin The plugin descriptor to be used.
+ * @param[in] service The service to be added.
+ * @return
+ * - @c RC_ZIS_PLUGIN_OK in case of success <br>
+ * - @c RC_ZIS_PLUGIN_INCOMPATIBLE_SEVICE if a PC-cp service is used with
+ * a non-LPA plugin <br>
+ * - @c RC_ZIS_PLUGIN_BAD_SERVICE_NAME if the service name is invalid <br>
+ */
 int zisPluginAddService(ZISPlugin *plugin, ZISService service);
 
 ZISPluginAnchor *zisCreatePluginAnchor();
