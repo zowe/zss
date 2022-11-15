@@ -4,6 +4,11 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## v1.28.0
+
+- Bugfix: ZSS had a jobname prefix regression for several releases when it recieved an incorrect value for ZOWE_PREFIX when LAUNCH_COMPONENT_GROUPS included GATEWAY
+
+
 ## `1.27.0`
 
 - Enhancement: Get public key for JWT signature verification using APIML

@@ -138,17 +138,19 @@ static int authRequest(const CrossMemoryServerName *serverName,
 }
 
 /*
- *   safIdt - a buffer for SAF IDT token. The buffer must be ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1 bytes long.
+ *   safIdt - a buffer for SAF IDT token. The buffer must be ZIS_AUTH_SERVICE_SAFIDT_LENGTH + 1 bytes long.
+ *   appl - application name to be included in the audience claim of SAF IDT. It is an optional parameter and can be null.
  */
-int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
+int zisGenerateOrValidateSafIdtWithAppl(const CrossMemoryServerName *serverName,
                                 const char *userName, const char *password,
-                                const char *safIdt,
+                                const char *appl,
+                                char *safIdt,
                                 ZISAuthServiceStatus *status) {
   AuthServiceParmList parmList = {0};
 
   memcpy(&parmList.eyecatcher[0], ZIS_AUTH_SERVICE_PARMLIST_EYECATCHER,
       sizeof(parmList.eyecatcher));
-  parmList.fc = ZIS_AUTH_SERVICE_PARMLIST_FC_VERIFY_PASSWORD;
+  parmList.fc = ZIS_AUTH_SERVICE_PARMLIST_FC_GENERATE_TOKEN;
 
   if (strlen(userName) >= sizeof (parmList.userIDNullTerm)) {
     status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
@@ -162,23 +164,49 @@ int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
   }
   strncpy(parmList.passwordNullTerm, password, sizeof(parmList.passwordNullTerm));
 
-  parmList.options |= ZIS_AUTH_SERVICE_PARMLIST_OPTION_GENERATE_IDT;
-  parmList.safIdtLen = strlen(safIdt);
+  if (appl != NULL && strlen(appl) != 0) {
+    if (strlen(appl) >= sizeof (parmList.safIdtService.applNullTerm)) {
+      status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
+      return RC_ZIS_SRVC_SERVICE_FAILED;
+    }
+    strcpy(parmList.safIdtService.applNullTerm, appl);
 
-  if (strlen(safIdt) >= sizeof(parmList.safIdt)) {
+    parmList.safIdtService.options |= ZIS_AUTH_SERVICE_SAFIDT_OPTION_IDT_APPL;
+  }
+
+  parmList.safIdtService.safIdtLen = strlen(safIdt);
+  parmList.safIdtService.safIdtServiceVersion = 1;
+  if (strlen(safIdt) >= sizeof(parmList.safIdtService.safIdt)) {
     status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
     return RC_ZIS_SRVC_SERVICE_FAILED;
   }
-  memcpy((void *)parmList.safIdt, (void *)safIdt, strlen(safIdt));
+  memcpy((void *)parmList.safIdtService.safIdt, safIdt, strlen(safIdt));
 
   int rc = authRequest(serverName, &parmList, status);
 
-  if (parmList.safIdtLen > 0) {
-    memset((void *)safIdt, 0, ZIS_AUTH_SERVICE_PARMLIST_SAFIDT_LENGTH + 1);
-    memcpy((void *)safIdt, (void *)parmList.safIdt, parmList.safIdtLen);
+  if (parmList.safIdtService.safIdtLen > 0) {
+    memset(safIdt, 0, ZIS_AUTH_SERVICE_SAFIDT_LENGTH + 1);
+    memcpy(safIdt, (void *)parmList.safIdtService.safIdt, parmList.safIdtService.safIdtLen);
   }
 
   return rc;
+}
+
+/*
+ *   safIdt - a buffer for SAF IDT token. The buffer must be ZIS_AUTH_SERVICE_SAFIDT_LENGTH + 1 bytes long.
+ */
+int zisGenerateOrValidateSafIdt(const CrossMemoryServerName *serverName,
+                                const char *userName, const char *password,
+                                char *safIdt,
+                                ZISAuthServiceStatus *status) {
+
+    return zisGenerateOrValidateSafIdtWithAppl(serverName,
+                                               userName,
+                                               password,
+                                               NULL,
+                                               safIdt,
+                                               status
+                                               );
 }
 
 int zisCheckUsernameAndPassword(const CrossMemoryServerName *serverName,
