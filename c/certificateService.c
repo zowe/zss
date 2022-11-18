@@ -135,20 +135,19 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
   {
     RUsermapParamList userMapStructure = {0};
 
-    memset(&userMapStructure, 0, sizeof(RUsermapParamList));
     int urlLength = strlen(request->uri);
     if(urlLength < 0 || urlLength > 64) {
         respondWithBadRequest(response, "URL length is not in range from 0 to 64 bytes.");
         return 0;
     }
-    char translatedURL[urlLength];
+    char translatedURL[urlLength + 1];
     memcpy(translatedURL, request->uri, strlen(request->uri));
     a2e(translatedURL, sizeof(translatedURL));
     char *found = strstr(translatedURL,"x509");
 
     if(found != NULL) {
     //  Certificate to user mapping
-        if(request->contentLength > sizeof(userMapStructure.certificate) || request->contentLength < 0) {
+        if(request->contentLength > sizeof(userMapStructure.certificate) || request->contentLength < 1) {
           respondWithBadRequest(response, "The length of the certificate is longer than 4096 bytes");
           return 0;
         }
@@ -160,9 +159,9 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         userMapStructure.functionCode = MAP_CERTIFICATE_TO_USERNAME;
     } else {
     //    Distinguished ID to user mapping
-        char *bodyNativeEncoding = copyStringToNative(request->slh, request->contentBody, strlen(request->contentBody));
+        char *bodyNativeEncoding = copyStringToNative(request->slh, request->contentBody, request->contentLength);
         char errorBuffer[2048];
-        Json *body = jsonParseUnterminatedString(request->slh, bodyNativeEncoding, strlen(bodyNativeEncoding), errorBuffer, sizeof(errorBuffer));
+        Json *body = jsonParseUnterminatedString(request->slh, bodyNativeEncoding, request->contentLength, errorBuffer, sizeof(errorBuffer));
         JsonObject *jsonObject = jsonAsObject(body);
 
         char *distinguishedId = jsonObjectGetString(jsonObject, "dn");
@@ -177,7 +176,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         userMapStructure.distinguishedNameLength = strlen(distinguishedId);
         memset(userMapStructure.distinguishedName, 0, strlen(distinguishedId));
         memcpy(userMapStructure.distinguishedName, distinguishedId, strlen(distinguishedId));
-        e2a(userMapStructure.distinguishedName, strlen(userMapStructure.distinguishedName));
+        e2a(userMapStructure.distinguishedName, userMapStructure.distinguishedNameLength);
         char *registry = jsonObjectGetString(jsonObject, "registry");
         if(registry == NULL || strlen(registry) == 0) {
             respondWithBadRequest(response, "registry field not included in request body");
@@ -185,12 +184,12 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         } else if(strlen(registry) > sizeof(userMapStructure.registryName)){
              respondWithBadRequest(response, "The length of the registry name is more than 255 bytes");
              return 0;
-         }
+        }
 
         userMapStructure.registryNameLength = strlen(registry);
         memset(userMapStructure.registryName, 0, strlen(registry));
         memcpy(userMapStructure.registryName, registry, strlen(registry));
-        e2a(userMapStructure.registryName, strlen(userMapStructure.registryName));
+        e2a(userMapStructure.registryName, userMapStructure.registryNameLength);
 
         userMapStructure.functionCode = MAP_DN_TO_USERNAME;
     }
