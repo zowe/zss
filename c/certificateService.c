@@ -71,9 +71,9 @@ static void setValidResponseCode(HttpResponse *response, int rc, int returnCode,
   if (rc == SUCCESS_RC && returnCode == SUCCESS_RC_SAF && returnCodeRacf == SUCCESS_RC_RACF && reasonCodeRacf == SUCCESS_REASON_CODE_RACF) {
     setResponseStatus(response, 200, "OK");
     return;
-  } else if(rc != SUCCESS_RC) {
-    if(returnCode == SAF_FAILURE_RC && returnCodeRacf == RACF_FAILURE_RC) {
-      if(reasonCodeRacf == PARAMETER_LIST_ERROR_RC) {
+  } else if (rc != SUCCESS_RC) {
+    if (returnCode == SAF_FAILURE_RC && returnCodeRacf == RACF_FAILURE_RC) {
+      if (reasonCodeRacf == PARAMETER_LIST_ERROR_RC) {
         setResponseStatus(response, 400, "Bad request");
         return;
       } else if (
@@ -131,26 +131,25 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
 {
   HttpRequest *request = response->request;
 
-  if (!strcmp(request->method, methodPOST))
-  {
+  if (!strcmp(request->method, methodPOST)) {
     RUsermapParamList userMapStructure = {0};
 
     int urlLength = strlen(request->uri);
-    if(urlLength < 0 || urlLength > 64) {
-        respondWithBadRequest(response, "URL length is not in range from 0 to 64 bytes.");
-        return 0;
+    if (urlLength < 0 || urlLength > 64) {
+      respondWithBadRequest(response, "URL length is not in range from 0 to 64 bytes.");
+      return 0;
     }
     char translatedURL[urlLength + 1];
     memcpy(translatedURL, request->uri, strlen(request->uri));
     a2e(translatedURL, sizeof(translatedURL));
     char *found = strstr(translatedURL,"x509");
 
-    if(found != NULL) {
+    if (found != NULL) {
     //  Certificate to user mapping
-        if(request->contentLength > sizeof(userMapStructure.certificate) || request->contentLength < 1) {
-          respondWithBadRequest(response, "The length of the certificate is longer than 4096 bytes");
-          return 0;
-        }
+      if (request->contentLength > sizeof(userMapStructure.certificate) || request->contentLength < 1) {
+        respondWithBadRequest(response, "The length of the certificate is longer than 4096 bytes");
+        return 0;
+      }
 
         userMapStructure.certificateLength = request->contentLength;
         memset(userMapStructure.certificate, 0, request->contentLength);
@@ -165,12 +164,12 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         JsonObject *jsonObject = jsonAsObject(body);
 
         char *distinguishedId = jsonObjectGetString(jsonObject, "dn");
-        if(distinguishedId == NULL || strlen(distinguishedId) == 0) {
-            respondWithBadRequest(response, "dn field not included in request body");
-            return 0;
-        } else if(strlen(distinguishedId) > sizeof(userMapStructure.distinguishedName)){
-            respondWithBadRequest(response, "The length of the distinguished name is more than 246 bytes");
-            return 0;
+        if (distinguishedId == NULL || strlen(distinguishedId) == 0) {
+          respondWithBadRequest(response, "dn field not included in request body");
+          return 0;
+        } else if (strlen(distinguishedId) > sizeof(userMapStructure.distinguishedName)) {
+          respondWithBadRequest(response, "The length of the distinguished name is more than 246 bytes");
+          return 0;
         }
 
         userMapStructure.distinguishedNameLength = strlen(distinguishedId);
@@ -178,12 +177,12 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         memcpy(userMapStructure.distinguishedName, distinguishedId, strlen(distinguishedId));
         e2a(userMapStructure.distinguishedName, userMapStructure.distinguishedNameLength);
         char *registry = jsonObjectGetString(jsonObject, "registry");
-        if(registry == NULL || strlen(registry) == 0) {
-            respondWithBadRequest(response, "registry field not included in request body");
-            return 0;
-        } else if(strlen(registry) > sizeof(userMapStructure.registryName)){
-             respondWithBadRequest(response, "The length of the registry name is more than 255 bytes");
-             return 0;
+        if (registry == NULL || strlen(registry) == 0) {
+          respondWithBadRequest(response, "registry field not included in request body");
+          return 0;
+        } else if (strlen(registry) > sizeof(userMapStructure.registryName)) {
+          respondWithBadRequest(response, "The length of the registry name is more than 255 bytes");
+          return 0;
         }
 
         userMapStructure.registryNameLength = strlen(registry);
