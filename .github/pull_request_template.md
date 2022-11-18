@@ -3,7 +3,7 @@
 ## Proposed changes
 <!-- Describe the big picture of your changes here to communicate to the maintainers why we should accept this pull request. If it fixes a bug or resolves a feature request, be sure to link to that issue. -->
 
-This PR addresses Issue: [*Link to Github issue within https://github.com/zowe/zlux/issues* if any]
+This PR addresses Issue: [*Link to Github issue within https://github.com/zowe/zss/issues* if any]
 
 This PR depends upon the following PRs:
 
@@ -19,7 +19,7 @@ Please delete options that are not relevant.
 ## PR Checklist
 Please delete options that are not relevant.
 - [ ] If the changes in this PR are meant for the next release / mainline, this PR targets the "staging" branch.
-- [ ] My code follows the style guidelines of this project (see: [Contributing guideline](https://github.com/zowe/zlux/blob/master/CONTRIBUTING.md))
+- [ ] My code follows the style guidelines of this project (see: [Contributing guideline](https://github.com/zowe/zss/blob/v2.x/master/CONTRIBUTING.md))
 - [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] I have made corresponding changes to the documentation
 - [ ] New and existing unit tests pass locally with my changes

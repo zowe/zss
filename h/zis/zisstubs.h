@@ -20,7 +20,7 @@
    FULL BACKWARD COMPATIBILITY MUST BE MAINTAINED
    */
 
-#define ZIS_STUBS_VERSION 2
+#define ZIS_STUBS_VERSION 3
 
 /*
   How does a user check for compatibility?
@@ -362,6 +362,8 @@
 #define ZIS_STUB_LETMRLEE 457 /* termRLEEnvironment */
 #define ZIS_STUB_LEMKFCAA 458 /* makeFakeCAA */
 #define ZIS_STUB_LEARTCAA 459 /* abortIfUnsupportedCAA */
+#define ZIS_STUB_LESETANC 460 /* setRLEApplicationAnchor */
+#define ZIS_STUB_LEGETANC 461 /* getRLEApplicationAnchor */
 
 /* logging, 470-499 */
 #define ZIS_STUB_MKLOGCTX 470 /* makeLoggingContext */
