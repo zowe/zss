@@ -1109,6 +1109,7 @@ ZISServerAnchor *createZISServerAnchor() {
   
   /* new feature bit for dynamic linking - Fall 2021 */
   anchor->flags |= ZIS_SERVER_ANCHOR_FLAG_DYNLINK;
+  anchor->flags |= ZIS_SERVER_ANCHOR_VERSIONED_CONTEXT;
 
   return anchor;
 }
@@ -1116,6 +1117,10 @@ ZISServerAnchor *createZISServerAnchor() {
 static void enableDynLink(ZISServerAnchor *anchor) {
   /* new feature bit for dynamic linking - Fall 2021 */
   anchor->flags |= ZIS_SERVER_ANCHOR_FLAG_DYNLINK;
+}
+
+static void enableVersionedContext(ZISServerAnchor *anchor) {
+  anchor->flags |= ZIS_SERVER_ANCHOR_VERSIONED_CONTEXT;
 }
 
 static void removeZISServerAnchor(ZISServerAnchor **anchor) {
@@ -1143,6 +1148,8 @@ static int initGlobalResources(ZISContext *context) {
   } else {
     // make sure any existing anchors supports dynamic linkage now
     enableDynLink(anchor);
+    // make sure it also supports a versioned ZIS context
+    enableVersionedContext(anchor);
   }
   context->zisAnchor = anchor;
 
@@ -1158,6 +1165,11 @@ static ZISContext makeContext(STCBase *base) {
 
   ZISContext cntx = {
       .eyecatcher = ZIS_CONTEXT_EYECATCHER,
+      .version = ZIS_CONTEXT_VERSION,
+      .size = sizeof(ZISContext),
+      .zisVersion.major = ZIS_MAJOR_VERSION,
+      .zisVersion.minor = ZIS_MINOR_VERSION,
+      .zisVersion.revision = ZIS_REVISION,
       .stcBase = base,
       .parms = NULL,
       .cmServer = NULL,
@@ -1369,6 +1381,8 @@ static int initContext(ZISContext *context) {
 
   memcpy(context->dynlinkModuleNameNullTerm, context->zisModuleName.text, 4);
   strcat(context->dynlinkModuleNameNullTerm, ZIS_DYN_LINKAGE_PLUGIN_MOD_SUFFIX);
+
+  setRLEApplicationAnchor(context->stcBase->rleAnchor, context);
 
   return RC_ZIS_OK;
 }

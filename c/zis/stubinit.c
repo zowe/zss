@@ -273,6 +273,8 @@
     stubVector[ZIS_STUB_LETMRLEE] = (void*)termRLEEnvironment;
     stubVector[ZIS_STUB_LEMKFCAA] = (void*)makeFakeCAA;
     stubVector[ZIS_STUB_LEARTCAA] = (void*)abortIfUnsupportedCAA;
+    stubVector[ZIS_STUB_LESETANC] = (void*)setRLEApplicationAnchor;
+    stubVector[ZIS_STUB_LEGETANC] = (void*)getRLEApplicationAnchor;
     stubVector[ZIS_STUB_MKLOGCTX] = (void*)makeLoggingContext;
     stubVector[ZIS_STUB_MKLLGCTX] = (void*)makeLocalLoggingContext;
     stubVector[ZIS_STUB_RMLOGCTX] = (void*)removeLoggingContext;
