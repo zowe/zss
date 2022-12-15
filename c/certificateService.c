@@ -259,7 +259,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
 
 void installUserMappingService(HttpServer *server)
 {
-  HttpService *httpService = makeGeneratedService("UserMappingService", "/user-mapping/**");
+  HttpService *httpService = makeGeneratedService("UserMappingService", "/certificate/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = serveMappingService;
   httpService->runInSubtask = TRUE;
