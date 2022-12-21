@@ -149,12 +149,25 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
 
 #ifdef _LP64 
     __asm(ASM_PREFIX
-	  /* We get the routine pointer for IRRSIM00 by an, *ahem*, direct approach.
-	     These offsets are stable, and this avoids linker/pragma mojo */
-	  " LA 15,X'10' \n"
-          " LG 15,X'220'(,15) \n" /* CSRTABLE */
-          " LG 15,X'28'(,15) \n" /* Some RACF Routin Vector */
-          " LG 15,X'A0'(,15) \n" /* IRRSIM00 itself */
+        /* We get the routine pointer for IRRSIM00 by an, *ahem*, direct approach.
+                These offsets are stable, and this avoids linker/pragma mojo,
+                This offsets are available in SYS1.CSSLIB(IRRSIM00)
+
+
+                4002 8000 5F01 5F02 5F02 1F 5F00 0F
+                1008 9002 8000 8F20 8F08 E0 8F00 7F
+
+                This means 28th 4byte slot (0x28 * 4 = 0xA0),
+                  put that in register 0
+                of CVT-CSRTABLE->SAF
+                  put that in register 15
+                add the two togeter (1EF0)
+                  and there's your routine
+                */
+          " LLGT  15,X'10'(,0) \n"
+          " LLGT 15,X'220'(,15) \n" /* CSRTABLE */
+          " LLGT 15,X'28'(,15) \n" /* Some RACF Routin Vector */
+          " LLGT 15,X'A0'(,15) \n" /* IRRSIM00 itself */
 	  " LG 1,%0 \n"
 	  " SAM31 \n"
 	  " BALR 14,15 \n"
