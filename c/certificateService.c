@@ -110,7 +110,7 @@ static void respondWithInvalidMethod(HttpResponse *response) {
     finishResponse(response);
 }
 
-static void respondWithBadRequest(HttpResponse *response, char *value) {
+static void respondWithBadRequest(HttpResponse *response, char *errorMessage) {
     jsonPrinter *p = respondWithJsonPrinter(response);
 
     setResponseStatus(response, 400, "Bad Request");
@@ -119,7 +119,7 @@ static void respondWithBadRequest(HttpResponse *response, char *value) {
 
     jsonStart(p);
     {
-      jsonAddString(p, "error", value);
+      jsonAddString(p, "error", errorMessage);
     }
     jsonEnd(p);
 
@@ -139,7 +139,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
       respondWithBadRequest(response, "URL length is not in range from 0 to 64 bytes.");
       return 0;
     }
-    char translatedURL[urlLength + 1];
+    char translatedURL[urlLength + 1] = {0};
     memcpy(translatedURL, request->uri, strlen(request->uri));
     a2e(translatedURL, sizeof(translatedURL));
     char *found = strstr(translatedURL,"x509");
@@ -152,7 +152,6 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
       }
 
         userMapStructure.certificateLength = request->contentLength;
-        memset(userMapStructure.certificate, 0, request->contentLength);
         memcpy(userMapStructure.certificate, request->contentBody, request->contentLength);
 
         userMapStructure.functionCode = MAP_CERTIFICATE_TO_USERNAME;
@@ -161,8 +160,15 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         char *bodyNativeEncoding = copyStringToNative(request->slh, request->contentBody, request->contentLength);
         char errorBuffer[2048];
         Json *body = jsonParseUnterminatedString(request->slh, bodyNativeEncoding, request->contentLength, errorBuffer, sizeof(errorBuffer));
+        if ( body == null ) {
+          respondWithBadRequest(response, "JSON in request body has incorrect structure.");
+          return 0;
+        }
         JsonObject *jsonObject = jsonAsObject(body);
-
+        if ( jsonObject == null ) {
+          respondWithBadRequest(response, "Object in request body is not a JSON type.");
+          return 0;
+        }
         char *distinguishedId = jsonObjectGetString(jsonObject, "dn");
         if (distinguishedId == NULL || strlen(distinguishedId) == 0) {
           respondWithBadRequest(response, "dn field not included in request body");
@@ -173,7 +179,6 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         }
 
         userMapStructure.distinguishedNameLength = strlen(distinguishedId);
-        memset(userMapStructure.distinguishedName, 0, strlen(distinguishedId));
         memcpy(userMapStructure.distinguishedName, distinguishedId, strlen(distinguishedId));
         e2a(userMapStructure.distinguishedName, userMapStructure.distinguishedNameLength);
         char *registry = jsonObjectGetString(jsonObject, "registry");
@@ -186,7 +191,6 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         }
 
         userMapStructure.registryNameLength = strlen(registry);
-        memset(userMapStructure.registryName, 0, strlen(registry));
         memcpy(userMapStructure.registryName, registry, strlen(registry));
         e2a(userMapStructure.registryName, userMapStructure.registryNameLength);
 
