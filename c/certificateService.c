@@ -127,8 +127,8 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
     char translatedURL[urlLength + 1];
     strcpy(translatedURL, request->uri);
     a2e(translatedURL, sizeof(translatedURL));
-    char *x509URI = strstr(translatedURL,"x509");
-    char *dnURI = strstr(translatedURL,"dn");
+    char *x509URI = strstr(translatedURL, "x509");
+    char *dnURI = strstr(translatedURL, "dn");
     ALLOC_STRUCT31(
       STRUCT31_NAME(parmlist31),
       STRUCT31_FIELDS(
@@ -151,14 +151,14 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         char *bodyNativeEncoding = copyStringToNative(request->slh, request->contentBody, request->contentLength);
         char errorBuffer[2048];
         Json *body = jsonParseUnterminatedString(request->slh, bodyNativeEncoding, request->contentLength, errorBuffer, sizeof(errorBuffer));
-        if ( body == NULL ) {
-          respondWithJsonError(response, "JSON in request body has incorrect structure.", 400, "Bad Request");
-          goto out;
+        if (body == NULL) {
+            respondWithJsonError(response, "JSON in request body has incorrect structure.", 400, "Bad Request");
+            goto out;
         }
         JsonObject *jsonObject = jsonAsObject(body);
-        if ( jsonObject == NULL ) {
-          respondWithJsonError(response, "Object in request body is not a JSON type.", 400, "Bad Request");
-          goto out;
+        if (jsonObject == NULL) {
+            respondWithJsonError(response, "Object in request body is not a JSON type.", 400, "Bad Request");
+            goto out;
         }
         char *distinguishedId = jsonObjectGetString(jsonObject, "dn");
         if(distinguishedId == NULL || strlen(distinguishedId) == 0) {
