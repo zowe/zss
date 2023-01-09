@@ -111,8 +111,7 @@ static void respondWithInvalidMethod(HttpResponse *response) {
     finishResponse(response);
 }
 
-static int serveMappingService(HttpService *service, HttpResponse *response)
-{
+static int serveMappingService(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
 
   if (!strcmp(request->method, methodPOST))
@@ -176,13 +175,12 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
         if(registry == NULL || strlen(registry) == 0) {
             respondWithJsonError(response, "registry field not included in request body", 400, "Bad Request");
             goto out;
-        } else if(strlen(registry) > sizeof(parmlist31->userMapStructure.registryName)){
-             respondWithJsonError(response, "The length of the registry name is more than 255 bytes", 400, "Bad Request");
-             goto out;
+        } else if(strlen(registry) > sizeof(parmlist31->userMapStructure.registryName)) {
+            respondWithJsonError(response, "The length of the registry name is more than 255 bytes", 400, "Bad Request");
+            goto out;
         }
 
         parmlist31->userMapStructure.registryNameLength = strlen(registry);
-        memset(parmlist31->userMapStructure.registryName, 0, strlen(registry));
         memcpy(parmlist31->userMapStructure.registryName, registry, strlen(registry));
         e2a(parmlist31->userMapStructure.registryName, parmlist31->userMapStructure.registryNameLength);
 
@@ -248,9 +246,9 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
 
     finishResponse(response);
     out:
-    FREE_STRUCT31(
-      STRUCT31_NAME(parmlist31)
-    );
+        FREE_STRUCT31(
+          STRUCT31_NAME(parmlist31)
+        );
   }
   else
   {
@@ -259,8 +257,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response)
   return 0;
 }
 
-void installUserMappingService(HttpServer *server)
-{
+void installUserMappingService(HttpServer *server) {
   HttpService *httpService = makeGeneratedService("UserMappingService", "/certificate/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = serveMappingService;
