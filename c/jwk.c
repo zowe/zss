@@ -58,20 +58,20 @@ void configureJwt(HttpServer *server, JwkSettings *settings) {
 
   JwkContext *context = (JwkContext*)safeMalloc(sizeof(*context), "Jwk Context");
   if (!context) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to allocate JWK context\n");
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to allocate JWK context\n");
     return;
   }
 
   context->settings = settings;
   if (httpServerInitJwtContextCustom(server, settings->fallback, checkJwtSignature, context, &rc) != 0) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to init JWT context for HTTP server, rc = %d\n", rc);
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to init JWT context for HTTP server, rc = %d\n", rc);
     safeFree((char*)context, sizeof(*context));
     return;
   };
 
   RLETask *task = makeRLETask(server->base->rleAnchor, RLE_TASK_TCB_CAPABLE | RLE_TASK_DISPOSABLE, jwkTaskMain);
   if (!task) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to create background task for JWK\n");
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to create background task for JWK\n");
     safeFree((char*)context, sizeof(*context));
     return;
   }
@@ -129,7 +129,7 @@ static int getJwk(JwkContext *context) {
 
   Json *jwkJson = doRequest(slh, &clientSettings, settings->tlsEnv, settings->path, &status);
   if (status) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to obtain JWK, status = %d\n", status);
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to obtain JWK, status = %d\n", status);
   } else {
     x509_public_key_info publicKey;
     getPublicKey(jwkJson, &publicKey, &status);
@@ -153,26 +153,26 @@ static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, 
             clientSettings->host, clientSettings->port, path);
     status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
     if (status) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "error in httpcb ctx init: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error in httpcb ctx init: %d\n", status);
       *statusOut = JWK_STATUS_HTTP_CONTEXT_ERROR;
       break;
     }
     status = httpClientSessionInit(httpClientContext, &session);
     if (status) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "error initing session: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error initing session: %d\n", status);
       *statusOut = JWK_STATUS_HTTP_REQUEST_ERROR;
       break;
     }
     status = httpClientSessionStageRequest(httpClientContext, session, "GET", path, NULL, NULL, NULL, 0);
     if (status) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "error staging request: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error staging request: %d\n", status);
       *statusOut = JWK_STATUS_HTTP_REQUEST_ERROR;
       break;
     }
     requestStringHeader(session->request, TRUE, "accept", "application/json");
     status = httpClientSessionSend(httpClientContext, session);
     if (status) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "error sending request: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error sending request: %d\n", status);
       *statusOut = JWK_STATUS_HTTP_REQUEST_ERROR;
       break;
     }
@@ -183,7 +183,7 @@ static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, 
     }
     int statusCode = session->response->statusCode;
     if (statusCode != 200) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "HTTP status %d\n", statusCode);
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "HTTP status %d\n", statusCode);
       *statusOut = JWK_STATUS_RESPONSE_ERROR;
       break;
     }
@@ -203,7 +203,7 @@ static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientC
   while (!done) {
     int status = httpClientSessionReceiveNative(httpClientContext, session, 1024);
     if (status != 0) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "error receiving response: %d\n", status);
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error receiving response: %d\n", status);
       break;
     }
     if (session->response) {
@@ -222,7 +222,8 @@ static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientC
     char errorBuf[1024];
     jsonBody = jsonParseUnterminatedUtf8String(slh, CCSID_IBM1047, body, contentLength, errorBuf, sizeof(errorBuf));
     if (!jsonBody) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "error parsing JSON response: %s\n", errorBuf);
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error parsing JSON response\n");
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JSON response: %s\n", errorBuf);
       *statusOut = JWK_STATUS_JSON_RESPONSE_ERROR;
       return NULL;
     } else {
@@ -239,34 +240,34 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
   JsonObject *jwkObject = jsonAsObject(jwk);
 
   if (!jwkObject) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JWK is not object\n");
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "JWK is not object\n");
     *statusOut = JWK_STATUS_UNRECOGNIZED_FMT_ERROR;
     return;
   }
 
   JsonArray *keysArray = jsonObjectGetArray(jwkObject, "keys");
   if (!keysArray) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JWK doesn't have 'keys' array\n");
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "JWK doesn't have 'keys' array\n");
     *statusOut = JWK_STATUS_UNRECOGNIZED_FMT_ERROR;
     return;
   }
 
   JsonObject *keyObject = jsonArrayGetObject(keysArray, 0);
   if (!keyObject) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JWK doesn't contain key\n");
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "JWK doesn't contain key\n");
     *statusOut = JWK_STATUS_UNRECOGNIZED_FMT_ERROR;
     return;
   }
 
   char *alg = jsonObjectGetString(keyObject, "kty");
     if (!alg) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JWK key doesn't have 'kty' property\n");
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "JWK key doesn't have 'kty' property\n");
     *statusOut = JWK_STATUS_UNRECOGNIZED_FMT_ERROR;
     return;
   }
 
   if (0 != strcasecmp(alg, "RSA")) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JWK key uses unsupported algorithm - '%s'\n", alg);
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "JWK key uses unsupported algorithm - '%s'\n", alg);
     *statusOut = JWK_STATUS_UNRECOGNIZED_FMT_ERROR;
     return;
   }
@@ -274,7 +275,7 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
   char *modulusBase64Url = jsonObjectGetString(keyObject, "n");
   char *exponentBase64Url = jsonObjectGetString(keyObject, "e");
   if (!modulusBase64Url || !exponentBase64Url) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "modulus or exponent not found\n");
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "modulus or exponent not found\n");
     *statusOut = JWK_STATUS_UNRECOGNIZED_FMT_ERROR;
     return;
   }
@@ -282,7 +283,8 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
   char modulus[strlen(modulusBase64Url)+1];
   int modulusLen = 0;
   if (!decodeBase64Url(modulusBase64Url, modulus, &modulusLen)) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to decode modulus '%s'\n", modulusBase64Url);
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to decode modulus\n");
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "modulus '%s'\n", modulusBase64Url);
     *statusOut = JWK_STATUS_UNRECOGNIZED_FMT_ERROR;
     return;
   }
@@ -290,7 +292,8 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
   char exponent[strlen(exponentBase64Url)+1];
   int exponentLen = 0;
   if (!decodeBase64Url(exponentBase64Url, exponent, &exponentLen)) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to decode exponent '%s' - %s\n", exponentBase64Url, jwkGetStrStatus(status));
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to decode exponent\n");
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "exponent '%s' - %s\n", exponentBase64Url, jwkGetStrStatus(status));
     *statusOut = JWK_STATUS_UNRECOGNIZED_FMT_ERROR;
     return;
   }
@@ -299,7 +302,7 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
   gsk_buffer exponentBuf = { .data = (void*)exponent, .length = exponentLen };
   status = gsk_construct_public_key_rsa(&modulusBuf, &exponentBuf, publicKeyOut);
   if (status != 0) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to construct public key: %s\n", gsk_strerror(status));
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to construct public key: %s\n", gsk_strerror(status));
     *statusOut = JWK_STATUS_PUBLIC_KEY_ERROR;
     return;
   }
@@ -354,7 +357,7 @@ static int checkJwtSignature(JwsAlgorithm algorithm,
   }
   int gskStatus = gsk_verify_data_signature(alg, &context->publicKey, 0, &msgBuffer, &sigBuffer);
   if (gskStatus != 0) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "failed to verify signature with status %d - %s\n",
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to verify signature with status %d - %s\n",
             gskStatus, gsk_strerror(gskStatus));
     return RC_JWT_SIG_MISMATCH;
   }
