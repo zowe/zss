@@ -91,6 +91,9 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
 
 
 static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
+  printf("---FUNCTION START: getLreclOrRespondError---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: getLreclOrRespondError---");
+
   int lrecl = 0;
 
   FileInfo info;
@@ -160,7 +163,9 @@ static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn
  TODO this duplicates a lot of stremDataset. Thinking of putting conditionals on streamDataset writing to json stream, but then function becomes misleading.
  */
 static char *getDatasetETag(char *filename, int recordLength, int *rc, int *eTagReturnLength) {
-  
+  printf("---FUNCTION START: getDatasetETag---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: getDatasetETag---");
+
 #ifdef __ZOWE_OS_ZOS
   int rcEtag = 0;
   int eTagLength = 0;
@@ -235,6 +240,9 @@ static char *getDatasetETag(char *filename, int recordLength, int *rc, int *eTag
 }
 
 int streamDataset(Socket *socket, char *filename, int recordLength, jsonPrinter *jPrinter){
+  printf("---FUNCTION START: streamDataset---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: streamDataset---");
+
 #ifdef __ZOWE_OS_ZOS
   // Note: to allow processing of zero-length records set _EDC_ZERO_RECLEN=Y
   int defaultSize = DATA_STREAM_BUFFER_SIZE;
@@ -403,6 +411,8 @@ int streamVSAMDataset(HttpResponse* response, char *acb, int maxRecordLength, in
 
 
 static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
+  printf("---FUNCTION START: addDetailsFromDSCB---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: addDetailsFromDSCB---");
 #ifdef __ZOWE_OS_ZOS
     int posOffset = 44;
 
@@ -522,6 +532,8 @@ static int isPartionedDataset(char *dscb) {
 #endif
 
 static bool isSupportedWriteDsorg(char *dscb, bool *isPds) {
+  printf("---FUNCTION START: isSupportedWriteDsorg---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: isSupportedWriteDsorg---");
   int posOffset = 44;
   int dsorgHigh = dscb[82-posOffset];
 
@@ -630,6 +642,8 @@ void addDetailedDatasetMetadata(char *datasetName, int nameLength,
                                 char *volser, int volserLength,
                                 jsonPrinter *jPrinter) {
 
+  printf("---FUNCTION START: addDetailedDatasetMetadata---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: addDetailedDatasetMetadata---");
   int isPDS = FALSE;
   zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Going to check dataset %s attributes\n",datasetName);
   char dscb[INDEXED_DSCB] = {0};
@@ -658,6 +672,8 @@ void addMemberedDatasetMetadata(char *datasetName, int nameLength,
                                 jsonPrinter *jPrinter,
                                 int includeUnprintable) {
 
+  printf("---FUNCTION START: addMemberedDatasetMetadata---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: addMemberedDatasetMetadata---");
   int isPDS = FALSE;
   char dscb[INDEXED_DSCB] = {0};
   int rc = obtainDSCB1(datasetName, nameLength,
@@ -740,6 +756,8 @@ void addMemberedDatasetMetadata(char *datasetName, int nameLength,
 #define DSPATH_SUFFIX   "\'"
 
 static bool isDatasetPathValid(const char *path) {
+  printf("---FUNCTION START: isDatasetPathValid---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: isDatasetPathValid---");
 
   /* Basic check. The fopen() dataset path format is //'dsn(member)' */
 
@@ -829,6 +847,8 @@ static void extractDatasetAndMemberName(const char *datasetPath,
                                         DatasetName *dsn,
                                         DatasetMemberName *memberName) {
 
+  printf("---FUNCTION START: extractDatasetAndMemberName---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: extractDatasetAndMemberName---");
   memset(&dsn->value, ' ', sizeof(dsn->value));
   memset(&memberName->value, ' ', sizeof(memberName->value));
 
@@ -906,6 +926,8 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
                                           const DDName *ddName,
                                           JsonObject *json) {
 
+  printf("---FUNCTION START: updateDatasetWithJSONInternal---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: updateDatasetWithJSONInternal---");
   char ddPath[16];
   snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName->value);
 
@@ -1125,6 +1147,8 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
 static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char *datasetPath,
                                   const char *lastEtag, bool force) {
 
+  printf("---FUNCTION START: updateDatasetWithJSON---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: updateDatasetWithJSON---");
   HttpRequest *request = response->request;
 
   if (!isDatasetPathValid(datasetPath)) {
@@ -1311,6 +1335,9 @@ static void updateVSAMDatasetWithJSON(HttpResponse *response, JsonObject *json, 
   Dataset only, no wildcards or pds members accepted - beware that this should be wrapped with authentication
  */
 static int getVolserForDataset(const DatasetName *dataset, Volser *volser) {
+  printf("---FUNCTION START: getVolserForDataset---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: getVolserForDataset---");
+
   if (dataset == NULL){
     return -1;
   }
@@ -1360,6 +1387,8 @@ static int getVolserForDataset(const DatasetName *dataset, Volser *volser) {
 }
 
 static char getRecordLengthType(char *dscb){
+  printf("---FUNCTION START: getRecordLengthType---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: getRecordLengthType---");
   int posOffset = 44;
   int recfm = dscb[84 - posOffset];
   if ((recfm & 0xc0) == 0xc0){
@@ -1374,12 +1403,16 @@ static char getRecordLengthType(char *dscb){
 }
 
 static int getMaxRecordLength(char *dscb){
+  printf("---FUNCTION START: getMaxRecordLength---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: getMaxRecordLength---");
   int posOffset = 44;
   int lrecl = (dscb[88-posOffset] << 8) | dscb[89-posOffset];
   return lrecl;
 }
 
 void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
+  printf("---FUNCTION START: updateDataset---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: updateDataset---");
 #ifdef __ZOWE_OS_ZOS
   if (jsonMode != TRUE) { /*TODO add support for updating files with raw bytes instead of JSON*/
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Cannot update file without JSON formatted record request");
@@ -1455,6 +1488,8 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 }
 
 void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
+  printf("---FUNCTION START: deleteDatasetOrMember---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: deleteDatasetOrMember---");
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
   if (!isDatasetPathValid(absolutePath)) {
@@ -1621,6 +1656,8 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
 }
 
 bool memberExists(char* dsName, DynallocMemberName daMemberName) {
+  printf("---FUNCTION START: memberExists---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: memberExists---");
   bool found = false;
   StringList *memberList = getPDSMembers(dsName);
   int memberCount = stringListLength(memberList);
@@ -1651,6 +1688,8 @@ bool isVsam(char CSIType) {
 }
 
 char getCSIType(char* absolutePath) {
+  printf("---FUNCTION START: getCSIType---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: getCSIType---");
   char *typesArg = defaultDatasetTypesAllowed;
   int datasetTypeCount = (typesArg == NULL) ? 3 : strlen(typesArg);
   int workAreaSizeArg = 0;
@@ -1817,6 +1856,8 @@ static void respondWithDatasetInternal(HttpResponse* response,
                                        const DatasetName *dsn,
                                        const DDName *ddName,
                                        int jsonMode) {
+  printf("---FUNCTION START: respondWithDatasetInternal---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: respondWithDatasetInternal---");
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
 
@@ -1847,6 +1888,8 @@ static void respondWithDatasetInternal(HttpResponse* response,
 
 void respondWithDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 
+  printf("---FUNCTION START: respondWithDataset---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: respondWithDataset---");
   HttpRequest *request = response->request;
 
   if (!isDatasetPathValid(absolutePath)) {
@@ -2221,6 +2264,8 @@ int decodePercentByte(char *inString, int inLength, char *outString, int *outStr
 }
 
 void respondWithDatasetMetadata(HttpResponse *response) {
+  printf("---FUNCTION START: respondWithDatasetMetadata---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: respondWithDatasetMetadata---");
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
   char *datasetOrMember = stringListPrint(request->parsedFile, 2, 2, "?", 0); /*get search term*/
@@ -2422,6 +2467,9 @@ void respondWithDatasetMetadata(HttpResponse *response) {
 static const char hlqFirstChar[29] = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','$','@','#'};
 
 void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQueryCache) {
+  printf("---FUNCTION START: respondWithHLQNames---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: respondWithHLQNames---");
+
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
   setResponseStatus(response, 200, "OK");
@@ -2526,6 +2574,8 @@ void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQue
 }
 
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit) {
+  printf("---FUNCTION START: setDatasetAttributesForCreation---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: setDatasetAttributesForCreation---");
   JsonProperty *currentProp = jsonObjectGetFirstProperty(object);
   Json *value = NULL;
   int parmDefn = DALDSORG_NULL;
@@ -2719,6 +2769,8 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
 }
 
 static int getDSCB(const DatasetName* datasetName, char* dscb, int bufferSize){
+  printf("---FUNCTION START: getDSCB---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: getDSCB---");
   if (bufferSize < INDEXED_DSCB){
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, 
             "DSCB of size %d is too small, must be at least %d", bufferSize, INDEXED_DSCB);
@@ -2745,6 +2797,8 @@ static int getDSCB(const DatasetName* datasetName, char* dscb, int bufferSize){
 }
 
 void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* absolutePath) {
+  printf("---FUNCTION START: newDatasetMember---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: newDatasetMember---");
   char dscb[INDEXED_DSCB] = {0};
   int bufferSize = sizeof(dscb);
   if (getDSCB(datasetName, dscb, bufferSize) != 0) {
@@ -2793,6 +2847,8 @@ void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* ab
 }
 
 void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
+  printf("---FUNCTION START: newDataset---");
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "---FUNCTION START: newDataset---");
   #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
   if (!isDatasetPathValid(absolutePath)) {
