@@ -92,9 +92,9 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
 
-  printf("----REQUEST METHOD: %s \n", request.method);
-  printf("----REQUEST PARSEDFILE: %s \n", request.parsedFile);
-  printf("----RESPONSE S1H: %s \n", request.slh);
+  printf("----REQUEST METHOD: %s \n", request);
+  // printf("----REQUEST PARSEDFILE: %s \n", request.parsedFile);
+  // printf("----RESPONSE S1H: %s \n", request.slh);
 
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
