@@ -97,7 +97,9 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
   // printf("----RESPONSE S1H: %s \n", request.slh);
 
   if (!strcmp(request->method, methodGET)) {
+    printf("---METHODGET--: %s", methodGET);
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
+    printf("----L1s: %s \n");
     printf("----L1: %s \n", *l1);
     printf("----L1: %d \n", *l1);
     printf("----L1: %s \n", l1);
