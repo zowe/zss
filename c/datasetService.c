@@ -92,11 +92,19 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
 
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----REQUEST METHOD: %s \n", request->method);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----REQUEST PARSEDFILE: %s \n", request->parsedFile);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----RESPONSE S1H: %s \n", request->slh);
+
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----L1: %s \n", *l1);
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----PARENTDECODED: %s \n", *percentDecoded);
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FILENAMEP1: %s \n", *filenamep1);
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FILENAME: %s \n", *filename);
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Serving: %s\n", filename);
     fflush(stdout);
     respondWithDataset(response, filename, TRUE);
@@ -144,6 +152,31 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
 
     finishResponse(response);
   }
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Returning from servedatasetcontents\n");
+  return 0;
+}
+
+static int serveDatasetCopy(HttpService *service, HttpResponse *response){
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: serveDatasetCopy----\n");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----RESPONSE: %s \n", response);
+
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  HttpRequest *request = response->request;
+
+  jsonPrinter *out = respondWithJsonPrinter(response);
+
+  setContentType(response, "text/json");
+  setResponseStatus(response, 200, "Hey it's a successful request");
+  addStringHeader(response, "Server", "jdmfws");
+  addStringHeader(response, "Transfer-Encoding", "chunked");
+  addStringHeader(response, "Allow", "GET, DELETE, POST");
+  writeHeader(response);
+
+  jsonStart(out);
+  jsonEnd(out);
+
+  finishResponse(response);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Returning from servedatasetcontents\n");
   return 0;
@@ -208,6 +241,22 @@ void installDatasetContentsService(HttpServer *server) {
   httpService->paramSpecList = makeStringParamSpec("force",SERVICE_ARG_OPTIONAL, NULL);
   registerHttpService(server, httpService);
 }
+
+void installDatasetCopyService(HttpServer *server) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: installDatasetCopyService----\n");
+
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset contents");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+
+  HttpService *httpService = makeGeneratedService("datasetCopy", "/datasetCopy/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
+  httpService->serviceFunction = serveDatasetContents;
+  httpService->paramSpecList = makeStringParamSpec("force",SERVICE_ARG_OPTIONAL, NULL);
+  registerHttpService(server, httpService);
+}
+
 
 void installVSAMDatasetContentsService(HttpServer *server) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "VSAM dataset contents");
