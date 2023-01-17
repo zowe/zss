@@ -45,8 +45,7 @@
 
 #ifdef __ZOWE_OS_ZOS
 static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
-  printf("----FUNCTION START: serveDatasetMetadata----");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: serveDatasetMetadata----");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: serveDatasetMetadata----\n");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
   if (!strcmp(request->method, methodGET)) {
@@ -88,8 +87,7 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
 }
 
 static int serveDatasetContents(HttpService *service, HttpResponse *response){
-  printf("----FUNCTION START: serveDatasetContents----");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: serveDatasetContents----");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: serveDatasetContents----\n");
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
@@ -197,8 +195,7 @@ static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response
 }
 
 void installDatasetContentsService(HttpServer *server) {
-  printf("----FUNCTION START: installDatasetContentsService----");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: installDatasetContentsService----");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: installDatasetContentsService----\n");
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset contents");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -230,8 +227,7 @@ void installVSAMDatasetContentsService(HttpServer *server) {
 }
 
 void installDatasetMetadataService(HttpServer *server) {
-  printf("----FUNCTION START: installDatasetMetadataService----");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: installDatasetMetadataService----");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: installDatasetMetadataService----\n");
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset metadata");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
