@@ -45,7 +45,6 @@
 
 #ifdef __ZOWE_OS_ZOS
 static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: serveDatasetMetadata----\n");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
   if (!strcmp(request->method, methodGET)) {
@@ -94,19 +93,15 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
 
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
-    printf("----L1s: %s \n");
     printf("----L1: %s \n", l1);
 
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
-    printf("----PARENTDECODED: %s \n");
     printf("----PARENTDECODED: %s \n", percentDecoded);
 
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
-    printf("----FILENAMEP1: %s \n");
     printf("----FILENAMEP1: %s \n", filenamep1);
 
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
-    printf("----FILENAME: %s \n");
     printf("----FILENAME: %s \n", filename);
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Serving: %s\n", filename);
     fflush(stdout);
@@ -157,7 +152,6 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
   }
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Returning from servedatasetcontents\n");
-  printf("---END: serveDatasetContents\n");
   return 0;
 }
 
@@ -281,7 +275,6 @@ void installVSAMDatasetContentsService(HttpServer *server) {
 }
 
 void installDatasetMetadataService(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: installDatasetMetadataService----\n");
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset metadata");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
