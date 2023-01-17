@@ -86,6 +86,8 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
 }
 
 static int serveDatasetContents(HttpService *service, HttpResponse *response){
+  printf("---INSIDE FUNCTION: serveDatasetContents \n");
+
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
 
@@ -146,6 +148,32 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
   return 0;
 }
 
+static int serveDatasetCopy(HttpService *service, HttpResponse *response){
+  // Dummy code to test api end point
+
+  printf("---INSIDE FUNCTION: serveDatasetCopy \n");
+
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  HttpRequest *request = response->request;
+
+  jsonPrinter *out = respondWithJsonPrinter(response);
+
+  setContentType(response, "text/json");
+  setResponseStatus(response, 200, "Request successful");
+  addStringHeader(response, "Server", "jdmfws");
+  addStringHeader(response, "Transfer-Encoding", "chunked");
+  addStringHeader(response, "Allow", "GET, DELETE, POST");
+  writeHeader(response);
+
+  jsonStart(out);
+  jsonEnd(out);
+
+  finishResponse(response);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Returning from servedatasetcontents\n");
+  return 0;
+}
+
 static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
@@ -192,6 +220,7 @@ static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response
 }
 
 void installDatasetContentsService(HttpServer *server) {
+  printf("---INSTALLING: DatasetContentsService \n");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset contents");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
@@ -200,6 +229,21 @@ void installDatasetContentsService(HttpServer *server) {
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveDatasetContents;
+  httpService->paramSpecList = makeStringParamSpec("force",SERVICE_ARG_OPTIONAL, NULL);
+  registerHttpService(server, httpService);
+}
+
+void installDatasetCopyService(HttpServer *server) {
+  printf("---INSTALLING: DatasetCopyService \n");
+
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset copy paste");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+
+  HttpService *httpService = makeGeneratedService("datasetCopy", "/datasetCopy/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
+  httpService->serviceFunction = serveDatasetCopy;
   httpService->paramSpecList = makeStringParamSpec("force",SERVICE_ARG_OPTIONAL, NULL);
   registerHttpService(server, httpService);
 }

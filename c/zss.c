@@ -1865,6 +1865,7 @@ int main(int argc, char **argv){
       installVSAMDatasetContentsService(server);
       installDatasetMetadataService(server);
       installDatasetContentsService(server);
+      installDatasetCopyService(server);
       installAuthCheckService(server);
       installSecurityManagementServices(server);
       installOMVSService(server);
