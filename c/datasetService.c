@@ -87,26 +87,27 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
 }
 
 static int serveDatasetContents(HttpService *service, HttpResponse *response){
-  printf("PRINTING----FUNCTION START: serveDatasetContents----\n");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: serveDatasetContents----\n");
+  printf("----FUNCTION START: serveDatasetContents----\n");
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
 
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----REQUEST METHOD: %s \n", request->method);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----REQUEST PARSEDFILE: %s \n", request->parsedFile);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----RESPONSE S1H: %s \n", request->slh);
+  printf("----REQUEST METHOD: %s \n", request->method);
+  printf("----REQUEST PARSEDFILE: %s \n", request->parsedFile);
+  printf("----RESPONSE S1H: %s \n", request->slh);
 
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
-    printf("----L1: %s \n");
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----L1: %s \n", *l1);
+    printf("----L1: %s \n", *l1);
+
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----PARENTDECODED: %s \n", *percentDecoded);
+    printf("----PARENTDECODED: %s \n", *percentDecoded);
+
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FILENAMEP1: %s \n", *filenamep1);
+    printf("----FILENAMEP1: %s \n", *filenamep1);
+
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FILENAME: %s \n", *filename);
+    printf("----FILENAME: %s \n", *filename);
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Serving: %s\n", filename);
     fflush(stdout);
     respondWithDataset(response, filename, TRUE);
@@ -160,8 +161,8 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
 }
 
 static int serveDatasetCopy(HttpService *service, HttpResponse *response){
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: serveDatasetCopy----\n");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----RESPONSE: %s \n", response);
+
+  printf("----FUNCTION START: serveDatasetCopy----\n");
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
@@ -230,8 +231,7 @@ static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response
 }
 
 void installDatasetContentsService(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: installDatasetContentsService----\n");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "ZOWE_LOG----FUNCTION START: installDatasetContentsService----\n");
+  printf("---FUNCTION START: installDatasetContentsService---");
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset contents");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -246,8 +246,7 @@ void installDatasetContentsService(HttpServer *server) {
 }
 
 void installDatasetCopyService(HttpServer *server) {
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: installDatasetCopyService----\n");
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "ZOWE_LOG----FUNCTION START: installDatasetCopyService----\n");
+  printf("---FUNCTION START: installDatasetCopyService---");
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset contents");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -256,7 +255,7 @@ void installDatasetCopyService(HttpServer *server) {
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
-  httpService->serviceFunction = serveDatasetContents;
+  httpService->serviceFunction = serveDatasetCopy;
   httpService->paramSpecList = makeStringParamSpec("force",SERVICE_ARG_OPTIONAL, NULL);
   registerHttpService(server, httpService);
 }
