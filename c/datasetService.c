@@ -92,13 +92,16 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
 
-  printf("----REQUEST METHOD: %s \n", request->method);
-  printf("----REQUEST PARSEDFILE: %s \n", request->parsedFile);
-  printf("----RESPONSE S1H: %s \n", request->slh);
+  printf("----REQUEST METHOD: %s \n", request.method);
+  printf("----REQUEST PARSEDFILE: %s \n", request.parsedFile);
+  printf("----RESPONSE S1H: %s \n", request.slh);
 
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
     printf("----L1: %s \n", *l1);
+    printf("----L1: %d \n", *l1);
+    printf("----L1: %s \n", l1);
+    printf("----L1: %d \n", l1);
 
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
     printf("----PARENTDECODED: %s \n", *percentDecoded);
@@ -248,7 +251,7 @@ void installDatasetContentsService(HttpServer *server) {
 void installDatasetCopyService(HttpServer *server) {
   printf("---FUNCTION START: installDatasetCopyService---");
 
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset contents");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset copy");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
   HttpService *httpService = makeGeneratedService("datasetCopy", "/datasetCopy/**");
