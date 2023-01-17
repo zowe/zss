@@ -87,6 +87,7 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
 }
 
 static int serveDatasetContents(HttpService *service, HttpResponse *response){
+  printf("PRINTING----FUNCTION START: serveDatasetContents----\n");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: serveDatasetContents----\n");
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -98,6 +99,7 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
 
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
+    printf("----L1: %s \n");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----L1: %s \n", *l1);
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----PARENTDECODED: %s \n", *percentDecoded);
@@ -229,6 +231,7 @@ static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response
 
 void installDatasetContentsService(HttpServer *server) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: installDatasetContentsService----\n");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "ZOWE_LOG----FUNCTION START: installDatasetContentsService----\n");
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset contents");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
@@ -244,6 +247,7 @@ void installDatasetContentsService(HttpServer *server) {
 
 void installDatasetCopyService(HttpServer *server) {
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, LOG_COMP_ID_MVD_SERVER, "----FUNCTION START: installDatasetCopyService----\n");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "ZOWE_LOG----FUNCTION START: installDatasetCopyService----\n");
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset contents");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
