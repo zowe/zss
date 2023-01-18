@@ -14,7 +14,7 @@
 
 typedef struct EchoServiceParmList_tag {
   char eyecatcher[8];
-#define ECHO_SERVICE_PARMLIST_EYECATCHER "COMRSZTOP"
+#define ECHO_SERVICE_PARMLIST_EYECATCHER "COMRSZTO"
   int pidInt;
   int signalInt;
 } EchoServiceParmList;

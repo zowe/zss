@@ -47,25 +47,31 @@ int serveKill(const CrossMemoryServerGlobalArea *ga,
   EchoServiceParmList localParmList;
   cmCopyFromSecondaryWithCallerKey(&localParmList, serviceParmList,
                                    sizeof(localParmList));
+                                   
+  int pid = localParmList.pidInt;
+  int sig = localParmList.signalInt;
+  if (pid <= 1) {
+    cmsPrintf(&ga->serverName, "error: pad pid %d\n", pid);
+    return RC_ECHOSVC_ERROR;
+  }
+  if (sig < 1) {
+    cmsPrintf(&ga->serverName, "error: pad signal %d\n", sig);
+    return RC_ECHOSVC_ERROR;
+  }
 
   int returnValue = 0;
   int returnCode = 0;
   int reasonCode = 0;
-  BPXKIL(localParmList.pidInt,
-         localParmList.signalInt,
+  BPXKIL(pid,
+         sig,
          0,
          &returnValue,
          &returnCode,
          &reasonCode);
-  // char signalArg[40];
-  // cmsPrintf(&ga->serverName, "ABOUT TO CALL KILL VIA SYSTEM FUNC");
-  // sprintf(signalArg, "kill -%d %d", localParmList.signalInt, localParmList.pidInt);
-  // returnValue = system(signalArg);
+  cmsPrintf(&ga->serverName, "info: BPXKIL pid=%d, signal=%d, RV=%d, RC=%d, RSN=0x%08X\n", pid, sig, returnValue, returnCode, reasonCode);
   if (returnValue) {
-    char result[48];
-    sprintf(result, "Unsuccessful call to BPXKIL, BPXKIL return value=%d, RC=%d, RSN=%d", returnValue, returnCode, reasonCode);
-    cmsPrintf(&ga->serverName, result);
-    return reasonCode;
+    cmsPrintf(&ga->serverName, "error: BPX cal failed\n");
+    return RC_ECHOSVC_ERROR;
   }
   cmsPrintf(&ga->serverName, "SUCCESS");
   return RC_ECHOSVC_OK;
