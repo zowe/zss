@@ -149,26 +149,30 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
 }
 
 static int serveDatasetCopy(HttpService *service, HttpResponse *response){
-  // Dummy code to test api end point
-
-  printf("---INSIDE FUNCTION: serveDatasetCopy \n");
-
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
 
-  jsonPrinter *out = respondWithJsonPrinter(response);
+  if (!strcmp(request->method, methodPOST)){
+    char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
+    char *percentDecoded = cleanURLParamValue(response->slh, l1);
+    char *datasetNameP1 = stringConcatenate(response->slh, "//'", percentDecoded);
+    char *datasetName = stringConcatenate(response->slh, datasetNameP1, "'");
+    char *newDataset = getQueryParam(response->request, "newDataset");
+  } else {
+    jsonPrinter *out = respondWithJsonPrinter(response);
 
-  setContentType(response, "text/json");
-  setResponseStatus(response, 200, "Request successful");
-  addStringHeader(response, "Server", "jdmfws");
-  addStringHeader(response, "Transfer-Encoding", "chunked");
-  addStringHeader(response, "Allow", "GET, DELETE, POST");
-  writeHeader(response);
+    setContentType(response, "text/json");
+    setResponseStatus(response, 405, "Method Not Allowed");
+    addStringHeader(response, "Server", "jdmfws");
+    addStringHeader(response, "Transfer-Encoding", "chunked");
+    addStringHeader(response, "Allow", "GET, DELETE, POST");
+    writeHeader(response);
 
-  jsonStart(out);
-  jsonEnd(out);
+    jsonStart(out);
+    jsonEnd(out);
 
-  finishResponse(response);
+    finishResponse(response);
+  }
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Returning from servedatasetcontents\n");
   return 0;
