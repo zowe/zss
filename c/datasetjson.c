@@ -2871,6 +2871,9 @@ void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
   printf("----INSIDE NEW DATASET \n");
   #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
+
+  printf("---NEW DATASET ABS PATH: %s \n", absolutePath);
+
   if (!isDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
     return;
@@ -2878,11 +2881,23 @@ void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
 
   DatasetName datasetName;
   DatasetMemberName memberName;
+
+  printf("---DATASTENAME: %s \n", datasetName);
+  printf("---DATASTE MEMBER NAME: %s \n", memberName);
+
   extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
+
+  printf("---DATASTENAME: %s \n", datasetName);
+  printf("---DATASTE MEMBER NAME: %s \n", memberName);
+
   DynallocDatasetName daDatasetName;
   DynallocMemberName daMemberName;
   memcpy(daDatasetName.name, datasetName.value, sizeof(daDatasetName.name));
   memcpy(daMemberName.name, memberName.value, sizeof(daMemberName.name));
+
+  printf("---DATASTENAME: %s \n, ", daDatasetName.name);
+  printf("---DATASTE MEMBER NAME: %s \n, ", daMemberName.name);
+
   DynallocDDName daDDName = {.name = "????????"};
 
   int daRC = RC_DYNALLOC_OK, daSysReturnCode = 0, daSysReasonCode = 0;
@@ -2890,6 +2905,7 @@ void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
   bool isMemberEmpty = IS_DAMEMBER_EMPTY(daMemberName);
 
   if(!isMemberEmpty){
+    printf("---INSIDE isMemberEmpty \n");
     return newDatasetMember(response, &datasetName, absolutePath);
   }
 
@@ -2903,10 +2919,17 @@ void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
   }
 
   char *contentBody = request->contentBody;
+  printf("----CONTENT BODY--- %s \n", contentBody);
+
   int bodyLength = strlen(contentBody);
+  printf("----BODY LENGTH--- %d \n", bodyLength);
 
   char *convertedBody = safeMalloc(bodyLength*4,"writeDatasetConvert");
+  printf("----CONVERTED BODY--- %s \n", convertedBody);
+
   int conversionBufferLength = bodyLength*4;
+  printf("----CONVERSION BUFFER: %d\n", conversionBufferLength);
+
   int translationLength;
   int outCCSID = NATIVE_CODEPAGE;
   int reasonCode;
