@@ -120,6 +120,7 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     deleteDatasetOrMember(response, filename);
   }
   else if (!strcmp(request->method, methodPUT)) {
+    printf("----INSIDE PUT METHOD OF SERVE  DS CONTENTS\n");
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
@@ -158,6 +159,7 @@ static int serveDatasetCopy(HttpService *service, HttpResponse *response){
     char *datasetNameP1 = stringConcatenate(response->slh, "//'", percentDecoded);
     char *datasetName = stringConcatenate(response->slh, datasetNameP1, "'");
     char *newDataset = getQueryParam(response->request, "newDataset");
+    tempDSCopy(response);
   } else {
     jsonPrinter *out = respondWithJsonPrinter(response);
 
@@ -174,7 +176,7 @@ static int serveDatasetCopy(HttpService *service, HttpResponse *response){
     finishResponse(response);
   }
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Returning from servedatasetcontents\n");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Returning from servedatasetcopy\n");
   return 0;
 }
 

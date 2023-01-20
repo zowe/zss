@@ -2220,6 +2220,81 @@ int decodePercentByte(char *inString, int inLength, char *outString, int *outStr
   return 0;
 }
 
+struct DsProperties {
+    char name[30];
+    char csiEntryType;
+    char volser[10];
+    int recordLength;
+    char recordFormat;
+    char isBlocked[5];
+    char carriageControl[20];
+    char organization[20];
+    bool isPDSDir;
+    int totalBlockSize;
+};
+
+static void tempTest(struct DsProperties* dp) {
+  printf("---FUNCTION tempTest\n");
+  dp->recordFormat = 'F';
+  strcpy(dp->name, "TS3800.ZOWEPS");
+  printf("---TEMP TEST DS RECORDFORMAT: %c \n", dp->recordFormat);
+  printf("---TEMP TEST DS NAME: %s \n", dp->name);
+}
+
+void tempDSCopy(HttpResponse *response) {
+  printf("---FUNCTION tempDSCopy\n");
+
+  JsonBuffer *buffer = makeJsonBuffer();
+  jsonPrinter *p = makeBufferJsonPrinter(CCSID_UTF_8,buffer);
+  jsonStart(p);
+  jsonAddString(p, "newString", "newString");
+  jsonAddString(p, "City", "Pune");
+  jsonEnd(p);
+  printf("---BUFFER  %.*s \n",buffer->len,buffer);
+  printf("---BUFFER: %s \n", buffer);
+  printf("---BUFFER DATA: %s \n", buffer->data);
+  printf("---BUFFER LENGTH: %d \n", buffer->len);
+  printf("---BUFFER SIZE: %d \n\n", buffer->size);
+
+  JsonBuffer *outBuffer = makeJsonBuffer();
+  jsonPrinter *out = makeBufferJsonPrinter(CCSID_UTF_8,outBuffer);
+
+  jsonStart(out);
+
+  jsonAddString(out, "dsOrg", "PO");
+  jsonAddInt(out, "directoryBlock", 10);
+
+  jsonStartObject(out, NULL);
+  jsonAddString(out, "volser", "volser");
+  jsonAddString(out, "isDs", "true");
+  jsonEndObject(out);
+
+  jsonStartArray(out,"datasets");
+  jsonStartObject(out, NULL);
+  jsonAddString(out,"name","TS3800.TEST");
+  jsonAddString(out,"recFm","FB");
+  jsonEndObject(out);
+  jsonEndArray(out);
+
+  jsonEnd(out);
+
+  printf("---BUFFER2: %s \n", outBuffer);
+  printf("---BUFFER2 DATA: %s \n", outBuffer->data);
+  printf("---BUFFER2 LENGTH: %d \n", outBuffer->len);
+  printf("---BUFFER2 SIZE: %d \n", outBuffer->size);
+
+  struct DsProperties dprop;
+  strcpy(dprop.name, "TS3800.SAKSHIPS");
+  printf("---DS NAME: %s \n", dprop.name);
+  tempTest(&dprop);
+  printf("---DS RECORDFORMAT: %c \n", dprop.recordFormat);
+  printf("---DS NAME: %s \n", dprop.name);
+
+  setContentType(response, "text/json");
+  setResponseStatus(response, 200, "Work In progress");
+  finishResponse(response);
+}
+
 void respondWithDatasetMetadata(HttpResponse *response) {
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
@@ -2793,6 +2868,7 @@ void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* ab
 }
 
 void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
+  printf("----INSIDE NEW DATASET \n");
   #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
   if (!isDatasetPathValid(absolutePath)) {
