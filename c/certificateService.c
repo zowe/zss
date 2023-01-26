@@ -26,7 +26,6 @@
 #include "httpserver.h"
 #include "json.h"
 #include "http.h"
-#include "alloc.h"
 #include "rusermap.h"
 
 #pragma linkage(IRRSIM00, OS)
@@ -121,7 +120,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response) {
           return 0;
         }
 
-        rc = getUseridByCertificate(request->contentBody,request->contentLength,useridRacf,&returnCodeRacf, &reasonCodeRacf);
+        rc = getUseridByCertificate(request->contentBody, request->contentLength, useridRacf, &returnCodeRacf, &reasonCodeRacf);
     } else if (dnURI != NULL) {
     //    Distinguished ID to user mapping
         char *bodyNativeEncoding = copyStringToNative(request->slh, request->contentBody, request->contentLength);
