@@ -27,6 +27,7 @@
 #include "json.h"
 #include "http.h"
 #include "alloc.h"
+#include "rusermap.h"
 
 #pragma linkage(IRRSIM00, OS)
 
@@ -47,26 +48,6 @@
 #define CERTIFICATE_NOT_VALID_RC 28
 #define NOTRUST_CERTIFICATE_RC 32
 #define NO_IDENTITY_FILTER_RC 48
-
-typedef _Packed struct _RUsermapParamList {
-    char workarea[1024];
-    int safRcAlet, returnCode;
-    int racfRcAlet, returnCodeRacf;
-    int racfReasonAlet, reasonCodeRacf;
-    int fcAlet;
-    short functionCode;
-    int  optionWord;
-    char useridLengthRacf;
-    char useridRacf[8];
-    int certificateLength;
-    char certificate[4096];
-    short applicationIdLength;
-    char applicationId[246];
-    short distinguishedNameLength;
-    char distinguishedName[246];
-    short registryNameLength;
-    char registryName[255];
-} RUsermapParamList;
 
 static void setValidResponseCode(HttpResponse *response, int rc, int returnCode, int returnCodeRacf, int reasonCodeRacf) {
   if (rc == SUCCESS_RC && returnCode == SUCCESS_RC_SAF && returnCodeRacf == SUCCESS_RC_RACF && reasonCodeRacf == SUCCESS_REASON_CODE_RACF) {
@@ -128,23 +109,19 @@ static int serveMappingService(HttpService *service, HttpResponse *response) {
     a2e(translatedURL, sizeof(translatedURL));
     char *x509URI = strstr(translatedURL, "x509");
     char *dnURI = strstr(translatedURL, "dn");
-    ALLOC_STRUCT31(
-      STRUCT31_NAME(parmlist31),
-      STRUCT31_FIELDS(
-        RUsermapParamList userMapStructure;
-      )
-    );
+
+    char useridRacf[8];
+    int returnCodeRacf = 0;
+    int reasonCodeRacf = 0;
+    int rc;
     if(x509URI != NULL) {
     //  Certificate to user mapping
-        if(request->contentLength > sizeof(parmlist31->userMapStructure.certificate) || request->contentLength < 1) {
+        if(request->contentLength > 4096 || request->contentLength < 1) {
           respondWithJsonError(response, "The length of the certificate is longer than 4096 bytes", 400, "Bad Request");
-          goto out;
+          return 0;
         }
 
-        parmlist31->userMapStructure.certificateLength = request->contentLength;
-        memcpy(parmlist31->userMapStructure.certificate, request->contentBody, request->contentLength);
-
-        parmlist31->userMapStructure.functionCode = MAP_CERTIFICATE_TO_USERNAME;
+        rc = getUserIdByCertificate(request->contentBody,request->contentLength,useridRacf,&returnCodeRacf, &reasonCodeRacf);
     } else if (dnURI != NULL) {
     //    Distinguished ID to user mapping
         char *bodyNativeEncoding = copyStringToNative(request->slh, request->contentBody, request->contentLength);
@@ -152,103 +129,53 @@ static int serveMappingService(HttpService *service, HttpResponse *response) {
         Json *body = jsonParseUnterminatedString(request->slh, bodyNativeEncoding, request->contentLength, errorBuffer, sizeof(errorBuffer));
         if (body == NULL) {
             respondWithJsonError(response, "JSON in request body has incorrect structure.", 400, "Bad Request");
-            goto out;
+            return 0;
         }
         JsonObject *jsonObject = jsonAsObject(body);
         if (jsonObject == NULL) {
             respondWithJsonError(response, "Object in request body is not a JSON type.", 400, "Bad Request");
-            goto out;
+            return 0;
         }
         char *distinguishedId = jsonObjectGetString(jsonObject, "dn");
         if(distinguishedId == NULL || strlen(distinguishedId) == 0) {
             respondWithJsonError(response, "dn field not included in request body", 400, "Bad Request");
-            goto out;
-        } else if(strlen(distinguishedId) > sizeof(parmlist31->userMapStructure.distinguishedName)) {
+            return 0;
+        } else if(strlen(distinguishedId) > 246) {
             respondWithJsonError(response, "The length of the distinguished name is more than 246 bytes", 400, "Bad Request");
-            goto out;
+            return 0;
         }
 
-        parmlist31->userMapStructure.distinguishedNameLength = strlen(distinguishedId);
-        memcpy(parmlist31->userMapStructure.distinguishedName, distinguishedId, strlen(distinguishedId));
-        e2a(parmlist31->userMapStructure.distinguishedName, parmlist31->userMapStructure.distinguishedNameLength);
         char *registry = jsonObjectGetString(jsonObject, "registry");
         if(registry == NULL || strlen(registry) == 0) {
             respondWithJsonError(response, "registry field not included in request body", 400, "Bad Request");
-            goto out;
-        } else if(strlen(registry) > sizeof(parmlist31->userMapStructure.registryName)) {
+            return 0;
+        } else if(strlen(registry) > 255) {
             respondWithJsonError(response, "The length of the registry name is more than 255 bytes", 400, "Bad Request");
-            goto out;
+            return 0;
         }
-
-        parmlist31->userMapStructure.registryNameLength = strlen(registry);
-        memcpy(parmlist31->userMapStructure.registryName, registry, strlen(registry));
-        e2a(parmlist31->userMapStructure.registryName, parmlist31->userMapStructure.registryNameLength);
-
-        parmlist31->userMapStructure.functionCode = MAP_DN_TO_USERNAME;
 
     } else {
         respondWithJsonError(response, "Endpoint not found.", 404, "Not Found");
-        goto out;
+        return 0;
     }
-
-    int rc;
-#ifdef _LP64
-    __asm(ASM_PREFIX
-	  /* We get the routine pointer for IRRSIM00 by an, *ahem*, direct approach.
-	     These offsets are stable, and this avoids linker/pragma mojo */
-	        " LLGT 15,X'10' \n"
-          " LLGT 15,X'220'(,15) \n" /* CSRTABLE */
-          " LLGT 15,X'28'(,15) \n" /* Some RACF Routin Vector */
-          " LLGT 15,X'A0'(,15) \n" /* IRRSIM00 itself */
-	  " LG 1,%0 \n"
-	  " SAM31 \n"
-	  " BALR 14,15 \n"
-          " SAM64 \n"
-          " ST 15,%0"
-	  :
-	  :"m"(parmlist31->userMapStructure),"m"(rc)
-	  :"r14","r15");
-#else
-    rc = IRRSIM00(
-        &parmlist31->userMapStructure.workarea, // WORKAREA
-        &parmlist31->userMapStructure.safRcAlet  , // ALET
-        &parmlist31->userMapStructure.returnCode,
-        &parmlist31->userMapStructure.racfRcAlet,
-        &parmlist31->userMapStructure.returnCodeRacf,
-        &parmlist31->userMapStructure.racfReasonAlet,
-        &parmlist31->userMapStructure.reasonCodeRacf,
-        &parmlist31->userMapStructure.fcAlet,
-        &parmlist31->userMapStructure.functionCode,
-        &parmlist31->userMapStructure.optionWord,
-        &parmlist31->userMapStructure.useridLengthRacf,
-        &parmlist31->userMapStructure.certificateLength,
-        &parmlist31->userMapStructure.applicationIdLength,
-        &parmlist31->userMapStructure.distinguishedNameLength,
-        &parmlist31->userMapStructure.registryNameLength
-    );
-#endif
 
     jsonPrinter *p = respondWithJsonPrinter(response);
 
-    setValidResponseCode(response, rc, parmlist31->userMapStructure.returnCode, parmlist31->userMapStructure.returnCodeRacf, parmlist31->userMapStructure.reasonCodeRacf);
+    setValidResponseCode(response, rc, rc, returnCodeRacf, reasonCodeRacf);
     setDefaultJSONRESTHeaders(response);
     writeHeader(response);
 
     jsonStart(p);
     {
-      jsonAddString(p, "userid", parmlist31->userMapStructure.useridRacf);
+      jsonAddString(p, "userid", useridRacf);
       jsonAddInt(p, "returnCode", rc);
-      jsonAddInt(p, "safReturnCode", parmlist31->userMapStructure.returnCode);
-      jsonAddInt(p, "racfReturnCode", parmlist31->userMapStructure.returnCodeRacf);
-      jsonAddInt(p, "racfReasonCode", parmlist31->userMapStructure.reasonCodeRacf);
+      jsonAddInt(p, "safReturnCode", rc);
+      jsonAddInt(p, "racfReturnCode", returnCodeRacf);
+      jsonAddInt(p, "racfReasonCode", reasonCodeRacf);
     }
     jsonEnd(p);
 
     finishResponse(response);
-    out:
-        FREE_STRUCT31(
-          STRUCT31_NAME(parmlist31)
-        );
   }
   else
   {
