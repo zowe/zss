@@ -329,7 +329,7 @@
           "$ref": "#/$defs/logLevel"
         },
         "_zss.restdataset": {
-          "description": "Controls logging of resetdataset functions",
+          "description": "Controls logging of restdataset functions",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.restfile": {
