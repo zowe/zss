@@ -328,8 +328,8 @@
           "description": "Controls logging of lpa library functions",
           "$ref": "#/$defs/logLevel"
         },
-        "_zss.resetdataset": {
-          "description": "Controls logging of resetdataset functions",
+        "_zss.restdataset": {
+          "description": "Controls logging of restdataset functions",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.restfile": {
