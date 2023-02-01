@@ -272,7 +272,7 @@
 #define ZISDYN_LOG_TERM_MSG_TEXT                "ZIS Dynamic Base plugin terminating"
 #define ZISDYN_LOG_TERM_MSG                     ZISDYN_LOG_TERM_MSG_ID" "ZISDYN_LOG_TERM_MSG_TEXT
 
-#define ZISDYN_LOG_TERMED_MSG_ID                ZIS_MSG_PRFX"02045"
+#define ZISDYN_LOG_TERMED_MSG_ID                ZIS_MSG_PRFX"0205I"
 #define ZISDYN_LOG_TERMED_MSG_TEXT              "ZIS Dynamic Base plugin successfully terminated"
 #define ZISDYN_LOG_TERMED_MSG                   ZISDYN_LOG_TERMED_MSG_ID" "ZISDYN_LOG_TERMED_MSG_TEXT
 
@@ -303,6 +303,10 @@
 #define ZISDYN_LOG_DEV_MODE_MSG_ID              ZIS_MSG_PRFX"0213W"
 #define ZISDYN_LOG_DEV_MODE_MSG_TEXT            "ZIS Dynamic base plugin development mode is enabled"
 #define ZISDYN_LOG_DEV_MODE_MSG                 ZISDYN_LOG_DEV_MODE_MSG_ID" "ZISDYN_LOG_DEV_MODE_MSG_TEXT
+
+#define ZISDYN_LOG_BAD_ZIS_VERSION_MSG_ID       ZIS_MSG_PRFX"0214E"
+#define ZISDYN_LOG_BAD_ZIS_VERSION_MSG_TEXT     "Bad cross-memory server version: expected [%d.%d.%d, %d.0.0), found %d.%d.%d"
+#define ZISDYN_LOG_BAD_ZIS_VERSION_MSG          ZISDYN_LOG_BAD_ZIS_VERSION_MSG_ID" "ZISDYN_LOG_BAD_ZIS_VERSION_MSG_TEXT
 
 #endif /* ZIS_MSG_H_ */
 
