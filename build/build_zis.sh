@@ -26,9 +26,10 @@ mkdir -p "${WORKING_DIR}/tmp-zis" && cd "$_"
 
 
 . ${ZSS}/build/zis.proj.env
-. ${COMMON}/build/dependencies.sh
-check_dependencies "${ZSS}" "${ZSS}/build/zis.proj.env"
-DEPS_DESTINATION=$(get_destination "${ZIS}" "${PROJECT}")
+# no dependencies yet
+# . ${COMMON}/build/dependencies.sh
+# check_dependencies "${ZSS}" "${ZSS}/build/zis.proj.env"
+# DEPS_DESTINATION=$(get_destination "${ZIS}" "${PROJECT}")
 
 # Split version into parts
 OLDIFS=$IFS
