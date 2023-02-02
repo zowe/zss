@@ -46,9 +46,9 @@ mkdir -p "${WORKING_DIR}/tmp-zss" && cd "$_"
 OLDIFS=$IFS
 IFS="."
 for part in ${VERSION}; do
-  if [ -z "$MAJOR" ]; then
+  if [ -z "$major" ]; then
     major=$part
-  elif [ -z "$MINOR" ]; then
+  elif [ -z "$minor" ]; then
     minor=$part
   else
     micro=$part
