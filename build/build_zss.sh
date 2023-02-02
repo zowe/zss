@@ -42,7 +42,23 @@ echo "Building ZSS (31 bit) ..."
 
 mkdir -p "${WORKING_DIR}/tmp-zss" && cd "$_"
 
-IFS='.' read -r major minor micro < "${ZSS_ROOT}/version.txt"
+# Split version into parts
+OLDIFS=$IFS
+IFS="."
+for part in ${VERSION}; do
+  if [ -z "$MAJOR" ]; then
+    major=$part
+  elif [ -z "$MINOR" ]; then
+    minor=$part
+  else
+    micro=$part
+  fi
+done
+IFS=$OLDIFS
+
+VERSION="\"${VERSION}\""
+
+
 date_stamp=$(date +%Y%m%d)
 echo "Version: $major.$minor.$micro"
 echo "Date stamp: $date_stamp"
