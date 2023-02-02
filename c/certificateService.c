@@ -152,6 +152,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response) {
             respondWithJsonError(response, "The length of the registry name is more than 255 bytes", 400, "Bad Request");
             return 0;
         }
+        rc = getUseridByDN(distinguishedId, strlen(distinguishedId) , useridRacf, &returnCodeRacf, &reasonCodeRacf);
 
     } else {
         respondWithJsonError(response, "Endpoint not found.", 404, "Not Found");
