@@ -136,23 +136,8 @@ static int serveMappingService(HttpService *service, HttpResponse *response) {
             return 0;
         }
         char *distinguishedId = jsonObjectGetString(jsonObject, "dn");
-        if(distinguishedId == NULL || strlen(distinguishedId) == 0) {
-            respondWithJsonError(response, "dn field not included in request body", 400, "Bad Request");
-            return 0;
-        } else if(strlen(distinguishedId) > 246) {
-            respondWithJsonError(response, "The length of the distinguished name is more than 246 bytes", 400, "Bad Request");
-            return 0;
-        }
-
         char *registry = jsonObjectGetString(jsonObject, "registry");
-        if(registry == NULL || strlen(registry) == 0) {
-            respondWithJsonError(response, "registry field not included in request body", 400, "Bad Request");
-            return 0;
-        } else if(strlen(registry) > 255) {
-            respondWithJsonError(response, "The length of the registry name is more than 255 bytes", 400, "Bad Request");
-            return 0;
-        }
-        rc = getUseridByDN(distinguishedId, strlen(distinguishedId) , useridRacf, &returnCodeRacf, &reasonCodeRacf);
+        rc = getUseridByDN(distinguishedId, strlen(distinguishedId), registry, strlen(registry), useridRacf, &returnCodeRacf, &reasonCodeRacf);
 
     } else {
         respondWithJsonError(response, "Endpoint not found.", 404, "Not Found");
