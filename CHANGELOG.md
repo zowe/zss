@@ -4,6 +4,10 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `2.7.0`
+
+- Enhancement: A new ZIS plugin, "ZISDYNAMIC" is available within the LOADLIB as ZWESISDL. This plugin allows for ZIS plugins to access utility functions of the zowe-common-c libraries without needing to statically build them into the plugin itself.
+
 ## `2.5.0`
 
 - Bugfix: In 2.3 and 2.4, 'safkeyring://' syntax stopped working, only allowing 'safkeyring:////'. Now, support for both is restored.
