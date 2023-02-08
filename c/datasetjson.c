@@ -2293,11 +2293,15 @@ void tempDSCopy(HttpResponse *response) {
   finishResponse(response);
 }
 
-getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, int memberNameLength, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int datasetTypeCount, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, int includeUnprintable, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
-  printf("----INSIDE THE NEW FUNCTION: getDatasetMetadata\n");
+getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, char *unprintableArg, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
+  printf("----AGAIN INSIDE THE NEW FUNCTION: getDatasetMetadata\n");
 #ifdef __ZOWE_OS_ZOS
   int dsnLen = strlen(datasetOrMember);
   int lParenIndex = indexOf(datasetOrMember, dsnLen, '(', 0);
+  int rParenIndex = indexOf(datasetOrMember, dsnLen, ')', 0);
+  int memberNameLength = (unsigned int)rParenIndex  - (unsigned int)lParenIndex -1;
+  int datasetTypeCount = (typesArg == NULL) ? 3 : strlen(typesArg);
+  int includeUnprintable = !strcmp(unprintableArg, "true") ? TRUE : FALSE;
 
   if(addQualifiersArg != NULL) {
     int addQualifiers = !strcmp(addQualifiersArg, "true");
@@ -2404,7 +2408,7 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
 }
 
 void getDatasetMetadataFromRequest(HttpResponse *response) {
-  printf("----INSIDE THE NEW FUNCTION: getDatasetMetadataFromRequest\n");
+  printf("----AGAIN INSIDE THE NEW FUNCTION: getDatasetMetadataFromRequest\n");
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
   char *datasetOrMember = stringListPrint(request->parsedFile, 2, 2, "?", 0); /*get search term*/
@@ -2415,7 +2419,6 @@ void getDatasetMetadataFromRequest(HttpResponse *response) {
   }
 
   char *username = response->request->username;
-  int dsnLen = strlen(datasetOrMember);
   char *percentDecoded = cleanURLParamValue(response->slh, datasetOrMember);
   char *absDsPathTemp = stringConcatenate(response->slh, "//'", percentDecoded);
   char *absDsPath = stringConcatenate(response->slh, absDsPathTemp, "'");
@@ -2426,14 +2429,10 @@ void getDatasetMetadataFromRequest(HttpResponse *response) {
   }
 
   /* From here on, we know we have a valid data path */
-  int lParenIndex = indexOf(datasetOrMember, dsnLen, '(', 0);
-  int rParenIndex = indexOf(datasetOrMember, dsnLen, ')', 0);
   DatasetName dsnName;
   DatasetMemberName memName;
-  int memberNameLength = 0;
 
   extractDatasetAndMemberName(absDsPath, &dsnName, &memName);
-  memberNameLength = (unsigned int)rParenIndex  - (unsigned int)lParenIndex -1;
 
   HttpRequestParam *addQualifiersParam = getCheckedParam(request,"addQualifiers");
   char *addQualifiersArg = (addQualifiersParam ? addQualifiersParam->stringValue : NULL);
@@ -2447,8 +2446,6 @@ void getDatasetMetadataFromRequest(HttpResponse *response) {
   HttpRequestParam *listMembersParam = getCheckedParam(request,"listMembers");
   char *listMembersArg = (listMembersParam ? listMembersParam->stringValue : NULL);
 
-  int datasetTypeCount = (typesArg == NULL) ? 3 : strlen(typesArg);
-
   HttpRequestParam *workAreaSizeParam = getCheckedParam(request,"workAreaSize");
   int workAreaSizeArg = (workAreaSizeParam ? workAreaSizeParam->intValue : 0);
 
@@ -2457,7 +2454,6 @@ void getDatasetMetadataFromRequest(HttpResponse *response) {
 
   HttpRequestParam *unprintableParam = getCheckedParam(request,"includeUnprintable");
   char *unprintableArg = (unprintableParam ? unprintableParam->stringValue : "");
-  int includeUnprintable = !strcmp(unprintableArg, "true") ? TRUE : FALSE;
 
   HttpRequestParam *resumeNameParam = getCheckedParam(request,"resumeName");
   char *resumeNameArg = (resumeNameParam ? resumeNameParam->stringValue : NULL);
@@ -2497,7 +2493,7 @@ void getDatasetMetadataFromRequest(HttpResponse *response) {
   jsonAddString(jPrinter,"_objectType","com.rs.mvd.base.dataset.metadata");
   jsonAddString(jPrinter,"_metadataVersion","1.1");
 
-  getDatasetMetadata(&dsnName, &memName, datasetOrMember, memberNameLength, addQualifiersArg, detailArg, typesArg, listMembersArg, datasetTypeCount, workAreaSizeArg, migratedArg, resumeNameArg, includeUnprintable, resumeCatalogNameArg, jPrinter);
+  getDatasetMetadata(&dsnName, &memName, datasetOrMember, addQualifiersArg, detailArg, typesArg, listMembersArg, workAreaSizeArg, migratedArg, resumeNameArg, unprintableArg, resumeCatalogNameArg, jPrinter);
 
   jsonEnd(jPrinter);
   finishResponse(response);
