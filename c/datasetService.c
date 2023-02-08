@@ -56,7 +56,8 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0); //expect name or hlq
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "L1=%s\n", l1);
     if (!strcmp(l1, "name")){
-      respondWithDatasetMetadata(response);
+      // respondWithDatasetMetadata(response);
+      getDatasetMetadataFromRequest(response);
     }
     else if (!strcmp(l1, "hlq")) {
       respondWithHLQNames(response,(MetadataQueryCache*)service->userPointer);
