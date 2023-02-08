@@ -2293,9 +2293,11 @@ void tempDSCopy(HttpResponse *response) {
   finishResponse(response);
 }
 
-getDatasetMetadata(const DatasetName *dsnName, const DatasetMemberName memName, int memberNameLength, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int datasetTypeCount, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, int includeUnprintable, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
+getDatasetMetadata(const DatasetName *dsnName, const DatasetMemberName memName, char* datasetOrMember, int memberNameLength, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int datasetTypeCount, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, int includeUnprintable, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
   printf("----INSIDE THE NEW FUNCTION: getDatasetMetadata\n");
 #ifdef __ZOWE_OS_ZOS
+  int dsnLen = strlen(datasetOrMember);
+  int lParenIndex = indexOf(datasetOrMember, dsnLen, '(', 0);
 
   if(addQualifiersArg != NULL) {
     int addQualifiers = !strcmp(addQualifiersArg, "true");
@@ -2495,7 +2497,7 @@ void getDatasetMetadataFromRequest(HttpResponse *response) {
   jsonAddString(jPrinter,"_objectType","com.rs.mvd.base.dataset.metadata");
   jsonAddString(jPrinter,"_metadataVersion","1.1");
 
-  getDatasetMetadata(&dsnName, memName, memberNameLength, addQualifiersArg, detailArg, typesArg, listMembersArg, datasetTypeCount, workAreaSizeArg, migratedArg, resumeNameArg, includeUnprintable, resumeCatalogNameArg, jPrinter);
+  getDatasetMetadata(&dsnName, memName, datasetOrMember, memberNameLength, addQualifiersArg, detailArg, typesArg, listMembersArg, datasetTypeCount, workAreaSizeArg, migratedArg, resumeNameArg, includeUnprintable, resumeCatalogNameArg, jPrinter);
 
   jsonEnd(jPrinter);
   finishResponse(response);
