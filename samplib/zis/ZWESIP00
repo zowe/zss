@@ -57,9 +57,14 @@
 //*                                                                  */
 //********************************************************************/
 
+//* This plugin should be first. The order of plugins is important   */
+//*   because a plugin that is a dependency of another should be     */
+//*   higher in the list for access as early as needed               */
+ZWES.PLUGIN.ZISDYNAMIC=ZWESISDL
+
 * ZWES.PLUGIN.ECHO=ECHOPL01
 * ZWES.PLUGIN.MAGICNUMBER=MNUMBER
-ZWES.PLUGIN.ZISDYNAMIC=ZWESISDL
+
 
 ZWES.AUTH.CLASS=ZOWE
 
