@@ -3147,7 +3147,7 @@ void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* ab
   }
 }
 
-int newDataset(char* absolutePath, char* convertedBody, int translationLength, int reasonCode, char* errorMessage, int* errorCode) {
+int newDataset(char* absolutePath, char* convertedBody, int translationLength, int reasonCode, char** errorMessage, int* errorCode) {
   #ifdef __ZOWE_OS_ZOS
 
   printf("----INSIDE NEW NEW DATASET \n");
@@ -3249,7 +3249,7 @@ void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonM
   HttpRequest *request = response->request;
 
   char* errorMessage = NULL;
-  int errorCode = NULL;
+  int errorCode = 0;
   int rc = 0;
 
   if (!isDatasetPathValid(absolutePath)) {
@@ -3289,7 +3289,7 @@ void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonM
   if (rc == 0) {
     response200WithMessage(response, "Successfully created dataset");
   } else {
-    respondWithError(response, errorMessage, errorCode);
+    respondWithError(response, errorCode, errorMessage);
   }
 
   #endif
