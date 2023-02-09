@@ -3174,10 +3174,10 @@ void newDataset(char* absolutePath, char* convertedBody, int translationLength, 
 
   bool isMemberEmpty = IS_DAMEMBER_EMPTY(daMemberName);
 
-  if(!isMemberEmpty){
-    printf("---INSIDE isMemberEmpty \n");
-    return newDatasetMember(response, &datasetName, absolutePath);
-  }
+  // if(!isMemberEmpty){
+  //   printf("---INSIDE isMemberEmpty \n");
+  //   return newDatasetMember(response, &datasetName, absolutePath);
+  // }
 
   int configsCount = 0;
   char ddNameBuffer[DD_NAME_LEN+1] = "MVD00000";
