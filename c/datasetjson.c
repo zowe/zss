@@ -2293,6 +2293,48 @@ void tempDSCopy(HttpResponse *response) {
   finishResponse(response);
 }
 
+copyDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
+#ifdef __ZOWE_OS_ZOS
+  HttpRequest *request = response->request;
+
+  if (sourceDataset == NULL || strlen(sourceDataset) < 1){
+    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"No source dataset name given");
+    return;
+  }
+  if (targetDataset == NULL || strlen(targetDataset) < 1){
+    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"No target dataset name given");
+    return;
+  }
+
+  printf("---sourceDataset: %s\n", sourceDataset);
+
+  if(!isDatasetPathValid(sourceDataset)){
+    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Invalid dataset path");
+    return;
+  }
+
+  /* From here on, we know we have a valid data path */
+  DatasetName dsnName;
+  DatasetMemberName memName;
+
+  extractDatasetAndMemberName(sourceDataset, &dsnName, &memName);
+
+  JsonBuffer *outBuffer = makeJsonBuffer();
+  jsonPrinter *jPrinter = makeBufferJsonPrinter(CCSID_UTF_8,outBuffer);
+
+  setResponseStatus(response, 200, "OK");
+  setDefaultJSONRESTHeaders(response);
+  writeHeader(response);
+
+  jsonStart(jPrinter);
+
+  // getDatasetMetadata(&dsnName, &memName, sourceDataset, addQualifiersArg, detailArg, typesArg, listMembersArg, workAreaSizeArg, migratedArg, resumeNameArg, unprintableArg, resumeCatalogNameArg, jPrinter);
+
+  jsonEnd(jPrinter);
+  finishResponse(response);
+#endif /* __ZOWE_OS_ZOS */
+}
+
 getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, char *unprintableArg, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
   printf("----AGAIN INSIDE THE NEW FUNCTION: getDatasetMetadata\n");
 #ifdef __ZOWE_OS_ZOS
@@ -2302,6 +2344,10 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
   int memberNameLength = (unsigned int)rParenIndex  - (unsigned int)lParenIndex -1;
   int datasetTypeCount = (typesArg == NULL) ? 3 : strlen(typesArg);
   int includeUnprintable = !strcmp(unprintableArg, "true") ? TRUE : FALSE;
+
+  printf("---dsnName: %s \n", dsnName->value);
+  printf("---memName: %s\n", memName->value);
+  printf("---datasetOrMember: %s\n", datasetOrMember);
 
   if(addQualifiersArg != NULL) {
     int addQualifiers = !strcmp(addQualifiersArg, "true");
@@ -2423,6 +2469,8 @@ void getDatasetMetadataFromRequest(HttpResponse *response) {
   char *absDsPathTemp = stringConcatenate(response->slh, "//'", percentDecoded);
   char *absDsPath = stringConcatenate(response->slh, absDsPathTemp, "'");
 
+  printf("---absDsPath: %s\n", absDsPath);
+
   if(!isDatasetPathValid(absDsPath)){
     respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Invalid dataset path");
     return;
@@ -2436,30 +2484,39 @@ void getDatasetMetadataFromRequest(HttpResponse *response) {
 
   HttpRequestParam *addQualifiersParam = getCheckedParam(request,"addQualifiers");
   char *addQualifiersArg = (addQualifiersParam ? addQualifiersParam->stringValue : NULL);
+  printf("---addQualifiers: %s\n", addQualifiers);
 
   HttpRequestParam *detailParam = getCheckedParam(request,"detail");
   char *detailArg = (detailParam ? detailParam->stringValue : NULL);
+  printf("---detailArg: %s\n", detailArg);
 
   HttpRequestParam *typesParam = getCheckedParam(request,"types");
   char *typesArg = (typesParam ? typesParam->stringValue : defaultDatasetTypesAllowed);
+  printf("---typesArg: %s\n", typesArg);
 
   HttpRequestParam *listMembersParam = getCheckedParam(request,"listMembers");
   char *listMembersArg = (listMembersParam ? listMembersParam->stringValue : NULL);
+  printf("---listMembersArg: %s\n", listMembersArg);
 
   HttpRequestParam *workAreaSizeParam = getCheckedParam(request,"workAreaSize");
   int workAreaSizeArg = (workAreaSizeParam ? workAreaSizeParam->intValue : 0);
+  printf("---workAreaSizeArg: %d\n", workAreaSizeArg);
 
   HttpRequestParam *migratedParam = getCheckedParam(request,"includeMigrated");
   char *migratedArg = (migratedParam ? migratedParam->stringValue : NULL);
+  printf("---migratedArg: %s\n", migratedArg);
 
   HttpRequestParam *unprintableParam = getCheckedParam(request,"includeUnprintable");
   char *unprintableArg = (unprintableParam ? unprintableParam->stringValue : "");
+  printf("---unprintableArg: %s\n", unprintableArg);
 
   HttpRequestParam *resumeNameParam = getCheckedParam(request,"resumeName");
   char *resumeNameArg = (resumeNameParam ? resumeNameParam->stringValue : NULL);
+  printf("---resumeNameArg: %s\n", resumeNameArg);
 
   HttpRequestParam *resumeCatalogNameParam = getCheckedParam(request,"resumeCatalogName");
   char *resumeCatalogNameArg = (resumeCatalogNameParam ? resumeCatalogNameParam->stringValue : NULL);
+  printf("---resumeCatalogNameArg: %s\n", resumeCatalogNameArg);
 
   if (resumeNameArg != NULL) {
     if (strlen(resumeNameArg) > 44) {
