@@ -3234,7 +3234,6 @@ int newDataset(char* absolutePath, char* convertedBody, int translationLength, i
     zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_WARNING,
             "error: ds unalloc dsn=\'%44.44s\' dd=\'%8.8s\', rc=%d sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, daDDName.name, daRC, returnCode, reasonCode);
-    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to deallocate DDNAME");
     *errorCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
     *errorMessage = "Unable to deallocate DDNAME";
     return -1;
