@@ -3147,7 +3147,7 @@ void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* ab
   }
 }
 
-void newDataset(char* absolutePath, char *convertedBody, int translationLength, int reasonCode) {
+void newDataset(char* absolutePath, char* convertedBody, int translationLength, int reasonCode) {
   #ifdef __ZOWE_OS_ZOS
 
   printf("----INSIDE NEW NEW DATASET \n");

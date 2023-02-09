@@ -67,6 +67,7 @@ void respondWithDatasetMetadata(HttpResponse *response);
 void getDatasetMetadataFromRequest(HttpResponse *response);
 void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQueryCache);
 void newDataset(HttpResponse* response, char* absolutePath, int jsonMode);
+void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonMode);
 void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode);
 void updateVSAMDataset(HttpResponse* response, char* absolutePath, hashtable *acbTable, int jsonMode);
 void deleteVSAMDataset(HttpResponse* response, char* absolutePath);
