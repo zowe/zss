@@ -2241,23 +2241,23 @@ static void tempTest(struct DsProperties* dp) {
   printf("---TEMP TEST DS NAME: %s \n", dp->name);
 }
 
-void tempDSCopy(HttpResponse *response) {
+void tempDSCopy() {
   printf("---FUNCTION tempDSCopy\n");
 
-  JsonBuffer *buffer = makeJsonBuffer();
-  jsonPrinter *p = makeBufferJsonPrinter(CCSID_UTF_8,buffer);
-  jsonStart(p);
-  jsonAddString(p, "newString", "newString");
-  jsonAddString(p, "City", "Pune");
-  jsonEnd(p);
-  printf("---BUFFER  %.*s \n",buffer->len,buffer);
-  printf("---BUFFER: %s \n", buffer);
-  printf("---BUFFER DATA: %s \n", buffer->data);
-  printf("---BUFFER LENGTH: %d \n", buffer->len);
-  printf("---BUFFER SIZE: %d \n\n", buffer->size);
+  // JsonBuffer *buffer = makeJsonBuffer();
+  // jsonPrinter *p = makeBufferJsonPrinter(CCSID_UTF_8,buffer);
+  // jsonStart(p);
+  // jsonAddString(p, "newString", "newString");
+  // jsonAddString(p, "City", "Pune");
+  // jsonEnd(p);
+  // printf("---BUFFER  %.*s \n",buffer->len,buffer);
+  // printf("---BUFFER: %s \n", buffer);
+  // printf("---BUFFER DATA: %s \n", buffer->data);
+  // printf("---BUFFER LENGTH: %d \n", buffer->len);
+  // printf("---BUFFER SIZE: %d \n\n", buffer->size);
 
   JsonBuffer *outBuffer = makeJsonBuffer();
-  jsonPrinter *out = makeBufferJsonPrinter(CCSID_UTF_8,outBuffer);
+  jsonPrinter *out = makeBufferNativeJsonPrinter(CCSID_IBM1047, outBuffer);
   jsonStart(out);
   jsonAddString(out, "dsOrg", "PO");
   jsonAddInt(out, "directoryBlock", 10);
@@ -2281,20 +2281,21 @@ void tempDSCopy(HttpResponse *response) {
   printf("---DUMPBUFFER----\n");
   dumpbuffer(outBuffer->data, outBuffer->len);
 
-  struct DsProperties dprop;
-  strcpy(dprop.name, "TS3800.SAKSHIPS");
-  printf("---DS NAME: %s \n", dprop.name);
-  tempTest(&dprop);
-  printf("---DS RECORDFORMAT: %c \n", dprop.recordFormat);
-  printf("---DS NAME: %s \n", dprop.name);
+  // struct DsProperties dprop;
+  // strcpy(dprop.name, "TS3800.SAKSHIPS");
+  // printf("---DS NAME: %s \n", dprop.name);
+  // tempTest(&dprop);
+  // printf("---DS RECORDFORMAT: %c \n", dprop.recordFormat);
+  // printf("---DS NAME: %s \n", dprop.name);
 
-  setContentType(response, "text/json");
-  setResponseStatus(response, 200, "Work In progress");
-  finishResponse(response);
+  // setContentType(response, "text/json");
+  // setResponseStatus(response, 200, "Work In progress");
+  // finishResponse(response);
 }
 
 void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
   #ifdef __ZOWE_OS_ZOS
+  tempDSCopy();
   HttpRequest *request = response->request;
 
   if (sourceDataset == NULL || strlen(sourceDataset) < 1){
@@ -2320,7 +2321,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   extractDatasetAndMemberName(sourceDataset, &dsnName, &memName);
 
   JsonBuffer *buffer = makeJsonBuffer();
-  jsonPrinter *jPrinter = makeBufferJsonPrinter(CCSID_UTF_8, buffer);
+  jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, buffer);
 
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
