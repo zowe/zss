@@ -2319,8 +2319,8 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
 
   extractDatasetAndMemberName(sourceDataset, &dsnName, &memName);
 
-  JsonBuffer *outBuffer = makeJsonBuffer();
-  jsonPrinter *jPrinter = makeBufferJsonPrinter(CCSID_UTF_8,outBuffer);
+  JsonBuffer *buffer = makeJsonBuffer();
+  jsonPrinter *jPrinter = makeBufferJsonPrinter(CCSID_UTF_8, buffer);
 
   setResponseStatus(response, 200, "OK");
   setDefaultJSONRESTHeaders(response);
@@ -2328,9 +2328,26 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
 
   jsonStart(jPrinter);
 
-  // getDatasetMetadata(&dsnName, &memName, sourceDataset, addQualifiersArg, detailArg, typesArg, listMembersArg, workAreaSizeArg, migratedArg, resumeNameArg, unprintableArg, resumeCatalogNameArg, jPrinter);
+  char* addQualifiersArg = "true";
+  char* detailArg = "true";
+  char* typesArg = defaultDatasetTypesAllowed;
+  char* listMembersArg = "true";
+  int workAreaSizeArg = 0;
+  char* migratedArg = NULL;
+  char* resumeNameArg = NULL;
+  char* unprintableArg = "";
+  char* resumeCatalogNameArg = NULL;
+
+  getDatasetMetadata(&dsnName, &memName, sourceDataset, addQualifiersArg, detailArg, typesArg, listMembersArg, workAreaSizeArg, migratedArg, resumeNameArg, unprintableArg, resumeCatalogNameArg, jPrinter);
 
   jsonEnd(jPrinter);
+
+  printf("---DATASET METADATA---: %s \n", buffer->data);
+  printf("---DATASET METADATA---: %s \n", buffer->len);
+  printf("---DATASET METADATA---: %s \n", buffer->size);
+  printf("---DUMPBUFFER----\n");
+  dumpbuffer(buffer->data, buffer->len);
+
   finishResponse(response);
 #endif /* __ZOWE_OS_ZOS */
 }

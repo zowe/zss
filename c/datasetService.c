@@ -164,7 +164,7 @@ static int serveDatasetCopy(HttpService *service, HttpResponse *response){
     printf("---datasetNameP1: %s\n", datasetNameP1);
     printf("---datasetName: %s\n", datasetName);
     printf("---newDataset: %s\n", newDataset);
-    copyDataset(response, percentDecoded, newDataset);
+    copyDataset(response, datasetName, newDataset);
   } else {
     jsonPrinter *out = respondWithJsonPrinter(response);
 
