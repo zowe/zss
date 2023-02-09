@@ -2293,7 +2293,7 @@ void tempDSCopy(HttpResponse *response) {
   finishResponse(response);
 }
 
-copyDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
+void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
 
@@ -2484,7 +2484,7 @@ void getDatasetMetadataFromRequest(HttpResponse *response) {
 
   HttpRequestParam *addQualifiersParam = getCheckedParam(request,"addQualifiers");
   char *addQualifiersArg = (addQualifiersParam ? addQualifiersParam->stringValue : NULL);
-  printf("---addQualifiers: %s\n", addQualifiers);
+  printf("---addQualifiersArg: %s\n", addQualifiersArg);
 
   HttpRequestParam *detailParam = getCheckedParam(request,"detail");
   char *detailArg = (detailParam ? detailParam->stringValue : NULL);
