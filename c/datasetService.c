@@ -128,7 +128,7 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Allocating dataset: %s\n", filename);
     fflush(stdout);
-    newDataset(response, filename, TRUE);
+    newDatasetFromRequest(response, filename, TRUE);
   }
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);

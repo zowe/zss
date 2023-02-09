@@ -2294,7 +2294,7 @@ void tempDSCopy(HttpResponse *response) {
 }
 
 void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
-#ifdef __ZOWE_OS_ZOS
+  #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
 
   if (sourceDataset == NULL || strlen(sourceDataset) < 1){
@@ -2349,7 +2349,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   dumpbuffer(buffer->data, buffer->len);
 
   finishResponse(response);
-#endif /* __ZOWE_OS_ZOS */
+  #endif /* __ZOWE_OS_ZOS */
 }
 
 getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, char *unprintableArg, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
@@ -2368,7 +2368,7 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
 
   if(addQualifiersArg != NULL) {
     int addQualifiers = !strcmp(addQualifiersArg, "true");
-#define DSN_MAX_LEN 44
+    #define DSN_MAX_LEN 44
     char dsnNameNullTerm[DSN_MAX_LEN + 1] = {0}; //+1 for null term
     memcpy(dsnNameNullTerm, dsnName->value, sizeof(dsnName->value));
     nullTerminate(dsnNameNullTerm, sizeof(dsnNameNullTerm) - 1);
@@ -2382,7 +2382,7 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
       }
     }
     memcpy(&dsnName->value, dsnNameNullTerm, strlen(dsnNameNullTerm));
-#undef DSN_MAX_LEN
+    #undef DSN_MAX_LEN
   }
 
   int fieldCount = defaultCSIFieldCount;
@@ -3147,7 +3147,141 @@ void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* ab
   }
 }
 
-void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
+void newDataset(char* absolutePath, char *convertedBody, int translationLength, int reasonCode) {
+  #ifdef __ZOWE_OS_ZOS
+
+  printf("----INSIDE NEW NEW DATASET \n");
+  printf("---NEW DATASET ABS PATH: %s \n", absolutePath);
+
+  DatasetName datasetName;
+  DatasetMemberName memberName;
+  extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
+
+  printf("---DATASTENAME: %s \n", datasetName.value);
+  printf("---DATASTE MEMBER NAME: %s \n", memberName.value);
+
+  DynallocDatasetName daDatasetName;
+  DynallocMemberName daMemberName;
+  memcpy(daDatasetName.name, datasetName.value, sizeof(daDatasetName.name));
+  memcpy(daMemberName.name, memberName.value, sizeof(daMemberName.name));
+
+  printf("---DA DATASTENAME: %s \n, ", daDatasetName.name);
+  printf("---DA DATASTE MEMBER NAME: %s \n, ", daMemberName.name);
+
+  DynallocDDName daDDName = {.name = "????????"};
+
+  int daRC = RC_DYNALLOC_OK, daSysReturnCode = 0, daSysReasonCode = 0;
+
+  bool isMemberEmpty = IS_DAMEMBER_EMPTY(daMemberName);
+
+  if(!isMemberEmpty){
+    printf("---INSIDE isMemberEmpty \n");
+    return newDatasetMember(response, &datasetName, absolutePath);
+  }
+
+  int configsCount = 0;
+  char ddNameBuffer[DD_NAME_LEN+1] = "MVD00000";
+  TextUnit *inputTextUnit[TOTAL_TEXT_UNITS] = {NULL};
+
+  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+  char errorBuffer[2048];
+  Json *json = jsonParseUnterminatedString(slh,
+                                             convertedBody, translationLength,
+                                             errorBuffer, sizeof(errorBuffer));
+
+  int returnCode = 0;
+  if (json) {
+    if (jsonIsObject(json)){
+      JsonObject * jsonObject = jsonAsObject(json);
+      returnCode = setTextUnit(TEXT_UNIT_STRING, DATASET_NAME_LEN, &datasetName.value[0], 0, DALDSNAM, &configsCount, inputTextUnit);
+      if(returnCode == 0) {
+        returnCode = setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, ddNameBuffer, 0, DALDDNAM, &configsCount, inputTextUnit);
+      }
+      if(returnCode == 0) {
+        returnCode = setDatasetAttributesForCreation(jsonObject, &configsCount, inputTextUnit);
+      }
+    }
+  } else {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid JSON request body");
+    return;
+  }
+
+  if (returnCode == 0) {
+    returnCode = dynallocNewDataset(inputTextUnit, configsCount, &reasonCode);
+    int ddNumber = 1;
+    while (reasonCode==0x4100000 && ddNumber < 100000) {
+      sprintf(ddNameBuffer, "MVD%05d", ddNumber);
+      int ddconfig = 1;
+      setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, ddNameBuffer, 0, DALDDNAM, &ddconfig, inputTextUnit);
+      returnCode = dynallocNewDataset(inputTextUnit, configsCount, &reasonCode);
+      ddNumber++;
+    }
+  }
+
+  if (returnCode) {
+    zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_WARNING,
+            "error: ds alloc dsn=\'%44.44s\' dd=\'%8.8s\', sysRC=%d, sysRSN=0x%08X\n",
+            daDatasetName.name, ddNameBuffer, returnCode, reasonCode);
+    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to allocate a DD for ACB");
+    return;
+  }
+
+  memcpy(daDDName.name, ddNameBuffer, DD_NAME_LEN);
+  daRC = dynallocUnallocDatasetByDDName(&daDDName, DYNALLOC_UNALLOC_FLAG_NONE, &returnCode, &reasonCode);
+  if (daRC != RC_DYNALLOC_OK) {
+    zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_WARNING,
+            "error: ds unalloc dsn=\'%44.44s\' dd=\'%8.8s\', rc=%d sysRC=%d, sysRSN=0x%08X\n",
+            daDatasetName.name, daDDName.name, daRC, returnCode, reasonCode);
+    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to deallocate DDNAME");
+    return;
+  }
+  #endif
+}
+
+void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonMode) {
+  #ifdef __ZOWE_OS_ZOS
+  printf("---INSIDE NEW DATASET FROM REQUEST\n");
+  HttpRequest *request = response->request;
+
+  if (!isDatasetPathValid(absolutePath)) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
+    return;
+  }
+
+  if (jsonMode != TRUE) { /*TODO add support for updating files with raw bytes instead of JSON*/
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Cannot update file without JSON formatted record request");
+    return;
+  }
+
+  char *contentBody = request->contentBody;
+  int bodyLength = strlen(contentBody);
+
+  char *convertedBody = safeMalloc(bodyLength*4,"writeDatasetConvert");
+  int conversionBufferLength = bodyLength*4;
+  int translationLength;
+  int outCCSID = NATIVE_CODEPAGE;
+  int reasonCode;
+
+  int returnCode = convertCharset(contentBody,
+                              bodyLength,
+                              CCSID_UTF_8,
+                              CHARSET_OUTPUT_USE_BUFFER,
+                              &convertedBody,
+                              conversionBufferLength,
+                              outCCSID,
+                              NULL,
+                              &translationLength,
+                              &reasonCode);
+
+  if(returnCode == 0) {
+    newDataset(absolutePath, convertedBody, translationLength, reasonCode);
+  }
+  response200WithMessage(response, "Successfully created dataset");
+
+  #endif
+}
+
+void newDataset2(HttpResponse* response, char* absolutePath, int jsonMode){
   printf("----INSIDE NEW DATASET \n");
   #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
