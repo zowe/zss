@@ -3147,7 +3147,7 @@ void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* ab
   }
 }
 
-void newDataset(char* absolutePath, char* convertedBody, int translationLength, int reasonCode) {
+int newDataset(char* absolutePath, char* convertedBody, int translationLength, int reasonCode, char* errorMessage, int* errorCode) {
   #ifdef __ZOWE_OS_ZOS
 
   printf("----INSIDE NEW NEW DATASET \n");
@@ -3202,8 +3202,9 @@ void newDataset(char* absolutePath, char* convertedBody, int translationLength, 
       }
     }
   } else {
-    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid JSON request body");
-    return;
+    *errorCode = HTTP_STATUS_BAD_REQUEST;
+    *errorMessage = "Invalid JSON request body";
+    return -1;
   }
 
   if (returnCode == 0) {
@@ -3222,8 +3223,9 @@ void newDataset(char* absolutePath, char* convertedBody, int translationLength, 
     zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_WARNING,
             "error: ds alloc dsn=\'%44.44s\' dd=\'%8.8s\', sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, ddNameBuffer, returnCode, reasonCode);
-    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to allocate a DD for ACB");
-    return;
+    *errorCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+    *errorMessage = "Unable to allocate a DD for ACB";
+    return -1;
   }
 
   memcpy(daDDName.name, ddNameBuffer, DD_NAME_LEN);
@@ -3233,8 +3235,11 @@ void newDataset(char* absolutePath, char* convertedBody, int translationLength, 
             "error: ds unalloc dsn=\'%44.44s\' dd=\'%8.8s\', rc=%d sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, daDDName.name, daRC, returnCode, reasonCode);
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to deallocate DDNAME");
-    return;
+    *errorCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+    *errorMessage = "Unable to deallocate DDNAME";
+    return -1;
   }
+  return 0;
   #endif
 }
 
@@ -3242,6 +3247,10 @@ void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonM
   #ifdef __ZOWE_OS_ZOS
   printf("---INSIDE NEW DATASET FROM REQUEST\n");
   HttpRequest *request = response->request;
+
+  char* errorMessage = NULL;
+  int errorCode = NULL;
+  int rc = 0;
 
   if (!isDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
@@ -3273,10 +3282,15 @@ void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonM
                               &translationLength,
                               &reasonCode);
 
-  if(returnCode == 0) {
-    newDataset(absolutePath, convertedBody, translationLength, reasonCode);
+  if (returnCode == 0) {
+    rc = newDataset(absolutePath, convertedBody, translationLength, reasonCode, &errorMessage, &errorCode);
   }
-  response200WithMessage(response, "Successfully created dataset");
+
+  if (rc == 0) {
+    response200WithMessage(response, "Successfully created dataset");
+  } else {
+    respondWithError(response, errorMessage, errorCode);
+  }
 
   #endif
 }
