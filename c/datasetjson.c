@@ -2392,7 +2392,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
                     printf("---IF PROP STRING\n");
                     if (!strcmp(propStr, "name")) {
                       printf("---PROP STRING NAME\n");
-                      char *datasetName = jsonAsInt64(propValue);
+                      char *datasetName = jsonAsString(propValue);
                       printf("----DATASETNAME: %s \n", datasetName);
                     }
                   }
