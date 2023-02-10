@@ -2344,11 +2344,69 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   jsonEnd(jPrinter);
 
   printf("---DATASET METADATA---: %s \n", buffer->data);
-  printf("---DATASET METADATA---: %s \n", buffer->len);
-  printf("---DATASET METADATA---: %s \n", buffer->size);
+  printf("---DATASET METADATA LEN---: %d \n", buffer->len);
+  printf("---DATASET METADATA SIZE---: %d \n", buffer->size);
   printf("---DUMPBUFFER----\n");
   dumpbuffer(buffer->data, buffer->len);
 
+  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+  char errorBuffer[2048];
+  Json *json = jsonParseUnterminatedString(slh,
+                                             buffer->data, buffer->len,
+                                             errorBuffer, sizeof(errorBuffer));
+  if (json) {
+    printf("---IS JSON\n");
+    if (jsonIsObject(json)){
+      printf("---JSON IS OBJECT\n");
+      JsonObject *jsonObject = jsonAsObject(json);
+      JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
+      Json *value = NULL;
+      while(currentProp != NULL){
+        printf("---WHILE CURRENT PROP NOT NULL\n");
+        value = jsonPropertyGetValue(currentProp);
+        char *propString = jsonPropertyGetKey(currentProp);
+        if(propString != NULL){
+          printf("---PROPSTRING NOT NULL\n");
+          if (!strcmp(propString, "hasMore")) {
+            printf("---PROPSTRING IS HAS MORE\n");
+            int64_t hasMoreValue = jsonAsInt64(value);
+            printf("----HAS MORE:%d \n", hasMoreValue);
+          }
+          if (!strcmp(propString, "datasets")){
+            printf("---PROPSTRING IS DATASETS\n");
+            JsonArray *array = jsonAsArray(value);
+            int count = jsonArrayGetCount(array);
+            for (uint32_t i = 0; i < 1; i++) {
+              printf("---ITERATING ARRAY\n");
+              Json *element = jsonArrayGetItem(array,i);
+              if(element && jsonIsObject(element)) {
+                printf("---ELEMENT JSONISOBJECT\n");
+                JsonObject *jsonDatasetObject = jsonAsObject(element);
+                JsonProperty *dsProp = jsonObjectGetFirstProperty(jsonDatasetObject);
+                Json *propValue = NULL;
+                while(dsProp != NULL) {
+                  printf("---WHILE DS PROP\n");
+                  propValue = jsonPropertyGetValue(dsProp);
+                  char *propStr = jsonPropertyGetKey(dsProp);
+                  if(propStr != NULL) {
+                    printf("---IF PROP STRING\n");
+                    if (!strcmp(propStr, "name")) {
+                      printf("---PROP STRING NAME\n");
+                      char *datasetName = jsonAsInt64(propValue);
+                      printf("----DATASETNAME: %s \n", datasetName);
+                    }
+                  }
+                  dsProp = jsonObjectGetNextProperty(currentProp);
+                }
+              }
+            }
+          }
+        }
+        currentProp = jsonObjectGetNextProperty(currentProp);
+      }
+    }
+  }
+  SLHFree(slh);
   finishResponse(response);
   #endif /* __ZOWE_OS_ZOS */
 }
