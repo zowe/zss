@@ -2329,23 +2329,11 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
 
   jsonStart(jPrinter);
 
-  char* addQualifiersArg = "true";
-  char* detailArg = "true";
-  char* typesArg = defaultDatasetTypesAllowed;
-  char* listMembersArg = "true";
-  int workAreaSizeArg = 0;
-  char* migratedArg = NULL;
-  char* resumeNameArg = NULL;
-  char* unprintableArg = "";
-  char* resumeCatalogNameArg = NULL;
-
-  getDatasetMetadata(&dsnName, &memName, sourceDataset, addQualifiersArg, detailArg, typesArg, listMembersArg, workAreaSizeArg, migratedArg, resumeNameArg, unprintableArg, resumeCatalogNameArg, jPrinter);
+  getDatasetMetadata(&dsnName, &memName, sourceDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
 
   jsonEnd(jPrinter);
 
   printf("---DATASET METADATA---: %s \n", buffer->data);
-  printf("---DATASET METADATA LEN---: %d \n", buffer->len);
-  printf("---DATASET METADATA SIZE---: %d \n", buffer->size);
   printf("---DUMPBUFFER----\n");
   dumpbuffer(buffer->data, buffer->len);
 
@@ -2355,6 +2343,20 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   char *recordLength = NULL;
   bool isBlocked = NULL;
 
+  getDatasetAttributes(buffer, &organization, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked);
+
+  printf("****UPDATED organization: %s\n", organization);
+  printf("****maxRecordLen: %d\n", maxRecordLen);
+  printf("****totalBlockSize: %d\n", totalBlockSize);
+  printf("****recordLength: %s\n", recordLength);
+  printf("****isBlocked: %d\n", isBlocked);
+
+  finishResponse(response);
+  #endif /* __ZOWE_OS_ZOS */
+}
+
+void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked) {
+
   ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
   char errorBuffer[2048];
   Json *json = jsonParseUnterminatedString(slh,
@@ -2363,91 +2365,77 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   if (json) {
     if (jsonIsObject(json)){
       JsonObject *jsonObject = jsonAsObject(json);
-      JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
-      Json *value = NULL;
-      while(currentProp != NULL){
-        value = jsonPropertyGetValue(currentProp);
-        char *propString = jsonPropertyGetKey(currentProp);
-        if(propString != NULL){
-          if (!strcmp(propString, "hasMore")) {
-            int64_t hasMoreValue = jsonAsInt64(value);
-          }
-          if (!strcmp(propString, "datasets")){
-            JsonArray *array = jsonAsArray(value);
-            int count = jsonArrayGetCount(array);
-            for (uint32_t i = 0; i < count; i++) {
-              Json *element = jsonArrayGetItem(array,i);
-              if(element && jsonIsObject(element)) {
-                JsonObject *jsonDatasetObject = jsonAsObject(element);
-                JsonProperty *dsProp = jsonObjectGetFirstProperty(jsonDatasetObject);
-                Json *propValue = NULL;
-                while (dsProp != NULL) {
-                  propValue = jsonPropertyGetValue(dsProp);
-                  char *propStr = jsonPropertyGetKey(dsProp);
-                  if(propStr != NULL) {
-                    if (!strcmp(propStr, "name")) {
-                      char *datasetName = jsonAsString(propValue);
-                    }
-                    if (!strcmp(propStr, "dsorg")) {
-                      JsonObject *dsOrg = jsonAsObject(propValue);
-                      JsonProperty *dsOrgProp = jsonObjectGetFirstProperty(dsOrg);
-                      Json *dsOrgPropValue = NULL;
-                      while (dsOrgProp != NULL) {
-                        dsOrgPropValue = jsonPropertyGetValue(dsOrgProp);
-                        char *dsOrgPropString = jsonPropertyGetKey(dsOrgProp);
-                        if(dsOrgPropString != NULL) {
-                          if (!strcmp(dsOrgPropString, "organization")) {
-                            organization = jsonAsString(dsOrgPropValue);
-                          }
-                          if (!strcmp(dsOrgPropString, "maxRecordLen")) {
-                            maxRecordLen = jsonAsInt64(dsOrgPropValue);
-                          }
-                          if (!strcmp(dsOrgPropString, "totalBlockSize")) {
-                            totalBlockSize = jsonAsInt64(dsOrgPropValue);
-                          }
-                        }
-                        dsOrgProp = jsonObjectGetNextProperty(dsOrgProp);
+      getDatasetAttributes(jsonObject, &organization, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked);
+    }
+  }
+  JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
+  Json *value = NULL;
+  while(currentProp != NULL){
+    value = jsonPropertyGetValue(currentProp);
+    char *propString = jsonPropertyGetKey(currentProp);
+    if(propString != NULL){
+      if (!strcmp(propString, "datasets")){
+        JsonArray *array = jsonAsArray(value);
+        int count = jsonArrayGetCount(array);
+        for (uint32_t i = 0; i < count; i++) {
+          Json *element = jsonArrayGetItem(array,i);
+          if(element && jsonIsObject(element)) {
+            JsonObject *jsonDatasetObject = jsonAsObject(element);
+            JsonProperty *dsProp = jsonObjectGetFirstProperty(jsonDatasetObject);
+            Json *propValue = NULL;
+            while (dsProp != NULL) {
+              propValue = jsonPropertyGetValue(dsProp);
+              char *propStr = jsonPropertyGetKey(dsProp);
+              if(propStr != NULL) {
+                if (!strcmp(propStr, "dsorg")) {
+                  JsonObject *dsOrg = jsonAsObject(propValue);
+                  JsonProperty *dsOrgProp = jsonObjectGetFirstProperty(dsOrg);
+                  Json *dsOrgPropValue = NULL;
+                  while (dsOrgProp != NULL) {
+                    dsOrgPropValue = jsonPropertyGetValue(dsOrgProp);
+                    char *dsOrgPropString = jsonPropertyGetKey(dsOrgProp);
+                    if(dsOrgPropString != NULL) {
+                      if (!strcmp(dsOrgPropString, "organization")) {
+                        organization = jsonAsString(dsOrgPropValue);
+                      }
+                      if (!strcmp(dsOrgPropString, "maxRecordLen")) {
+                        maxRecordLen = jsonAsInt64(dsOrgPropValue);
+                      }
+                      if (!strcmp(dsOrgPropString, "totalBlockSize")) {
+                        totalBlockSize = jsonAsInt64(dsOrgPropValue);
                       }
                     }
-                    if (!strcmp(propStr, "recfm")) {
-                      JsonObject *recfm = jsonAsObject(propValue);
-                      JsonProperty *recfmProp = jsonObjectGetFirstProperty(recfm);
-                      Json *recfmPropValue = NULL;
-                      while (recfmProp != NULL) {
-                        recfmPropValue = jsonPropertyGetValue(recfmProp);
-                        char *recfmPropString = jsonPropertyGetKey(recfmProp);
-                        if(recfmPropString != NULL) {
-                          if (!strcmp(recfmPropString, "recordLength")) {
-                            recordLength = jsonAsString(recfmPropValue);
-                          }
-                          if (!strcmp(recfmPropString, "isBlocked")) {
-                            isBlocked = jsonAsBoolean(recfmPropValue);
-                          }
-                        }
-                        recfmProp = jsonObjectGetNextProperty(recfmProp);
-                      }
-                    }
+                    dsOrgProp = jsonObjectGetNextProperty(dsOrgProp);
                   }
-                  dsProp = jsonObjectGetNextProperty(dsProp);
+                }
+                if (!strcmp(propStr, "recfm")) {
+                  JsonObject *recfm = jsonAsObject(propValue);
+                  JsonProperty *recfmProp = jsonObjectGetFirstProperty(recfm);
+                  Json *recfmPropValue = NULL;
+                  while (recfmProp != NULL) {
+                    recfmPropValue = jsonPropertyGetValue(recfmProp);
+                    char *recfmPropString = jsonPropertyGetKey(recfmProp);
+                    if(recfmPropString != NULL) {
+                      if (!strcmp(recfmPropString, "recordLength")) {
+                        recordLength = jsonAsString(recfmPropValue);
+                      }
+                      if (!strcmp(recfmPropString, "isBlocked")) {
+                        isBlocked = jsonAsBoolean(recfmPropValue);
+                      }
+                    }
+                    recfmProp = jsonObjectGetNextProperty(recfmProp);
+                  }
                 }
               }
+              dsProp = jsonObjectGetNextProperty(dsProp);
             }
           }
         }
-        currentProp = jsonObjectGetNextProperty(currentProp);
       }
     }
+    currentProp = jsonObjectGetNextProperty(currentProp);
   }
-
-  printf("****organization: %s\n", organization);
-  printf("****maxRecordLen: %d\n", maxRecordLen);
-  printf("****totalBlockSize: %d\n", totalBlockSize);
-  printf("****recordLength: %s\n", recordLength);
-  printf("****isBlocked: %d\n", isBlocked);
-
   SLHFree(slh);
-  finishResponse(response);
-  #endif /* __ZOWE_OS_ZOS */
 }
 
 getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, char *unprintableArg, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
