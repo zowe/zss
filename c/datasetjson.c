@@ -2364,75 +2364,74 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecor
   if (json) {
     if (jsonIsObject(json)){
       JsonObject *jsonObject = jsonAsObject(json);
-      getDatasetAttributes(jsonObject, &organization, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked);
-    }
-  }
-  JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
-  Json *value = NULL;
-  while(currentProp != NULL){
-    value = jsonPropertyGetValue(currentProp);
-    char *propString = jsonPropertyGetKey(currentProp);
-    if(propString != NULL){
-      if (!strcmp(propString, "datasets")){
-        JsonArray *array = jsonAsArray(value);
-        int count = jsonArrayGetCount(array);
-        for (uint32_t i = 0; i < count; i++) {
-          Json *element = jsonArrayGetItem(array,i);
-          if(element && jsonIsObject(element)) {
-            JsonObject *jsonDatasetObject = jsonAsObject(element);
-            JsonProperty *dsProp = jsonObjectGetFirstProperty(jsonDatasetObject);
-            Json *propValue = NULL;
-            while (dsProp != NULL) {
-              propValue = jsonPropertyGetValue(dsProp);
-              char *propStr = jsonPropertyGetKey(dsProp);
-              if(propStr != NULL) {
-                if (!strcmp(propStr, "dsorg")) {
-                  JsonObject *dsOrg = jsonAsObject(propValue);
-                  JsonProperty *dsOrgProp = jsonObjectGetFirstProperty(dsOrg);
-                  Json *dsOrgPropValue = NULL;
-                  while (dsOrgProp != NULL) {
-                    dsOrgPropValue = jsonPropertyGetValue(dsOrgProp);
-                    char *dsOrgPropString = jsonPropertyGetKey(dsOrgProp);
-                    if(dsOrgPropString != NULL) {
-                      if (!strcmp(dsOrgPropString, "organization")) {
-                        *organization = jsonAsString(dsOrgPropValue);
-                      }
-                      if (!strcmp(dsOrgPropString, "maxRecordLen")) {
-                        *maxRecordLen = jsonAsInt64(dsOrgPropValue);
-                      }
-                      if (!strcmp(dsOrgPropString, "totalBlockSize")) {
-                        *totalBlockSize = jsonAsInt64(dsOrgPropValue);
-                      }
-                    }
-                    dsOrgProp = jsonObjectGetNextProperty(dsOrgProp);
-                  }
-                }
-                if (!strcmp(propStr, "recfm")) {
-                  JsonObject *recfm = jsonAsObject(propValue);
-                  JsonProperty *recfmProp = jsonObjectGetFirstProperty(recfm);
-                  Json *recfmPropValue = NULL;
-                  while (recfmProp != NULL) {
-                    recfmPropValue = jsonPropertyGetValue(recfmProp);
-                    char *recfmPropString = jsonPropertyGetKey(recfmProp);
-                    if(recfmPropString != NULL) {
-                      if (!strcmp(recfmPropString, "recordLength")) {
-                        *recordLength = jsonAsString(recfmPropValue);
-                      }
-                      if (!strcmp(recfmPropString, "isBlocked")) {
-                        *isBlocked = jsonAsBoolean(recfmPropValue);
+      JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
+      Json *value = NULL;
+      while(currentProp != NULL){
+        value = jsonPropertyGetValue(currentProp);
+        char *propString = jsonPropertyGetKey(currentProp);
+        if(propString != NULL){
+          if (!strcmp(propString, "datasets")){
+            JsonArray *array = jsonAsArray(value);
+            int count = jsonArrayGetCount(array);
+            for (uint32_t i = 0; i < count; i++) {
+              Json *element = jsonArrayGetItem(array,i);
+              if(element && jsonIsObject(element)) {
+                JsonObject *jsonDatasetObject = jsonAsObject(element);
+                JsonProperty *dsProp = jsonObjectGetFirstProperty(jsonDatasetObject);
+                Json *propValue = NULL;
+                while (dsProp != NULL) {
+                  propValue = jsonPropertyGetValue(dsProp);
+                  char *propStr = jsonPropertyGetKey(dsProp);
+                  if(propStr != NULL) {
+                    if (!strcmp(propStr, "dsorg")) {
+                      JsonObject *dsOrg = jsonAsObject(propValue);
+                      JsonProperty *dsOrgProp = jsonObjectGetFirstProperty(dsOrg);
+                      Json *dsOrgPropValue = NULL;
+                      while (dsOrgProp != NULL) {
+                        dsOrgPropValue = jsonPropertyGetValue(dsOrgProp);
+                        char *dsOrgPropString = jsonPropertyGetKey(dsOrgProp);
+                        if(dsOrgPropString != NULL) {
+                          if (!strcmp(dsOrgPropString, "organization")) {
+                            *organization = jsonAsString(dsOrgPropValue);
+                          }
+                          if (!strcmp(dsOrgPropString, "maxRecordLen")) {
+                            *maxRecordLen = jsonAsInt64(dsOrgPropValue);
+                          }
+                          if (!strcmp(dsOrgPropString, "totalBlockSize")) {
+                            *totalBlockSize = jsonAsInt64(dsOrgPropValue);
+                          }
+                        }
+                        dsOrgProp = jsonObjectGetNextProperty(dsOrgProp);
                       }
                     }
-                    recfmProp = jsonObjectGetNextProperty(recfmProp);
+                    if (!strcmp(propStr, "recfm")) {
+                      JsonObject *recfm = jsonAsObject(propValue);
+                      JsonProperty *recfmProp = jsonObjectGetFirstProperty(recfm);
+                      Json *recfmPropValue = NULL;
+                      while (recfmProp != NULL) {
+                        recfmPropValue = jsonPropertyGetValue(recfmProp);
+                        char *recfmPropString = jsonPropertyGetKey(recfmProp);
+                        if(recfmPropString != NULL) {
+                          if (!strcmp(recfmPropString, "recordLength")) {
+                            *recordLength = jsonAsString(recfmPropValue);
+                          }
+                          if (!strcmp(recfmPropString, "isBlocked")) {
+                            *isBlocked = jsonAsBoolean(recfmPropValue);
+                          }
+                        }
+                        recfmProp = jsonObjectGetNextProperty(recfmProp);
+                      }
+                    }
                   }
+                  dsProp = jsonObjectGetNextProperty(dsProp);
                 }
               }
-              dsProp = jsonObjectGetNextProperty(dsProp);
             }
           }
         }
+        currentProp = jsonObjectGetNextProperty(currentProp);
       }
     }
-    currentProp = jsonObjectGetNextProperty(currentProp);
   }
   SLHFree(slh);
 }
