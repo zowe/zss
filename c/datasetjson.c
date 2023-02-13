@@ -2393,11 +2393,11 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
             printf("dsorg: %s\n", dsorg);
           }
           if (!strcmp(propString, "blksz")){
-            int64_t *blksz = jsonAsInt64(value);
+            int64_t blksz = jsonAsInt64(value);
             printf("blksz: %d\n", blksz);
           }
           if (!strcmp(propString, "lrecl")){
-            int *lrecl = jsonAsNumber(value);
+            int lrecl = jsonAsNumber(value);
             printf("lrecl: %d\n", lrecl);
           }
           if (!strcmp(propString, "recfm")){
