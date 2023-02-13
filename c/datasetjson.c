@@ -832,10 +832,10 @@ static void extractDatasetAndMemberName(const char *datasetPath,
   memset(&dsn->value, ' ', sizeof(dsn->value));
   memset(&memberName->value, ' ', sizeof(memberName->value));
 
-  printf("extractDatasetAndMemberName DS: %s\n", dsn.value);
-  printf("extractDatasetAndMemberName DS LEN: %d\n", strlen(dsn.value));
-  printf("extractDatasetAndMemberName MEM: %s\n", memberName.value);
-  printf("extractDatasetAndMemberName MEM LEN: %d\n", strlen(memberName.value));
+  printf("extractDatasetAndMemberName DS: %s\n", &dsn->value);
+  printf("extractDatasetAndMemberName DS LEN: %d\n", strlen(&dsn->value)));
+  printf("extractDatasetAndMemberName MEM: %s\n", &memberName->value);
+  printf("extractDatasetAndMemberName MEM LEN: %d\n", strlen(&memberName->value));
 
   size_t pathLength = strlen(datasetPath);
 
@@ -851,10 +851,10 @@ static void extractDatasetAndMemberName(const char *datasetPath,
            pathLength - strlen(DSPATH_PREFIX""DSPATH_SUFFIX));
   }
 
-  printf("extractDatasetAndMemberName DS: %s\n", dsn.value);
-  printf("extractDatasetAndMemberName DS LEN: %d\n", strlen(dsn.value));
-  printf("extractDatasetAndMemberName MEM: %s\n", memberName.value);
-  printf("extractDatasetAndMemberName MEM LEN: %d\n", strlen(memberName.value));
+  printf("extractDatasetAndMemberName DS: %s\n", &dsn->value);
+  printf("extractDatasetAndMemberName DS LEN: %d\n", strlen(&dsn->value)));
+  printf("extractDatasetAndMemberName MEM: %s\n", &memberName->value);
+  printf("extractDatasetAndMemberName MEM LEN: %d\n", strlen(&memberName->value));
 
   for (int i = 0; i < sizeof(dsn->value); i++) {
     dsn->value[i] = toupper(dsn->value[i]);
@@ -864,10 +864,10 @@ static void extractDatasetAndMemberName(const char *datasetPath,
     memberName->value[i] = toupper(memberName->value[i]);
   }
 
-  printf("extractDatasetAndMemberName DS: %s\n", dsn.value);
-  printf("extractDatasetAndMemberName DS LEN: %d\n", strlen(dsn.value));
-  printf("extractDatasetAndMemberName MEM: %s\n", memberName.value);
-  printf("extractDatasetAndMemberName MEM LEN: %d\n", strlen(memberName.value));
+  printf("extractDatasetAndMemberName DS: %s\n", &dsn->value);
+  printf("extractDatasetAndMemberName DS LEN: %d\n", strlen(&dsn->value)));
+  printf("extractDatasetAndMemberName MEM: %s\n", &memberName->value);
+  printf("extractDatasetAndMemberName MEM LEN: %d\n", strlen(&memberName->value));
 }
 
 #undef DSPATH_PREFIX
