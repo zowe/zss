@@ -832,6 +832,11 @@ static void extractDatasetAndMemberName(const char *datasetPath,
   memset(&dsn->value, ' ', sizeof(dsn->value));
   memset(&memberName->value, ' ', sizeof(memberName->value));
 
+  printf("extractDatasetAndMemberName DS: %s\n", dsn.value);
+  printf("extractDatasetAndMemberName DS LEN: %d\n", strlen(dsn.value));
+  printf("extractDatasetAndMemberName MEM: %s\n", memberName.value);
+  printf("extractDatasetAndMemberName MEM LEN: %d\n", strlen(memberName.value));
+
   size_t pathLength = strlen(datasetPath);
 
   const char *dsnStart = datasetPath + strlen(DSPATH_PREFIX);
@@ -846,6 +851,11 @@ static void extractDatasetAndMemberName(const char *datasetPath,
            pathLength - strlen(DSPATH_PREFIX""DSPATH_SUFFIX));
   }
 
+  printf("extractDatasetAndMemberName DS: %s\n", dsn.value);
+  printf("extractDatasetAndMemberName DS LEN: %d\n", strlen(dsn.value));
+  printf("extractDatasetAndMemberName MEM: %s\n", memberName.value);
+  printf("extractDatasetAndMemberName MEM LEN: %d\n", strlen(memberName.value));
+
   for (int i = 0; i < sizeof(dsn->value); i++) {
     dsn->value[i] = toupper(dsn->value[i]);
   }
@@ -854,6 +864,10 @@ static void extractDatasetAndMemberName(const char *datasetPath,
     memberName->value[i] = toupper(memberName->value[i]);
   }
 
+  printf("extractDatasetAndMemberName DS: %s\n", dsn.value);
+  printf("extractDatasetAndMemberName DS LEN: %d\n", strlen(dsn.value));
+  printf("extractDatasetAndMemberName MEM: %s\n", memberName.value);
+  printf("extractDatasetAndMemberName MEM LEN: %d\n", strlen(memberName.value));
 }
 
 #undef DSPATH_PREFIX
@@ -2295,7 +2309,6 @@ void tempDSCopy() {
 
 void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
   #ifdef __ZOWE_OS_ZOS
-  tempDSCopy();
   HttpRequest *request = response->request;
 
   if (sourceDataset == NULL || strlen(sourceDataset) < 1){
@@ -2332,10 +2345,6 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   getDatasetMetadata(&dsnName, &memName, sourceDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
 
   jsonEnd(jPrinter);
-
-  printf("---DATASET METADATA---: %s \n", buffer->data);
-  printf("---DUMPBUFFER----\n");
-  dumpbuffer(buffer->data, buffer->len);
 
   char *organization = NULL;
   char *recordLength = NULL;
@@ -3346,7 +3355,7 @@ int newDataset(char* absolutePath, char* datasetAttributes, int translationLengt
   //   printf("---INSIDE isMemberEmpty \n");
   //   return newDatasetMember(response, &datasetName, absolutePath);
   // }
-
+  printf("BEFORE SHORT LIVED HEAP\n");
   int configsCount = 0;
   char ddNameBuffer[DD_NAME_LEN+1] = "MVD00000";
   TextUnit *inputTextUnit[TOTAL_TEXT_UNITS] = {NULL};
