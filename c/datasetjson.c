@@ -2363,14 +2363,33 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
 
   char* datasetAttributes = "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": organization,\"space\": \"MB\",\"blksz\": totalBlockSize,\"lrecl\": maxRecordLen,\"recfm\": recFormat,\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": dsnt}";
   char dsAttr[300];
-  sprintf(dsAttr, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": %s,\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": %s,\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": %s}", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
+  sprintf(dsAttr, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": \"%s\"}", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
+  sprintf(datasetAttributes, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": \"%s\"}", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
+  printf("dsAttr: %s\n", dsAttr);
+  printf("datasetAttributes: %s\n", datasetAttributes);
 
   ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+  ShortLivedHeap *slh1 = makeShortLivedHeap(0x10000,0x10);
+  ShortLivedHeap *slh2 = makeShortLivedHeap(0x10000,0x10);
   char errorBuffer[2048];
   Json *json = jsonParseUnterminatedString(slh,
-                                             buffer->data, buffer->len,
+                                             &dsAttr, strlen(dsAttr),
                                              errorBuffer, sizeof(errorBuffer));
 
+  Json *json1 = jsonParseUnterminatedString(slh1,
+                                             &datasetAttributes, strlen(datasetAttributes),
+                                             errorBuffer, sizeof(errorBuffer));
+
+  Json *json2 = jsonParseUnterminatedString(slh2,
+                                             datasetAttributes, strlen(datasetAttributes),
+                                             errorBuffer, sizeof(errorBuffer));
+
+  if(json1) {
+    printf("JSON1 FROM ANOTHER STRING\n");
+  }
+  if(json2) {
+    printf("JSON2 FROM ANOTHER STRING\n");
+  }
   if (json) {
     printf("IT IS A JSON\n");
     if (jsonIsObject(json)){
@@ -2384,6 +2403,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
         char *propString = jsonPropertyGetKey(currentProp);
         if(propString != NULL){
           printf("PROPSTRING IS NOT NULL\n");
+          printf("PROPSTRING: %s\n", propString);
           if (!strcmp(propString, "ndisp")){
             char *ndisp = jsonAsString(value);
             printf("ndisp: %s\n", ndisp);
@@ -2420,6 +2440,9 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   printf("****recordLength: %s\n", recordLength);
   printf("****isBlocked: %d\n", isBlocked);
 
+  SLHFree(slh);
+  SLHFree(slh1);
+  SLHFree(slh2);
   finishResponse(response);
   #endif /* __ZOWE_OS_ZOS */
 }
