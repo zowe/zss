@@ -2381,7 +2381,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
 
   char errorBuffer[2048];
 
-  Json *json = jsonParseUnterminatedString(slh1,
+  Json *json = jsonParseUnterminatedString(slh,
                                              datasetAttributes, strlen(datasetAttributes),
                                              errorBuffer, sizeof(errorBuffer));
 
