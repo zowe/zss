@@ -2361,12 +2361,6 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     strcat(recFormat, "B");
   }
 
-  printf("****UPDATED organization: %s\n", organization);
-  printf("****maxRecordLen: %d\n", maxRecordLen);
-  printf("****totalBlockSize: %d\n", totalBlockSize);
-  printf("****recordLength: %s\n", recordLength);
-  printf("****isBlocked: %d\n", isBlocked);
-
   char dsAttr[300];
   sprintf(dsAttr, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": \"%s\"}", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
   printf("dsAttr: %s\n", dsAttr);
@@ -2377,59 +2371,67 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
 
   printf("datasetAttributes: %s\n", datasetAttributes);
 
-  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+  int rc = 0;
+  char* errorMessage = NULL;
+  int errorCode = 0;
+  rc = newDataset(targetDataset, datasetAttributes, strlen(datasetAttributes), 0, &errorMessage, &errorCode);
 
-  char errorBuffer[2048];
-
-  Json *json = jsonParseUnterminatedString(slh,
-                                             datasetAttributes, strlen(datasetAttributes),
-                                             errorBuffer, sizeof(errorBuffer));
-
-  if (json) {
-    printf("IT IS A JSON\n");
-    if (jsonIsObject(json)){
-      printf("IT IS A JSON OBJECT\n");
-      JsonObject *jsonObject = jsonAsObject(json);
-      JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
-      Json *value = NULL;
-      while(currentProp != NULL) {
-        printf("CURRENT PROP IS NOT NULL\n");
-        value = jsonPropertyGetValue(currentProp);
-        char *propString = jsonPropertyGetKey(currentProp);
-        if(propString != NULL){
-          printf("PROPSTRING IS NOT NULL\n");
-          printf("PROPSTRING: %s\n", propString);
-          if (!strcmp(propString, "ndisp")){
-            char *ndisp = jsonAsString(value);
-            printf("ndisp: %s\n", ndisp);
-          }
-          if (!strcmp(propString, "dsorg")){
-            char *dsorg = jsonAsString(value);
-            printf("dsorg: %s\n", dsorg);
-          }
-          if (!strcmp(propString, "blksz")){
-            int64_t blksz = jsonAsInt64(value);
-            printf("blksz: %d\n", blksz);
-          }
-          if (!strcmp(propString, "lrecl")){
-            int lrecl = jsonAsNumber(value);
-            printf("lrecl: %d\n", lrecl);
-          }
-          if (!strcmp(propString, "recfm")){
-            char *recfm = jsonAsString(value);
-            printf("recfm: %s\n", recfm);
-          }
-          if (!strcmp(propString, "dsnt")){
-            char *dsnt = jsonAsString(value);
-            printf("dsnt: %s\n", dsnt);
-          }
-      }
-        currentProp = jsonObjectGetNextProperty(currentProp);
-      }
-    }
+  if (rc == 0) {
+    response200WithMessage(response, "Successfully created dataset");
+  } else {
+    respondWithError(response, errorCode, errorMessage);
   }
 
-  SLHFree(slh);
+  // if (json) {
+  //   printf("IT IS A JSON\n");
+  //   if (jsonIsObject(json)){
+  //     printf("IT IS A JSON OBJECT\n");
+  //     JsonObject *jsonObject = jsonAsObject(json);
+  //     JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
+  //     Json *value = NULL;
+  //     while(currentProp != NULL) {
+  //       printf("CURRENT PROP IS NOT NULL\n");
+  //       value = jsonPropertyGetValue(currentProp);
+  //       char *propString = jsonPropertyGetKey(currentProp);
+  //       if(propString != NULL){
+  //         printf("PROPSTRING IS NOT NULL\n");
+  //         printf("PROPSTRING: %s\n", propString);
+  //         if (!strcmp(propString, "ndisp")){
+  //           char *ndisp = jsonAsString(value);
+  //           printf("ndisp: %s\n", ndisp);
+  //         }
+  //         if (!strcmp(propString, "dsorg")){
+  //           char *dsorg = jsonAsString(value);
+  //           printf("dsorg: %s\n", dsorg);
+  //         }
+  //         if (!strcmp(propString, "blksz")){
+  //           int64_t blksz = jsonAsInt64(value);
+  //           printf("blksz: %d\n", blksz);
+  //         }
+  //         if (!strcmp(propString, "lrecl")){
+  //           int lrecl = jsonAsNumber(value);
+  //           printf("lrecl: %d\n", lrecl);
+  //         }
+  //         if (!strcmp(propString, "recfm")){
+  //           char *recfm = jsonAsString(value);
+  //           printf("recfm: %s\n", recfm);
+  //         }
+  //         if (!strcmp(propString, "dsnt")){
+  //           char *dsnt = jsonAsString(value);
+  //           printf("dsnt: %s\n", dsnt);
+  //         }
+  //     }
+  //       currentProp = jsonObjectGetNextProperty(currentProp);
+  //     }
+  //   }
+  // }
+
+  // printf("****UPDATED organization: %s\n", organization);
+  // printf("****maxRecordLen: %d\n", maxRecordLen);
+  // printf("****totalBlockSize: %d\n", totalBlockSize);
+  // printf("****recordLength: %s\n", recordLength);
+  // printf("****isBlocked: %d\n", isBlocked);
+
   finishResponse(response);
   #endif /* __ZOWE_OS_ZOS */
 }
