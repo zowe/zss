@@ -2361,28 +2361,30 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     strcat(recFormat, "B");
   }
 
-  char* datasetAttributes = NULL;
+  printf("****UPDATED organization: %s\n", organization);
+  printf("****maxRecordLen: %d\n", maxRecordLen);
+  printf("****totalBlockSize: %d\n", totalBlockSize);
+  printf("****recordLength: %s\n", recordLength);
+  printf("****isBlocked: %d\n", isBlocked);
+
   char dsAttr[300];
   sprintf(dsAttr, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": \"%s\"}", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
-  sprintf(datasetAttributes, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": \"%s\"}", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
   printf("dsAttr: %s\n", dsAttr);
+  printf("dsAttr len: %d\n", strlen(dsAttr));
+
+  char* datasetAttributes = (char *)safeMalloc(strlen(dsAttr)+1, "Dataset Attributes Buffer");
+  strcpy(datasetAttributes, dsAttr);
+
   printf("datasetAttributes: %s\n", datasetAttributes);
 
   ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
-  ShortLivedHeap *slh1 = makeShortLivedHeap(0x10000,0x10);
-  ShortLivedHeap *slh2 = makeShortLivedHeap(0x10000,0x10);
+
   char errorBuffer[2048];
-  // Json *json1 = jsonParseUnterminatedString(slh,
-  //                                            dsAttr, strlen(dsAttr),
-  //                                            errorBuffer, sizeof(errorBuffer));
 
   Json *json = jsonParseUnterminatedString(slh1,
                                              datasetAttributes, strlen(datasetAttributes),
                                              errorBuffer, sizeof(errorBuffer));
 
-  // if(json1) {
-  //   printf("JSON1 FROM ANOTHER STRING\n");
-  // }
   if (json) {
     printf("IT IS A JSON\n");
     if (jsonIsObject(json)){
@@ -2427,15 +2429,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     }
   }
 
-  printf("****UPDATED organization: %s\n", organization);
-  printf("****maxRecordLen: %d\n", maxRecordLen);
-  printf("****totalBlockSize: %d\n", totalBlockSize);
-  printf("****recordLength: %s\n", recordLength);
-  printf("****isBlocked: %d\n", isBlocked);
-
   SLHFree(slh);
-  SLHFree(slh1);
-  SLHFree(slh2);
   finishResponse(response);
   #endif /* __ZOWE_OS_ZOS */
 }
