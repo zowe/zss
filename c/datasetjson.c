@@ -2321,6 +2321,11 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     return;
   }
 
+  if(!isDatasetPathValid(targetDataset)){
+    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Invalid dataset path");
+    return;
+  }
+
   /* From here on, we know we have a valid data path */
   DatasetName dsnName;
   DatasetMemberName memName;
@@ -2377,7 +2382,8 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   int rc = 0;
   char* errorMessage = NULL;
   int errorCode = 0;
-  rc = newDataset(targetDataset, datasetAttributes, strlen(datasetAttributes), 0, &errorMessage, &errorCode);
+  int reasonCode = 0;
+  rc = newDataset(targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode, &errorMessage, &errorCode);
 
   if (rc == 0) {
     response200WithMessage(response, "Successfully created dataset");
@@ -2385,55 +2391,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     respondWithError(response, errorCode, errorMessage);
   }
 
-  // if (json) {
-  //   printf("IT IS A JSON\n");
-  //   if (jsonIsObject(json)){
-  //     printf("IT IS A JSON OBJECT\n");
-  //     JsonObject *jsonObject = jsonAsObject(json);
-  //     JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
-  //     Json *value = NULL;
-  //     while(currentProp != NULL) {
-  //       printf("CURRENT PROP IS NOT NULL\n");
-  //       value = jsonPropertyGetValue(currentProp);
-  //       char *propString = jsonPropertyGetKey(currentProp);
-  //       if(propString != NULL){
-  //         printf("PROPSTRING IS NOT NULL\n");
-  //         printf("PROPSTRING: %s\n", propString);
-  //         if (!strcmp(propString, "ndisp")){
-  //           char *ndisp = jsonAsString(value);
-  //           printf("ndisp: %s\n", ndisp);
-  //         }
-  //         if (!strcmp(propString, "dsorg")){
-  //           char *dsorg = jsonAsString(value);
-  //           printf("dsorg: %s\n", dsorg);
-  //         }
-  //         if (!strcmp(propString, "blksz")){
-  //           int64_t blksz = jsonAsInt64(value);
-  //           printf("blksz: %d\n", blksz);
-  //         }
-  //         if (!strcmp(propString, "lrecl")){
-  //           int lrecl = jsonAsNumber(value);
-  //           printf("lrecl: %d\n", lrecl);
-  //         }
-  //         if (!strcmp(propString, "recfm")){
-  //           char *recfm = jsonAsString(value);
-  //           printf("recfm: %s\n", recfm);
-  //         }
-  //         if (!strcmp(propString, "dsnt")){
-  //           char *dsnt = jsonAsString(value);
-  //           printf("dsnt: %s\n", dsnt);
-  //         }
-  //     }
-  //       currentProp = jsonObjectGetNextProperty(currentProp);
-  //     }
-  //   }
-  // }
-
-  // printf("****UPDATED organization: %s\n", organization);
-  // printf("****maxRecordLen: %d\n", maxRecordLen);
-  // printf("****totalBlockSize: %d\n", totalBlockSize);
-  // printf("****recordLength: %s\n", recordLength);
-  // printf("****isBlocked: %d\n", isBlocked);
+  safeFree(datasetAttributes, strlen(datasetAttributes));
 
   finishResponse(response);
   #endif /* __ZOWE_OS_ZOS */
@@ -3318,7 +3276,7 @@ void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* ab
   }
 }
 
-int newDataset(char* absolutePath, char* datasetAttributes, int translationLength, int reasonCode, char** errorMessage, int* errorCode) {
+int newDataset(char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode, char** errorMessage, int* errorCode) {
   #ifdef __ZOWE_OS_ZOS
 
   printf("----INSIDE NEW NEW DATASET \n");
@@ -3379,13 +3337,13 @@ int newDataset(char* absolutePath, char* datasetAttributes, int translationLengt
   }
 
   if (returnCode == 0) {
-    returnCode = dynallocNewDataset(inputTextUnit, configsCount, &reasonCode);
+    returnCode = dynallocNewDataset(inputTextUnit, configsCount, reasonCode);
     int ddNumber = 1;
-    while (reasonCode==0x4100000 && ddNumber < 100000) {
+    while (*reasonCode==0x4100000 && ddNumber < 100000) {
       sprintf(ddNameBuffer, "MVD%05d", ddNumber);
       int ddconfig = 1;
       setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, ddNameBuffer, 0, DALDDNAM, &ddconfig, inputTextUnit);
-      returnCode = dynallocNewDataset(inputTextUnit, configsCount, &reasonCode);
+      returnCode = dynallocNewDataset(inputTextUnit, configsCount, reasonCode);
       ddNumber++;
     }
   }
@@ -3393,18 +3351,18 @@ int newDataset(char* absolutePath, char* datasetAttributes, int translationLengt
   if (returnCode) {
     zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_WARNING,
             "error: ds alloc dsn=\'%44.44s\' dd=\'%8.8s\', sysRC=%d, sysRSN=0x%08X\n",
-            daDatasetName.name, ddNameBuffer, returnCode, reasonCode);
+            daDatasetName.name, ddNameBuffer, returnCode, *reasonCode);
     *errorCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
     *errorMessage = "Unable to allocate a DD for ACB";
     return -1;
   }
 
   memcpy(daDDName.name, ddNameBuffer, DD_NAME_LEN);
-  daRC = dynallocUnallocDatasetByDDName(&daDDName, DYNALLOC_UNALLOC_FLAG_NONE, &returnCode, &reasonCode);
+  daRC = dynallocUnallocDatasetByDDName(&daDDName, DYNALLOC_UNALLOC_FLAG_NONE, &returnCode, reasonCode);
   if (daRC != RC_DYNALLOC_OK) {
     zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_WARNING,
             "error: ds unalloc dsn=\'%44.44s\' dd=\'%8.8s\', rc=%d sysRC=%d, sysRSN=0x%08X\n",
-            daDatasetName.name, daDDName.name, daRC, returnCode, reasonCode);
+            daDatasetName.name, daDDName.name, daRC, returnCode, *reasonCode);
     *errorCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
     *errorMessage = "Unable to deallocate DDNAME";
     return -1;
@@ -3453,7 +3411,7 @@ void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonM
                               &reasonCode);
 
   if (returnCode == 0) {
-    rc = newDataset(absolutePath, convertedBody, translationLength, reasonCode, &errorMessage, &errorCode);
+    rc = newDataset(absolutePath, convertedBody, translationLength, &reasonCode, &errorMessage, &errorCode);
   }
 
   if (rc == 0) {
