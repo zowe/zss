@@ -2370,20 +2370,20 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   }
 
   char dsAttr[300];
-  sprintf(dsAttr, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": \"%s\"}", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
+  snprintf(dsAttr, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": \"%s\"}", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
   printf("dsAttr: %s\n", dsAttr);
   printf("dsAttr len: %d\n", strlen(dsAttr));
 
-  char* datasetAttributes = (char *)safeMalloc(strlen(dsAttr)+1, "Dataset Attributes Buffer");
-  strcpy(datasetAttributes, dsAttr);
+  // char* datasetAttributes = (char *)safeMalloc(strlen(dsAttr)+1, "Dataset Attributes Buffer");
+  // strcpy(datasetAttributes, dsAttr);
 
-  printf("datasetAttributes: %s\n", datasetAttributes);
+  // printf("datasetAttributes: %s\n", datasetAttributes);
 
   int rc = 0;
   char* errorMessage = NULL;
   int errorCode = 0;
   int reasonCode = 0;
-  rc = newDataset(targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode, &errorMessage, &errorCode);
+  rc = newDataset(targetDataset, dsAttr, strlen(datasetAttributes), &reasonCode, &errorMessage, &errorCode);
 
   if (rc == 0) {
     response200WithMessage(response, "Successfully created dataset");
@@ -2391,7 +2391,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     respondWithError(response, errorCode, errorMessage);
   }
 
-  safeFree(datasetAttributes, strlen(datasetAttributes));
+  // safeFree(datasetAttributes, strlen(datasetAttributes));
 
   finishResponse(response);
   #endif /* __ZOWE_OS_ZOS */
