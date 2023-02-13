@@ -2361,7 +2361,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     strcat(recFormat, "B");
   }
 
-  char* datasetAttributes = "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": organization,\"space\": \"MB\",\"blksz\": totalBlockSize,\"lrecl\": maxRecordLen,\"recfm\": recFormat,\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": dsnt}";
+  char* datasetAttributes = NULL;
   char dsAttr[300];
   sprintf(dsAttr, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": \"%s\"}", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
   sprintf(datasetAttributes, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": \"%s\"}", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
@@ -2372,24 +2372,17 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   ShortLivedHeap *slh1 = makeShortLivedHeap(0x10000,0x10);
   ShortLivedHeap *slh2 = makeShortLivedHeap(0x10000,0x10);
   char errorBuffer[2048];
-  Json *json = jsonParseUnterminatedString(slh,
-                                             &dsAttr, strlen(dsAttr),
-                                             errorBuffer, sizeof(errorBuffer));
+  // Json *json1 = jsonParseUnterminatedString(slh,
+  //                                            dsAttr, strlen(dsAttr),
+  //                                            errorBuffer, sizeof(errorBuffer));
 
-  Json *json1 = jsonParseUnterminatedString(slh1,
-                                             &datasetAttributes, strlen(datasetAttributes),
-                                             errorBuffer, sizeof(errorBuffer));
-
-  Json *json2 = jsonParseUnterminatedString(slh2,
+  Json *json = jsonParseUnterminatedString(slh1,
                                              datasetAttributes, strlen(datasetAttributes),
                                              errorBuffer, sizeof(errorBuffer));
 
-  if(json1) {
-    printf("JSON1 FROM ANOTHER STRING\n");
-  }
-  if(json2) {
-    printf("JSON2 FROM ANOTHER STRING\n");
-  }
+  // if(json1) {
+  //   printf("JSON1 FROM ANOTHER STRING\n");
+  // }
   if (json) {
     printf("IT IS A JSON\n");
     if (jsonIsObject(json)){
