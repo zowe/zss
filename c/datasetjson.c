@@ -3315,7 +3315,7 @@ void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* ab
   }
 }
 
-int newDataset(char* absolutePath, char* convertedBody, int translationLength, int reasonCode, char** errorMessage, int* errorCode) {
+int newDataset(char* absolutePath, char* datasetAttributes, int translationLength, int reasonCode, char** errorMessage, int* errorCode) {
   #ifdef __ZOWE_OS_ZOS
 
   printf("----INSIDE NEW NEW DATASET \n");
@@ -3326,15 +3326,15 @@ int newDataset(char* absolutePath, char* convertedBody, int translationLength, i
   extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
 
   printf("---DATASTENAME: %s \n", datasetName.value);
-  printf("---DATASTE MEMBER NAME: %s \n", memberName.value);
+  printf("---DATASET MEMBER NAME: %s \n", memberName.value);
 
   DynallocDatasetName daDatasetName;
   DynallocMemberName daMemberName;
   memcpy(daDatasetName.name, datasetName.value, sizeof(daDatasetName.name));
   memcpy(daMemberName.name, memberName.value, sizeof(daMemberName.name));
 
-  printf("---DA DATASTENAME: %s \n, ", daDatasetName.name);
-  printf("---DA DATASTE MEMBER NAME: %s \n, ", daMemberName.name);
+  printf("---DA DATASTENAME: %s \n ", daDatasetName.name);
+  printf("---DA DATASET MEMBER NAME: %s \n ", daMemberName.name);
 
   DynallocDDName daDDName = {.name = "????????"};
 
@@ -3354,7 +3354,7 @@ int newDataset(char* absolutePath, char* convertedBody, int translationLength, i
   ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
   char errorBuffer[2048];
   Json *json = jsonParseUnterminatedString(slh,
-                                             convertedBody, translationLength,
+                                             datasetAttributes, translationLength,
                                              errorBuffer, sizeof(errorBuffer));
 
   int returnCode = 0;
