@@ -2338,12 +2338,81 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   dumpbuffer(buffer->data, buffer->len);
 
   char *organization = NULL;
+  char *recordLength = NULL;
+  char *dsnt = NULL;
   int maxRecordLen = 0;
   int totalBlockSize = 0;
-  char *recordLength = NULL;
   bool isBlocked = NULL;
+  bool isPDSE = NULL;
+  char recFormat[3];
 
-  getDatasetAttributes(buffer, &organization, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked);
+  getDatasetAttributes(buffer, &organization, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked, &isPDSE);
+
+  if(!strcmp(organization, "sequential")) {
+    organization = "PS";
+    dsnt = "";
+  } else {
+    organization = "PO";
+    dsnt = (isPDSE != NULL) ? "PDSE" : "PDS";
+  }
+
+  strcpy(recFormat, recordLength);
+  if(isBlocked) {
+    strcat(recFormat, "B");
+  }
+
+  char* datasetAttributes = "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": organization,\"space\": \"MB\",\"blksz\": totalBlockSize,\"lrecl\": maxRecordLen,\"recfm\": recFormat,\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": dsnt}";
+  char dsAttr[300];
+  sprintf(dsAttr, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": %s,\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": %s,\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": %s}", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
+
+  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+  char errorBuffer[2048];
+  Json *json = jsonParseUnterminatedString(slh,
+                                             buffer->data, buffer->len,
+                                             errorBuffer, sizeof(errorBuffer));
+
+  if (json) {
+    printf("IT IS A JSON\n");
+    if (jsonIsObject(json)){
+      printf("IT IS A JSON OBJECT\n");
+      JsonObject *jsonObject = jsonAsObject(json);
+      JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
+      JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
+      Json *value = NULL;
+      while(currentProp != NULL) {
+        printf("CURRENT PROP IS NOT NULL\n");
+        value = jsonPropertyGetValue(currentProp);
+        char *propString = jsonPropertyGetKey(currentProp);
+        if(propString != NULL){
+          printf("PROPSTRING IS NOT NULL\n");
+          if (!strcmp(propString, "ndisp")){
+            char *ndisp = jsonAsString(dsOrgPropValue);
+            printf("ndisp: %s\n", ndisp);
+          }
+          if (!strcmp(propString, "dsorg")){
+            char *dsorg = jsonAsString(dsOrgPropValue);
+            printf("dsorg: %s\n", dsorg);
+          }
+          if (!strcmp(propString, "blksz")){
+            char *blksz = jsonAsInt64(dsOrgPropValue);
+            printf("blksz: %s\n", blksz);
+          }
+          if (!strcmp(propString, "lrecl")){
+            char *lrecl = jsonAsNumber(dsOrgPropValue);
+            printf("lrecl: %s\n", lrecl);
+          }
+          if (!strcmp(propString, "recfm")){
+            char *recfm = jsonAsString(dsOrgPropValue);
+            printf("recfm: %s\n", recfm);
+          }
+          if (!strcmp(propString, "dsnt")){
+            char *dsnt = jsonAsString(dsOrgPropValue);
+            printf("dsnt: %s\n", dsnt);
+          }
+      }
+      currentProp = jsonObjectGetNextProperty(currentProp);
+    }
+  }
 
   printf("****UPDATED organization: %s\n", organization);
   printf("****maxRecordLen: %d\n", maxRecordLen);
@@ -2355,7 +2424,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   #endif /* __ZOWE_OS_ZOS */
 }
 
-void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked) {
+void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE) {
   ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
   char errorBuffer[2048];
   Json *json = jsonParseUnterminatedString(slh,
@@ -2399,6 +2468,9 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecor
                           }
                           if (!strcmp(dsOrgPropString, "totalBlockSize")) {
                             *totalBlockSize = jsonAsInt64(dsOrgPropValue);
+                          }
+                          if (!strcmp(dsOrgPropString, "isPDSE")) {
+                            *isPDSE = jsonAsInt64(dsOrgPropValue);
                           }
                         }
                         dsOrgProp = jsonObjectGetNextProperty(dsOrgProp);
