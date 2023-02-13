@@ -160,11 +160,9 @@ static int serveDatasetCopy(HttpService *service, HttpResponse *response){
     char *datasetNameP1 = stringConcatenate(response->slh, "//'", percentDecoded);
     char *datasetName = stringConcatenate(response->slh, datasetNameP1, "'");
     char *newDataset = getQueryParam(response->request, "newDataset");
-    printf("---percentDecoded: %s\n", percentDecoded);
-    printf("---datasetNameP1: %s\n", datasetNameP1);
-    printf("---datasetName: %s\n", datasetName);
-    printf("---newDataset: %s\n", newDataset);
-    copyDataset(response, datasetName, newDataset);
+    char *newDatasetNameP1 = stringConcatenate(response->slh, "//'", newDataset);
+    char *newDatasetName = stringConcatenate(response->slh, newDatasetNameP1, "'");
+    copyDataset(response, datasetName, newDatasetName);
   } else {
     jsonPrinter *out = respondWithJsonPrinter(response);
 
