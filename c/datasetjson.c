@@ -2370,7 +2370,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   }
 
   char dsAttr[300];
-  snprintf(dsAttr, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": \"%s\"}", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
+  sprintf(dsAttr, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": \"%s\"}\0", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
   printf("dsAttr: %s\n", dsAttr);
   printf("dsAttr len: %d\n", strlen(dsAttr));
 
@@ -2383,7 +2383,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   char* errorMessage = NULL;
   int errorCode = 0;
   int reasonCode = 0;
-  rc = newDataset(targetDataset, dsAttr, strlen(datasetAttributes), &reasonCode, &errorMessage, &errorCode);
+  rc = newDataset(targetDataset, dsAttr, strlen(dsAttr), &reasonCode, &errorMessage, &errorCode);
 
   if (rc == 0) {
     response200WithMessage(response, "Successfully created dataset");
