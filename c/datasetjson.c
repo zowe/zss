@@ -88,7 +88,7 @@ static int getVolserForDataset(const DatasetName *dataset, Volser *volser);
 static bool memberExists(char* dsName, DynallocMemberName daMemberName);
 static int getDSCB(DatasetName *dsName, char* dscb, int bufferSize);
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit);
-void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked);
+void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE);
 
 static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
   int lrecl = 0;
@@ -2353,7 +2353,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     dsnt = "";
   } else {
     organization = "PO";
-    dsnt = (isPDSE != NULL) ? "PDSE" : "PDS";
+    dsnt = (isPDSE) ? "PDSE" : "PDS";
   }
 
   strcpy(recFormat, recordLength);
@@ -2377,7 +2377,6 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
       printf("IT IS A JSON OBJECT\n");
       JsonObject *jsonObject = jsonAsObject(json);
       JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
-      JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
       Json *value = NULL;
       while(currentProp != NULL) {
         printf("CURRENT PROP IS NOT NULL\n");
@@ -2386,27 +2385,27 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
         if(propString != NULL){
           printf("PROPSTRING IS NOT NULL\n");
           if (!strcmp(propString, "ndisp")){
-            char *ndisp = jsonAsString(dsOrgPropValue);
+            char *ndisp = jsonAsString(value);
             printf("ndisp: %s\n", ndisp);
           }
           if (!strcmp(propString, "dsorg")){
-            char *dsorg = jsonAsString(dsOrgPropValue);
+            char *dsorg = jsonAsString(value);
             printf("dsorg: %s\n", dsorg);
           }
           if (!strcmp(propString, "blksz")){
-            char *blksz = jsonAsInt64(dsOrgPropValue);
-            printf("blksz: %s\n", blksz);
+            char *blksz = jsonAsInt64(value);
+            printf("blksz: %d\n", blksz);
           }
           if (!strcmp(propString, "lrecl")){
-            char *lrecl = jsonAsNumber(dsOrgPropValue);
-            printf("lrecl: %s\n", lrecl);
+            char *lrecl = jsonAsNumber(value);
+            printf("lrecl: %d\n", lrecl);
           }
           if (!strcmp(propString, "recfm")){
-            char *recfm = jsonAsString(dsOrgPropValue);
+            char *recfm = jsonAsString(value);
             printf("recfm: %s\n", recfm);
           }
           if (!strcmp(propString, "dsnt")){
-            char *dsnt = jsonAsString(dsOrgPropValue);
+            char *dsnt = jsonAsString(value);
             printf("dsnt: %s\n", dsnt);
           }
       }
@@ -2470,7 +2469,7 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecor
                             *totalBlockSize = jsonAsInt64(dsOrgPropValue);
                           }
                           if (!strcmp(dsOrgPropString, "isPDSE")) {
-                            *isPDSE = jsonAsInt64(dsOrgPropValue);
+                            *isPDSE = jsonAsBoolean(dsOrgPropValue);
                           }
                         }
                         dsOrgProp = jsonObjectGetNextProperty(dsOrgProp);
