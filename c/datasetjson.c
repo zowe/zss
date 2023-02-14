@@ -2385,6 +2385,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     printf("RC IS 0 IN COPYDATASET\n");
     response200WithMessage(response, "Successfully created dataset");
   } else {
+    printf("RC IS NOT 0 IN COPYDATASET\n");
     respondWithError(response, errorCode, errorMessage);
   }
 
