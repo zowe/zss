@@ -162,6 +162,7 @@ static int serveDatasetCopy(HttpService *service, HttpResponse *response){
     char *newDataset = getQueryParam(response->request, "newDataset");
     char *newDatasetNameP1 = stringConcatenate(response->slh, "//'", newDataset);
     char *newDatasetName = stringConcatenate(response->slh, newDatasetNameP1, "'");
+    fflush(stdout);
     copyDataset(response, datasetName, newDatasetName);
   } else {
     jsonPrinter *out = respondWithJsonPrinter(response);

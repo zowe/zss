@@ -2389,7 +2389,6 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     respondWithError(response, errorCode, errorMessage);
   }
 
-  finishResponse(response);
   #endif /* __ZOWE_OS_ZOS */
 }
 
