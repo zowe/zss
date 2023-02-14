@@ -2334,11 +2334,6 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
 
   JsonBuffer *buffer = makeJsonBuffer();
   jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, buffer);
-
-  setResponseStatus(response, 200, "OK");
-  setDefaultJSONRESTHeaders(response);
-  writeHeader(response);
-
   jsonStart(jPrinter);
 
   getDatasetMetadata(&dsnName, &memName, sourceDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
