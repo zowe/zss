@@ -2374,10 +2374,6 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   printf("dsAttr: %s\n", dsAttr);
   printf("dsAttr len: %d\n", strlen(dsAttr));
 
-  // char* datasetAttributes = (char *)safeMalloc(strlen(dsAttr)+1, "Dataset Attributes Buffer");
-  // strcpy(datasetAttributes, dsAttr);
-
-  // printf("datasetAttributes: %s\n", datasetAttributes);
 
   int rc = 0;
   char* errorMessage = NULL;
@@ -2386,12 +2382,11 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   rc = newDataset(targetDataset, dsAttr, strlen(dsAttr), &reasonCode, &errorMessage, &errorCode);
 
   if (rc == 0) {
+    printf("RC IS 0 IN COPYDATASET\n");
     response200WithMessage(response, "Successfully created dataset");
   } else {
     respondWithError(response, errorCode, errorMessage);
   }
-
-  // safeFree(datasetAttributes, strlen(datasetAttributes));
 
   finishResponse(response);
   #endif /* __ZOWE_OS_ZOS */
@@ -3320,35 +3315,48 @@ int newDataset(char* absolutePath, char* datasetAttributes, int translationLengt
 
   int returnCode = 0;
   if (json) {
+    printf("INSIDE JSON NEWDATASET\n");
     if (jsonIsObject(json)){
+      printf("INSIDE JSON IS OBJECT NEWDATASET\n");
       JsonObject * jsonObject = jsonAsObject(json);
       returnCode = setTextUnit(TEXT_UNIT_STRING, DATASET_NAME_LEN, &datasetName.value[0], 0, DALDSNAM, &configsCount, inputTextUnit);
       if(returnCode == 0) {
+        printf("BEFORE SETTEXTUNIT\n");
         returnCode = setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, ddNameBuffer, 0, DALDDNAM, &configsCount, inputTextUnit);
+        printf("AFTER SETTEXTUNIT\n");
       }
       if(returnCode == 0) {
+        printf("BEFORE setDatasetAttributesForCreation\n");
         returnCode = setDatasetAttributesForCreation(jsonObject, &configsCount, inputTextUnit);
+        printf("AFTER setDatasetAttributesForCreation\n");
       }
     }
   } else {
+    printf("IF NOT JSON NEWDATASET\n");
     *errorCode = HTTP_STATUS_BAD_REQUEST;
     *errorMessage = "Invalid JSON request body";
     return -1;
   }
 
   if (returnCode == 0) {
+    printf("BEFORE dynallocNewDataset\n");
     returnCode = dynallocNewDataset(inputTextUnit, configsCount, reasonCode);
+    printf("AFTER dynallocNewDataset\n");
     int ddNumber = 1;
     while (*reasonCode==0x4100000 && ddNumber < 100000) {
+      printf("INSIDE WHILE W REASONCODE\n");
       sprintf(ddNameBuffer, "MVD%05d", ddNumber);
       int ddconfig = 1;
       setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, ddNameBuffer, 0, DALDDNAM, &ddconfig, inputTextUnit);
       returnCode = dynallocNewDataset(inputTextUnit, configsCount, reasonCode);
       ddNumber++;
+      printf("END OF WHILE W REASONCODE\n");
     }
+      printf("OUTSIDE WHILE W REASONCODE\n");
   }
 
   if (returnCode) {
+    printf("ERROR: DS ALLOC DSN\n");
     zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_WARNING,
             "error: ds alloc dsn=\'%44.44s\' dd=\'%8.8s\', sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, ddNameBuffer, returnCode, *reasonCode);
@@ -3360,6 +3368,7 @@ int newDataset(char* absolutePath, char* datasetAttributes, int translationLengt
   memcpy(daDDName.name, ddNameBuffer, DD_NAME_LEN);
   daRC = dynallocUnallocDatasetByDDName(&daDDName, DYNALLOC_UNALLOC_FLAG_NONE, &returnCode, reasonCode);
   if (daRC != RC_DYNALLOC_OK) {
+    printf("ERROR: DS UNALLOC DSN\n");
     zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_WARNING,
             "error: ds unalloc dsn=\'%44.44s\' dd=\'%8.8s\', rc=%d sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, daDDName.name, daRC, returnCode, *reasonCode);
