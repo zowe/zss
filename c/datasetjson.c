@@ -234,7 +234,8 @@ static char *getDatasetETag(char *filename, int recordLength, int *rc, int *eTag
   return NULL;
 }
 
-int streamDataset(Socket *socket, char *filename, int recordLength, jsonPrinter *jPrinter){
+// int streamDataset(Socket *socket, char *filename, int recordLength, jsonPrinter *jPrinter){
+int streamDataset(char *filename, int recordLength, jsonPrinter *jPrinter){
 #ifdef __ZOWE_OS_ZOS
   // Note: to allow processing of zero-length records set _EDC_ZERO_RECLEN=Y
   int defaultSize = DATA_STREAM_BUFFER_SIZE;
@@ -1846,7 +1847,8 @@ static void respondWithDatasetInternal(HttpResponse* response,
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Streaming data for %s\n", datasetPath);
     
     jsonStart(jPrinter);
-    int status = streamDataset(response->socket, ddPath, lrecl, jPrinter);
+    // int status = streamDataset(response->socket, ddPath, lrecl, jPrinter);
+    int status = streamDataset(ddPath, lrecl, jPrinter);
     jsonEnd(jPrinter);
   }
   finishResponse(response);
