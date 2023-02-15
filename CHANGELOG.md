@@ -7,6 +7,7 @@ All notable changes to the ZSS package will be documented in this file.
 ## `2.7.0`
 
 - Enhancement: A new ZIS plugin, "ZISDYNAMIC" is available within the LOADLIB as ZWESISDL. This plugin allows for ZIS plugins to access utility functions of the zowe-common-c libraries without needing to statically build them into the plugin itself.
+- Bugfix: Fixed /unixfile/metadata not working when URL encoded spaces were present in file names
 
 ## `2.5.0`
 
