@@ -934,7 +934,8 @@ static int serveUnixFileChangeMode(HttpService *service, HttpResponse *response)
 static int serveUnixFileMetadata(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
   char *fileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
-  char *fileName = stringConcatenate(response->slh, "/", fileFrag);
+  char *encodedFileName = stringConcatenate(response->slh, "/", fileFrag);
+  char *fileName = cleanURLParamValue(response->slh, encodedFileName);
 
   if (!strcmp(request->method, methodGET)) {
     respondWithUnixFileMetadata(response, fileName);
