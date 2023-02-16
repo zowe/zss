@@ -156,6 +156,79 @@ static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn
   return lrecl;
 }
 
+static int getLrecl(HttpResponse *response, const DatasetName *dsn, const char *ddPath, char** errorMessage, int* errorCode) {
+  int lrecl = 0;
+
+  FileInfo info;
+  int returnCode;
+  int reasonCode;
+  FILE *in = fopen(ddPath, "r");
+  if (in == NULL) {
+    *errorMessage = "File could not be opened or does not exist";
+    *errorCode = HTTP_STATUS_NOT_FOUND;
+    // respondWithError(response,HTTP_STATUS_NOT_FOUND,"File could not be opened or does not exist");
+    return 0;
+  }
+
+  Volser volser;
+  memset(&volser.value, ' ', sizeof(volser.value));
+
+  int volserSuccess = getVolserForDataset(dsn, &volser);
+  int handledThroughDSCB = FALSE;
+
+  if (!volserSuccess){
+    char dscb[INDEXED_DSCB] = {0};
+    int rc = obtainDSCB1(dsn->value, sizeof(dsn->value),
+                         volser.value, sizeof(volser.value),
+                         dscb);
+    if (rc == 0){
+      if (DSCB_TRACE){
+        zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "DSCB for %.*s found\n", sizeof(dsn->value), dsn->value);
+        dumpbuffer(dscb,INDEXED_DSCB);
+      }
+
+      lrecl = getMaxRecordLength(dscb);
+      char recordType = getRecordLengthType(dscb);
+      if (recordType == 'U'){
+        fclose(in);
+        *errorMessage = "Undefined-length dataset";
+        *errorCode = HTTP_STATUS_BAD_REQUEST;
+        // respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
+        return 0;
+      }
+      handledThroughDSCB = TRUE;
+    }
+  }
+  if (!handledThroughDSCB){
+    FileInfo info;
+    fldata_t fileinfo = {0};
+    char filenameOutput[100];
+    int returnCode = fldata(in,filenameOutput,&fileinfo);
+    zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "FLData request rc=0x%x\n",returnCode);
+    if (!returnCode) {
+      if (fileinfo.__recfmU) {
+        fclose(in);
+        *errorMessage = "Undefined-length dataset";
+        *errorCode = HTTP_STATUS_BAD_REQUEST;
+        // respondWithError(response,  HTTP_STATUS_BAD_REQUEST,
+                        //  "Undefined-length dataset");
+        return 0;
+      }
+      lrecl = fileinfo.__maxreclen;
+    } else {
+      fclose(in);
+      *errorMessage = "Could not read dataset information";
+      *errorCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+    //   respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
+                    //    "Could not read dataset information");
+      return 0;
+    }
+  }
+  fclose(in);
+
+  return lrecl;
+}
+
 /*
  TODO this duplicates a lot of stremDataset. Thinking of putting conditionals on streamDataset writing to json stream, but then function becomes misleading.
  */
@@ -1823,8 +1896,12 @@ static void respondWithDatasetInternal(HttpResponse* response,
   char ddPath[16];
   snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName->value);
 
-  int lrecl = getLreclOrRespondError(response, dsn, ddPath);
+  char* errorMessage;
+  int errorCode;
+
+  int lrecl = getLrecl(response, dsn, ddPath, &errorMessage, &errorCode);
   if (!lrecl) {
+    respondWithError(response, errorCode, errorMessage);
     return;
   }
 
