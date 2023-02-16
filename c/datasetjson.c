@@ -833,9 +833,6 @@ static void extractDatasetAndMemberName(const char *datasetPath,
   memset(&dsn->value, ' ', sizeof(dsn->value));
   memset(&memberName->value, ' ', sizeof(memberName->value));
 
-  printf("extractDatasetAndMemberName DS: %s\n", &dsn->value);
-  printf("extractDatasetAndMemberName MEM: %s\n", &memberName->value);
-
   size_t pathLength = strlen(datasetPath);
 
   const char *dsnStart = datasetPath + strlen(DSPATH_PREFIX);
@@ -850,9 +847,6 @@ static void extractDatasetAndMemberName(const char *datasetPath,
            pathLength - strlen(DSPATH_PREFIX""DSPATH_SUFFIX));
   }
 
-  printf("extractDatasetAndMemberName DS: %s\n", &dsn->value);
-  printf("extractDatasetAndMemberName MEM: %s\n", &memberName->value);
-
   for (int i = 0; i < sizeof(dsn->value); i++) {
     dsn->value[i] = toupper(dsn->value[i]);
   }
@@ -860,9 +854,6 @@ static void extractDatasetAndMemberName(const char *datasetPath,
   for (int i = 0; i < sizeof(memberName->value); i++) {
     memberName->value[i] = toupper(memberName->value[i]);
   }
-
-  printf("extractDatasetAndMemberName DS: %s\n", &dsn->value);
-  printf("extractDatasetAndMemberName MEM: %s\n", &memberName->value);
 }
 
 #undef DSPATH_PREFIX
