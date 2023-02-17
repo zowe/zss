@@ -1885,7 +1885,7 @@ void updateVSAMDataset(HttpResponse* response, char* absolutePath, hashtable *ac
 
  */
 
-static void respondWithDatasetInternal(HttpResponse* response,
+static void respondWithDatasetInternal2(HttpResponse* response,
                                        const char *datasetPath,
                                        const DatasetName *dsn,
                                        const DDName *ddName,
@@ -1915,6 +1915,28 @@ static void respondWithDatasetInternal(HttpResponse* response,
     jsonEnd(jPrinter);
   }
   finishResponse(response);
+#endif /* __ZOWE_OS_ZOS */
+}
+
+static void respondWithDatasetInternal(HttpResponse* response,
+                                       const char *datasetPath,
+                                       const DatasetName *dsn,
+                                       const DDName *ddName,
+                                       jsonPrinter *jPrinter) {
+#ifdef __ZOWE_OS_ZOS
+  char ddPath[16];
+  snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName->value);
+
+  int lrecl = getLreclOrRespondError(response, dsn, ddPath);
+  if (!lrecl) {
+    return;
+  }
+
+  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Streaming data for %s\n", datasetPath);
+
+  jsonStart(jPrinter);
+  int status = streamDataset(ddPath, lrecl, jPrinter);
+  jsonEnd(jPrinter);
 #endif /* __ZOWE_OS_ZOS */
 }
 
@@ -1963,7 +1985,14 @@ void respondWithDataset(HttpResponse* response, char* absolutePath, int jsonMode
 
   DDName ddName;
   memcpy(&ddName.value, &daDDname.name, sizeof(ddName.value));
-  respondWithDatasetInternal(response, absolutePath, &dsn, &ddName, jsonMode);
+
+  jsonPrinter *jPrinter = respondWithJsonPrinter(response);
+  setResponseStatus(response, 200, "OK");
+  setDefaultJSONRESTHeaders(response);
+
+  writeHeader(response);
+
+  respondWithDatasetInternal(response, absolutePath, &dsn, &ddName, jPrinter);
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
                                         &daSysRC, &daSysRSN);
@@ -1973,7 +2002,7 @@ void respondWithDataset(HttpResponse* response, char* absolutePath, int jsonMode
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "read");
   }
-
+  finishResponse(response);
 }
 
 #define CSI_VSAMTYPE_KSDS  0x8000
