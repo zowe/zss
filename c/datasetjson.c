@@ -2520,19 +2520,10 @@ void readAndWriteToDataset(HttpResponse *response, char* absolutePath) {
   DDName ddName;
   memcpy(&ddName.value, &daDDname.name, sizeof(ddName.value));
 
-  char ddPath[16];
-  snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName.value);
-
-  int lrecl = getLreclOrRespondError(response, &dsn, ddPath);
-  if (!lrecl) {
-    return;
-  }
-
   JsonBuffer *buffer = makeJsonBuffer();
   jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, buffer);
-  jsonStart(jPrinter);
-  streamDataset(ddPath, lrecl, jPrinter);
-  jsonEnd(jPrinter);
+
+  respondWithDatasetInternal(response, absolutePath, &dsn, &ddName, jPrinter);
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
                                         &daSysRC, &daSysRSN);
