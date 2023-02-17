@@ -2452,7 +2452,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   #endif /* __ZOWE_OS_ZOS */
 }
 
-void readAndWriteToDataset(HttpResponse *response, const DatasetName *dsn, DatasetMemberName *memberName) {
+void readAndWriteToDataset(HttpResponse *response, DatasetName *dsn, DatasetMemberName *memberName) {
 
   DynallocDatasetName daDsn;
   DynallocMemberName daMember;
