@@ -307,7 +307,6 @@ static char *getDatasetETag(char *filename, int recordLength, int *rc, int *eTag
   return NULL;
 }
 
-// int streamDataset(Socket *socket, char *filename, int recordLength, jsonPrinter *jPrinter){
 int streamDataset(char *filename, int recordLength, jsonPrinter *jPrinter){
 #ifdef __ZOWE_OS_ZOS
   // Note: to allow processing of zero-length records set _EDC_ZERO_RECLEN=Y
@@ -1896,12 +1895,8 @@ static void respondWithDatasetInternal(HttpResponse* response,
   char ddPath[16];
   snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName->value);
 
-  char* errorMessage;
-  int errorCode;
-
-  int lrecl = getLrecl(response, dsn, ddPath, &errorMessage, &errorCode);
+  int lrecl = getLreclOrRespondError(response, dsn, ddPath);
   if (!lrecl) {
-    respondWithError(response, errorCode, errorMessage);
     return;
   }
 
@@ -1915,7 +1910,6 @@ static void respondWithDatasetInternal(HttpResponse* response,
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Streaming data for %s\n", datasetPath);
     
     jsonStart(jPrinter);
-    // int status = streamDataset(response->socket, ddPath, lrecl, jPrinter);
     int status = streamDataset(ddPath, lrecl, jPrinter);
     jsonEnd(jPrinter);
   }
@@ -2448,13 +2442,101 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
 
   if (rc == 0) {
     printf("RC IS 0 IN COPYDATASET\n");
-    response200WithMessage(response, "Successfully created dataset");
+    // response200WithMessage(response, "Successfully created dataset");
+    readAndWriteToDataset(response, dsnName, memName);
   } else {
     printf("RC IS NOT 0 IN COPYDATASET\n");
     respondWithError(response, errorCode, errorMessage);
   }
 
   #endif /* __ZOWE_OS_ZOS */
+}
+
+void readAndWriteToDataset(HttpResponse *response, const DatasetName *dsn, DatasetMemberName *memberName) {
+
+  DynallocDatasetName daDsn;
+  DynallocMemberName daMember;
+  memcpy(daDsn.name, dsn->value, sizeof(daDsn.name));
+  memcpy(daMember.name, memberName->value, sizeof(daMember.name));
+  DynallocDDName daDDname = {.name = "????????"};
+
+  int daRC = RC_DYNALLOC_OK, daSysRC = 0, daSysRSN = 0;
+  daRC = dynallocAllocDataset(
+      &daDsn,
+      IS_DAMEMBER_EMPTY(daMember) ? NULL : &daMember,
+      &daDDname,
+      DYNALLOC_DISP_SHR,
+      DYNALLOC_ALLOC_FLAG_NO_CONVERSION | DYNALLOC_ALLOC_FLAG_NO_MOUNT,
+      &daSysRC, &daSysRSN
+  );
+
+  if (daRC != RC_DYNALLOC_OK) {
+    zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
+      	    "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
+            " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
+            daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN);
+    respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
+                             &daDsn, &daMember, "r");
+    return;
+  }
+  zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
+          "debug: reading dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\'\n",
+          daDsn.name, daMember.name, daDDname.name);
+
+  DDName ddName;
+  memcpy(&ddName.value, &daDDname.name, sizeof(ddName.value));
+
+  char ddPath[16];
+  snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName.value);
+
+  int lrecl = getLreclOrRespondError(response, dsn, ddPath);
+  if (!lrecl) {
+    return;
+  }
+
+  JsonBuffer *buffer = makeJsonBuffer();
+  jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, buffer);
+  jsonStart(jPrinter);
+  streamDataset(ddPath, lrecl, jPrinter);
+  jsonEnd(jPrinter);
+
+  daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
+                                        &daSysRC, &daSysRSN);
+  if (daRC != RC_DYNALLOC_OK) {
+    zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
+            "error: ds unalloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
+            " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
+            daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "read");
+  }
+
+  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+  char errorBuffer[2048];
+  Json *json = jsonParseUnterminatedString(slh,
+                                             buffer->data, buffer->len,
+                                             errorBuffer, sizeof(errorBuffer));
+  if (json) {
+    if (jsonIsObject(json)){
+      JsonObject *jsonObject = jsonAsObject(json);
+      JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
+      Json *value = NULL;
+      while(currentProp != NULL){
+        value = jsonPropertyGetValue(currentProp);
+        char *propString = jsonPropertyGetKey(currentProp);
+        if(propString != NULL){
+          if (!strcmp(propString, "records")){
+            JsonArray *array = jsonAsArray(value);
+            int count = jsonArrayGetCount(array);
+            for (uint32_t i = 0; i < count; i++) {
+              char* rec = jsonArrayGetItem(array,i);
+              printf("rec: %.*s\n", strlen(rec), rec );
+            }
+          }
+        }
+        currentProp = jsonObjectGetNextProperty(currentProp);
+      }
+    }
+  }
+  response200WithMessage(response, "Successfully read dataset");
 }
 
 void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE) {
