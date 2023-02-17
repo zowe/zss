@@ -89,7 +89,7 @@ static bool memberExists(char* dsName, DynallocMemberName daMemberName);
 static int getDSCB(DatasetName *dsName, char* dscb, int bufferSize);
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit);
 void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE);
-void readAndWriteToDataset(HttpResponse *response, DatasetName *dsn, DatasetMemberName *memberName);
+void readAndWriteToDataset(HttpResponse *response, char* absolutePath);
 
 static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
   int lrecl = 0;
@@ -2444,7 +2444,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   if (rc == 0) {
     printf("RC IS 0 IN COPYDATASET\n");
     // response200WithMessage(response, "Successfully created dataset");
-    readAndWriteToDataset(response, &dsnName, &memName);
+    readAndWriteToDataset(response, sourceDataset);
   } else {
     printf("RC IS NOT 0 IN COPYDATASET\n");
     respondWithError(response, errorCode, errorMessage);
@@ -2453,12 +2453,16 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   #endif /* __ZOWE_OS_ZOS */
 }
 
-void readAndWriteToDataset(HttpResponse *response, DatasetName *dsn, DatasetMemberName *memberName) {
+void readAndWriteToDataset(HttpResponse *response, char* absolutePath) {
+
+  DatasetName dsn;
+  DatasetMemberName memberName;
+  extractDatasetAndMemberName(absolutePath, &dsn, &memberName);
 
   DynallocDatasetName daDsn;
   DynallocMemberName daMember;
-  memcpy(daDsn.name, dsn->value, sizeof(daDsn.name));
-  memcpy(daMember.name, memberName->value, sizeof(daMember.name));
+  memcpy(daDsn.name, dsn.value, sizeof(daDsn.name));
+  memcpy(daMember.name, memberName.value, sizeof(daMember.name));
   DynallocDDName daDDname = {.name = "????????"};
 
   int daRC = RC_DYNALLOC_OK, daSysRC = 0, daSysRSN = 0;
@@ -2490,7 +2494,7 @@ void readAndWriteToDataset(HttpResponse *response, DatasetName *dsn, DatasetMemb
   char ddPath[16];
   snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName.value);
 
-  int lrecl = getLreclOrRespondError(response, dsn, ddPath);
+  int lrecl = getLreclOrRespondError(response, &dsn, ddPath);
   if (!lrecl) {
     return;
   }
