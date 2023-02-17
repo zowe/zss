@@ -2443,7 +2443,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   if (rc == 0) {
     printf("RC IS 0 IN COPYDATASET\n");
     // response200WithMessage(response, "Successfully created dataset");
-    readAndWriteToDataset(response, dsnName, memName);
+    readAndWriteToDataset(response, &dsnName, &memName);
   } else {
     printf("RC IS NOT 0 IN COPYDATASET\n");
     respondWithError(response, errorCode, errorMessage);
@@ -2527,9 +2527,16 @@ void readAndWriteToDataset(HttpResponse *response, const DatasetName *dsn, Datas
             JsonArray *array = jsonAsArray(value);
             int count = jsonArrayGetCount(array);
             for (uint32_t i = 0; i < count; i++) {
-              char* rec = jsonArrayGetItem(array,i);
-              printf("rec: %.*s\n", strlen(rec), rec );
+              Json *item = jsonArrayGetItem(array,i);
+              if (jsonIsString(item) == TRUE) {
+                char* rec = jsonAsString(item);
+                printf("rec: %.*s\n", strlen(rec), rec );
+              }
             }
+          }
+          if(!strcmp(propString, "etag")) {
+            char* etag = jsonAsString(value);
+            printf("etag: %s", etag);
           }
         }
         currentProp = jsonObjectGetNextProperty(currentProp);
