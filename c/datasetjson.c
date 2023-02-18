@@ -1177,6 +1177,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
 
   // char msgBuffer[128];
   snprintf(msgBuffer, msgBufferSize, "Updated theee dataset %s with %d records", datasetPath, recordsWritten);
+  printf("---MSGBUFFER: %.*s\n", strlen(msgBuffer), msgBuffer);
   jsonAddString(p, "msg", msgBuffer);
 
   if (!rcEtag) {
@@ -1184,8 +1185,10 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
     int eTagLength = digest.hashLength*2;
     // char eTag[eTagLength+1];
     memset(eTag, '\0', eTagLength);
+    printf("---eTag: %.*s\n", strlen(eTag), eTag);
     int len = digest.hashLength;
     simpleHexPrint(eTag, hash, digest.hashLength);
+    printf("---eTag: %.*s\n", strlen(eTag), eTag);
     jsonAddString(p, "etag", eTag);
   }
   jsonEnd(p);
