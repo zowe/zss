@@ -701,7 +701,7 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
     }
   }
   else if (!strcmp(request->method, methodGET)) {
-    respondWithUnixFileContentsWithAutocvtMode(NULL, response, routeFileName, TRUE, 0);
+    respondWithUnixFileContentsWithAutocvtMode(service, response, routeFileName, TRUE, 0);
   }
   else if (!strcmp(request->method, methodDELETE)) {
     if (doesFileExist(routeFileName) == true) {
