@@ -2483,7 +2483,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   if (rc == 0) {
     printf("RC IS 0 IN COPYDATASET\n");
     // response200WithMessage(response, "Successfully created dataset");
-    readAndWriteToDataset(response, sourceDataset);
+    readAndWriteToDataset(response, sourceDataset, targetDataset);
   } else {
     printf("RC IS NOT 0 IN COPYDATASET\n");
     respondWithError(response, errorCode, errorMessage);
@@ -2492,11 +2492,11 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   #endif /* __ZOWE_OS_ZOS */
 }
 
-void readAndWriteToDataset(HttpResponse *response, char* absolutePath) {
+void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
 
   DatasetName dsn;
   DatasetMemberName memberName;
-  extractDatasetAndMemberName(absolutePath, &dsn, &memberName);
+  extractDatasetAndMemberName(sourceDataset, &dsn, &memberName);
 
   DynallocDatasetName daDsn;
   DynallocMemberName daMember;
@@ -2533,7 +2533,7 @@ void readAndWriteToDataset(HttpResponse *response, char* absolutePath) {
   JsonBuffer *buffer = makeJsonBuffer();
   jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, buffer);
 
-  respondWithDatasetInternal(response, absolutePath, &dsn, &ddName, jPrinter);
+  respondWithDatasetInternal(response, sourceDataset, &dsn, &ddName, jPrinter);
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
                                         &daSysRC, &daSysRSN);
@@ -2544,41 +2544,69 @@ void readAndWriteToDataset(HttpResponse *response, char* absolutePath) {
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "read");
   }
 
-  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+  char msgBuffer[128];
+  char eTag[128];
+  int blockSize = 0x10000;
+  int maxBlockCount = ((buffer->len)*2)/blockSize;
+  if (!maxBlockCount){
+    maxBlockCount = 0x10;
+  }
+
+  ShortLivedHeap *slh = makeShortLivedHeap(blockSize,maxBlockCount);
   char errorBuffer[2048];
   Json *json = jsonParseUnterminatedString(slh,
                                              buffer->data, buffer->len,
                                              errorBuffer, sizeof(errorBuffer));
+  // if (json) {
+  //   if (jsonIsObject(json)){
+  //     JsonObject *jsonObject = jsonAsObject(json);
+  //     JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
+  //     Json *value = NULL;
+  //     while(currentProp != NULL){
+  //       value = jsonPropertyGetValue(currentProp);
+  //       char *propString = jsonPropertyGetKey(currentProp);
+  //       if(propString != NULL){
+  //         if (!strcmp(propString, "records")){
+  //           JsonArray *array = jsonAsArray(value);
+  //           int count = jsonArrayGetCount(array);
+  //           for (uint32_t i = 0; i < count; i++) {
+  //             Json *item = jsonArrayGetItem(array,i);
+  //             if (jsonIsString(item) == TRUE) {
+  //               char* rec = jsonAsString(item);
+  //               printf("rec: %.*s\n", strlen(rec), rec );
+  //             }
+  //           }
+  //         }
+  //         if(!strcmp(propString, "etag")) {
+  //           char* etag = jsonAsString(value);
+  //           printf("etag: %s", etag);
+  //         }
+  //       }
+  //       currentProp = jsonObjectGetNextProperty(currentProp);
+  //     }
+  //   }
+  // }
   if (json) {
-    if (jsonIsObject(json)){
+    if (jsonIsObject(json)) {
       JsonObject *jsonObject = jsonAsObject(json);
-      JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
-      Json *value = NULL;
-      while(currentProp != NULL){
-        value = jsonPropertyGetValue(currentProp);
-        char *propString = jsonPropertyGetKey(currentProp);
-        if(propString != NULL){
-          if (!strcmp(propString, "records")){
-            JsonArray *array = jsonAsArray(value);
-            int count = jsonArrayGetCount(array);
-            for (uint32_t i = 0; i < count; i++) {
-              Json *item = jsonArrayGetItem(array,i);
-              if (jsonIsString(item) == TRUE) {
-                char* rec = jsonAsString(item);
-                printf("rec: %.*s\n", strlen(rec), rec );
-              }
-            }
-          }
-          if(!strcmp(propString, "etag")) {
-            char* etag = jsonAsString(value);
-            printf("etag: %s", etag);
-          }
-        }
-        currentProp = jsonObjectGetNextProperty(currentProp);
-      }
+      updateDatasetWithJSON(response, jsonObject, targetDataset, NULL, true, msgBuffer, sizeof(msgBuffer), eTag);
     }
   }
-  response200WithMessage(response, "Successfully read dataset");
+  SLHFree(slh);
+  jsonPrinter *p = respondWithJsonPrinter(response);
+  setResponseStatus(response, 200, "Copied Dataset");
+  setDefaultJSONRESTHeaders(response);
+  writeHeader(response);
+  jsonStart(p);
+
+  jsonAddString(p, "msg", msgBuffer);
+  if(eTag != NULL) {
+    jsonAddString(p, "etag", eTag);
+  }
+  jsonEnd(p);
+
+  finishResponse(response);
+  // response200WithMessage(response, "Successfully read dataset");
 }
 
 void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE) {
