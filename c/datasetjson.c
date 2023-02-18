@@ -977,7 +977,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
                                           const char *datasetPath, /* backward compatibility */
                                           const DatasetName *dsn,
                                           const DDName *ddName,
-                                          JsonObject *json) {
+                                          JsonObject *json, char* msgBuffer, int msgBufferSize, char* eTag) {
 
   char ddPath[16];
   snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName->value);
@@ -1175,14 +1175,14 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
   writeHeader(response);
   jsonStart(p);
 
-  char msgBuffer[128];
-  snprintf(msgBuffer, sizeof(msgBuffer), "Updated dataset %s with %d records", datasetPath, recordsWritten);
+  // char msgBuffer[128];
+  snprintf(msgBuffer, msgBufferSize, "Updated theee dataset %s with %d records", datasetPath, recordsWritten);
   jsonAddString(p, "msg", msgBuffer);
 
   if (!rcEtag) {
     // Convert hash text to hex.
     int eTagLength = digest.hashLength*2;
-    char eTag[eTagLength+1];
+    // char eTag[eTagLength+1];
     memset(eTag, '\0', eTagLength);
     int len = digest.hashLength;
     simpleHexPrint(eTag, hash, digest.hashLength);
@@ -1196,7 +1196,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
 }
 
 static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char *datasetPath,
-                                  const char *lastEtag, bool force) {
+                                  const char *lastEtag, bool force, char* msgBuffer, int msgBufferSize, char* eTag) {
 
   HttpRequest *request = response->request;
 
@@ -1264,11 +1264,11 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
         safeFree(eTag,eTagReturnLength+1);
       } else {
         safeFree(eTag,eTagReturnLength+1);
-        updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json);
+        updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, msgBuffer, msgBufferSize, eTag);
       }
     }
   } else {
-    updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json);
+    updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, msgBuffer, msgBufferSize, eTag);
   }
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
@@ -1495,6 +1495,8 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
     }
     ShortLivedHeap *slh = makeShortLivedHeap(blockSize,maxBlockCount);
     char errorBuffer[2048];
+    char msgBuffer[128];
+    char eTag[128];
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "UPDATE DATASET: before JSON parse dataLength=0x%x\n",bodyLength);
     Json *json = jsonParseUnterminatedString(slh, 
                                              convertedBody, translationLength,
@@ -1509,7 +1511,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
             etag = etagHeader->nativeValue;
           }
         }
-        updateDatasetWithJSON(response, jsonObject, absolutePath, etag, force);
+        updateDatasetWithJSON(response, jsonObject, absolutePath, etag, force, msgBuffer, sizeof(msgBuffer), eTag);
       } else{
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "*** INTERNAL ERROR *** message is JSON, but not an object\n");
       }
