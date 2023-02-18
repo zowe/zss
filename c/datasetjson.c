@@ -1199,7 +1199,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
 }
 
 static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char *datasetPath,
-                                  const char *lastEtag, bool force, char* msgBuffer, int msgBufferSize, char* eTag) {
+                                  const char *lastEtag, bool force, char* msgBuffer, int msgBufferSize, char* newEtag) {
 
   HttpRequest *request = response->request;
 
@@ -1267,11 +1267,11 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
         safeFree(eTag,eTagReturnLength+1);
       } else {
         safeFree(eTag,eTagReturnLength+1);
-        updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, msgBuffer, msgBufferSize, eTag);
+        updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, msgBuffer, msgBufferSize, newEtag);
       }
     }
   } else {
-    updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, msgBuffer, msgBufferSize, eTag);
+    updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, msgBuffer, msgBufferSize, newEtag);
   }
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
@@ -1523,6 +1523,8 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "UPDATE DATASET: body was not JSON!\n");
       respondWithError(response, HTTP_STATUS_BAD_REQUEST,"POST body could not be parsed as JSON format");      
     }
+    printf("---MAIN MSGBUFFER: %.*s\n", strlen(msgBuffer), msgBuffer);
+    printf("---MAIN ETAG: %.*s\n", strlen(eTag), eTag);
     SLHFree(slh);
   }
   else {
