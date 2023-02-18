@@ -1169,31 +1169,19 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
 
   /*success!*/
 
-  jsonPrinter *p = respondWithJsonPrinter(response);
-  setResponseStatus(response, 201, "Created");
-  setDefaultJSONRESTHeaders(response);
-  writeHeader(response);
-  jsonStart(p);
-
   // char msgBuffer[128];
-  snprintf(msgBuffer, msgBufferSize, "Updated theee dataset %s with %d records", datasetPath, recordsWritten);
+  snprintf(msgBuffer, msgBufferSize, "Updated dataset %s with %d records", datasetPath, recordsWritten);
   printf("---MSGBUFFER: %.*s\n", strlen(msgBuffer), msgBuffer);
-  jsonAddString(p, "msg", msgBuffer);
 
   if (!rcEtag) {
     // Convert hash text to hex.
     int eTagLength = digest.hashLength*2;
-    // char eTag[eTagLength+1];
     memset(eTag, '\0', eTagLength);
     printf("---eTag: %.*s\n", strlen(eTag), eTag);
     int len = digest.hashLength;
     simpleHexPrint(eTag, hash, digest.hashLength);
     printf("---eTag: %.*s\n", strlen(eTag), eTag);
-    jsonAddString(p, "etag", eTag);
   }
-  jsonEnd(p);
-
-  finishResponse(response);
 
   fclose(outDataset);
 }
@@ -1479,6 +1467,9 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
   int translationLength;
   int outCCSID = NATIVE_CODEPAGE;
 
+  char msgBuffer[128];
+  char eTag[128];
+
   returnCode = convertCharset(contentBody,
                               bodyLength,
                               CCSID_UTF_8,
@@ -1498,8 +1489,6 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
     }
     ShortLivedHeap *slh = makeShortLivedHeap(blockSize,maxBlockCount);
     char errorBuffer[2048];
-    char msgBuffer[128];
-    char eTag[128];
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "UPDATE DATASET: before JSON parse dataLength=0x%x\n",bodyLength);
     Json *json = jsonParseUnterminatedString(slh, 
                                              convertedBody, translationLength,
@@ -1523,14 +1512,28 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "UPDATE DATASET: body was not JSON!\n");
       respondWithError(response, HTTP_STATUS_BAD_REQUEST,"POST body could not be parsed as JSON format");      
     }
-    printf("---MAIN MSGBUFFER: %.*s\n", strlen(msgBuffer), msgBuffer);
-    printf("---MAIN ETAG: %.*s\n", strlen(eTag), eTag);
     SLHFree(slh);
   }
   else {
     respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Could not translate character set to EBCDIC");    
   }
   safeFree(convertedBody,conversionBufferLength);
+  printf("---MAIN MSGBUFFER: %.*s\n", strlen(msgBuffer), msgBuffer);
+  printf("---MAIN ETAG: %.*s\n", strlen(eTag), eTag);
+
+  jsonPrinter *p = respondWithJsonPrinter(response);
+  setResponseStatus(response, 201, "Created");
+  setDefaultJSONRESTHeaders(response);
+  writeHeader(response);
+  jsonStart(p);
+
+  jsonAddString(p, "msg", msgBuffer);
+  if(eTag != NULL) {
+    jsonAddString(p, "etag", eTag);
+  }
+  jsonEnd(p);
+
+  finishResponse(response);
 #endif /* __ZOWE_OS_ZOS */
 }
 
