@@ -977,7 +977,7 @@ static int updateDatasetWithJSONInternal(HttpResponse* response,
                                           const char *datasetPath, /* backward compatibility */
                                           const DatasetName *dsn,
                                           const DDName *ddName,
-                                          JsonObject *json, char* msgBuffer, int msgBufferSize, char* eTag) {
+                                          JsonObject *json, int* recordsWritten, char* eTag) {
 
   char ddPath[16];
   snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName->value);
@@ -1168,26 +1168,21 @@ static int updateDatasetWithJSONInternal(HttpResponse* response,
   }
 
   /*success!*/
-
-  // char msgBuffer[128];
-  snprintf(msgBuffer, msgBufferSize, "Updated dataset %s with %d records", datasetPath, recordsWritten);
-  printf("---MSGBUFFER: %.*s\n", strlen(msgBuffer), msgBuffer);
+  *recordsWritten = recordsWritten;
 
   if (!rcEtag) {
     // Convert hash text to hex.
     int eTagLength = digest.hashLength*2;
     memset(eTag, '\0', eTagLength);
-    printf("---eTag: %.*s\n", strlen(eTag), eTag);
     int len = digest.hashLength;
     simpleHexPrint(eTag, hash, digest.hashLength);
-    printf("---eTag: %.*s\n", strlen(eTag), eTag);
   }
 
   fclose(outDataset);
 }
 
 static int updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char *datasetPath,
-                                  const char *lastEtag, bool force, char* msgBuffer, int msgBufferSize, char* newEtag) {
+                                  const char *lastEtag, bool force, int* recordsWritten, char* newEtag) {
 
   HttpRequest *request = response->request;
 
@@ -1257,11 +1252,11 @@ static int updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char 
         return -1;
       } else {
         safeFree(eTag,eTagReturnLength+1);
-        return updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, msgBuffer, msgBufferSize, newEtag);
+        return updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, recordsWritten, newEtag);
       }
     }
   } else {
-    return updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, msgBuffer, msgBufferSize, newEtag);
+    return updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, recordsWritten, newEtag);
   }
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
@@ -1473,6 +1468,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
   char msgBuffer[128];
   char eTag[128];
   int rc = 0;
+  int recordsWritten = 0;
 
   returnCode = convertCharset(contentBody,
                               bodyLength,
@@ -1507,7 +1503,9 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
             etag = etagHeader->nativeValue;
           }
         }
-        rc = updateDatasetWithJSON(response, jsonObject, absolutePath, etag, force, msgBuffer, sizeof(msgBuffer), eTag);
+        JsonArray *recordArray = jsonObjectGetArray(json,"records");
+        recordCount = jsonArrayGetCount(recordArray);
+        rc = updateDatasetWithJSON(response, jsonObject, absolutePath, etag, force, &recordsWritten, eTag);
       } else{
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "*** INTERNAL ERROR *** message is JSON, but not an object\n");
       }
@@ -1522,8 +1520,6 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
     respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Could not translate character set to EBCDIC");    
   }
   safeFree(convertedBody,conversionBufferLength);
-  printf("---MAIN MSGBUFFER: %.*s\n", strlen(msgBuffer), msgBuffer);
-  printf("---MAIN ETAG: %.*s\n", strlen(eTag), eTag);
 
   if(rc != -1) {
     jsonPrinter *p = respondWithJsonPrinter(response);
@@ -1532,6 +1528,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
     writeHeader(response);
     jsonStart(p);
 
+    snprintf(msgBuffer, sizeof(msgBuffer), "Updated dataset %s with %d records", absolutePath, recordsWritten);
     jsonAddString(p, "msg", msgBuffer);
     if(eTag != NULL) {
       jsonAddString(p, "etag", eTag);
@@ -2561,6 +2558,7 @@ void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* ta
 
   char msgBuffer[128];
   char eTag[128];
+  int recordsWritten = 0;
   int blockSize = 0x10000;
   int maxBlockCount = ((buffer->len)*2)/blockSize;
   if (!maxBlockCount){
@@ -2572,40 +2570,12 @@ void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* ta
   Json *json = jsonParseUnterminatedString(slh,
                                              buffer->data, buffer->len,
                                              errorBuffer, sizeof(errorBuffer));
-  // if (json) {
-  //   if (jsonIsObject(json)){
-  //     JsonObject *jsonObject = jsonAsObject(json);
-  //     JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
-  //     Json *value = NULL;
-  //     while(currentProp != NULL){
-  //       value = jsonPropertyGetValue(currentProp);
-  //       char *propString = jsonPropertyGetKey(currentProp);
-  //       if(propString != NULL){
-  //         if (!strcmp(propString, "records")){
-  //           JsonArray *array = jsonAsArray(value);
-  //           int count = jsonArrayGetCount(array);
-  //           for (uint32_t i = 0; i < count; i++) {
-  //             Json *item = jsonArrayGetItem(array,i);
-  //             if (jsonIsString(item) == TRUE) {
-  //               char* rec = jsonAsString(item);
-  //               printf("rec: %.*s\n", strlen(rec), rec );
-  //             }
-  //           }
-  //         }
-  //         if(!strcmp(propString, "etag")) {
-  //           char* etag = jsonAsString(value);
-  //           printf("etag: %s", etag);
-  //         }
-  //       }
-  //       currentProp = jsonObjectGetNextProperty(currentProp);
-  //     }
-  //   }
-  // }
+
   int rc = 0;
   if (json) {
     if (jsonIsObject(json)) {
       JsonObject *jsonObject = jsonAsObject(json);
-      rc = updateDatasetWithJSON(response, jsonObject, targetDataset, NULL, true, msgBuffer, sizeof(msgBuffer), eTag);
+      rc = updateDatasetWithJSON(response, jsonObject, targetDataset, NULL, true, &recordsWritten, eTag);
     }
   }
   if(rc != -1) {
@@ -2615,12 +2585,13 @@ void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* ta
     writeHeader(response);
     jsonStart(p);
 
+    snprintf(msgBuffer, sizeof(msgBuffer), "Dataset %s is pasted successfully with %d records", targetDataset, recordsWritten);
     jsonAddString(p, "msg", msgBuffer);
     if(eTag != NULL) {
       jsonAddString(p, "etag", eTag);
     }
-    jsonEnd(p);
 
+    jsonEnd(p);
     finishResponse(response);
   }
   SLHFree(slh);
@@ -2655,96 +2626,6 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecor
           *recordLength = jsonObjectGetString(recfm,"recordLength");
           *isBlocked = jsonObjectGetBoolean(recfm,"isBlocked");
         }
-      }
-    }
-  }
-  printf("FROM NEW FUNC---organization: %s\n", organization);
-  printf("FROM NEW FUNC---maxRecordLen: %d\n", maxRecordLen);
-  printf("FROM NEW FUNC---totalBlockSize: %d\n", totalBlockSize);
-  printf("FROM NEW FUNC---isPDSE: %d\n", isPDSE);
-  printf("FROM NEW FUNC---recordLength: %s\n", recordLength);
-  printf("FROM NEW FUNC---isBlocked: %d\n", isBlocked);
-  SLHFree(slh);
-}
-
-void getDatasetAttributes2(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE) {
-  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
-  char errorBuffer[2048];
-  Json *json = jsonParseUnterminatedString(slh,
-                                             buffer->data, buffer->len,
-                                             errorBuffer, sizeof(errorBuffer));
-  if (json) {
-    if (jsonIsObject(json)){
-      JsonObject *jsonObject = jsonAsObject(json);
-      JsonProperty *currentProp = jsonObjectGetFirstProperty(jsonObject);
-      Json *value = NULL;
-      while(currentProp != NULL){
-        value = jsonPropertyGetValue(currentProp);
-        char *propString = jsonPropertyGetKey(currentProp);
-        if(propString != NULL){
-          if (!strcmp(propString, "datasets")){
-            JsonArray *array = jsonAsArray(value);
-            int count = jsonArrayGetCount(array);
-            for (uint32_t i = 0; i < count; i++) {
-              Json *element = jsonArrayGetItem(array,i);
-              if(element && jsonIsObject(element)) {
-                JsonObject *jsonDatasetObject = jsonAsObject(element);
-                JsonProperty *dsProp = jsonObjectGetFirstProperty(jsonDatasetObject);
-                Json *propValue = NULL;
-                while (dsProp != NULL) {
-                  propValue = jsonPropertyGetValue(dsProp);
-                  char *propStr = jsonPropertyGetKey(dsProp);
-                  if(propStr != NULL) {
-                    if (!strcmp(propStr, "dsorg")) {
-                      JsonObject *dsOrg = jsonAsObject(propValue);
-                      JsonProperty *dsOrgProp = jsonObjectGetFirstProperty(dsOrg);
-                      Json *dsOrgPropValue = NULL;
-                      while (dsOrgProp != NULL) {
-                        dsOrgPropValue = jsonPropertyGetValue(dsOrgProp);
-                        char *dsOrgPropString = jsonPropertyGetKey(dsOrgProp);
-                        if(dsOrgPropString != NULL) {
-                          if (!strcmp(dsOrgPropString, "organization")) {
-                            *organization = jsonAsString(dsOrgPropValue);
-                          }
-                          if (!strcmp(dsOrgPropString, "maxRecordLen")) {
-                            *maxRecordLen = jsonAsInt64(dsOrgPropValue);
-                          }
-                          if (!strcmp(dsOrgPropString, "totalBlockSize")) {
-                            *totalBlockSize = jsonAsInt64(dsOrgPropValue);
-                          }
-                          if (!strcmp(dsOrgPropString, "isPDSE")) {
-                            *isPDSE = jsonAsBoolean(dsOrgPropValue);
-                          }
-                        }
-                        dsOrgProp = jsonObjectGetNextProperty(dsOrgProp);
-                      }
-                    }
-                    if (!strcmp(propStr, "recfm")) {
-                      JsonObject *recfm = jsonAsObject(propValue);
-                      JsonProperty *recfmProp = jsonObjectGetFirstProperty(recfm);
-                      Json *recfmPropValue = NULL;
-                      while (recfmProp != NULL) {
-                        recfmPropValue = jsonPropertyGetValue(recfmProp);
-                        char *recfmPropString = jsonPropertyGetKey(recfmProp);
-                        if(recfmPropString != NULL) {
-                          if (!strcmp(recfmPropString, "recordLength")) {
-                            *recordLength = jsonAsString(recfmPropValue);
-                          }
-                          if (!strcmp(recfmPropString, "isBlocked")) {
-                            *isBlocked = jsonAsBoolean(recfmPropValue);
-                          }
-                        }
-                        recfmProp = jsonObjectGetNextProperty(recfmProp);
-                      }
-                    }
-                  }
-                  dsProp = jsonObjectGetNextProperty(dsProp);
-                }
-              }
-            }
-          }
-        }
-        currentProp = jsonObjectGetNextProperty(currentProp);
       }
     }
   }
