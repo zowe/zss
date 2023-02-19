@@ -92,7 +92,7 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecor
 void setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes);
 void readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter *jPrinter);
 void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* targetDataset);
-void pasteDatasetContent(JsonBuffer *buffer, char* targetDataset);
+void pasteDatasetContent(HttpResponse *response, JsonBuffer *buffer, char* targetDataset);
 
 static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
   int lrecl = 0;
@@ -2390,11 +2390,11 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   char* errorMessage = NULL;
   int errorCode = 0;
   int reasonCode = 0;
-  newDataset(targetDataset, datasetAttributes, strlen(dsAttr), &reasonCode, &errorMessage, &errorCode);
+  newDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
 
   // Paste content to newly created dataset
-  pasteDatasetContent(datasetContentBuffer);
-  response200WithMessage(response, 'Successfully Pasted Dataset');
+  pasteDatasetContent(response, datasetContentBuffer, targetDataset);
+  response200WithMessage(response, "Successfully pasted dataset");
 
   #endif /* __ZOWE_OS_ZOS */
 }
@@ -2489,7 +2489,7 @@ void readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter
   }
 }
 
-void pasteDatasetContent(JsonBuffer *buffer, char* targetDataset) {
+void pasteDatasetContent(HttpResponse *response, JsonBuffer *buffer, char* targetDataset) {
   char msgBuffer[128];
   char eTag[128];
   int recordsWritten = 0;
@@ -3602,7 +3602,7 @@ void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonM
                               &reasonCode);
 
   if (returnCode == 0) {
-    newDataset(absolutePath, convertedBody, translationLength, &reasonCode);
+    newDataset(response, absolutePath, convertedBody, translationLength, &reasonCode);
   }
 
   response200WithMessage(response, "Successfully created dataset");
