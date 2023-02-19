@@ -93,6 +93,7 @@ void setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, cha
 void readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter *jPrinter);
 void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* targetDataset);
 void pasteDatasetContent(HttpResponse *response, JsonBuffer *buffer, char* targetDataset);
+void newDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode);
 
 static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
   int lrecl = 0;
