@@ -2638,7 +2638,7 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecor
     if (jsonIsObject(json)){
       JsonObject *jsonObject = jsonAsObject(json);
       //Get array of datasets
-      JsonArray *datasetArray = jsonObjectGetArray(json,"datasets");
+      JsonArray *datasetArray = jsonObjectGetArray(jsonObject,"datasets");
       int datasetCount = jsonArrayGetCount(datasetArray);
       for (uint32_t i = 0; i < datasetCount; i++) {
         Json *element = jsonArrayGetItem(array,i);
