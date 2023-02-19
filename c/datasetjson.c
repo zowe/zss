@@ -2641,7 +2641,7 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecor
       JsonArray *datasetArray = jsonObjectGetArray(jsonObject,"datasets");
       int datasetCount = jsonArrayGetCount(datasetArray);
       for (uint32_t i = 0; i < datasetCount; i++) {
-        Json *element = jsonArrayGetItem(array,i);
+        Json *element = jsonArrayGetItem(datasetArray,i);
         if(element && jsonIsObject(element)) {
           JsonObject *jsonDatasetObject = jsonAsObject(element);
           // Get dsorg object
