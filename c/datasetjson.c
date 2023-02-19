@@ -977,7 +977,7 @@ static int updateDatasetWithJSONInternal(HttpResponse* response,
                                           const char *datasetPath, /* backward compatibility */
                                           const DatasetName *dsn,
                                           const DDName *ddName,
-                                          JsonObject *json, int* recordsWritten, char* eTag) {
+                                          JsonObject *json, int* recordsUpdated, char* eTag) {
 
   char ddPath[16];
   snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName->value);
@@ -1168,7 +1168,7 @@ static int updateDatasetWithJSONInternal(HttpResponse* response,
   }
 
   /*success!*/
-  *recordsWritten = recordsWritten;
+  *recordsUpdated = recordsWritten;
 
   if (!rcEtag) {
     // Convert hash text to hex.
@@ -1503,7 +1503,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
             etag = etagHeader->nativeValue;
           }
         }
-        JsonArray *recordArray = jsonObjectGetArray(json,"records");
+        JsonArray *recordArray = jsonObjectGetArray(jsonObject,"records");
         recordCount = jsonArrayGetCount(recordArray);
         rc = updateDatasetWithJSON(response, jsonObject, absolutePath, etag, force, &recordsWritten, eTag);
       } else{
