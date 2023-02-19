@@ -1503,8 +1503,6 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
             etag = etagHeader->nativeValue;
           }
         }
-        JsonArray *recordArray = jsonObjectGetArray(jsonObject,"records");
-        recordCount = jsonArrayGetCount(recordArray);
         rc = updateDatasetWithJSON(response, jsonObject, absolutePath, etag, force, &recordsWritten, eTag);
       } else{
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "*** INTERNAL ERROR *** message is JSON, but not an object\n");
