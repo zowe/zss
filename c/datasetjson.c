@@ -2633,6 +2633,46 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecor
   Json *json = jsonParseUnterminatedString(slh,
                                              buffer->data, buffer->len,
                                              errorBuffer, sizeof(errorBuffer));
+
+  if (json) {
+    if (jsonIsObject(json)){
+      JsonObject *jsonObject = jsonAsObject(json);
+      //Get array of datasets
+      JsonArray *datasetArray = jsonObjectGetArray(json,"datasets");
+      int datasetCount = jsonArrayGetCount(datasetArray);
+      for (uint32_t i = 0; i < datasetCount; i++) {
+        Json *element = jsonArrayGetItem(array,i);
+        if(element && jsonIsObject(element)) {
+          JsonObject *jsonDatasetObject = jsonAsObject(element);
+          // Get dsorg object
+          JsonObject *dsOrg = jsonObjectGetObject(jsonDatasetObject,"dsorg");
+          *organization = jsonObjectGetString(dsOrg,"organization");
+          *maxRecordLen = jsonObjectGetNumber(dsOrg,"maxRecordLen");
+          *totalBlockSize = jsonObjectGetNumber(dsOrg,"totalBlockSize");
+          *isPDSE = jsonObjectGetBoolean(dsOrg,"isPDSE");
+          // Get recfm object
+          JsonObject *recfm = jsonObjectGetObject(jsonDatasetObject,"recfm");
+          *recordLength = jsonObjectGetString(recfm,"recordLength");
+          *isBlocked = jsonObjectGetBoolean(recfm,"isBlocked");
+        }
+      }
+    }
+  }
+  printf("FROM NEW FUNC---organization: %s\n", organization);
+  printf("FROM NEW FUNC---maxRecordLen: %d\n", maxRecordLen);
+  printf("FROM NEW FUNC---totalBlockSize: %d\n", totalBlockSize);
+  printf("FROM NEW FUNC---isPDSE: %d\n", isPDSE);
+  printf("FROM NEW FUNC---recordLength: %s\n", recordLength);
+  printf("FROM NEW FUNC---isBlocked: %d\n", isBlocked);
+  SLHFree(slh);
+}
+
+void getDatasetAttributes2(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE) {
+  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+  char errorBuffer[2048];
+  Json *json = jsonParseUnterminatedString(slh,
+                                             buffer->data, buffer->len,
+                                             errorBuffer, sizeof(errorBuffer));
   if (json) {
     if (jsonIsObject(json)){
       JsonObject *jsonObject = jsonAsObject(json);
