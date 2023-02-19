@@ -2459,6 +2459,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   bool isBlocked = NULL;
   bool isPDSE = NULL;
   char recFormat[3];
+  int dirBlock = 0;
 
   getDatasetAttributes(buffer, &organization, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked, &isPDSE);
 
@@ -2468,7 +2469,14 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   } else {
     organization = "PO";
     dsnt = (isPDSE) ? "PDSE" : "PDS";
+    dirBlock = 10;
   }
+
+  // Hardcoding these attributes because datasetMetadata API does not return it.
+  // To do: Update this after the datasetMetadata API is updated
+  char *space = "TRK";
+  int primaryQuantity = 10;
+  int secondaryQuantity = 10;
 
   strcpy(recFormat, recordLength);
   if(isBlocked) {
@@ -2476,7 +2484,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   }
 
   char dsAttr[300];
-  sprintf(dsAttr, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"MB\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": 5,\"prime\": 1000,\"secnd\": 1000,\"avgr\": \"U\",\"dsnt\": \"%s\"}\0", organization, totalBlockSize, maxRecordLen, recFormat, dsnt);
+  sprintf(dsAttr, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"%s\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": %d,\"prime\": %d,\"secnd\": %d,\"avgr\": \"U\",\"dsnt\": \"%s\"}\0", organization, space, totalBlockSize, maxRecordLen, recFormat, dirBlock, primaryQuantity, secondaryQuantity, dsnt);
   printf("dsAttr: %s\n", dsAttr);
   printf("dsAttr len: %d\n", strlen(dsAttr));
 
