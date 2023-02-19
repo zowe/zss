@@ -973,7 +973,7 @@ static void respondWithDYNALLOCError(HttpResponse *response,
 #define IS_DAMEMBER_EMPTY($member) \
   (!memcmp(&($member), &(DynallocMemberName){"        "}, sizeof($member)))
 
-static void updateDatasetWithJSONInternal(HttpResponse* response,
+static int updateDatasetWithJSONInternal(HttpResponse* response,
                                           const char *datasetPath, /* backward compatibility */
                                           const DatasetName *dsn,
                                           const DDName *ddName,
@@ -1006,7 +1006,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
       bool isPds = false;
       if (!isSupportedWriteDsorg(dscb, &isPds)) {
         respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Unsupported dataset type");
-        return;
+        return -1;
       } else if (isPds) {
         bool isMember = false;
         int memberStart=44;
@@ -1019,7 +1019,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
         }
         if (!isMember){
           respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Overwrite of PDS not supported");
-          return;
+          return -1;
         }
       }
       
@@ -1029,7 +1029,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
         isFixed = TRUE;
       } else if (recordType == 'U') {
         respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
-        return;
+        return -1;
       }
     }
   }
@@ -1040,7 +1040,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
     FILE *datasetRead = fopen(datasetPath, "rb, recfm=*, type=record");
     if (datasetRead == NULL) {
       respondWithError(response,HTTP_STATUS_NOT_FOUND,"File could not be opened or does not exist");
-      return;
+      return -1;
     }
 
     int returnCode = fldata(datasetRead,filenameOutput,&fileinfo);
@@ -1055,7 +1055,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
       if (fileinfo.__dsorgVSAM || fileinfo.__dsorgHFS || fileinfo.__dsorgHiper) {
         respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Dataset type not supported");
         fclose(datasetRead);
-        return;
+        return -1;
       }
       if (fileinfo.__maxreclen){
         maxRecordLength = fileinfo.__maxreclen;
@@ -1063,20 +1063,20 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
       else {
         respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Could not discover record length");
         fclose(datasetRead);
-        return;
+        return -1;
       }
       if (fileinfo.__recfmF) {
         isFixed = TRUE;
       } else if (fileinfo.__recfmU) {
         respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
         fclose(datasetRead);
-        return;
+        return -1;
       }
     }
     else {
       respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Could not read dataset information");
       fclose(datasetRead);
-      return;    
+      return -1;
     }
     fclose(datasetRead);
   }
@@ -1097,7 +1097,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
             int errorLength = sprintf(errorMessage,"Record #%d with contents \"%s\" is longer than the max record length of %d",i+1,jsonString,maxRecordLength);
             errorMessage[errorLength] = '\0';
             respondWithError(response, HTTP_STATUS_BAD_REQUEST,errorMessage);
-            return;
+            return -1;
           } 
         }
         recordLength = maxRecordLength;
@@ -1112,7 +1112,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
       int errorLength = sprintf(errorMessage,"Array position %d is not a string, but must be for record updating",i);
       errorMessage[errorLength] = '\0';
       respondWithError(response, HTTP_STATUS_BAD_REQUEST,errorMessage);
-      return;
+      return -1;
     }
   }
   /*passed record length check and type check*/
@@ -1120,7 +1120,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
   FILE *outDataset = fopen(datasetPath, "wb, recfm=*, type=record");
   if (outDataset == NULL) {
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"File could not be opened or does not exist");
-    return;
+    return -1;
   }
 
   int bytesWritten = 0;
@@ -1156,7 +1156,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Error writing to dataset, rc=%d\n", bytesWritten);
       respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Error writing to dataset");
       fclose(outDataset);
-      break;
+      return -1;
     } else if (!rcEtag) {
       rcEtag = icsfDigestUpdate(&digest, recordBuffer, bytesWritten);
     }
@@ -1186,19 +1186,19 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
   fclose(outDataset);
 }
 
-static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char *datasetPath,
+static int updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char *datasetPath,
                                   const char *lastEtag, bool force, char* msgBuffer, int msgBufferSize, char* newEtag) {
 
   HttpRequest *request = response->request;
 
   if (!isDatasetPathValid(datasetPath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
-    return;
+    return -1;
   }
 
   if (!lastEtag && !force) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "No etag given");
-    return;
+    return -1;
   }
 
   DatasetName dsn;
@@ -1228,7 +1228,7 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "update");
     respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
                              &daDsn, &daMember, "w");
-    return;
+    return -1;
   }
 
   zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
@@ -1250,16 +1250,18 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
       zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_INFO, "Given etag=%s, current etag=%s\n",lastEtag, eTag);
       if (!eTag) {
         respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Could not generate etag");
+        return -1;
       } else if (strcmp(eTag, lastEtag)) {
         respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Provided etag did not match system etag. To write, read the dataset again and resolve the difference, then retry.");
         safeFree(eTag,eTagReturnLength+1);
+        return -1;
       } else {
         safeFree(eTag,eTagReturnLength+1);
-        updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, msgBuffer, msgBufferSize, newEtag);
+        return updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, msgBuffer, msgBufferSize, newEtag);
       }
     }
   } else {
-    updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, msgBuffer, msgBufferSize, newEtag);
+    return updateDatasetWithJSONInternal(response, datasetPath, &dsn, &ddName, json, msgBuffer, msgBufferSize, newEtag);
   }
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
@@ -1270,6 +1272,7 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
             " rc=%d sysRC=%d, sysRSN=0x%08X (update)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "update");
   }
+  return 0;
 }
 
 #endif /* __ZOWE_OS_ZOS */
@@ -1469,6 +1472,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 
   char msgBuffer[128];
   char eTag[128];
+  int rc = 0;
 
   returnCode = convertCharset(contentBody,
                               bodyLength,
@@ -1503,7 +1507,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
             etag = etagHeader->nativeValue;
           }
         }
-        updateDatasetWithJSON(response, jsonObject, absolutePath, etag, force, msgBuffer, sizeof(msgBuffer), eTag);
+        rc = updateDatasetWithJSON(response, jsonObject, absolutePath, etag, force, msgBuffer, sizeof(msgBuffer), eTag);
       } else{
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "*** INTERNAL ERROR *** message is JSON, but not an object\n");
       }
@@ -1521,19 +1525,22 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
   printf("---MAIN MSGBUFFER: %.*s\n", strlen(msgBuffer), msgBuffer);
   printf("---MAIN ETAG: %.*s\n", strlen(eTag), eTag);
 
-  jsonPrinter *p = respondWithJsonPrinter(response);
-  setResponseStatus(response, 201, "Created");
-  setDefaultJSONRESTHeaders(response);
-  writeHeader(response);
-  jsonStart(p);
+  if(rc != -1) {
+    jsonPrinter *p = respondWithJsonPrinter(response);
+    setResponseStatus(response, 201, "Created");
+    setDefaultJSONRESTHeaders(response);
+    writeHeader(response);
+    jsonStart(p);
 
-  jsonAddString(p, "msg", msgBuffer);
-  if(eTag != NULL) {
-    jsonAddString(p, "etag", eTag);
+    jsonAddString(p, "msg", msgBuffer);
+    if(eTag != NULL) {
+      jsonAddString(p, "etag", eTag);
+    }
+    jsonEnd(p);
+
+    finishResponse(response);
   }
-  jsonEnd(p);
 
-  finishResponse(response);
 #endif /* __ZOWE_OS_ZOS */
 }
 
@@ -2586,26 +2593,29 @@ void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* ta
   //     }
   //   }
   // }
+  int rc = 0;
   if (json) {
     if (jsonIsObject(json)) {
       JsonObject *jsonObject = jsonAsObject(json);
-      updateDatasetWithJSON(response, jsonObject, targetDataset, NULL, true, msgBuffer, sizeof(msgBuffer), eTag);
+      rc = updateDatasetWithJSON(response, jsonObject, targetDataset, NULL, true, msgBuffer, sizeof(msgBuffer), eTag);
     }
   }
-  SLHFree(slh);
-  jsonPrinter *p = respondWithJsonPrinter(response);
-  setResponseStatus(response, 200, "Copied Dataset");
-  setDefaultJSONRESTHeaders(response);
-  writeHeader(response);
-  jsonStart(p);
+  if(rc != -1) {
+    jsonPrinter *p = respondWithJsonPrinter(response);
+    setResponseStatus(response, 200, "Copied Dataset");
+    setDefaultJSONRESTHeaders(response);
+    writeHeader(response);
+    jsonStart(p);
 
-  jsonAddString(p, "msg", msgBuffer);
-  if(eTag != NULL) {
-    jsonAddString(p, "etag", eTag);
+    jsonAddString(p, "msg", msgBuffer);
+    if(eTag != NULL) {
+      jsonAddString(p, "etag", eTag);
+    }
+    jsonEnd(p);
+
+    finishResponse(response);
   }
-  jsonEnd(p);
-
-  finishResponse(response);
+  SLHFree(slh);
   // response200WithMessage(response, "Successfully read dataset");
 }
 
@@ -3243,6 +3253,7 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
       errno = 0;
       if (!strcmp(propString, "dsorg")) {
         char *valueString = jsonAsString(value);
+        printf("SETDATASETATTR dsorg to create dataset: %s\n", valueString);
         if (valueString != NULL) {
           parmDefn = (!strcmp(valueString, "PS")) ? DALDSORG_PS : DALDSORG_PO;
           rc = setTextUnit(TEXT_UNIT_INT16, 0, NULL, parmDefn, DALDSORG, configsCount, inputTextUnit);
