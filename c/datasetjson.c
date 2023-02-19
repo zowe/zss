@@ -89,7 +89,7 @@ static bool memberExists(char* dsName, DynallocMemberName daMemberName);
 static int getDSCB(DatasetName *dsName, char* dscb, int bufferSize);
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit);
 void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE);
-void setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes)
+void setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes);
 void readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter *jPrinter);
 void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* targetDataset);
 void pasteDatasetContent(JsonBuffer *buffer, char* targetDataset);
