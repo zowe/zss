@@ -161,79 +161,6 @@ static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn
   return lrecl;
 }
 
-static int getLrecl(HttpResponse *response, const DatasetName *dsn, const char *ddPath, char** errorMessage, int* errorCode) {
-  int lrecl = 0;
-
-  FileInfo info;
-  int returnCode;
-  int reasonCode;
-  FILE *in = fopen(ddPath, "r");
-  if (in == NULL) {
-    *errorMessage = "File could not be opened or does not exist";
-    *errorCode = HTTP_STATUS_NOT_FOUND;
-    // respondWithError(response,HTTP_STATUS_NOT_FOUND,"File could not be opened or does not exist");
-    return 0;
-  }
-
-  Volser volser;
-  memset(&volser.value, ' ', sizeof(volser.value));
-
-  int volserSuccess = getVolserForDataset(dsn, &volser);
-  int handledThroughDSCB = FALSE;
-
-  if (!volserSuccess){
-    char dscb[INDEXED_DSCB] = {0};
-    int rc = obtainDSCB1(dsn->value, sizeof(dsn->value),
-                         volser.value, sizeof(volser.value),
-                         dscb);
-    if (rc == 0){
-      if (DSCB_TRACE){
-        zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "DSCB for %.*s found\n", sizeof(dsn->value), dsn->value);
-        dumpbuffer(dscb,INDEXED_DSCB);
-      }
-
-      lrecl = getMaxRecordLength(dscb);
-      char recordType = getRecordLengthType(dscb);
-      if (recordType == 'U'){
-        fclose(in);
-        *errorMessage = "Undefined-length dataset";
-        *errorCode = HTTP_STATUS_BAD_REQUEST;
-        // respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
-        return 0;
-      }
-      handledThroughDSCB = TRUE;
-    }
-  }
-  if (!handledThroughDSCB){
-    FileInfo info;
-    fldata_t fileinfo = {0};
-    char filenameOutput[100];
-    int returnCode = fldata(in,filenameOutput,&fileinfo);
-    zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "FLData request rc=0x%x\n",returnCode);
-    if (!returnCode) {
-      if (fileinfo.__recfmU) {
-        fclose(in);
-        *errorMessage = "Undefined-length dataset";
-        *errorCode = HTTP_STATUS_BAD_REQUEST;
-        // respondWithError(response,  HTTP_STATUS_BAD_REQUEST,
-                        //  "Undefined-length dataset");
-        return 0;
-      }
-      lrecl = fileinfo.__maxreclen;
-    } else {
-      fclose(in);
-      *errorMessage = "Could not read dataset information";
-      *errorCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
-    //   respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
-                    //    "Could not read dataset information");
-      return 0;
-    }
-  }
-  fclose(in);
-
-  return lrecl;
-}
-
 /*
  TODO this duplicates a lot of stremDataset. Thinking of putting conditionals on streamDataset writing to json stream, but then function becomes misleading.
  */
@@ -2320,8 +2247,6 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     return;
   }
 
-  printf("---sourceDataset: %s\n", sourceDataset);
-
   if(!isDatasetPathValid(sourceDataset)){
     respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Invalid dataset path");
     return;
@@ -2419,8 +2344,6 @@ int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char
   }
 
   sprintf(datasetAttributes, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"%s\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": %d,\"prime\": %d,\"secnd\": %d,\"avgr\": \"U\",\"dsnt\": \"%s\"}\0", organization, space, totalBlockSize, maxRecordLen, recFormat, dirBlock, primaryQuantity, secondaryQuantity, dsnt);
-  printf("datasetAttributes: %s\n", datasetAttributes);
-  printf("datasetAttributes len: %d\n", strlen(datasetAttributes));
 
   return 0;
 }
@@ -2564,7 +2487,6 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecor
 }
 
 getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, char *unprintableArg, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
-  printf("----AGAIN INSIDE THE NEW FUNCTION: getDatasetMetadata\n");
 #ifdef __ZOWE_OS_ZOS
   int dsnLen = strlen(datasetOrMember);
   int lParenIndex = indexOf(datasetOrMember, dsnLen, '(', 0);
@@ -2572,10 +2494,6 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
   int memberNameLength = (unsigned int)rParenIndex  - (unsigned int)lParenIndex -1;
   int datasetTypeCount = (typesArg == NULL) ? 3 : strlen(typesArg);
   int includeUnprintable = !strcmp(unprintableArg, "true") ? TRUE : FALSE;
-
-  printf("---dsnName: %s \n", dsnName->value);
-  printf("---memName: %s\n", memName->value);
-  printf("---datasetOrMember: %s\n", datasetOrMember);
 
   if(addQualifiersArg != NULL) {
     int addQualifiers = !strcmp(addQualifiersArg, "true");
@@ -2682,7 +2600,6 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
 }
 
 void getDatasetMetadataFromRequest(HttpResponse *response) {
-  printf("----AGAIN INSIDE THE NEW FUNCTION: getDatasetMetadataFromRequest\n");
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
   char *datasetOrMember = stringListPrint(request->parsedFile, 2, 2, "?", 0); /*get search term*/
@@ -2697,8 +2614,6 @@ void getDatasetMetadataFromRequest(HttpResponse *response) {
   char *absDsPathTemp = stringConcatenate(response->slh, "//'", percentDecoded);
   char *absDsPath = stringConcatenate(response->slh, absDsPathTemp, "'");
 
-  printf("---absDsPath: %s\n", absDsPath);
-
   if(!isDatasetPathValid(absDsPath)){
     respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Invalid dataset path");
     return;
@@ -2712,39 +2627,30 @@ void getDatasetMetadataFromRequest(HttpResponse *response) {
 
   HttpRequestParam *addQualifiersParam = getCheckedParam(request,"addQualifiers");
   char *addQualifiersArg = (addQualifiersParam ? addQualifiersParam->stringValue : NULL);
-  printf("---addQualifiersArg: %s\n", addQualifiersArg);
 
   HttpRequestParam *detailParam = getCheckedParam(request,"detail");
   char *detailArg = (detailParam ? detailParam->stringValue : NULL);
-  printf("---detailArg: %s\n", detailArg);
 
   HttpRequestParam *typesParam = getCheckedParam(request,"types");
   char *typesArg = (typesParam ? typesParam->stringValue : defaultDatasetTypesAllowed);
-  printf("---typesArg: %s\n", typesArg);
 
   HttpRequestParam *listMembersParam = getCheckedParam(request,"listMembers");
   char *listMembersArg = (listMembersParam ? listMembersParam->stringValue : NULL);
-  printf("---listMembersArg: %s\n", listMembersArg);
 
   HttpRequestParam *workAreaSizeParam = getCheckedParam(request,"workAreaSize");
   int workAreaSizeArg = (workAreaSizeParam ? workAreaSizeParam->intValue : 0);
-  printf("---workAreaSizeArg: %d\n", workAreaSizeArg);
 
   HttpRequestParam *migratedParam = getCheckedParam(request,"includeMigrated");
   char *migratedArg = (migratedParam ? migratedParam->stringValue : NULL);
-  printf("---migratedArg: %s\n", migratedArg);
 
   HttpRequestParam *unprintableParam = getCheckedParam(request,"includeUnprintable");
   char *unprintableArg = (unprintableParam ? unprintableParam->stringValue : "");
-  printf("---unprintableArg: %s\n", unprintableArg);
 
   HttpRequestParam *resumeNameParam = getCheckedParam(request,"resumeName");
   char *resumeNameArg = (resumeNameParam ? resumeNameParam->stringValue : NULL);
-  printf("---resumeNameArg: %s\n", resumeNameArg);
 
   HttpRequestParam *resumeCatalogNameParam = getCheckedParam(request,"resumeCatalogName");
   char *resumeCatalogNameArg = (resumeCatalogNameParam ? resumeCatalogNameParam->stringValue : NULL);
-  printf("---resumeCatalogNameArg: %s\n", resumeCatalogNameArg);
 
   if (resumeNameArg != NULL) {
     if (strlen(resumeNameArg) > 44) {
@@ -3113,7 +3019,6 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
       errno = 0;
       if (!strcmp(propString, "dsorg")) {
         char *valueString = jsonAsString(value);
-        printf("SETDATASETATTR dsorg to create dataset: %s\n", valueString);
         if (valueString != NULL) {
           parmDefn = (!strcmp(valueString, "PS")) ? DALDSORG_PS : DALDSORG_PO;
           rc = setTextUnit(TEXT_UNIT_INT16, 0, NULL, parmDefn, DALDSORG, configsCount, inputTextUnit);
@@ -3368,23 +3273,14 @@ int newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* abs
 int newDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode) {
   #ifdef __ZOWE_OS_ZOS
 
-  printf("----INSIDE NEW NEW DATASET \n");
-  printf("---NEW DATASET ABS PATH: %s \n", absolutePath);
-
   DatasetName datasetName;
   DatasetMemberName memberName;
   extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
-
-  printf("---DATASTENAME: %s \n", datasetName.value);
-  printf("---DATASET MEMBER NAME: %s \n", memberName.value);
 
   DynallocDatasetName daDatasetName;
   DynallocMemberName daMemberName;
   memcpy(daDatasetName.name, datasetName.value, sizeof(daDatasetName.name));
   memcpy(daMemberName.name, memberName.value, sizeof(daMemberName.name));
-
-  printf("---DA DATASTENAME: %s \n ", daDatasetName.name);
-  printf("---DA DATASET MEMBER NAME: %s \n ", daMemberName.name);
 
   DynallocDDName daDDName = {.name = "????????"};
 
@@ -3393,11 +3289,9 @@ int newDataset(HttpResponse* response, char* absolutePath, char* datasetAttribut
   bool isMemberEmpty = IS_DAMEMBER_EMPTY(daMemberName);
 
   if(!isMemberEmpty){
-    printf("---INSIDE isMemberEmpty \n");
     return newDatasetMember(response, &datasetName, absolutePath);
   }
 
-  printf("BEFORE SHORT LIVED HEAP\n");
   int configsCount = 0;
   char ddNameBuffer[DD_NAME_LEN+1] = "MVD00000";
   TextUnit *inputTextUnit[TOTAL_TEXT_UNITS] = {NULL};
@@ -3410,47 +3304,34 @@ int newDataset(HttpResponse* response, char* absolutePath, char* datasetAttribut
 
   int returnCode = 0;
   if (json) {
-    printf("INSIDE JSON NEWDATASET\n");
     if (jsonIsObject(json)){
-      printf("INSIDE JSON IS OBJECT NEWDATASET\n");
       JsonObject * jsonObject = jsonAsObject(json);
       returnCode = setTextUnit(TEXT_UNIT_STRING, DATASET_NAME_LEN, &datasetName.value[0], 0, DALDSNAM, &configsCount, inputTextUnit);
       if(returnCode == 0) {
-        printf("BEFORE SETTEXTUNIT\n");
         returnCode = setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, ddNameBuffer, 0, DALDDNAM, &configsCount, inputTextUnit);
-        printf("AFTER SETTEXTUNIT\n");
       }
       if(returnCode == 0) {
-        printf("BEFORE setDatasetAttributesForCreation\n");
         returnCode = setDatasetAttributesForCreation(jsonObject, &configsCount, inputTextUnit);
-        printf("AFTER setDatasetAttributesForCreation\n");
       }
     }
   } else {
-    printf("IF NOT JSON NEWDATASET\n");
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid JSON request body");
     return -1;
   }
 
   if (returnCode == 0) {
-    printf("BEFORE dynallocNewDataset\n");
     returnCode = dynallocNewDataset(inputTextUnit, configsCount, reasonCode);
-    printf("AFTER dynallocNewDataset\n");
     int ddNumber = 1;
     while (*reasonCode==0x4100000 && ddNumber < 100000) {
-      printf("INSIDE WHILE W REASONCODE\n");
       sprintf(ddNameBuffer, "MVD%05d", ddNumber);
       int ddconfig = 1;
       setTextUnit(TEXT_UNIT_STRING, DD_NAME_LEN, ddNameBuffer, 0, DALDDNAM, &ddconfig, inputTextUnit);
       returnCode = dynallocNewDataset(inputTextUnit, configsCount, reasonCode);
       ddNumber++;
-      printf("END OF WHILE W REASONCODE\n");
     }
-      printf("OUTSIDE WHILE W REASONCODE\n");
   }
 
   if (returnCode) {
-    printf("ERROR: DS ALLOC DSN\n");
     zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_WARNING,
             "error: ds alloc dsn=\'%44.44s\' dd=\'%8.8s\', sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, ddNameBuffer, returnCode, *reasonCode);
@@ -3461,7 +3342,6 @@ int newDataset(HttpResponse* response, char* absolutePath, char* datasetAttribut
   memcpy(daDDName.name, ddNameBuffer, DD_NAME_LEN);
   daRC = dynallocUnallocDatasetByDDName(&daDDName, DYNALLOC_UNALLOC_FLAG_NONE, &returnCode, reasonCode);
   if (daRC != RC_DYNALLOC_OK) {
-    printf("ERROR: DS UNALLOC DSN\n");
     zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_WARNING,
             "error: ds unalloc dsn=\'%44.44s\' dd=\'%8.8s\', rc=%d sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, daDDName.name, daRC, returnCode, *reasonCode);
@@ -3474,7 +3354,6 @@ int newDataset(HttpResponse* response, char* absolutePath, char* datasetAttribut
 
 void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonMode) {
   #ifdef __ZOWE_OS_ZOS
-  printf("---INSIDE NEW DATASET FROM REQUEST\n");
   HttpRequest *request = response->request;
 
   char* errorMessage = NULL;
