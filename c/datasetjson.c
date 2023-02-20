@@ -89,11 +89,11 @@ static bool memberExists(char* dsName, DynallocMemberName daMemberName);
 static int getDSCB(DatasetName *dsName, char* dscb, int bufferSize);
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit);
 void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE);
-void setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes);
+int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes);
 void readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter *jPrinter);
 void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* targetDataset);
 void pasteDatasetContent(HttpResponse *response, JsonBuffer *buffer, char* targetDataset);
-void newDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode);
+int newDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode);
 
 static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
   int lrecl = 0;
@@ -2379,7 +2379,11 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
 
   // To set attributes for target dataset
   char datasetAttributes[300];
-  setAttributesForDatasetCopy(response, datasetAttrBuffer, datasetAttributes);
+  int retCode = setAttributesForDatasetCopy(response, datasetAttrBuffer, datasetAttributes);
+
+  if(retCode == -1) {
+    return;
+  }
 
   // To read the source dataset content in the buffer
   JsonBuffer *datasetContentBuffer = makeJsonBuffer();
@@ -2391,15 +2395,17 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   char* errorMessage = NULL;
   int errorCode = 0;
   int reasonCode = 0;
-  newDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
 
-  // Paste content to newly created dataset
-  pasteDatasetContent(response, datasetContentBuffer, targetDataset);
-  response200WithMessage(response, "Successfully pasted dataset");
+  rc = newDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
+
+  if(rc == 0) {
+    // Paste content to newly created dataset
+    pasteDatasetContent(response, datasetContentBuffer, targetDataset);
+  }
 
   #endif /* __ZOWE_OS_ZOS */
 }
-void setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes) {
+int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes) {
   char *organization = NULL;
   char *recordLength = NULL;
   char *dsnt = NULL;
@@ -2412,6 +2418,16 @@ void setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, cha
 
   getDatasetAttributes(buffer, &organization, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked, &isPDSE);
 
+  if(recordLength == "U") {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
+    return -1;
+  }
+
+  if(organization == NULL) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Invalid dataset");
+    return -1;
+  }
+
   if(!strcmp(organization, "sequential")) {
     organization = "PS";
     dsnt = "";
@@ -2420,7 +2436,7 @@ void setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, cha
     dsnt = (isPDSE) ? "PDSE" : "PDS";
     dirBlock = 10;
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Do not support copy-paste for PDS(E) Dataset");
-    return;
+    return -1;
   }
 
   // Hardcoding these attributes because datasetMetadata API does not return it.
@@ -2438,6 +2454,7 @@ void setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, cha
   printf("datasetAttributes: %s\n", datasetAttributes);
   printf("datasetAttributes len: %d\n", strlen(datasetAttributes));
 
+  return 0;
 }
 
 void readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter *jPrinter) {
@@ -3456,7 +3473,7 @@ void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* ab
   }
 }
 
-void newDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode) {
+int newDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode) {
   #ifdef __ZOWE_OS_ZOS
 
   printf("----INSIDE NEW NEW DATASET \n");
@@ -3520,7 +3537,7 @@ void newDataset(HttpResponse* response, char* absolutePath, char* datasetAttribu
   } else {
     printf("IF NOT JSON NEWDATASET\n");
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid JSON request body");
-    return;
+    return -1;
   }
 
   if (returnCode == 0) {
@@ -3546,7 +3563,7 @@ void newDataset(HttpResponse* response, char* absolutePath, char* datasetAttribu
             "error: ds alloc dsn=\'%44.44s\' dd=\'%8.8s\', sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, ddNameBuffer, returnCode, *reasonCode);
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to allocate a DD for ACB");
-    return;
+    return -1;
   }
 
   memcpy(daDDName.name, ddNameBuffer, DD_NAME_LEN);
@@ -3557,9 +3574,9 @@ void newDataset(HttpResponse* response, char* absolutePath, char* datasetAttribu
             "error: ds unalloc dsn=\'%44.44s\' dd=\'%8.8s\', rc=%d sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, daDDName.name, daRC, returnCode, *reasonCode);
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to deallocate DDNAME");
-    return;
+    return -1;
   }
-  return;
+  return 0;
   #endif
 }
 
@@ -3590,6 +3607,7 @@ void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonM
   int translationLength;
   int outCCSID = NATIVE_CODEPAGE;
   int reasonCode;
+  int rc = 0;
 
   int returnCode = convertCharset(contentBody,
                               bodyLength,
@@ -3603,10 +3621,12 @@ void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonM
                               &reasonCode);
 
   if (returnCode == 0) {
-    newDataset(response, absolutePath, convertedBody, translationLength, &reasonCode);
+    rc = newDataset(response, absolutePath, convertedBody, translationLength, &reasonCode);
   }
 
-  response200WithMessage(response, "Successfully created dataset");
+  if(rc == 0) {
+    response200WithMessage(response, "Successfully created dataset");
+  }
 
   #endif
 }
