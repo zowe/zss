@@ -51,7 +51,6 @@ typedef struct StatefulACB_tag {
   } argPtr;
 } StatefulACB;
 
-// int streamDataset(Socket *socket, char *filename, int recordLength, jsonPrinter *jPrinter);
 int streamDataset(char *filename, int recordLength, jsonPrinter *jPrinter);
 int streamVSAMDataset(HttpResponse* response, char *acb, int maxRecordLength, int maxRecords, int maxBytes, int keyLoc, int keyLen, jsonPrinter *jPrinter);
 void addDetailedDatasetMetadata(char *datasetName, int nameLength,
@@ -67,7 +66,6 @@ void respondWithVSAMDataset(HttpResponse* response, char* absolutePath, hashtabl
 void respondWithDatasetMetadata(HttpResponse *response);
 void getDatasetMetadataFromRequest(HttpResponse *response);
 void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQueryCache);
-// void newDataset(HttpResponse* response, char* absolutePath, int jsonMode);
 void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonMode);
 void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode);
 void updateVSAMDataset(HttpResponse* response, char* absolutePath, hashtable *acbTable, int jsonMode);

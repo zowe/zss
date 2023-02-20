@@ -56,7 +56,6 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0); //expect name or hlq
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "L1=%s\n", l1);
     if (!strcmp(l1, "name")){
-      // respondWithDatasetMetadata(response);
       getDatasetMetadataFromRequest(response);
     }
     else if (!strcmp(l1, "hlq")) {
@@ -87,8 +86,6 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
 }
 
 static int serveDatasetContents(HttpService *service, HttpResponse *response){
-  printf("---INSIDE FUNCTION: serveDatasetContents \n");
-
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   HttpRequest *request = response->request;
 
@@ -121,7 +118,6 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     deleteDatasetOrMember(response, filename);
   }
   else if (!strcmp(request->method, methodPUT)) {
-    printf("----INSIDE PUT METHOD OF SERVE  DS CONTENTS\n");
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
     char *percentDecoded = cleanURLParamValue(response->slh, l1);
     char *filenamep1 = stringConcatenate(response->slh, "//'", percentDecoded);
@@ -132,7 +128,6 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
   }
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
-
     setContentType(response, "text/json");
     setResponseStatus(response, 405, "Method Not Allowed");
     addStringHeader(response, "Server", "jdmfws");
@@ -230,7 +225,6 @@ static int serveVSAMDatasetContents(HttpService *service, HttpResponse *response
 }
 
 void installDatasetContentsService(HttpServer *server) {
-  printf("---INSTALLING: DatasetContentsService \n");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset contents");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
@@ -244,8 +238,6 @@ void installDatasetContentsService(HttpServer *server) {
 }
 
 void installDatasetCopyService(HttpServer *server) {
-  printf("---INSTALLING: DatasetCopyService \n");
-
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset copy paste");
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
 
