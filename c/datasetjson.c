@@ -2424,7 +2424,7 @@ int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char
   }
 
   if(organization == NULL) {
-    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Invalid dataset");
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Source dataset does not exist");
     return -1;
   }
 
