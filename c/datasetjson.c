@@ -3425,15 +3425,17 @@ static int getDSCB(const DatasetName* datasetName, char* dscb, int bufferSize){
   }
 }
 
-void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* absolutePath) {
+int newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* absolutePath) {
   char dscb[INDEXED_DSCB] = {0};
   int bufferSize = sizeof(dscb);
   if (getDSCB(datasetName, dscb, bufferSize) != 0) {
     respondWithJsonError(response, "Error decoding dataset", 400, "Bad Request");
+    return -1;
   }
   else {
     if (!isPartionedDataset(dscb)) {
       respondWithJsonError(response, "Dataset must be PDS/E", 400, "Bad Request");
+      return -1;
     }
     else {
       char *overwriteParam = getQueryParam(response->request,"overwrite");
@@ -3443,9 +3445,11 @@ void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* ab
         if (fclose(memberExists) != 0) {
             zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
             respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
+            return -1;
         }
         else {
           respondWithJsonError(response, "Member already exists and overwrite not specified", 400, "Bad Request");
+          return -1;
         }
       }
       else { 
@@ -3453,20 +3457,22 @@ void newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* ab
           if (fclose(memberExists) != 0) {
             zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
             respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
-            return;
+            return -1;
           }
         }
         FILE* newMember = fopen(absolutePath, "w");
         if (!newMember){
           respondWithJsonError(response, "Bad dataset name", 400, "Bad Request");
-          return;
+          return -1;
         }
         if (fclose(newMember) == 0){
           response200WithMessage(response, "Successfully created member");
+          return 1;
         }
         else {
           zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
           respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
+          return -1;
         }
       }
     }
@@ -3587,7 +3593,6 @@ void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonM
 
   char* errorMessage = NULL;
   int errorCode = 0;
-  int rc = 0;
 
   if (!isDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
