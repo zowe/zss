@@ -30,9 +30,9 @@
 /* keep this in sync with the default messages IDs from crossmemory.h and zssLogging.h */
 #define ZIS_LOG_STARTUP_MSG_ID                  ZIS_MSG_PRFX"0001I"
  #ifdef CROSS_MEMORY_SERVER_DEBUG
-  #define ZIS_LOG_STARTUP_MSG_TEXT              "ZIS starting in debug mode, version is %d.%d.%d+%d\n"
+  #define ZIS_LOG_STARTUP_MSG_TEXT              "Zowe Cross-Memory Server starting in debug mode, version is %d.%d.%d+%d\n"
  #else
-  #define ZIS_LOG_STARTUP_MSG_TEXT              "ZIS starting, version is %d.%d.%d+%d\n"
+  #define ZIS_LOG_STARTUP_MSG_TEXT              "Zowe Cross-Memory Server starting, version is %d.%d.%d+%d\n"
  #endif
 #define ZIS_LOG_STARTUP_MSG                     ZIS_LOG_STARTUP_MSG_ID" "ZIS_LOG_STARTUP_MSG_TEXT
 
@@ -49,39 +49,39 @@
 #define ZIS_LOG_CXMS_NAME_MSG                   ZIS_LOG_CXMS_NAME_MSG_ID" "ZIS_LOG_CXMS_NAME_MSG_TEXT
 
 #define ZIS_LOG_CXMS_NOT_CREATED_MSG_ID         ZIS_MSG_PRFX"0005E"
-#define ZIS_LOG_CXMS_NOT_CREATED_MSG_TEXT       "ZIS not created, RSN = %d"
+#define ZIS_LOG_CXMS_NOT_CREATED_MSG_TEXT       "Zowe Cross-Memory server not created, RSN = %d"
 #define ZIS_LOG_CXMS_NOT_CREATED_MSG            ZIS_LOG_CXMS_NOT_CREATED_MSG_ID" "ZIS_LOG_CXMS_NOT_CREATED_MSG_TEXT
 
 #define ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG_ID    ZIS_MSG_PRFX"0006E"
-#define ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG_TEXT  "ZIS resource not allocated (%s)"
+#define ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG_TEXT  "Zowe Cross-Memory server resource not allocated (%s)"
 #define ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG        ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG_ID" "ZIS_LOG_CXMS_RES_ALLOC_FAILED_MSG_TEXT
 
 #define ZIS_LOG_CXMS_BAD_PMEM_SUFFIX_MSG_ID     ZIS_MSG_PRFX"0007E"
-#define ZIS_LOG_CXMS_BAD_PMEM_SUFFIX_MSG_TEXT   "ZIS PARMLIB member suffix is incorrect - \'%s\'"
+#define ZIS_LOG_CXMS_BAD_PMEM_SUFFIX_MSG_TEXT   "Zowe Cross-Memory server PARMLIB member suffix is incorrect - \'%s\'"
 #define ZIS_LOG_CXMS_BAD_PMEM_SUFFIX_MSG         ZIS_LOG_CXMS_BAD_PMEM_SUFFIX_MSG_ID" "ZIS_LOG_CXMS_BAD_PMEM_SUFFIX_MSG_TEXT
 
 #define ZIS_LOG_CXMS_CFG_NOT_READ_MSG_ID        ZIS_MSG_PRFX"0008E"
-#define ZIS_LOG_CXMS_CFG_NOT_READ_MSG_TEXT      "ZIS configuration not read, member = \'%8.8s\', RC = %d (%d, %d)"
+#define ZIS_LOG_CXMS_CFG_NOT_READ_MSG_TEXT      "Zowe Cross-Memory server configuration not read, member = \'%8.8s\', RC = %d (%d, %d)"
 #define ZIS_LOG_CXMS_CFG_NOT_READ_MSG            ZIS_LOG_CXMS_CFG_NOT_READ_MSG_ID" "ZIS_LOG_CXMS_CFG_NOT_READ_MSG_TEXT
 
 #define ZIS_LOG_CXMS_CFG_MISSING_MSG_ID         ZIS_MSG_PRFX"0009E"
-#define ZIS_LOG_CXMS_CFG_MISSING_MSG_TEXT       "ZIS configuration not found, member = \'%8.8s\', RC = %d"
+#define ZIS_LOG_CXMS_CFG_MISSING_MSG_TEXT       "Zowe Cross-Memory server configuration not found, member = \'%8.8s\', RC = %d"
 #define ZIS_LOG_CXMS_CFG_MISSING_MSG             ZIS_LOG_CXMS_CFG_MISSING_MSG_ID" "ZIS_LOG_CXMS_CFG_MISSING_MSG_TEXT
 
 #define ZIS_LOG_CXMS_CFG_NOT_LOADED_MSG_ID      ZIS_MSG_PRFX"0010E"
-#define ZIS_LOG_CXMS_CFG_NOT_LOADED_MSG_TEXT    "ZIS configuration not loaded, RC = %d, RSN = %d"
+#define ZIS_LOG_CXMS_CFG_NOT_LOADED_MSG_TEXT    "Zowe Cross-Memory server configuration not loaded, RC = %d, RSN = %d"
 #define ZIS_LOG_CXMS_CFG_NOT_LOADED_MSG         ZIS_LOG_CXMS_CFG_NOT_LOADED_MSG_ID" "ZIS_LOG_CXMS_CFG_NOT_LOADED_MSG_TEXT
 
 #define ZIS_LOG_CXMS_NOT_STARTED_MSG_ID         ZIS_MSG_PRFX"0011E"
-#define ZIS_LOG_CXMS_NOT_STARTED_MSG_TEXT       "ZIS not started, RC = %d"
+#define ZIS_LOG_CXMS_NOT_STARTED_MSG_TEXT       "Zowe Cross-Memory server not started, RC = %d"
 #define ZIS_LOG_CXMS_NOT_STARTED_MSG            ZIS_LOG_CXMS_NOT_STARTED_MSG_ID" "ZIS_LOG_CXMS_NOT_STARTED_MSG_TEXT
 
 #define ZIS_LOG_CXMS_TERM_OK_MSG_ID             ZIS_MSG_PRFX"0012I"
-#define ZIS_LOG_CXMS_TERM_OK_MSG_TEXT           "ZIS terminated"
+#define ZIS_LOG_CXMS_TERM_OK_MSG_TEXT           "Zowe Cross-Memory Server terminated"
 #define ZIS_LOG_CXMS_TERM_OK_MSG                ZIS_LOG_CXMS_TERM_OK_MSG_ID" "ZIS_LOG_CXMS_TERM_OK_MSG_TEXT
 
 #define ZIS_LOG_CXMS_TERM_FAILURE_MSG_ID        ZIS_MSG_PRFX"0013E"
-#define ZIS_LOG_CXMS_TERM_FAILURE_MSG_TEXT      "ZIS terminated due to an error, status = %d"
+#define ZIS_LOG_CXMS_TERM_FAILURE_MSG_TEXT      "Zowe Cross-Memory Server terminated due to an error, status = %d"
 #define ZIS_LOG_CXMS_TERM_FAILURE_MSG           ZIS_LOG_CXMS_TERM_FAILURE_MSG_ID" "ZIS_LOG_CXMS_TERM_FAILURE_MSG_TEXT
 
 #define ZIS_LOG_CONFIG_FAILURE_MSG_ID           ZIS_MSG_PRFX"0014E"
@@ -109,11 +109,11 @@
 #define ZIS_LOG_BAD_CONFIG_PARM_MSG             ZIS_LOG_BAD_CONFIG_PARM_MSG_ID" "ZIS_LOG_BAD_CONFIG_PARM_MSG_TEXT
 
 #define ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG_ID    ZIS_MSG_PRFX"0020E"
-#define ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG_TEXT  "ZIS PARMLIB member name not determined, RC = %d"
+#define ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG_TEXT  "Zowe Cross-Memory server PARMLIB member name not determined, RC = %d"
 #define ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG       ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG_ID" "ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG_TEXT
 
 #define ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG_ID     ZIS_MSG_PRFX"0021E"
-#define ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG_TEXT   "ZIS module member name not determined, RC = %d"
+#define ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG_TEXT   "Zowe Cross-Memory server module member name not determined, RC = %d"
 #define ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG        ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG_ID" "ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG_TEXT
 
 /* ZIS AUX messages */
@@ -289,11 +289,11 @@
 #define ZISDYN_LOG_STUB_CREATED_MSG             ZISDYN_LOG_STUB_CREATED_MSG_ID" "ZISDYN_LOG_STUB_CREATED_MSG_TEXT
 
 #define ZISDYN_LOG_STUB_REUSED_MSG_ID           ZIS_MSG_PRFX"0210I"
-#define ZISDYN_LOG_STUB_REUSED_MSG_TEXT         "Stub vector at %p has been reused"
+#define ZISDYN_LOG_STUB_REUSED_MSG_TEXT         "Stub vector at % p has been reused"
 #define ZISDYN_LOG_STUB_REUSED_MSG              ZISDYN_LOG_STUB_REUSED_MSG_ID" "ZISDYN_LOG_STUB_REUSED_MSG_TEXT
 
 #define ZISDYN_LOG_STUB_DELETED_MSG_ID          ZIS_MSG_PRFX"0211I"
-#define ZISDYN_LOG_STUB_DELETED_MSG_TEXT        "Stub vector at %p has been deleted"
+#define ZISDYN_LOG_STUB_DELETED_MSG_TEXT        "Stub vector at % p has been deleted"
 #define ZISDYN_LOG_STUB_DELETED_MSG             ZISDYN_LOG_STUB_DELETED_MSG_ID" "ZISDYN_LOG_STUB_DELETED_MSG_TEXT
 
 #define ZISDYN_LOG_STUB_DISCARDED_MSG_ID        ZIS_MSG_PRFX"0212W"
@@ -305,7 +305,7 @@
 #define ZISDYN_LOG_DEV_MODE_MSG                 ZISDYN_LOG_DEV_MODE_MSG_ID" "ZISDYN_LOG_DEV_MODE_MSG_TEXT
 
 #define ZISDYN_LOG_BAD_ZIS_VERSION_MSG_ID       ZIS_MSG_PRFX"0214E"
-#define ZISDYN_LOG_BAD_ZIS_VERSION_MSG_TEXT     "Bad ZIS version: expected [%d.%d.%d, %d.0.0], found %d.%d.%d"
+#define ZISDYN_LOG_BAD_ZIS_VERSION_MSG_TEXT     "Bad cross-memory server version: expected [%d.%d.%d, %d.0.0), found %d.%d.%d"
 #define ZISDYN_LOG_BAD_ZIS_VERSION_MSG          ZISDYN_LOG_BAD_ZIS_VERSION_MSG_ID" "ZISDYN_LOG_BAD_ZIS_VERSION_MSG_TEXT
 
 #endif /* ZIS_MSG_H_ */
