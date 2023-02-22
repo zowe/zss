@@ -88,11 +88,6 @@ static int getVolserForDataset(const DatasetName *dataset, Volser *volser);
 static bool memberExists(char* dsName, DynallocMemberName daMemberName);
 static int getDSCB(DatasetName *dsName, char* dscb, int bufferSize);
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit);
-void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE);
-int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes);
-void readDatasetContent(HttpResponse *response, char* sourceDataset, char* targetDataset, jsonPrinter *jPrinter);
-void readAndWriteToDataset(HttpResponse *response, char *sourceDataset, int recordLength, char *targetDataset);
-void pasteDatasetContent(HttpResponse *response, JsonBuffer *buffer, char* targetDataset);
 int newDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode);
 
 static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
@@ -2234,76 +2229,40 @@ int decodePercentByte(char *inString, int inLength, char *outString, int *outStr
   return 0;
 }
 
-void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
-  #ifdef __ZOWE_OS_ZOS
-  HttpRequest *request = response->request;
+void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE) {
+  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+  char errorBuffer[2048];
+  Json *json = jsonParseUnterminatedString(slh,
+                                             buffer->data, buffer->len,
+                                             errorBuffer, sizeof(errorBuffer));
 
-  if (sourceDataset == NULL || strlen(sourceDataset) < 1){
-    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"No source dataset name given");
-    return;
+  if (json) {
+    if (jsonIsObject(json)){
+      JsonObject *jsonObject = jsonAsObject(json);
+      //Get array of datasets
+      JsonArray *datasetArray = jsonObjectGetArray(jsonObject,"datasets");
+      int datasetCount = jsonArrayGetCount(datasetArray);
+      for (uint32_t i = 0; i < datasetCount; i++) {
+        Json *element = jsonArrayGetItem(datasetArray,i);
+        if(element && jsonIsObject(element)) {
+          JsonObject *jsonDatasetObject = jsonAsObject(element);
+          // Get dsorg object
+          JsonObject *dsOrg = jsonObjectGetObject(jsonDatasetObject,"dsorg");
+          *organization = jsonObjectGetString(dsOrg,"organization");
+          *maxRecordLen = jsonObjectGetNumber(dsOrg,"maxRecordLen");
+          *totalBlockSize = jsonObjectGetNumber(dsOrg,"totalBlockSize");
+          *isPDSE = jsonObjectGetBoolean(dsOrg,"isPDSE");
+          // Get recfm object
+          JsonObject *recfm = jsonObjectGetObject(jsonDatasetObject,"recfm");
+          *recordLength = jsonObjectGetString(recfm,"recordLength");
+          *isBlocked = jsonObjectGetBoolean(recfm,"isBlocked");
+        }
+      }
+    }
   }
-  if (targetDataset == NULL || strlen(targetDataset) < 1){
-    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"No target dataset name given");
-    return;
-  }
-
-  if(!isDatasetPathValid(sourceDataset)){
-    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Invalid dataset path");
-    return;
-  }
-
-  if(!isDatasetPathValid(targetDataset)){
-    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Invalid dataset path");
-    return;
-  }
-
-  /* From here on, we know we have a valid data path */
-  DatasetName dsnName;
-  DatasetMemberName memName;
-  extractDatasetAndMemberName(sourceDataset, &dsnName, &memName);
-
-  // Buffer to save attributes for source dataset
-  JsonBuffer *datasetAttrBuffer = makeJsonBuffer();
-  jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, datasetAttrBuffer);
-  jsonStart(jPrinter);
-
-  // To get the attributes for source dataset
-  getDatasetMetadata(&dsnName, &memName, sourceDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
-  jsonEnd(jPrinter);
-
-  // To set attributes for target dataset
-  char datasetAttributes[300];
-  int rc = 0;
-  rc = setAttributesForDatasetCopy(response, datasetAttrBuffer, datasetAttributes);
-
-  if(rc == -1) {
-    return;
-  }
-
-  int reasonCode = 0;
-  rc = newDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
-
-  if(rc != 0) {
-    return;
-  }
-  // To read the source dataset content in the buffer
-  JsonBuffer *datasetContentBuffer = makeJsonBuffer();
-  jsonPrinter *p = makeBufferNativeJsonPrinter(CCSID_UTF_8, datasetContentBuffer);
-  return readDatasetContent(response, sourceDataset, targetDataset, p);
-
-  // if(rc == 0) {
-  //   // Create new dataset
-  //   int reasonCode = 0;
-  //   rc = newDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
-
-  //   if(rc == 0) {
-  //     // Paste content to newly created dataset
-  //     pasteDatasetContent(response, datasetContentBuffer, targetDataset);
-  //   }
-  // }
-
-  #endif /* __ZOWE_OS_ZOS */
+  SLHFree(slh);
 }
+
 int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes) {
   char *organization = NULL;
   char *recordLength = NULL;
@@ -2458,7 +2417,7 @@ void readAndWriteToDataset(HttpResponse *response, char *sourceDataset, int reco
   return;
 }
 
-void readDatasetContent(HttpResponse *response, char* sourceDataset, char* targetDataset, jsonPrinter *jPrinter) {
+void readDatasetContent(HttpResponse *response, char* sourceDataset, char* targetDataset) {
 
   DatasetName dsn;
   DatasetMemberName memberName;
@@ -2505,10 +2464,6 @@ void readDatasetContent(HttpResponse *response, char* sourceDataset, char* targe
   }
   zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Streaming data for %s\n", sourceDataset);
 
-  // jsonStart(jPrinter);
-  // int status = streamDataset(ddPath, lrecl, jPrinter);
-  // jsonEnd(jPrinter);
-
   readAndWriteToDataset(response, ddPath, lrecl, targetDataset);
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
@@ -2522,142 +2477,62 @@ void readDatasetContent(HttpResponse *response, char* sourceDataset, char* targe
   return;
 }
 
-// int readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter *jPrinter) {
+void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
+  #ifdef __ZOWE_OS_ZOS
+  HttpRequest *request = response->request;
 
-//   DatasetName dsn;
-//   DatasetMemberName memberName;
-//   extractDatasetAndMemberName(sourceDataset, &dsn, &memberName);
-
-//   DynallocDatasetName daDsn;
-//   DynallocMemberName daMember;
-//   memcpy(daDsn.name, dsn.value, sizeof(daDsn.name));
-//   memcpy(daMember.name, memberName.value, sizeof(daMember.name));
-//   DynallocDDName daDDname = {.name = "????????"};
-
-//   int daRC = RC_DYNALLOC_OK, daSysRC = 0, daSysRSN = 0;
-//   daRC = dynallocAllocDataset(
-//       &daDsn,
-//       IS_DAMEMBER_EMPTY(daMember) ? NULL : &daMember,
-//       &daDDname,
-//       DYNALLOC_DISP_SHR,
-//       DYNALLOC_ALLOC_FLAG_NO_CONVERSION | DYNALLOC_ALLOC_FLAG_NO_MOUNT,
-//       &daSysRC, &daSysRSN
-//   );
-
-//   if (daRC != RC_DYNALLOC_OK) {
-//     zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
-//       	    "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
-//             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
-//             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN);
-//     respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
-//                              &daDsn, &daMember, "r");
-//     return -1;
-//   }
-//   zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
-//           "debug: reading dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\'\n",
-//           daDsn.name, daMember.name, daDDname.name);
-
-//   DDName ddName;
-//   memcpy(&ddName.value, &daDDname.name, sizeof(ddName.value));
-
-//   char ddPath[16];
-//   snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName.value);
-
-//   int lrecl = getLreclOrRespondError(response, &dsn, ddPath);
-//   if (!lrecl) {
-//     return -1;
-//   }
-//   zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Streaming data for %s\n", sourceDataset);
-
-//   jsonStart(jPrinter);
-//   int status = streamDataset(ddPath, lrecl, jPrinter);
-//   jsonEnd(jPrinter);
-
-//   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
-//                                         &daSysRC, &daSysRSN);
-//   if (daRC != RC_DYNALLOC_OK) {
-//     zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
-//             "error: ds unalloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
-//             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
-//             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "read");
-//   }
-//   return 0;
-// }
-
-void pasteDatasetContent(HttpResponse *response, JsonBuffer *buffer, char* targetDataset) {
-  char msgBuffer[128];
-  char eTag[128];
-  int recordsWritten = 0;
-  int blockSize = 0x10000;
-  int maxBlockCount = ((buffer->len)*2)/blockSize;
-  if (!maxBlockCount){
-    maxBlockCount = 0x10;
+  if (sourceDataset == NULL || strlen(sourceDataset) < 1){
+    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"No source dataset name given");
+    return;
+  }
+  if (targetDataset == NULL || strlen(targetDataset) < 1){
+    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"No target dataset name given");
+    return;
   }
 
-  ShortLivedHeap *slh = makeShortLivedHeap(blockSize, maxBlockCount);
-  char errorBuffer[2048];
-  Json *json = jsonParseUnterminatedString(slh,
-                                             buffer->data, buffer->len,
-                                             errorBuffer, sizeof(errorBuffer));
+  if(!isDatasetPathValid(sourceDataset)){
+    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Invalid dataset path");
+    return;
+  }
 
+  if(!isDatasetPathValid(targetDataset)){
+    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Invalid dataset path");
+    return;
+  }
+
+  /* From here on, we know we have a valid data path */
+  DatasetName dsnName;
+  DatasetMemberName memName;
+  extractDatasetAndMemberName(sourceDataset, &dsnName, &memName);
+
+  // Buffer to save attributes for source dataset
+  JsonBuffer *datasetAttrBuffer = makeJsonBuffer();
+  jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, datasetAttrBuffer);
+  jsonStart(jPrinter);
+
+  // To get the attributes for source dataset
+  getDatasetMetadata(&dsnName, &memName, sourceDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
+  jsonEnd(jPrinter);
+
+  // To set attributes for target dataset
+  char datasetAttributes[300];
   int rc = 0;
-  if (json) {
-    if (jsonIsObject(json)) {
-      JsonObject *jsonObject = jsonAsObject(json);
-      rc = updateDatasetWithJSON(response, jsonObject, targetDataset, NULL, true, &recordsWritten, eTag);
-    }
+  rc = setAttributesForDatasetCopy(response, datasetAttrBuffer, datasetAttributes);
+
+  if(rc == -1) {
+    return;
   }
-  if(rc != -1) {
-    jsonPrinter *p = respondWithJsonPrinter(response);
-    setResponseStatus(response, 200, "Copied Dataset");
-    setDefaultJSONRESTHeaders(response);
-    writeHeader(response);
-    jsonStart(p);
 
-    snprintf(msgBuffer, sizeof(msgBuffer), "Dataset %s is pasted successfully with %d records", targetDataset, recordsWritten);
-    jsonAddString(p, "msg", msgBuffer);
-    if(eTag != NULL) {
-      jsonAddString(p, "etag", eTag);
-    }
+  int reasonCode = 0;
+  rc = newDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
 
-    jsonEnd(p);
-    finishResponse(response);
+  if(rc != 0) {
+    return;
   }
-  SLHFree(slh);
-}
 
-void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE) {
-  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
-  char errorBuffer[2048];
-  Json *json = jsonParseUnterminatedString(slh,
-                                             buffer->data, buffer->len,
-                                             errorBuffer, sizeof(errorBuffer));
+  return readDatasetContent(response, sourceDataset, targetDataset);
 
-  if (json) {
-    if (jsonIsObject(json)){
-      JsonObject *jsonObject = jsonAsObject(json);
-      //Get array of datasets
-      JsonArray *datasetArray = jsonObjectGetArray(jsonObject,"datasets");
-      int datasetCount = jsonArrayGetCount(datasetArray);
-      for (uint32_t i = 0; i < datasetCount; i++) {
-        Json *element = jsonArrayGetItem(datasetArray,i);
-        if(element && jsonIsObject(element)) {
-          JsonObject *jsonDatasetObject = jsonAsObject(element);
-          // Get dsorg object
-          JsonObject *dsOrg = jsonObjectGetObject(jsonDatasetObject,"dsorg");
-          *organization = jsonObjectGetString(dsOrg,"organization");
-          *maxRecordLen = jsonObjectGetNumber(dsOrg,"maxRecordLen");
-          *totalBlockSize = jsonObjectGetNumber(dsOrg,"totalBlockSize");
-          *isPDSE = jsonObjectGetBoolean(dsOrg,"isPDSE");
-          // Get recfm object
-          JsonObject *recfm = jsonObjectGetObject(jsonDatasetObject,"recfm");
-          *recordLength = jsonObjectGetString(recfm,"recordLength");
-          *isBlocked = jsonObjectGetBoolean(recfm,"isBlocked");
-        }
-      }
-    }
-  }
-  SLHFree(slh);
+  #endif /* __ZOWE_OS_ZOS */
 }
 
 getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, char *unprintableArg, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
