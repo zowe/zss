@@ -2280,7 +2280,8 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     return;
   }
 
-  rc = newDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);  
+  int reasonCode = 0;
+  rc = newDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
 
   if(rc != 0) {
     return;
@@ -2349,6 +2350,7 @@ int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char
   }
 
   sprintf(datasetAttributes, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"%s\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": %d,\"prime\": %d,\"secnd\": %d,\"avgr\": \"U\",\"dsnt\": \"%s\"}\0", organization, space, totalBlockSize, maxRecordLen, recFormat, dirBlock, primaryQuantity, secondaryQuantity, dsnt);
+
   return 0;
 }
 
