@@ -2283,18 +2283,18 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   // To read the source dataset content in the buffer
   JsonBuffer *datasetContentBuffer = makeJsonBuffer();
   jsonPrinter *p = makeBufferNativeJsonPrinter(CCSID_UTF_8, datasetContentBuffer);
-  rc = readDatasetContent(response, sourceDataset, p);
+  return readDatasetContent(response, sourceDataset, targetDataset, p);
 
-  if(rc == 0) {
-    // Create new dataset
-    int reasonCode = 0;
-    rc = newDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
+  // if(rc == 0) {
+  //   // Create new dataset
+  //   int reasonCode = 0;
+  //   rc = newDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
 
-    if(rc == 0) {
-      // Paste content to newly created dataset
-      pasteDatasetContent(response, datasetContentBuffer, targetDataset);
-    }
-  }
+  //   if(rc == 0) {
+  //     // Paste content to newly created dataset
+  //     pasteDatasetContent(response, datasetContentBuffer, targetDataset);
+  //   }
+  // }
 
   #endif /* __ZOWE_OS_ZOS */
 }
@@ -2348,7 +2348,107 @@ int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char
   return 0;
 }
 
-int readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter *jPrinter) {
+void readAndWriteToDataset(HttpResponse *response, char *sourceDataset, int recordLength, char *targetDataset) {
+
+  int defaultSize = DATA_STREAM_BUFFER_SIZE;
+  FILE *inDataset;
+  if (recordLength < 1){
+    recordLength = defaultSize;
+    inDataset = fopen(filename,"rb");
+  }
+  else {
+    inDataset = fopen(filename,"rb, type=record");
+  }
+
+  if (inDataset == NULL) {
+    respondWithError(response,HTTP_STATUS_NOT_FOUND,"Source dataset could not be opened or does not exist");
+    return;
+  }
+
+  FILE *outDataset = fopen(datasetPath, "wb, recfm=*, type=record");
+
+  if (outDataset == NULL) {
+    respondWithError(response,HTTP_STATUS_NOT_FOUND,"Traget dataset could not be opened or does not exist");
+    return;
+  }
+
+  ICSFDigest digest;
+  char hash[32];
+
+  int rcEtag = icsfDigestInit(&digest, ICSF_DIGEST_SHA1);
+  if (rcEtag) { //if etag generation has an error, just don't send it.
+    zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "ICSF error for SHA etag init for write, %d\n",rcEtag);
+  }
+
+  int bufferSize = recordLength+1;
+  char buffer[bufferSize];
+  int bytesRead = 0;
+  int bytesWritten = 0;
+  int recordsWritten = 0;
+
+  while (!feof(in)){
+    bytesRead = fread(buffer,1,recordLength,inDataset);
+    if (bytesRead > 0 && !ferror(in)) {
+      printf("READ THE BYTES: %d\n", bytesRead);
+      bytesWritten = fwrite(buffer,1,recordLength,outDataset);
+      recordsWritten++;
+      if ((bytesWritten < 0 && ferror(outDataset)) || (bytesWritten != bytesRead)){
+        printf("ERROR WRITING DATASET\n");
+        zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Error writing to dataset, rc=%d\n", bytesWritten);
+        respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Error writing to dataset");
+        fclose(outDataset);
+        fclose(inDataset);
+        return;
+      } else if (!rcEtag) {
+        rcEtag = icsfDigestUpdate(&digest, recordBuffer, bytesWritten);
+      }
+    } else if (bytesRead == 0 && !feof(inDataset) && !ferror(inDataset)) {
+      printf("ZERO BYTES READ BUT NO ERROR\n");
+      // empty record
+    } else if (ferror(in)) {
+      printf("ERROR WRITING DATASET BCOZ ERROR IN READING INPUT FILE\n");
+      respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Error writing to dataset");
+      zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,  "Error reading DSN=%s, rc=%d\n", sourceDataset, bytesRead);
+      return;
+    }
+  }
+
+  if (!rcEtag) { rcEtag = icsfDigestFinish(&digest, hash); }
+  if (rcEtag) {
+    zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "ICSF error for SHA etag, %d\n",rcEtag);
+  }
+
+  jsonPrinter *p = respondWithJsonPrinter(response);
+  setResponseStatus(response, 201, "Created");
+  setDefaultJSONRESTHeaders(response);
+  writeHeader(response);
+  jsonStart(p);
+
+  char msgBuffer[128];
+  snprintf(msgBuffer, sizeof(msgBuffer), "Updated dataset %s with %d records", targetDataset, recordsWritten);
+  jsonAddString(p, "msg", msgBuffer);
+
+  if (!rcEtag) {
+    // Convert hash text to hex.
+    int eTagLength = digest.hashLength*2;
+    char eTag[eTagLength+1];
+    memset(eTag, '\0', eTagLength);
+    int len = digest.hashLength;
+    simpleHexPrint(eTag, hash, digest.hashLength);
+    jsonAddString(p, "etag", eTag);
+  }
+
+  jsonEnd(p);
+
+  finishResponse(response);
+
+  fclose(inDataset);
+  fclose(outDataset);
+
+  return;
+}
+
+void readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter *jPrinter) {
 
   DatasetName dsn;
   DatasetMemberName memberName;
@@ -2377,7 +2477,7 @@ int readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter 
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN);
     respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
                              &daDsn, &daMember, "r");
-    return -1;
+    return;
   }
   zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
           "debug: reading dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\'\n",
@@ -2391,13 +2491,16 @@ int readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter 
 
   int lrecl = getLreclOrRespondError(response, &dsn, ddPath);
   if (!lrecl) {
-    return -1;
+    return;
   }
   zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Streaming data for %s\n", sourceDataset);
 
-  jsonStart(jPrinter);
-  int status = streamDataset(ddPath, lrecl, jPrinter);
-  jsonEnd(jPrinter);
+  // jsonStart(jPrinter);
+  // int status = streamDataset(ddPath, lrecl, jPrinter);
+  // jsonEnd(jPrinter);
+
+  readAndWriteToDataset(response, ddPath, lrecl, targetDataset)
+
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
                                         &daSysRC, &daSysRSN);
@@ -2407,8 +2510,70 @@ int readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter 
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "read");
   }
-  return 0;
+  return;
 }
+
+// int readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter *jPrinter) {
+
+//   DatasetName dsn;
+//   DatasetMemberName memberName;
+//   extractDatasetAndMemberName(sourceDataset, &dsn, &memberName);
+
+//   DynallocDatasetName daDsn;
+//   DynallocMemberName daMember;
+//   memcpy(daDsn.name, dsn.value, sizeof(daDsn.name));
+//   memcpy(daMember.name, memberName.value, sizeof(daMember.name));
+//   DynallocDDName daDDname = {.name = "????????"};
+
+//   int daRC = RC_DYNALLOC_OK, daSysRC = 0, daSysRSN = 0;
+//   daRC = dynallocAllocDataset(
+//       &daDsn,
+//       IS_DAMEMBER_EMPTY(daMember) ? NULL : &daMember,
+//       &daDDname,
+//       DYNALLOC_DISP_SHR,
+//       DYNALLOC_ALLOC_FLAG_NO_CONVERSION | DYNALLOC_ALLOC_FLAG_NO_MOUNT,
+//       &daSysRC, &daSysRSN
+//   );
+
+//   if (daRC != RC_DYNALLOC_OK) {
+//     zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
+//       	    "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
+//             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
+//             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN);
+//     respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
+//                              &daDsn, &daMember, "r");
+//     return -1;
+//   }
+//   zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
+//           "debug: reading dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\'\n",
+//           daDsn.name, daMember.name, daDDname.name);
+
+//   DDName ddName;
+//   memcpy(&ddName.value, &daDDname.name, sizeof(ddName.value));
+
+//   char ddPath[16];
+//   snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName.value);
+
+//   int lrecl = getLreclOrRespondError(response, &dsn, ddPath);
+//   if (!lrecl) {
+//     return -1;
+//   }
+//   zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Streaming data for %s\n", sourceDataset);
+
+//   jsonStart(jPrinter);
+//   int status = streamDataset(ddPath, lrecl, jPrinter);
+//   jsonEnd(jPrinter);
+
+//   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
+//                                         &daSysRC, &daSysRSN);
+//   if (daRC != RC_DYNALLOC_OK) {
+//     zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
+//             "error: ds unalloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
+//             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
+//             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "read");
+//   }
+//   return 0;
+// }
 
 void pasteDatasetContent(HttpResponse *response, JsonBuffer *buffer, char* targetDataset) {
   char msgBuffer[128];
