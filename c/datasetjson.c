@@ -2405,7 +2405,7 @@ void readAndWriteToDataset(HttpResponse *response, char *sourceDataset, int reco
     } else if (bytesRead == 0 && !feof(inDataset) && !ferror(inDataset)) {
       printf("ZERO BYTES READ BUT NO ERROR\n");
       // empty record
-    } else if (ferror(in)) {
+    } else if (ferror(inDataset)) {
       printf("ERROR WRITING DATASET BCOZ ERROR IN READING INPUT FILE\n");
       respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Error writing to dataset");
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,  "Error reading DSN=%s, rc=%d\n", sourceDataset, bytesRead);
