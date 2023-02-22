@@ -90,8 +90,8 @@ static int getDSCB(DatasetName *dsName, char* dscb, int bufferSize);
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit);
 void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE);
 int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes);
-int readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter *jPrinter);
-void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* targetDataset);
+void readDatasetContent(HttpResponse *response, char* sourceDataset, char* targetDataset, jsonPrinter *jPrinter);
+void readAndWriteToDataset(HttpResponse *response, char *sourceDataset, int recordLength, char *targetDataset);
 void pasteDatasetContent(HttpResponse *response, JsonBuffer *buffer, char* targetDataset);
 int newDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode);
 
@@ -2354,10 +2354,10 @@ void readAndWriteToDataset(HttpResponse *response, char *sourceDataset, int reco
   FILE *inDataset;
   if (recordLength < 1){
     recordLength = defaultSize;
-    inDataset = fopen(filename,"rb");
+    inDataset = fopen(sourceDataset,"rb");
   }
   else {
-    inDataset = fopen(filename,"rb, type=record");
+    inDataset = fopen(sourceDataset,"rb, type=record");
   }
 
   if (inDataset == NULL) {
@@ -2365,7 +2365,7 @@ void readAndWriteToDataset(HttpResponse *response, char *sourceDataset, int reco
     return;
   }
 
-  FILE *outDataset = fopen(datasetPath, "wb, recfm=*, type=record");
+  FILE *outDataset = fopen(targetDataset, "wb, recfm=*, type=record");
 
   if (outDataset == NULL) {
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"Traget dataset could not be opened or does not exist");
@@ -2386,9 +2386,9 @@ void readAndWriteToDataset(HttpResponse *response, char *sourceDataset, int reco
   int bytesWritten = 0;
   int recordsWritten = 0;
 
-  while (!feof(in)){
+  while (!feof(inDataset)){
     bytesRead = fread(buffer,1,recordLength,inDataset);
-    if (bytesRead > 0 && !ferror(in)) {
+    if (bytesRead > 0 && !ferror(inDataset)) {
       printf("READ THE BYTES: %d\n", bytesRead);
       bytesWritten = fwrite(buffer,1,recordLength,outDataset);
       recordsWritten++;
@@ -2400,7 +2400,7 @@ void readAndWriteToDataset(HttpResponse *response, char *sourceDataset, int reco
         fclose(inDataset);
         return;
       } else if (!rcEtag) {
-        rcEtag = icsfDigestUpdate(&digest, recordBuffer, bytesWritten);
+        rcEtag = icsfDigestUpdate(&digest, buffer, bytesWritten);
       }
     } else if (bytesRead == 0 && !feof(inDataset) && !ferror(inDataset)) {
       printf("ZERO BYTES READ BUT NO ERROR\n");
@@ -2448,7 +2448,7 @@ void readAndWriteToDataset(HttpResponse *response, char *sourceDataset, int reco
   return;
 }
 
-void readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter *jPrinter) {
+void readDatasetContent(HttpResponse *response, char* sourceDataset, char* targetDataset, jsonPrinter *jPrinter) {
 
   DatasetName dsn;
   DatasetMemberName memberName;
@@ -2499,8 +2499,7 @@ void readDatasetContent(HttpResponse *response, char* sourceDataset, jsonPrinter
   // int status = streamDataset(ddPath, lrecl, jPrinter);
   // jsonEnd(jPrinter);
 
-  readAndWriteToDataset(response, ddPath, lrecl, targetDataset)
-
+  readAndWriteToDataset(response, ddPath, lrecl, targetDataset);
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
                                         &daSysRC, &daSysRSN);
