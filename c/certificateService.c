@@ -48,6 +48,8 @@
 #define NOTRUST_CERTIFICATE_RC 32
 #define NO_IDENTITY_FILTER_RC 48
 
+#define MAX_URL_LENGTH 17
+
 static void setValidResponseCode(HttpResponse *response, int rc, int returnCode, int returnCodeRacf, int reasonCodeRacf) {
   if (rc == SUCCESS_RC && returnCode == SUCCESS_RC_SAF && returnCodeRacf == SUCCESS_RC_RACF && reasonCodeRacf == SUCCESS_REASON_CODE_RACF) {
     setResponseStatus(response, 200, "OK");
@@ -98,7 +100,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response) {
   {
 
     int urlLength = strlen(request->uri);
-    if(urlLength < 0 || urlLength > 17) {
+    if(urlLength < 0 || urlLength > MAX_URL_LENGTH) {
         respondWithJsonError(response, "URI is longer than maximum length of 17 characters.", 400, "Bad Request");
         return 0;
     }
@@ -107,22 +109,17 @@ static int serveMappingService(HttpService *service, HttpResponse *response) {
     strcpy(translatedURL, request->uri);
     a2e(translatedURL, sizeof(translatedURL));
     char *x509URI = strstr(translatedURL, "x509");
-    char *dnURI = strstr(translatedURL, "dn");
+    char *distinguishedNameURI = strstr(translatedURL, "dn");
 
     char useridRacf[9];
     int returnCodeRacf = 0;
     int reasonCodeRacf = 0;
     int rc;
     if(x509URI != NULL) {
-    //  Certificate to user mapping
-        if(request->contentLength > 4096 || request->contentLength < 1) {
-          respondWithJsonError(response, "The length of the certificate is longer than 4096 bytes", 400, "Bad Request");
-          return 0;
-        }
 
         rc = getUseridByCertificate(request->contentBody, request->contentLength, useridRacf, &returnCodeRacf, &reasonCodeRacf);
-    } else if (dnURI != NULL) {
-    //    Distinguished ID to user mapping
+    } else if (distinguishedNameURI != NULL) {
+    //    Distinguished name to user mapping
         char *bodyNativeEncoding = copyStringToNative(request->slh, request->contentBody, request->contentLength);
         char errorBuffer[2048];
         Json *body = jsonParseUnterminatedString(request->slh, bodyNativeEncoding, request->contentLength, errorBuffer, sizeof(errorBuffer));
@@ -137,6 +134,10 @@ static int serveMappingService(HttpService *service, HttpResponse *response) {
         }
         char *distinguishedId = jsonObjectGetString(jsonObject, "dn");
         char *registry = jsonObjectGetString(jsonObject, "registry");
+        if (distinguishedId == NULL || registry == NULL) {
+            respondWithJsonError(response, "Object in request is missing dn or registry parameter.", 400, "Bad Request");
+            return 0;
+        }
         rc = getUseridByDN(distinguishedId, strlen(distinguishedId), registry, strlen(registry), useridRacf, &returnCodeRacf, &reasonCodeRacf);
 
     } else {
