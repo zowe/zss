@@ -305,7 +305,7 @@
 #define ZISDYN_LOG_DEV_MODE_MSG                 ZISDYN_LOG_DEV_MODE_MSG_ID" "ZISDYN_LOG_DEV_MODE_MSG_TEXT
 
 #define ZISDYN_LOG_BAD_ZIS_VERSION_MSG_ID       ZIS_MSG_PRFX"0214E"
-#define ZISDYN_LOG_BAD_ZIS_VERSION_MSG_TEXT     "Bad cross-memory server version: expected [%d.%d.%d, %d.0.0], found %d.%d.%d"
+#define ZISDYN_LOG_BAD_ZIS_VERSION_MSG_TEXT     "Bad cross-memory server version: expected [%d.%d.%d, %d.0.0), found %d.%d.%d"
 #define ZISDYN_LOG_BAD_ZIS_VERSION_MSG          ZISDYN_LOG_BAD_ZIS_VERSION_MSG_ID" "ZISDYN_LOG_BAD_ZIS_VERSION_MSG_TEXT
 
 #endif /* ZIS_MSG_H_ */
