@@ -2280,6 +2280,11 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     return;
   }
 
+  rc = newDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);  
+
+  if(rc != 0) {
+    return;
+  }
   // To read the source dataset content in the buffer
   JsonBuffer *datasetContentBuffer = makeJsonBuffer();
   jsonPrinter *p = makeBufferNativeJsonPrinter(CCSID_UTF_8, datasetContentBuffer);
@@ -2344,7 +2349,6 @@ int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char
   }
 
   sprintf(datasetAttributes, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"%s\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": %d,\"prime\": %d,\"secnd\": %d,\"avgr\": \"U\",\"dsnt\": \"%s\"}\0", organization, space, totalBlockSize, maxRecordLen, recFormat, dirBlock, primaryQuantity, secondaryQuantity, dsnt);
-
   return 0;
 }
 
@@ -2390,9 +2394,13 @@ void readAndWriteToDataset(HttpResponse *response, char *sourceDataset, int reco
     bytesRead = fread(buffer,1,recordLength,inDataset);
     if (bytesRead > 0 && !ferror(inDataset)) {
       printf("READ THE BYTES: %d\n", bytesRead);
-      bytesWritten = fwrite(buffer,1,recordLength,outDataset);
+      bytesWritten = fwrite(buffer,1,bytesRead,outDataset);
       recordsWritten++;
       if ((bytesWritten < 0 && ferror(outDataset)) || (bytesWritten != bytesRead)){
+        printf("BYTES WRITTEN: %d", bytesWritten);
+        if(ferror(outDataset)) {
+          printf("We have ferror\n");
+        }
         printf("ERROR WRITING DATASET\n");
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Error writing to dataset, rc=%d\n", bytesWritten);
         respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Error writing to dataset");
