@@ -2470,7 +2470,7 @@ bool checkIfDatasetExists(char* dataset) {
   DatasetMemberName memName;
   extractDatasetAndMemberName(dataset, &dsnName, &memName);
 
-  int datasetCount = 0
+  int datasetCount = 0;
 
   // Buffer to save attributes for target dataset
   JsonBuffer *datasetAttrBuffer = makeJsonBuffer();
@@ -2478,7 +2478,7 @@ bool checkIfDatasetExists(char* dataset) {
   jsonStart(jPrinter);
 
    // To get the attributes for target dataset
-  getDatasetMetadata(&dsnName, &memName, sourceDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
+  getDatasetMetadata(&dsnName, &memName, dataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
   jsonEnd(jPrinter);
 
   ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
