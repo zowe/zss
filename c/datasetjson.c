@@ -2491,12 +2491,10 @@ bool checkIfDatasetExists(char* dataset) {
       //Get array of datasets
       JsonArray *datasetArray = jsonObjectGetArray(jsonObject,"datasets");
       datasetCount = jsonArrayGetCount(datasetArray);
-      printf("----INSIDE LOOP, datasetCount: %d", datasetCount);
     }
   }
   SLHFree(slh);
   if(datasetCount > 0) {
-    printf("---RETURNING FALSE");
     return true;
   }
   return false;
