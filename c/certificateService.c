@@ -116,7 +116,11 @@ static int serveMappingService(HttpService *service, HttpResponse *response) {
     int reasonCodeRacf = 0;
     int rc;
     if(x509URI != NULL) {
-
+    //  Certificate to user mapping
+        if (request->contentLength < 1) {
+          respondWithJsonError(response, "The length of the certificate is less then 1", 400, "Bad Request");
+          return 0;
+        }
         rc = getUseridByCertificate(request->contentBody, request->contentLength, useridRacf, &returnCodeRacf, &reasonCodeRacf);
     } else if (distinguishedNameURI != NULL) {
     //    Distinguished name to user mapping
