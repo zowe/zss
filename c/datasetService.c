@@ -56,7 +56,7 @@ static int serveDatasetMetadata(HttpService *service, HttpResponse *response) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0); //expect name or hlq
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "L1=%s\n", l1);
     if (!strcmp(l1, "name")){
-      getDatasetMetadataFromRequest(response);
+      respondWithDatasetMetadata(response);
     }
     else if (!strcmp(l1, "hlq")) {
       respondWithHLQNames(response,(MetadataQueryCache*)service->userPointer);
@@ -124,7 +124,7 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Allocating dataset: %s\n", filename);
     fflush(stdout);
-    newDatasetFromRequest(response, filename, TRUE);
+    createDatasetAndRespond(response, filename, TRUE);
   }
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
@@ -157,21 +157,14 @@ static int serveDatasetCopy(HttpService *service, HttpResponse *response){
     char *newDataset = getQueryParam(response->request, "newDataset");
     char *newDatasetNameP1 = stringConcatenate(response->slh, "//'", newDataset);
     char *newDatasetName = stringConcatenate(response->slh, newDatasetNameP1, "'");
-    fflush(stdout);
     copyDataset(response, datasetName, newDatasetName);
   } else {
-    jsonPrinter *out = respondWithJsonPrinter(response);
-
     setContentType(response, "text/json");
     setResponseStatus(response, 405, "Method Not Allowed");
     addStringHeader(response, "Server", "jdmfws");
     addStringHeader(response, "Transfer-Encoding", "chunked");
-    addStringHeader(response, "Allow", "GET, DELETE, POST");
+    addStringHeader(response, "Allow", "POST");
     writeHeader(response);
-
-    jsonStart(out);
-    jsonEnd(out);
-
     finishResponse(response);
   }
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);

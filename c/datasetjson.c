@@ -88,7 +88,7 @@ static int getVolserForDataset(const DatasetName *dataset, Volser *volser);
 static bool memberExists(char* dsName, DynallocMemberName daMemberName);
 static int getDSCB(DatasetName *dsName, char* dscb, int bufferSize);
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit);
-int newDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode);
+int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode);
 
 static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
   int lrecl = 0;
@@ -2511,7 +2511,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   }
 
   int reasonCode = 0;
-  rc = newDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
+  rc = createDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
 
   if(rc != 0) {
     return;
@@ -2635,7 +2635,7 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
 #endif /* __ZOWE_OS_ZOS */
 }
 
-void getDatasetMetadataFromRequest(HttpResponse *response) {
+void respondWithDatasetMetadata(HttpResponse *response) {
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
   char *datasetOrMember = stringListPrint(request->parsedFile, 2, 2, "?", 0); /*get search term*/
@@ -3252,7 +3252,7 @@ static int getDSCB(const DatasetName* datasetName, char* dscb, int bufferSize){
   }
 }
 
-int newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* absolutePath) {
+int createDatasetMember(HttpResponse* response, DatasetName* datasetName, char* absolutePath) {
   char dscb[INDEXED_DSCB] = {0};
   int bufferSize = sizeof(dscb);
   if (getDSCB(datasetName, dscb, bufferSize) != 0) {
@@ -3306,7 +3306,7 @@ int newDatasetMember(HttpResponse* response, DatasetName* datasetName, char* abs
   }
 }
 
-int newDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode) {
+int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode) {
   #ifdef __ZOWE_OS_ZOS
 
   DatasetName datasetName;
@@ -3325,7 +3325,7 @@ int newDataset(HttpResponse* response, char* absolutePath, char* datasetAttribut
   bool isMemberEmpty = IS_DAMEMBER_EMPTY(daMemberName);
 
   if(!isMemberEmpty){
-    return newDatasetMember(response, &datasetName, absolutePath);
+    return createDatasetMember(response, &datasetName, absolutePath);
   }
 
   int configsCount = 0;
@@ -3388,7 +3388,7 @@ int newDataset(HttpResponse* response, char* absolutePath, char* datasetAttribut
   #endif
 }
 
-void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonMode) {
+void createDatasetAndRespond(HttpResponse* response, char* absolutePath, int jsonMode) {
   #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
 
@@ -3427,7 +3427,7 @@ void newDatasetFromRequest(HttpResponse* response, char* absolutePath, int jsonM
                               &reasonCode);
 
   if (returnCode == 0) {
-    rc = newDataset(response, absolutePath, convertedBody, translationLength, &reasonCode);
+    rc = createDataset(response, absolutePath, convertedBody, translationLength, &reasonCode);
   }
 
   if(rc == 0) {
