@@ -106,7 +106,6 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Updating if exists: %s\n", filename);
     fflush(stdout);
     updateDataset(response, filename, TRUE);
-
   }
   else if (!strcmp(request->method, methodDELETE)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
