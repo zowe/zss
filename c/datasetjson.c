@@ -2301,7 +2301,7 @@ int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char
   return 0;
 }
 
-void readAndWriteToDataset(HttpResponse *response, char *sourceDataset, int recordLength, char *targetDataset) {
+void readAndWriteToDatasetInternal(HttpResponse *response, char *sourceDataset, int recordLength, char *targetDataset) {
 
   int defaultSize = DATA_STREAM_BUFFER_SIZE;
   FILE *inDataset;
@@ -2405,7 +2405,7 @@ void readAndWriteToDataset(HttpResponse *response, char *sourceDataset, int reco
   return;
 }
 
-void readDatasetContent(HttpResponse *response, char* sourceDataset, char* targetDataset) {
+void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
 
   DatasetName dsn;
   DatasetMemberName memberName;
@@ -2450,9 +2450,8 @@ void readDatasetContent(HttpResponse *response, char* sourceDataset, char* targe
   if (!lrecl) {
     return;
   }
-  zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Streaming data for %s\n", sourceDataset);
 
-  readAndWriteToDataset(response, ddPath, lrecl, targetDataset);
+  readAndWriteToDatasetInternal(response, ddPath, lrecl, targetDataset);
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
                                         &daSysRC, &daSysRSN);
@@ -2518,7 +2517,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     return;
   }
 
-  return readDatasetContent(response, sourceDataset, targetDataset);
+  return readAndWriteToDataset(response, sourceDataset, targetDataset);
 
   #endif /* __ZOWE_OS_ZOS */
 }
