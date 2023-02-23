@@ -2526,7 +2526,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   }
 
   if(checkIfDatasetExists(targetDataset)) {
-    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Target dataset exists");
+    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Target dataset already exists");
     return;
   }
 
