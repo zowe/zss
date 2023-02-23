@@ -70,7 +70,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode);
 void updateVSAMDataset(HttpResponse* response, char* absolutePath, hashtable *acbTable, int jsonMode);
 void deleteVSAMDataset(HttpResponse* response, char* absolutePath);
 void deleteDatasetOrMember(HttpResponse* response, char* absolutePath);
-void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDataset)
+void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDataset);
 char getCSIType(char* absolutePath);
 bool isVsam(char CSIType);
 #endif
