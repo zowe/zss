@@ -2229,22 +2229,20 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecor
       JsonObject *jsonObject = jsonAsObject(json);
       //Get array of datasets
       JsonArray *datasetArray = jsonObjectGetArray(jsonObject,"datasets");
-      int datasetCount = jsonArrayGetCount(datasetArray);
-      for (uint32_t i = 0; i < datasetCount; i++) {
-        Json *element = jsonArrayGetItem(datasetArray,i);
-        if(element && jsonIsObject(element)) {
-          JsonObject *jsonDatasetObject = jsonAsObject(element);
-          // Get dsorg object
-          JsonObject *dsOrg = jsonObjectGetObject(jsonDatasetObject,"dsorg");
-          *organization = jsonObjectGetString(dsOrg,"organization");
-          *maxRecordLen = jsonObjectGetNumber(dsOrg,"maxRecordLen");
-          *totalBlockSize = jsonObjectGetNumber(dsOrg,"totalBlockSize");
-          *isPDSE = jsonObjectGetBoolean(dsOrg,"isPDSE");
-          // Get recfm object
-          JsonObject *recfm = jsonObjectGetObject(jsonDatasetObject,"recfm");
-          *recordLength = jsonObjectGetString(recfm,"recordLength");
-          *isBlocked = jsonObjectGetBoolean(recfm,"isBlocked");
-        }
+      int i = 0;
+      Json *element = jsonArrayGetItem(datasetArray,i);
+      if(element && jsonIsObject(element)) {
+        JsonObject *jsonDatasetObject = jsonAsObject(element);
+        // Get dsorg object
+        JsonObject *dsOrg = jsonObjectGetObject(jsonDatasetObject,"dsorg");
+        *organization = jsonObjectGetString(dsOrg,"organization");
+        *maxRecordLen = jsonObjectGetNumber(dsOrg,"maxRecordLen");
+        *totalBlockSize = jsonObjectGetNumber(dsOrg,"totalBlockSize");
+        *isPDSE = jsonObjectGetBoolean(dsOrg,"isPDSE");
+        // Get recfm object
+        JsonObject *recfm = jsonObjectGetObject(jsonDatasetObject,"recfm");
+        *recordLength = jsonObjectGetString(recfm,"recordLength");
+        *isBlocked = jsonObjectGetBoolean(recfm,"isBlocked");
       }
     }
   }
@@ -2493,10 +2491,12 @@ bool checkIfDatasetExists(char* dataset) {
       //Get array of datasets
       JsonArray *datasetArray = jsonObjectGetArray(jsonObject,"datasets");
       datasetCount = jsonArrayGetCount(datasetArray);
+      printf("----INSIDE LOOP, datasetCount: %d", datasetCount);
     }
   }
   SLHFree(slh);
   if(datasetCount > 0) {
+    printf("---RETURNING FALSE");
     return false;
   }
   return true;
