@@ -2464,6 +2464,44 @@ void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* ta
   return;
 }
 
+bool checkIfDatasetExists(char* dataset) {
+
+  DatasetName dsnName;
+  DatasetMemberName memName;
+  extractDatasetAndMemberName(dataset, &dsnName, &memName);
+
+  int datasetCount = 0
+
+  // Buffer to save attributes for target dataset
+  JsonBuffer *datasetAttrBuffer = makeJsonBuffer();
+  jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, datasetAttrBuffer);
+  jsonStart(jPrinter);
+
+   // To get the attributes for target dataset
+  getDatasetMetadata(&dsnName, &memName, sourceDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
+  jsonEnd(jPrinter);
+
+  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+  char errorBuffer[2048];
+  Json *json = jsonParseUnterminatedString(slh,
+                                             datasetAttrBuffer->data, datasetAttrBuffer->len,
+                                             errorBuffer, sizeof(errorBuffer));
+
+  if (json) {
+    if (jsonIsObject(json)){
+      JsonObject *jsonObject = jsonAsObject(json);
+      //Get array of datasets
+      JsonArray *datasetArray = jsonObjectGetArray(jsonObject,"datasets");
+      datasetCount = jsonArrayGetCount(datasetArray);
+    }
+  }
+  SLHFree(slh);
+  if(datasetCount > 0) {
+    return false;
+  }
+  return true;
+}
+
 void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
   #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
@@ -2484,6 +2522,11 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
 
   if(!isDatasetPathValid(targetDataset)){
     respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Invalid dataset path");
+    return;
+  }
+
+  if(checkIfDatasetExists(targetDataset)) {
+    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Target dataset exists");
     return;
   }
 
