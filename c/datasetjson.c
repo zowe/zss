@@ -2497,9 +2497,9 @@ bool checkIfDatasetExists(char* dataset) {
   SLHFree(slh);
   if(datasetCount > 0) {
     printf("---RETURNING FALSE");
-    return false;
+    return true;
   }
-  return true;
+  return false;
 }
 
 void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
