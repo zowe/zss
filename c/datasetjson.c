@@ -53,6 +53,18 @@
 #define CLASS_WRITER_SIZE 8
 #define TOTAL_TEXT_UNITS  23
 
+#define ERROR_DECODING_DATASET         -2
+#define ERROR_CLOSING_DATASET          -3
+#define ERROR_ALLOCATING_DATASET       -4
+#define ERROR_DEALLOCATING_DATASET     -5
+#define ERROR_UNDEFINED_LENGTH_DATASET -6
+#define ERROR_BAD_DATASET_NAME         -7
+#define ERROR_INCORRECT_DATASET_TYPE   -8
+#define ERROR_DATASET_NOT_EXIST        -9
+#define ERROR_MEMBER_ALREADY_EXISTS    -10
+#define ERROR_INVALID_JSON_BODY        -11
+#define ERROR_COPY_NOT_SUPPORTED       -12
+
 static char defaultDatasetTypesAllowed[3] = {'A','D','X'};
 static char clusterTypesAllowed[3] = {'C','D','I'}; /* TODO: support 'I' type DSNs */
 static int clusterTypesCount = 3;
@@ -2264,12 +2276,12 @@ int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char
 
   if(recordLength == "U") {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
-    return -1;
+    return ERROR_UNDEFINED_LENGTH_DATASET;
   }
 
   if(organization == NULL) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Source dataset does not exist");
-    return -1;
+    return ERROR_DATASET_NOT_EXIST;
   }
 
   if(!strcmp(organization, "sequential")) {
@@ -2280,7 +2292,7 @@ int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char
     dsnt = (isPDSE) ? "PDSE" : "PDS";
     dirBlock = 10;
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Do not support copy-paste for PDS(E) Dataset");
-    return -1;
+    return ERROR_COPY_NOT_SUPPORTED;
   }
 
   // Hardcoding these attributes because datasetMetadata API does not return it.
@@ -2537,7 +2549,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   int rc = 0;
   rc = setAttributesForDatasetCopy(response, datasetAttrBuffer, datasetAttributes);
 
-  if(rc == -1) {
+  if(rc != 0) {
     return;
   }
 
@@ -3089,12 +3101,12 @@ int createDatasetMember(HttpResponse* response, DatasetName* datasetName, char* 
   int bufferSize = sizeof(dscb);
   if (getDSCB(datasetName, dscb, bufferSize) != 0) {
     respondWithJsonError(response, "Error decoding dataset", 400, "Bad Request");
-    return -1;
+    return ERROR_DECODING_DATASET;
   }
   else {
     if (!isPartionedDataset(dscb)) {
       respondWithJsonError(response, "Dataset must be PDS/E", 400, "Bad Request");
-      return -1;
+      return ERROR_INCORRECT_DATASET_TYPE;
     }
     else {
       char *overwriteParam = getQueryParam(response->request,"overwrite");
@@ -3104,11 +3116,11 @@ int createDatasetMember(HttpResponse* response, DatasetName* datasetName, char* 
         if (fclose(memberExists) != 0) {
             zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
             respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
-            return -1;
+            return ERROR_CLOSING_DATASET;
         }
         else {
           respondWithJsonError(response, "Member already exists and overwrite not specified", 400, "Bad Request");
-          return -1;
+          return ERROR_MEMBER_ALREADY_EXISTS;
         }
       }
       else { 
@@ -3116,13 +3128,13 @@ int createDatasetMember(HttpResponse* response, DatasetName* datasetName, char* 
           if (fclose(memberExists) != 0) {
             zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
             respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
-            return -1;
+            return ERROR_CLOSING_DATASET;
           }
         }
         FILE* newMember = fopen(absolutePath, "w");
         if (!newMember){
           respondWithJsonError(response, "Bad dataset name", 400, "Bad Request");
-          return -1;
+          return ERROR_BAD_DATASET_NAME;
         }
         if (fclose(newMember) == 0){
           response200WithMessage(response, "Successfully created member");
@@ -3131,11 +3143,12 @@ int createDatasetMember(HttpResponse* response, DatasetName* datasetName, char* 
         else {
           zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
           respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
-          return -1;
+          return ERROR_CLOSING_DATASET;
         }
       }
     }
   }
+  return 0;
 }
 
 int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode) {
@@ -3184,7 +3197,7 @@ int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttri
     }
   } else {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid JSON request body");
-    return -1;
+    return ERROR_INVALID_JSON_BODY;
   }
 
   if (returnCode == 0) {
@@ -3204,7 +3217,7 @@ int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttri
             "error: ds alloc dsn=\'%44.44s\' dd=\'%8.8s\', sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, ddNameBuffer, returnCode, *reasonCode);
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to allocate a DD for ACB");
-    return -1;
+    return ERROR_ALLOCATING_DATASET;
   }
 
   memcpy(daDDName.name, ddNameBuffer, DD_NAME_LEN);
@@ -3214,7 +3227,7 @@ int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttri
             "error: ds unalloc dsn=\'%44.44s\' dd=\'%8.8s\', rc=%d sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, daDDName.name, daRC, returnCode, *reasonCode);
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to deallocate DDNAME");
-    return -1;
+    return ERROR_DEALLOCATING_DATASET;
   }
   return 0;
   #endif
@@ -3245,7 +3258,6 @@ void createDatasetAndRespond(HttpResponse* response, char* absolutePath, int jso
   int translationLength;
   int outCCSID = NATIVE_CODEPAGE;
   int reasonCode;
-  int rc = 0;
 
   int returnCode = convertCharset(contentBody,
                               bodyLength,
@@ -3259,10 +3271,10 @@ void createDatasetAndRespond(HttpResponse* response, char* absolutePath, int jso
                               &reasonCode);
 
   if (returnCode == 0) {
-    rc = createDataset(response, absolutePath, convertedBody, translationLength, &reasonCode);
+    returnCode = createDataset(response, absolutePath, convertedBody, translationLength, &reasonCode);
   }
 
-  if(rc == 0) {
+  if(returnCode == 0) {
     response200WithMessage(response, "Successfully created dataset");
   }
 
