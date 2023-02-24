@@ -2340,15 +2340,8 @@ void readAndWriteToDatasetInternal(HttpResponse *response, char *sourceDataset, 
   while (!feof(inDataset)){
     bytesRead = fread(buffer,1,recordLength,inDataset);
     if (bytesRead > 0 && !ferror(inDataset)) {
-      printf("READ THE BYTES: %d\n", bytesRead);
       bytesWritten = fwrite(buffer,1,bytesRead,outDataset);
-      recordsWritten++;
       if ((bytesWritten < 0 && ferror(outDataset)) || (bytesWritten != bytesRead)){
-        printf("BYTES WRITTEN: %d", bytesWritten);
-        if(ferror(outDataset)) {
-          printf("We have ferror\n");
-        }
-        printf("ERROR WRITING DATASET\n");
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Error writing to dataset, rc=%d\n", bytesWritten);
         respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Error writing to dataset");
         fclose(outDataset);
@@ -2357,11 +2350,8 @@ void readAndWriteToDatasetInternal(HttpResponse *response, char *sourceDataset, 
       } else if (!rcEtag) {
         rcEtag = icsfDigestUpdate(&digest, buffer, bytesWritten);
       }
-    } else if (bytesRead == 0 && !feof(inDataset) && !ferror(inDataset)) {
-      printf("ZERO BYTES READ BUT NO ERROR\n");
-      // empty record
+      recordsWritten++;
     } else if (ferror(inDataset)) {
-      printf("ERROR WRITING DATASET BCOZ ERROR IN READING INPUT FILE\n");
       respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Error writing to dataset");
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,  "Error reading DSN=%s, rc=%d\n", sourceDataset, bytesRead);
       return;
