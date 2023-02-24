@@ -2313,15 +2313,7 @@ int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char
 
 void readAndWriteToDatasetInternal(HttpResponse *response, char *sourceDataset, int recordLength, char *targetDataset) {
 
-  int defaultSize = DATA_STREAM_BUFFER_SIZE;
-  FILE *inDataset;
-  if (recordLength < 1){
-    recordLength = defaultSize;
-    inDataset = fopen(sourceDataset,"rb");
-  }
-  else {
-    inDataset = fopen(sourceDataset,"rb, type=record");
-  }
+  FILE *inDataset = fopen(sourceDataset,"rb, type=record");
 
   if (inDataset == NULL) {
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"Source dataset could not be opened or does not exist");
@@ -2376,13 +2368,13 @@ void readAndWriteToDatasetInternal(HttpResponse *response, char *sourceDataset, 
   }
 
   jsonPrinter *p = respondWithJsonPrinter(response);
-  setResponseStatus(response, 201, "Created");
+  setResponseStatus(response, 201, "Successfully Copied Dataset");
   setDefaultJSONRESTHeaders(response);
   writeHeader(response);
   jsonStart(p);
 
   char msgBuffer[128];
-  snprintf(msgBuffer, sizeof(msgBuffer), "Updated dataset %s with %d records", targetDataset, recordsWritten);
+  snprintf(msgBuffer, sizeof(msgBuffer), "Pasted dataset %s with %d records", targetDataset, recordsWritten);
   jsonAddString(p, "msg", msgBuffer);
 
   if (!rcEtag) {
