@@ -26,10 +26,12 @@
 #include "httpserver.h"
 #include "json.h"
 #include "http.h"
+#include "rusermap.h"
 
 #pragma linkage(IRRSIM00, OS)
 
 #define MAP_CERTIFICATE_TO_USERNAME 0x0006
+#define MAP_DN_TO_USERNAME 0x0008
 #define SUCCESS_RC 0
 #define SUCCESS_RC_SAF 0
 #define SUCCESS_RC_RACF 0
@@ -46,33 +48,15 @@
 #define NOTRUST_CERTIFICATE_RC 32
 #define NO_IDENTITY_FILTER_RC 48
 
-typedef _Packed struct _RUsermapParamList {
-    char workarea[1024];
-    int safRcAlet, returnCode;
-    int racfRcAlet, returnCodeRacf;
-    int racfReasonAlet, reasonCodeRacf;
-    int fcAlet;
-    short functionCode;
-    int  optionWord;
-    char useridLengthRacf;
-    char useridRacf[8];
-    short applicationIdLength;
-    char applicationId[246];
-    short distinguishedNameLength;
-    char distinguishedName[246];
-    short registryNameLength;
-    char registryName[255];
-    int certificateLength;
-    char certificate[4096];
-} RUsermapParamList;
+#define MAX_URL_LENGTH 17
 
 static void setValidResponseCode(HttpResponse *response, int rc, int returnCode, int returnCodeRacf, int reasonCodeRacf) {
   if (rc == SUCCESS_RC && returnCode == SUCCESS_RC_SAF && returnCodeRacf == SUCCESS_RC_RACF && reasonCodeRacf == SUCCESS_REASON_CODE_RACF) {
     setResponseStatus(response, 200, "OK");
     return;
-  } else if(rc != SUCCESS_RC) {
-    if(returnCode == SAF_FAILURE_RC && returnCodeRacf == RACF_FAILURE_RC) {
-      if(reasonCodeRacf == PARAMETER_LIST_ERROR_RC) {
+  } else if (rc != SUCCESS_RC) {
+    if (returnCode == SAF_FAILURE_RC && returnCodeRacf == RACF_FAILURE_RC) {
+      if (reasonCodeRacf == PARAMETER_LIST_ERROR_RC) {
         setResponseStatus(response, 400, "Bad request");
         return;
       } else if (
@@ -109,110 +93,89 @@ static void respondWithInvalidMethod(HttpResponse *response) {
     finishResponse(response);
 }
 
-static void respondWithBadRequest(HttpResponse *response) {
-    jsonPrinter *p = respondWithJsonPrinter(response);
-
-    setResponseStatus(response, 400, "Bad Request");
-    setDefaultJSONRESTHeaders(response);
-    writeHeader(response);
-
-    jsonStart(p);
-    {
-      jsonAddString(p, "error", "The length of the certificate is longer than 4096 bytes");
-    }
-    jsonEnd(p);
-
-    finishResponse(response);
-}
-
-static int serveMappingService(HttpService *service, HttpResponse *response)
-{
+static int serveMappingService(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
 
   if (!strcmp(request->method, methodPOST))
   {
-    RUsermapParamList *userMapCertificateStructure 
-      = (RUsermapParamList*)safeMalloc31(sizeof(RUsermapParamList),"RUsermapParamList");
-    memset(userMapCertificateStructure, 0, sizeof(RUsermapParamList));
 
-    if(request->contentLength > sizeof(userMapCertificateStructure->certificate) || request->contentLength < 0) {
-      respondWithBadRequest(response);
-      return 0;
+    int urlLength = strlen(request->uri);
+    if(urlLength < 0 || urlLength > MAX_URL_LENGTH) {
+        respondWithJsonError(response, "URI is longer than maximum length of 17 characters.", 400, "Bad Request");
+        return 0;
     }
 
-    userMapCertificateStructure->certificateLength = request->contentLength;
-    memset(userMapCertificateStructure->certificate, 0, request->contentLength);
-    memcpy(userMapCertificateStructure->certificate, request->contentBody, request->contentLength);
+    char translatedURL[urlLength + 1];
+    strcpy(translatedURL, request->uri);
+    a2e(translatedURL, sizeof(translatedURL));
+    char *x509URI = strstr(translatedURL, "x509");
+    char *distinguishedNameURI = strstr(translatedURL, "dn");
 
-    userMapCertificateStructure->functionCode = MAP_CERTIFICATE_TO_USERNAME;
+    char useridRacf[9];
+    int returnCodeRacf = 0;
+    int reasonCodeRacf = 0;
     int rc;
+    if(x509URI != NULL) {
+    //  Certificate to user mapping
+        if (request->contentLength < 1) {
+          respondWithJsonError(response, "The length of the certificate is less then 1", 400, "Bad Request");
+          return 0;
+        }
+        rc = getUseridByCertificate(request->contentBody, request->contentLength, useridRacf, &returnCodeRacf, &reasonCodeRacf);
+    } else if (distinguishedNameURI != NULL) {
+    //    Distinguished name to user mapping
+        char *bodyNativeEncoding = copyStringToNative(request->slh, request->contentBody, request->contentLength);
+        char errorBuffer[2048];
+        Json *body = jsonParseUnterminatedString(request->slh, bodyNativeEncoding, request->contentLength, errorBuffer, sizeof(errorBuffer));
+        if (body == NULL) {
+            respondWithJsonError(response, "JSON in request body has incorrect structure.", 400, "Bad Request");
+            return 0;
+        }
+        JsonObject *jsonObject = jsonAsObject(body);
+        if (jsonObject == NULL) {
+            respondWithJsonError(response, "Object in request body is not a JSON type.", 400, "Bad Request");
+            return 0;
+        }
+        char *distinguishedId = jsonObjectGetString(jsonObject, "dn");
+        char *registry = jsonObjectGetString(jsonObject, "registry");
+        if (distinguishedId == NULL || registry == NULL) {
+            respondWithJsonError(response, "Object in request is missing dn or registry parameter.", 400, "Bad Request");
+            return 0;
+        }
+        rc = getUseridByDN(distinguishedId, strlen(distinguishedId), registry, strlen(registry), useridRacf, &returnCodeRacf, &reasonCodeRacf);
 
-#ifdef _LP64 
-    __asm(ASM_PREFIX
-	  /* We get the routine pointer for IRRSIM00 by an, *ahem*, direct approach.
-	     These offsets are stable, and this avoids linker/pragma mojo */
-	  " LA 15,X'10' \n"
-          " LG 15,X'220'(,15) \n" /* CSRTABLE */
-          " LG 15,X'28'(,15) \n" /* Some RACF Routin Vector */
-          " LG 15,X'A0'(,15) \n" /* IRRSIM00 itself */
-	  " LG 1,%0 \n"
-	  " SAM31 \n"
-	  " BALR 14,15 \n"
-          " SAM64 \n"
-          " ST 15,%0"
-	  :
-	  :"m"(userMapCertificateStructure),"m"(rc)
-	  :"r14","r15");
-#else
-    rc = IRRSIM00(
-        &userMapCertificateStructure->workarea, // WORKAREA
-        &userMapCertificateStructure->safRcAlet  , // ALET
-        &userMapCertificateStructure->returnCode,
-        &userMapCertificateStructure->racfRcAlet,
-        &userMapCertificateStructure->returnCodeRacf,
-        &userMapCertificateStructure->racfReasonAlet,
-        &userMapCertificateStructure->reasonCodeRacf,
-        &userMapCertificateStructure->fcAlet,
-        &userMapCertificateStructure->functionCode,
-        &userMapCertificateStructure->optionWord,
-        &userMapCertificateStructure->useridLengthRacf,
-        &userMapCertificateStructure->certificateLength,
-        &userMapCertificateStructure->applicationIdLength,
-        &userMapCertificateStructure->distinguishedNameLength,
-        &userMapCertificateStructure->registryNameLength
-    );
-#endif
+    } else {
+        respondWithJsonError(response, "Endpoint not found.", 404, "Not Found");
+        return 0;
+    }
 
     jsonPrinter *p = respondWithJsonPrinter(response);
 
-    setValidResponseCode(response, rc, userMapCertificateStructure->returnCode, userMapCertificateStructure->returnCodeRacf, userMapCertificateStructure->reasonCodeRacf);
+    setValidResponseCode(response, rc, rc, returnCodeRacf, reasonCodeRacf);
     setDefaultJSONRESTHeaders(response);
     writeHeader(response);
-    
+
     jsonStart(p);
     {
-      jsonAddString(p, "userid", userMapCertificateStructure->useridRacf);
+      jsonAddString(p, "userid", useridRacf);
       jsonAddInt(p, "returnCode", rc);
-      jsonAddInt(p, "safReturnCode", userMapCertificateStructure->returnCode);
-      jsonAddInt(p, "racfReturnCode", userMapCertificateStructure->returnCodeRacf);
-      jsonAddInt(p, "racfReasonCode", userMapCertificateStructure->reasonCodeRacf);
+      jsonAddInt(p, "safReturnCode", rc);
+      jsonAddInt(p, "racfReturnCode", returnCodeRacf);
+      jsonAddInt(p, "racfReasonCode", reasonCodeRacf);
     }
     jsonEnd(p);
 
-    safeFree31((char*)userMapCertificateStructure,sizeof(RUsermapParamList));
     finishResponse(response);
   }
   else
   {
      respondWithInvalidMethod(response);
   }
-
   return 0;
 }
 
-void installCertificateService(HttpServer *server)
-{
-  HttpService *httpService = makeGeneratedService("CertificateService", "/certificate/x509/**");
+void installUserMappingService(HttpServer *server) {
+  HttpService *httpService = makeGeneratedService("UserMappingService", "/certificate/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = serveMappingService;
   httpService->runInSubtask = TRUE;

@@ -1847,7 +1847,7 @@ int main(int argc, char **argv){
       loadWebServerConfigV2(server, configmgr, htUsers, htGroups, defaultSeconds);
       readWebPluginDefinitions(server, slh, pluginsDir, configmgr, apimlStorageSettings);
       configureJwt(server, jwkSettings);
-      installCertificateService(server);
+      installUserMappingService(server);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
       installUnixFileCopyService(server);
