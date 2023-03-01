@@ -48,7 +48,7 @@
 #define NOTRUST_CERTIFICATE_RC 32
 #define NO_IDENTITY_FILTER_RC 48
 
-#define MAX_URL_LENGTH 17
+#define MAX_URL_LENGTH 21
 
 static void setValidResponseCode(HttpResponse *response, int rc, int returnCode, int returnCodeRacf, int reasonCodeRacf) {
   if (rc == SUCCESS_RC && returnCode == SUCCESS_RC_SAF && returnCodeRacf == SUCCESS_RC_RACF && reasonCodeRacf == SUCCESS_REASON_CODE_RACF) {
@@ -101,14 +101,14 @@ static int serveMappingService(HttpService *service, HttpResponse *response) {
 
     int urlLength = strlen(request->uri);
     if(urlLength < 0 || urlLength > MAX_URL_LENGTH) {
-        respondWithJsonError(response, "URI is longer than maximum length of 17 characters.", 400, "Bad Request");
+        respondWithJsonError(response, "URI exceeded maximum number of characters.", 400, "Bad Request");
         return 0;
     }
 
     char translatedURL[urlLength + 1];
     strcpy(translatedURL, request->uri);
     a2e(translatedURL, sizeof(translatedURL));
-    char *x509URI = strstr(translatedURL, "x509");
+    char *x509URI = strstr(translatedURL, "x509/map");
     char *distinguishedNameURI = strstr(translatedURL, "dn");
 
     char useridRacf[9];
