@@ -2261,7 +2261,7 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecor
   SLHFree(slh);
 }
 
-int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes) {
+int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes) {
   char *organization = NULL;
   char *recordLength = NULL;
   char *dsnt = NULL;
@@ -2291,6 +2291,7 @@ int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char
     organization = "PO";
     dsnt = (isPDSE) ? "PDSE" : "PDS";
     dirBlock = 10;
+    // Todo: We need to implement the copy paste for the PDS(E) and members.
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Do not support copy-paste for PDS(E) Dataset");
     return ERROR_COPY_NOT_SUPPORTED;
   }
@@ -2311,7 +2312,7 @@ int setAttributesForDatasetCopy(HttpResponse *response, JsonBuffer *buffer, char
   return 0;
 }
 
-void readAndWriteToDatasetInternal(HttpResponse *response, char *sourceDataset, int recordLength, char *targetDataset) {
+void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, int recordLength, char *targetDataset) {
 
   FILE *inDataset = fopen(sourceDataset,"rb, type=record");
 
@@ -2397,7 +2398,7 @@ void readAndWriteToDatasetInternal(HttpResponse *response, char *sourceDataset, 
   return;
 }
 
-void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
+void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset) {
 
   DatasetName dsn;
   DatasetMemberName memberName;
@@ -2440,10 +2441,18 @@ void readAndWriteToDataset(HttpResponse *response, char* sourceDataset, char* ta
 
   int lrecl = getLreclOrRespondError(response, &dsn, ddPath);
   if (!lrecl) {
+    daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
+                                        &daSysRC, &daSysRSN);
+    if (daRC != RC_DYNALLOC_OK) {
+      zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
+            "error: ds unalloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
+            " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
+            daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "read");
+    }
     return;
   }
 
-  readAndWriteToDatasetInternal(response, ddPath, lrecl, targetDataset);
+  streamDatasetForCopyAndRespond(response, ddPath, lrecl, targetDataset);
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
                                         &daSysRC, &daSysRSN);
@@ -2487,14 +2496,17 @@ bool checkIfDatasetExists(char* dataset) {
       datasetCount = jsonArrayGetCount(datasetArray);
     }
   }
+
+  safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
   SLHFree(slh);
+
   if(datasetCount > 0) {
     return true;
   }
   return false;
 }
 
-void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDataset) {
+void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset) {
   #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
 
@@ -2539,7 +2551,9 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
   // To set attributes for target dataset
   char datasetAttributes[300];
   int rc = 0;
-  rc = setAttributesForDatasetCopy(response, datasetAttrBuffer, datasetAttributes);
+  rc = setAttrForDSCopyAndRespondIfError(response, datasetAttrBuffer, datasetAttributes);
+
+  safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
 
   if(rc != 0) {
     return;
@@ -2552,7 +2566,7 @@ void copyDataset(HttpResponse *response, char* sourceDataset, char* targetDatase
     return;
   }
 
-  return readAndWriteToDataset(response, sourceDataset, targetDataset);
+  return readWriteToDatasetAndRespond(response, sourceDataset, targetDataset);
 
   #endif /* __ZOWE_OS_ZOS */
 }

@@ -156,7 +156,7 @@ static int serveDatasetCopy(HttpService *service, HttpResponse *response){
     char *newDataset = getQueryParam(response->request, "newDataset");
     char *newDatasetNameP1 = stringConcatenate(response->slh, "//'", newDataset);
     char *newDatasetName = stringConcatenate(response->slh, newDatasetNameP1, "'");
-    copyDataset(response, datasetName, newDatasetName);
+    copyDatasetAndRespond(response, datasetName, newDatasetName);
   } else {
     setContentType(response, "text/json");
     setResponseStatus(response, 405, "Method Not Allowed");
@@ -225,7 +225,6 @@ void installDatasetContentsService(HttpServer *server) {
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveDatasetContents;
-  httpService->paramSpecList = makeStringParamSpec("force",SERVICE_ARG_OPTIONAL, NULL);
   registerHttpService(server, httpService);
 }
 
