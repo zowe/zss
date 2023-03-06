@@ -8,18 +8,34 @@ Copyright Contributors to the Zowe Project.
 
 # ZSS - Zowe System Services Server for enabling low-level microservices for z/OS
 
-## How to build ZSS and the cross-memory server
-
-To build ZSS and ZIS(cross-memory server), make sure submodules are updated, go to the build 
-directory and run ant:
+## (Quick start) How to build ZSS and the cross-memory server
 
 ```
+git clone git@github.com:zowe/zss.git
+cd zss
 git submodule update --init
 ./build/build.sh
 ``` 
 
-zssServer will be placed in the `bin` directory, the cross-memory server's load module will be placed 
+Note: zssServer will be placed in the `bin` directory, the cross-memory server's load module will be placed 
 in the `user-id.DEV.LOADLIB` dataset.
+
+## (Quick run) How to start ZSS
+
+Zowe core schemas are needed to run, so the quickest way to get them as a developer is to clone the repo they come from.
+
+```
+git clone git@github.com:zowe/zowe-install-packaging.git
+```
+Then, tell ZSS where to find the schemas and the configs and then start it up, like so:
+```
+cd /path/to/zss/bin
+export ZWES_COMPONENT_HOME=/path/to/zss
+export ZWE_zowe_runtimeDirectory=/path/to/zowe-install-packaging
+ZWE_CLI_PARAMETER_CONFIG="FILE(/my/zowe.yaml)" ./zssServer.sh
+```
+
+Note: ZSS defaults are in [defaults.yaml](https://github.com/zowe/zss/blob/v2.x/staging/defaults.yaml) so you only need to provide customizations in your own zowe.yaml.
 
 ## How to submit a pull request
 
@@ -41,11 +57,7 @@ git add deps/zowe-common-c/
 When using ZSS as the agent to host files and folders, for example: for the Zowe Editor Desktop app by the App server, may lead to '401 Impersonator Error'
 Fix: Make sure the program-controlled bit is set for your ZSS binary `extattr +p zssServer`
 
-ZSS in V2 takes advantage of V2 by using schemas and the Zowe configuration YAML. May see an error on start like `ZSS 2.x requires schemas and config`
-Fix: Make sure all relevant V2 environment variables are set. Here are some common ones:
-`ZWES_COMPONENT_HOME=<your-zss-root-directory>`
-`ZWE_zowe_runtimeDirectory=<your-zowe-runtime-directory>`
-`ZWE_CLI_PARAMETER_CONFIG=<your-zowe-configuration-yaml>`
+ZSS in V2 takes advantage of V2 by using schemas and the Zowe configuration YAML. If you're running `zssServer` accidentally, instead of `zssServer.sh` or your `zssServer.sh` is out of date, you may see an error on start like `ZSS 2.x requires schemas and config`
 
 When starting ZSS, you may encounter a schema validation issue i.e. `Configuration has validity exceptions: Schema at '' invalid [...]`. 
 Fix: To read these errors, consult: https://docs.zowe.org/stable/user-guide/configmgr-using/#validation-error-reporting
