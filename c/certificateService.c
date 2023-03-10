@@ -157,7 +157,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response) {
 
     jsonStart(p);
     {
-      jsonAddUnterminatedString(p, "userid", useridRacf);
+      jsonAddString(p, "userid", useridRacf);
       jsonAddInt(p, "returnCode", rc);
       jsonAddInt(p, "safReturnCode", rc);
       jsonAddInt(p, "racfReturnCode", returnCodeRacf);
