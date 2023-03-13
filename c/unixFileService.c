@@ -679,9 +679,10 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
   char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
   unsigned int currUnixTime = (unsigned)time(NULL);
 
-  zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_DEBUG, "Serve unix file contents method=%s, path=%s\n",request->method, routeFileName);
 
   if (!strcmp(request->method, methodPUT)) {
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_DEBUG, "Serve PUT unix file contents, path=%s\n", routeFileName);
+
     UploadSessionTracker *tracker = service->userPointer;
 
     removeSessionTimeOuts(tracker, &currUnixTime);
@@ -703,9 +704,13 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
     }
   }
   else if (!strcmp(request->method, methodGET)) {
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_DEBUG, "Serve GET unix file contents, path=%s\n", routeFileName);
+
     respondWithUnixFileContentsWithAutocvtMode(NULL, response, routeFileName, TRUE, 0);
   }
   else if (!strcmp(request->method, methodDELETE)) {
+    zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_DEBUG, "Serve DELETE unix file contents, path=%s\n", routeFileName);
+
     if (doesFileExist(routeFileName) == true) {
       if (isDir(routeFileName) == true) {
         deleteUnixDirectoryAndRespond(response, routeFileName);
@@ -743,6 +748,7 @@ static int serveUnixFileCopy(HttpService *service, HttpResponse *response) {
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
   char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
   char *newName = getQueryParam(response->request, "newName");
+  zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_DEBUG, "Serve copy unix file contents, source=%s, target=%s\n", routeFileName, newName);
   if (!newName) {
     respondWithJsonError(response, "newName query parameter is missing", 400, "Bad Request");
     return 0;
