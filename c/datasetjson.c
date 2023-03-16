@@ -64,6 +64,7 @@
 #define ERROR_MEMBER_ALREADY_EXISTS    -10
 #define ERROR_INVALID_JSON_BODY        -11
 #define ERROR_COPY_NOT_SUPPORTED       -12
+#define ERROR_DATASET_ALREADY_EXIST    -13
 
 static char defaultDatasetTypesAllowed[3] = {'A','D','X'};
 static char clusterTypesAllowed[3] = {'C','D','I'}; /* TODO: support 'I' type DSNs */
@@ -2313,7 +2314,50 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
   return 0;
 }
 
-void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, int recordLength, char *targetDataset, int targetRecLen) {
+int getTargetDsnRecordLength(char* targetDataset) {
+
+  DatasetName targetDsnName;
+  DatasetMemberName targetMemName;
+  extractDatasetAndMemberName(targetDataset, &targetDsnName, &targetMemName);
+
+  // Buffer to save attributes for target dataset
+  JsonBuffer *datasetAttrBuffer = makeJsonBuffer();
+  jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, datasetAttrBuffer);
+  jsonStart(jPrinter);
+
+  // To get the attributes for target dataset
+  getDatasetMetadata(&targetDsnName, &targetMemName, targetDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
+  jsonEnd(jPrinter);
+
+  int targetRecLen = 0;
+
+  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+  char errorBuffer[2048];
+  Json *json = jsonParseUnterminatedString(slh,
+                                             datasetAttrBuffer->data, datasetAttrBuffer->len,
+                                             errorBuffer, sizeof(errorBuffer));
+
+  if (json) {
+    if (jsonIsObject(json)){
+      JsonObject *jsonObject = jsonAsObject(json);
+      //Get array of datasets
+      JsonArray *datasetArray = jsonObjectGetArray(jsonObject,"datasets");
+      int i = 0;
+      Json *element = jsonArrayGetItem(datasetArray,i);
+      if(element && jsonIsObject(element)) {
+        JsonObject *jsonDatasetObject = jsonAsObject(element);
+        // Get dsorg object
+        JsonObject *dsOrg = jsonObjectGetObject(jsonDatasetObject,"dsorg");
+        targetRecLen = jsonObjectGetNumber(dsOrg,"maxRecordLen");
+        printf("-----TARGET REC LENGTH : %d", targetRecLen);
+      }
+    }
+  }
+  SLHFree(slh);
+  return targetRecLen;
+}
+
+void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, int recordLength, char *targetDataset) {
 
   FILE *inDataset = fopen(sourceDataset,"rb, type=record");
 
@@ -2337,7 +2381,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "ICSF error for SHA etag init for write, %d\n",rcEtag);
   }
 
-  recordLength = (targetRecLen>0 && targetRecLen<recordLength) ? targetRecLen : recordLength;
+  // recordLength = (targetRecLen>0 && targetRecLen<recordLength) ? targetRecLen : recordLength;
 
   int bufferSize = recordLength+1;
   char buffer[bufferSize];
@@ -2407,7 +2451,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
   return;
 }
 
-void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset, int targetRecLen) {
+void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset) {
 
   DatasetName dsn;
   DatasetMemberName memberName;
@@ -2461,7 +2505,7 @@ void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, c
     return;
   }
 
-  streamDatasetForCopyAndRespond(response, ddPath, lrecl, targetDataset, targetRecLen);
+  streamDatasetForCopyAndRespond(response, ddPath, lrecl, targetDataset);
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
                                         &daSysRC, &daSysRSN);
@@ -2474,10 +2518,22 @@ void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, c
   return;
 }
 
-bool checkIfDatasetExists(char* dataset, bool memberExists) {
+int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool isMember) {
 
-  if(memberExists) {
-    return false;
+  if(isMember) {
+    FILE* memberExists = fopen(dataset,"r");
+    if(memberExists) {
+      if (fclose(memberExists) != 0) {
+        zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "ERROR CLOSING FILE");
+        respondWithJsonError(response, "Could not close dataset", 500, "Internal Server Error");
+        return ERROR_CLOSING_DATASET;
+      }
+      else {
+        respondWithJsonError(response, "Member already exists", 400, "Bad Request");
+        return ERROR_MEMBER_ALREADY_EXISTS;
+      }
+    }
+    return 0;
   }
 
   DatasetName dsnName;
@@ -2514,9 +2570,10 @@ bool checkIfDatasetExists(char* dataset, bool memberExists) {
   SLHFree(slh);
 
   if(datasetCount > 0) {
-    return true;
+    respondWithJsonError(response, "Target dataset already exists", 400, "Bad Request");
+    return ERROR_DATASET_ALREADY_EXIST;;
   }
-  return false;
+  return 0;
 }
 
 void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* targetDataset) {
@@ -2528,45 +2585,7 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
     return;
   }
 
-  DatasetName targetDsnName;
-  DatasetMemberName targetMemName;
-  extractDatasetAndMemberName(targetDataset, &targetDsnName, &targetMemName);
-
-  // Buffer to save attributes for target dataset
-  JsonBuffer *datasetAttrBuffer = makeJsonBuffer();
-  jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, datasetAttrBuffer);
-  jsonStart(jPrinter);
-
-  // To get the attributes for target dataset
-  getDatasetMetadata(&targetDsnName, &targetMemName, targetDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
-  jsonEnd(jPrinter);
-
-  int targetRecLen = 0;
-
-  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
-  char errorBuffer[2048];
-  Json *json = jsonParseUnterminatedString(slh,
-                                             datasetAttrBuffer->data, datasetAttrBuffer->len,
-                                             errorBuffer, sizeof(errorBuffer));
-
-  if (json) {
-    if (jsonIsObject(json)){
-      JsonObject *jsonObject = jsonAsObject(json);
-      //Get array of datasets
-      JsonArray *datasetArray = jsonObjectGetArray(jsonObject,"datasets");
-      int i = 0;
-      Json *element = jsonArrayGetItem(datasetArray,i);
-      if(element && jsonIsObject(element)) {
-        JsonObject *jsonDatasetObject = jsonAsObject(element);
-        // Get dsorg object
-        JsonObject *dsOrg = jsonObjectGetObject(jsonDatasetObject,"dsorg");
-        targetRecLen = jsonObjectGetNumber(dsOrg,"maxRecordLen");
-        printf("-----TARGET REC LENGTH : %d", targetRecLen);
-      }
-    }
-  }
-  SLHFree(slh);
-  return readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, targetRecLen);
+  return readWriteToDatasetAndRespond(response, sourceDataset, targetDataset);
 }
 
 void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset) {
@@ -2591,11 +2610,6 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
     respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Invalid dataset path");
     return;
   }
-
-  // if(checkIfDatasetExists(targetDataset)) {
-  //   respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Target dataset already exists");
-  //   return;
-  // }
 
   /* From here on, we know we have a valid data path */
   DatasetName sourceDsnName;
@@ -2622,8 +2636,8 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
 
   bool isTargetMemberEmpty = IS_DAMEMBER_EMPTY(daTargetMemName);
 
-  if(checkIfDatasetExists(targetDataset, !isTargetMemberEmpty)) {
-    respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Target dataset already exists");
+  int dsnExists = checkIfDatasetExistsAndRespond(response, targetDataset, !isTargetMemberEmpty);
+  if(dsnExists < 0 ) {
     return;
   }
 
@@ -2660,7 +2674,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
     return;
   }
 
-  return readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, -1);
+  return readWriteToDatasetAndRespond(response, sourceDataset, targetDataset);
 
   #endif /* __ZOWE_OS_ZOS */
 }
