@@ -2261,7 +2261,7 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecor
   SLHFree(slh);
 }
 
-int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes) {
+int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes, bool isSourceMember) {
   char *organization = NULL;
   char *recordLength = NULL;
   char *dsnt = NULL;
@@ -2284,7 +2284,8 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
     return ERROR_DATASET_NOT_EXIST;
   }
 
-  if(!strcmp(organization, "sequential")) {
+  if(!strcmp(organization, "sequential") || isSourceMember) {
+    // Pasting a PS as PS or a member as PS dataset [PS -> PS OR Member -> PS]
     organization = "PS";
     dsnt = "";
   } else {
@@ -2346,8 +2347,13 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
 
   while (!feof(inDataset)){
     bytesRead = fread(buffer,1,recordLength,inDataset);
+    printf("---BYTES READ: %d\n", bytesRead);
     if (bytesRead > 0 && !ferror(inDataset)) {
       bytesWritten = fwrite(buffer,1,bytesRead,outDataset);
+      printf("---BYTES WRITTEN: %d\n", bytesWritten);
+      if(ferror(outDataset)) {
+        printf("---ferror outDataset\n");
+      }
       if ((bytesWritten < 0 && ferror(outDataset)) || (bytesWritten != bytesRead)){
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Error writing to dataset, rc=%d\n", bytesWritten);
         respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Error writing to dataset");
@@ -2359,6 +2365,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
       }
       recordsWritten++;
     } else if (ferror(inDataset)) {
+      printf("---ferror inDataset\n");
       respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Error writing to dataset");
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,  "Error reading DSN=%s, rc=%d\n", sourceDataset, bytesRead);
       return;
@@ -2513,6 +2520,7 @@ bool checkIfDatasetExists(char* dataset, bool memberExists) {
 }
 
 void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* targetDataset) {
+  printf("---PASTING AS A MEMBER\n");
 
   int reasonCode = 0;
   int rc = createDataset(response, targetDataset, NULL, 0, &reasonCode);
@@ -2594,26 +2602,37 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   DatasetMemberName memName;
   extractDatasetAndMemberName(sourceDataset, &dsnName, &memName);
 
+  // Checking if source dataset is a member
+  DynallocDatasetName daSourceDsnName;
+  DynallocMemberName daSourceMemName;
+  memcpy(daSourceDsnName.name, targetDsnName.value, sizeof(daSourceDsnName.name));
+  memcpy(daSourceMemName.name, targetMemName.value, sizeof(daSourceMemName.name));
+
+  bool isSourceMemberEmpty = IS_DAMEMBER_EMPTY(daSourceMemName);
+
   DatasetName targetDsnName;
   DatasetMemberName targetMemName;
   extractDatasetAndMemberName(targetDataset, &targetDsnName, &targetMemName);
 
-  DynallocDatasetName daDatasetName;
-  DynallocMemberName daMemberName;
-  memcpy(daDatasetName.name, targetDsnName.value, sizeof(daDatasetName.name));
-  memcpy(daMemberName.name, targetMemName.value, sizeof(daMemberName.name));
+ // Checking if target dataset is a member
+  DynallocDatasetName daTargetDsnName;
+  DynallocMemberName daTargetMemName;
+  memcpy(daTargetDsnName.name, targetDsnName.value, sizeof(daTargetDsnName.name));
+  memcpy(daTargetMemName.name, targetMemName.value, sizeof(daTargetMemName.name));
 
-  bool isMemberEmpty = IS_DAMEMBER_EMPTY(daMemberName);
+  bool isTargetMemberEmpty = IS_DAMEMBER_EMPTY(daTargetMemName);
 
-  if(checkIfDatasetExists(targetDataset, !isMemberEmpty)) {
+  if(checkIfDatasetExists(targetDataset, !isTargetMemberEmpty)) {
     respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Target dataset already exists");
     return;
   }
 
-  if(!isMemberEmpty){
+  // Pasting as a dataset member [PS -> Member OR Member -> Member]
+  if(!isTargetMemberEmpty){
     return pasteAsDatasetMember(response, sourceDataset, targetDataset);
   }
 
+  // Pasting as PS dataset [PS -> PS]
   // Buffer to save attributes for source dataset
   JsonBuffer *datasetAttrBuffer = makeJsonBuffer();
   jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, datasetAttrBuffer);
@@ -2626,7 +2645,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   // To set attributes for target dataset
   char datasetAttributes[300];
   int rc = 0;
-  rc = setAttrForDSCopyAndRespondIfError(response, datasetAttrBuffer, datasetAttributes);
+  rc = setAttrForDSCopyAndRespondIfError(response, datasetAttrBuffer, datasetAttributes, !isSourceMemberEmpty);
 
   safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
 
