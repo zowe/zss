@@ -2357,7 +2357,7 @@ int getTargetDsnRecordLength(char* targetDataset) {
   return targetRecLen;
 }
 
-void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, int recordLength, char *targetDataset) {
+void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, int sourceRecordLen, char *targetDataset, bool isTargetMember) {
 
   FILE *inDataset = fopen(sourceDataset,"rb, type=record");
 
@@ -2381,16 +2381,22 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "ICSF error for SHA etag init for write, %d\n",rcEtag);
   }
 
-  // recordLength = (targetRecLen>0 && targetRecLen<recordLength) ? targetRecLen : recordLength;
+  if(isTargetMember) {
+    int targetRecordLen = getTargetDsnRecordLength(targetDataset);
+    if(targetRecordLen < sourceRecordLen) {
+      respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Cannot copy dataset. Record length for source is longer than the target");
+      return;
+    }
+  }
 
-  int bufferSize = recordLength+1;
+  int bufferSize = sourceRecordLen+1;
   char buffer[bufferSize];
   int bytesRead = 0;
   int bytesWritten = 0;
   int recordsWritten = 0;
 
   while (!feof(inDataset)){
-    bytesRead = fread(buffer,1,recordLength,inDataset);
+    bytesRead = fread(buffer,1,sourceRecordLen,inDataset);
     printf("---BYTES READ: %d\n", bytesRead);
     if (bytesRead > 0 && !ferror(inDataset)) {
       bytesWritten = fwrite(buffer,1,bytesRead,outDataset);
@@ -2451,7 +2457,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
   return;
 }
 
-void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset) {
+void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset, bool isTargetMember) {
 
   DatasetName dsn;
   DatasetMemberName memberName;
@@ -2505,7 +2511,7 @@ void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, c
     return;
   }
 
-  streamDatasetForCopyAndRespond(response, ddPath, lrecl, targetDataset);
+  streamDatasetForCopyAndRespond(response, ddPath, lrecl, targetDataset, isTargetMember);
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
                                         &daSysRC, &daSysRSN);
@@ -2578,6 +2584,7 @@ int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool i
 
 void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* targetDataset) {
   printf("---PASTING AS A MEMBER\n");
+  bool isTargetMember = true;
 
   int reasonCode = 0;
   int rc = createDataset(response, targetDataset, NULL, 0, &reasonCode);
@@ -2585,7 +2592,7 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
     return;
   }
 
-  return readWriteToDatasetAndRespond(response, sourceDataset, targetDataset);
+  return readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember);
 }
 
 void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset) {
@@ -2646,6 +2653,8 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
     return pasteAsDatasetMember(response, sourceDataset, targetDataset);
   }
 
+  bool isTargetMember = false;
+
   // Pasting as PS dataset [PS -> PS]
   // Buffer to save attributes for source dataset
   JsonBuffer *datasetAttrBuffer = makeJsonBuffer();
@@ -2674,7 +2683,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
     return;
   }
 
-  return readWriteToDatasetAndRespond(response, sourceDataset, targetDataset);
+  return readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember);
 
   #endif /* __ZOWE_OS_ZOS */
 }
