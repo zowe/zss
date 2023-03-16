@@ -2598,15 +2598,15 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   // }
 
   /* From here on, we know we have a valid data path */
-  DatasetName dsnName;
-  DatasetMemberName memName;
-  extractDatasetAndMemberName(sourceDataset, &dsnName, &memName);
+  DatasetName sourceDsnName;
+  DatasetMemberName sourceMemName;
+  extractDatasetAndMemberName(sourceDataset, &sourceDsnName, &sourceMemName);
 
   // Checking if source dataset is a member
   DynallocDatasetName daSourceDsnName;
   DynallocMemberName daSourceMemName;
-  memcpy(daSourceDsnName.name, targetDsnName.value, sizeof(daSourceDsnName.name));
-  memcpy(daSourceMemName.name, targetMemName.value, sizeof(daSourceMemName.name));
+  memcpy(daSourceDsnName.name, sourceDsnName.value, sizeof(daSourceDsnName.name));
+  memcpy(daSourceMemName.name, sourceMemName.value, sizeof(daSourceMemName.name));
 
   bool isSourceMemberEmpty = IS_DAMEMBER_EMPTY(daSourceMemName);
 
@@ -2639,7 +2639,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   jsonStart(jPrinter);
 
   // To get the attributes for source dataset
-  getDatasetMetadata(&dsnName, &memName, sourceDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
+  getDatasetMetadata(&sourceDsnName, &sourceMemName, sourceDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
   jsonEnd(jPrinter);
 
   // To set attributes for target dataset
