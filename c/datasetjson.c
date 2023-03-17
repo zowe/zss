@@ -2370,6 +2370,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
 
   if (outDataset == NULL) {
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"Target dataset could not be opened or does not exist");
+    fclose(inDataset);
     return;
   }
 
@@ -2385,6 +2386,8 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
     int targetRecordLen = getTargetDsnRecordLength(targetDataset);
     if(targetRecordLen < sourceRecordLen) {
       respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Cannot copy dataset. Record length for source is longer than the target");
+      fclose(inDataset);
+      fclose(outDataset);
       return;
     }
   }
@@ -2407,8 +2410,8 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
       if ((bytesWritten < 0 && ferror(outDataset)) || (bytesWritten != bytesRead)){
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Error writing to dataset, rc=%d\n", bytesWritten);
         respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Error writing to dataset");
-        fclose(outDataset);
         fclose(inDataset);
+        fclose(outDataset);
         return;
       } else if (!rcEtag) {
         rcEtag = icsfDigestUpdate(&digest, buffer, bytesWritten);
@@ -2417,6 +2420,8 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
     } else if (ferror(inDataset)) {
       printf("---ferror inDataset\n");
       respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Error writing to dataset");
+      fclose(inDataset);
+      fclose(outDataset);
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,  "Error reading DSN=%s, rc=%d\n", sourceDataset, bytesRead);
       return;
     }
