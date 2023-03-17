@@ -2385,7 +2385,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
   if(isTargetMember) {
     int targetRecordLen = getTargetDsnRecordLength(targetDataset);
     if(targetRecordLen < sourceRecordLen) {
-      respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Cannot copy dataset. Record length for source is longer than the target");
+      respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Cannot copy dataset. Record length for target dataset is shorter than the source");
       fclose(inDataset);
       fclose(outDataset);
       return;
