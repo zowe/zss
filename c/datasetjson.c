@@ -53,18 +53,23 @@
 #define CLASS_WRITER_SIZE 8
 #define TOTAL_TEXT_UNITS  23
 
-#define ERROR_DECODING_DATASET         -2
-#define ERROR_CLOSING_DATASET          -3
-#define ERROR_ALLOCATING_DATASET       -4
-#define ERROR_DEALLOCATING_DATASET     -5
-#define ERROR_UNDEFINED_LENGTH_DATASET -6
-#define ERROR_BAD_DATASET_NAME         -7
-#define ERROR_INCORRECT_DATASET_TYPE   -8
-#define ERROR_DATASET_NOT_EXIST        -9
-#define ERROR_MEMBER_ALREADY_EXISTS    -10
-#define ERROR_INVALID_JSON_BODY        -11
-#define ERROR_COPY_NOT_SUPPORTED       -12
-#define ERROR_DATASET_ALREADY_EXIST    -13
+#define ERROR_DECODING_DATASET            -2
+#define ERROR_CLOSING_DATASET             -3
+#define ERROR_OPENING_DATASET             -4
+#define ERROR_ALLOCATING_DATASET          -5
+#define ERROR_DEALLOCATING_DATASET        -6
+#define ERROR_UNDEFINED_LENGTH_DATASET    -7
+#define ERROR_BAD_DATASET_NAME            -8
+#define ERROR_INVALID_DATASET_NAME        -9
+#define ERROR_INCORRECT_DATASET_TYPE      -10
+#define ERROR_DATASET_NOT_EXIST           -11
+#define ERROR_MEMBER_ALREADY_EXISTS       -12
+#define ERROR_DATASET_ALREADY_EXIST       -13
+#define ERROR_DATASET_OR_MEMBER_NOT_EXIST -14
+#define ERROR_VSAM_DATASET_DETECTED       -15
+#define ERROR_DELETING_DATASET_OR_MEMBER  -16
+#define ERROR_INVALID_JSON_BODY           -17
+#define ERROR_COPY_NOT_SUPPORTED          -18
 
 static char defaultDatasetTypesAllowed[3] = {'A','D','X'};
 static char clusterTypesAllowed[3] = {'C','D','I'}; /* TODO: support 'I' type DSNs */
@@ -1466,12 +1471,12 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 #endif /* __ZOWE_OS_ZOS */
 }
 
-void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
+int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, char** responseMessage) {
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
   if (!isDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
-    return;
+    return ERROR_INVALID_DATASET_NAME;
   }
   
   DatasetName datasetName;
@@ -1488,12 +1493,12 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
     respondWithMessage(response, HTTP_STATUS_NOT_FOUND,
                       "Dataset or member does not exist \'%44.44s(%8.8s)\' "
                       "(%s)", daDatasetName.name, daMemberName.name, "r");
-    return;
+    return ERROR_DATASET_OR_MEMBER_NOT_EXIST;
   }
   if (isVsam(CSIType)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,
                      "VSAM dataset detected. Please use regular dataset route");
-    return;
+    return ERROR_VSAM_DATASET_DETECTED;
   }
 
   int daReturnCode = RC_DYNALLOC_OK, daSysReturnCode = 0, daSysReasonCode = 0;
@@ -1515,7 +1520,7 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
     respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
                              daSysReasonCode, &daDatasetName, &daMemberName,
                              "r");
-    return;
+    return ERROR_ALLOCATING_DATASET;
   }
   
   bool isMemberEmpty = IS_DAMEMBER_EMPTY(daMemberName);
@@ -1534,7 +1539,7 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
       respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
                                daSysReasonCode, &daDatasetName, &daMemberName,
                                "r");
-      return;
+      return ERROR_DEALLOCATING_DATASET;
     }  
   }
   else {
@@ -1550,7 +1555,7 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
                       
     if (dcb == NULL) {
       respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Data set could not be opened");
-      return;
+      return ERROR_OPENING_DATASET;
     }
     
     if (!memberExists(dsNameNullTerm, daMemberName)) {
@@ -1558,7 +1563,7 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
       closeSAM(dcb, 0);
       daReturnCode = dynallocUnallocDatasetByDDName(&daDDName, DYNALLOC_UNALLOC_FLAG_NONE,
                                                     &daSysReturnCode, &daSysReasonCode); 
-      return;
+      return ERROR_DATASET_OR_MEMBER_NOT_EXIST;
     }
 
     char *belowMemberName = NULL;
@@ -1567,7 +1572,7 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
     if (belowMemberName == NULL) {
       respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Could not allocate member name");
       closeSAM(dcb, 0);
-      return;
+      return ERROR_ALLOCATING_DATASET;
     }
     
     memset(belowMemberName, ' ', DATASET_MEMBER_NAME_LEN);
@@ -1590,7 +1595,7 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
               "error: stowReturnCode=%d, stowReasonCode=%d\n",
               stowReturnCode, stowReasonCode);
       respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, responseMessage);
-      return;
+      return ERROR_DELETING_DATASET_OR_MEMBER;
     }
 
     if (daReturnCode != RC_DYNALLOC_OK) {
@@ -1602,33 +1607,47 @@ void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
       respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
                                daSysReasonCode, &daDatasetName, &daMemberName,
                                "r");
-      return;
+      return ERROR_ALLOCATING_DATASET;
     }
   }
 
-  jsonPrinter *p = respondWithJsonPrinter(response);
-  setResponseStatus(response, 200, "OK");
-  setDefaultJSONRESTHeaders(response);
- 
-  writeHeader(response);
-
-  jsonStart(p);
-  char responseMessage[128];
   if (isMemberEmpty) {
     char* dsName;
     dsName = absolutePath+3;
     dsName[strlen(dsName) - 1] = '\0';
-    snprintf(responseMessage, sizeof(responseMessage), "Data set %s was deleted successfully", dsName);
-    jsonAddString(p, "msg", responseMessage);
+    sprintf(*responseMessage, "Data set %s was deleted successfully", dsName);
   }
   else {
-    snprintf(responseMessage, sizeof(responseMessage), "Data set member %8.8s was deleted successfully", daMemberName.name);
-    jsonAddString(p, "msg", responseMessage);
+    sprintf(*responseMessage, "Data set member %8.8s was deleted successfully", daMemberName.name);
   }
-  jsonEnd(p);
+
+#endif /* __ZOWE_OS_ZOS */
+}
+
+void deleteDatasetFromRequest(HttpResponse* response, char* absolutePath) {
+#ifdef __ZOWE_OS_ZOS
+  HttpRequest *request = response->request;
+  if (!isDatasetPathValid(absolutePath)) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
+    return ERROR_INVALID_DATASET_NAME;
+  }
+
+  char* responseMessage = NULL;
+
+  int rc = deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, &responseMessage);
+  if(rc >= 0) {
+    jsonPrinter *p = respondWithJsonPrinter(response);
+    setResponseStatus(response, 200, "OK");
+    setDefaultJSONRESTHeaders(response);
+
+    writeHeader(response);
+
+    jsonStart(p);
+    jsonAddString(p, "msg", responseMessage);
+    jsonEnd(p);
  
-  finishResponse(response);
-  
+    finishResponse(response);
+  }
 #endif /* __ZOWE_OS_ZOS */
 }
 
@@ -3364,9 +3383,6 @@ int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttri
 void createDatasetAndRespond(HttpResponse* response, char* absolutePath, int jsonMode) {
   #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
-
-  char* errorMessage = NULL;
-  int errorCode = 0;
 
   if (!isDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");

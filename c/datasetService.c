@@ -114,7 +114,7 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Deleting if exists: %s\n", filename);
     fflush(stdout);
-    deleteDatasetOrMember(response, filename);
+    deleteDatasetFromRequest(response, filename);
   }
   else if (!strcmp(request->method, methodPUT)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
