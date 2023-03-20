@@ -1471,7 +1471,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 #endif /* __ZOWE_OS_ZOS */
 }
 
-int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, char** responseMessage) {
+int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, char* responseMessage) {
 #ifdef __ZOWE_OS_ZOS
   printf("----INSIDE ---deleteDatasetOrMemberAndRespond\n");
   DatasetName datasetName;
@@ -1607,15 +1607,15 @@ int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, 
   }
 
   if (isMemberEmpty) {
-    printf("DELETED MEM---\n");
+    printf("DELETED DATASET---\n");
     char* dsName;
     dsName = absolutePath+3;
     dsName[strlen(dsName) - 1] = '\0';
-    sprintf(*responseMessage, "Data set %s was deleted successfully", dsName);
+    sprintf(responseMessage, "Data set %s was deleted successfully", dsName);
   }
   else {
-    printf("DELETED DATASET---\n");
-    sprintf(*responseMessage, "Data set member %8.8s was deleted successfully", daMemberName.name);
+    printf("DELETED MEM ---\n");
+    sprintf(responseMessage, "Data set member %8.8s was deleted successfully", daMemberName.name);
   }
 
 #endif /* __ZOWE_OS_ZOS */
@@ -1630,9 +1630,9 @@ void deleteDatasetFromRequest(HttpResponse* response, char* absolutePath) {
     return;
   }
 
-  char* responseMessage = NULL;
+  char responseMessage[100];
 
-  int rc = deleteDatasetOrMemberAndRespond(response, absolutePath, &responseMessage);
+  int rc = deleteDatasetOrMemberAndRespond(response, absolutePath, responseMessage);
   if(rc >= 0) {
     printf("----DELETING FROM ---deleteDatasetFromRequest\n");
     jsonPrinter *p = respondWithJsonPrinter(response);
