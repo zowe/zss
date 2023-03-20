@@ -1631,6 +1631,7 @@ void deleteDatasetFromRequest(HttpResponse* response, char* absolutePath) {
 
   int rc = deleteDatasetOrMemberAndRespond(response, absolutePath, &responseMessage);
   if(rc >= 0) {
+    printf("----DELETING FROM ---deleteDatasetFromRequest\n");
     jsonPrinter *p = respondWithJsonPrinter(response);
     setResponseStatus(response, 200, "OK");
     setDefaultJSONRESTHeaders(response);
