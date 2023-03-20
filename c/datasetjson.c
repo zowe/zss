@@ -1473,11 +1473,6 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 
 int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, char** responseMessage) {
 #ifdef __ZOWE_OS_ZOS
-  HttpRequest *request = response->request;
-  if (!isDatasetPathValid(absolutePath)) {
-    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
-    return ERROR_INVALID_DATASET_NAME;
-  }
   
   DatasetName datasetName;
   DatasetMemberName memberName;
@@ -1629,12 +1624,12 @@ void deleteDatasetFromRequest(HttpResponse* response, char* absolutePath) {
   HttpRequest *request = response->request;
   if (!isDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
-    return ERROR_INVALID_DATASET_NAME;
+    return;
   }
 
   char* responseMessage = NULL;
 
-  int rc = deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, &responseMessage);
+  int rc = deleteDatasetOrMemberAndRespond(response, absolutePath, &responseMessage);
   if(rc >= 0) {
     jsonPrinter *p = respondWithJsonPrinter(response);
     setResponseStatus(response, 200, "OK");
