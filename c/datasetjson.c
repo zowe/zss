@@ -1473,7 +1473,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 
 int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, char** responseMessage) {
 #ifdef __ZOWE_OS_ZOS
-  
+  printf("----INSIDE ---deleteDatasetOrMemberAndRespond\n");
   DatasetName datasetName;
   DatasetMemberName memberName;
   extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
@@ -1607,12 +1607,14 @@ int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, 
   }
 
   if (isMemberEmpty) {
+    printf("DELETED MEM---\n");
     char* dsName;
     dsName = absolutePath+3;
     dsName[strlen(dsName) - 1] = '\0';
     sprintf(*responseMessage, "Data set %s was deleted successfully", dsName);
   }
   else {
+    printf("DELETED DATASET---\n");
     sprintf(*responseMessage, "Data set member %8.8s was deleted successfully", daMemberName.name);
   }
 
@@ -1621,6 +1623,7 @@ int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, 
 
 void deleteDatasetFromRequest(HttpResponse* response, char* absolutePath) {
 #ifdef __ZOWE_OS_ZOS
+  printf("----INSIDE ---deleteDatasetFromRequest\n");
   HttpRequest *request = response->request;
   if (!isDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
@@ -1643,6 +1646,8 @@ void deleteDatasetFromRequest(HttpResponse* response, char* absolutePath) {
     jsonEnd(p);
  
     finishResponse(response);
+  } else {
+    printf("----ERROR RC WHILE DELETING---%d\n", rc);
   }
 #endif /* __ZOWE_OS_ZOS */
 }
