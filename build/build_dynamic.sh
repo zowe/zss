@@ -23,8 +23,10 @@ echo "Building ZIS Dynamic Linkage Base plugin..."
 
 mkdir -p "${WORKING_DIR}/tmp-zisdyn" && cd "$_"
 
+. ${ZSS}/build/zis.proj.env
 OLDIFS=$IFS
 IFS="."
+echo "${VERSION}"
 for part in ${VERSION}; do
   if [ -z "$major" ]; then
     major=$part
