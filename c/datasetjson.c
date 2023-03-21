@@ -1510,6 +1510,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 }
 
 int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* responseMessage, int* responseCode) {
+  printf("----NAME---:%.*s \n", strlen(absolutePath), absolutePath);
 #ifdef __ZOWE_OS_ZOS
   printf("----INSIDE ---deleteDatasetOrMember\n");
   DatasetName datasetName;
