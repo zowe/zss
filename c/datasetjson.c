@@ -1568,6 +1568,7 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
   bool isMemberEmpty = IS_DAMEMBER_EMPTY(daMemberName);
   
   if (isMemberEmpty) {
+    printf("EMPTY MEMBER\n");
     daReturnCode = dynallocUnallocDatasetByDDName2(&daDDName, DYNALLOC_UNALLOC_FLAG_NONE,
                                                    &daSysReturnCode, &daSysReasonCode,
                                                    TRUE /* Delete data set on deallocation */
@@ -1588,6 +1589,7 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
     }  
   }
   else {
+    printf("NONEMPTY MEMBER\n");
     char dsNameNullTerm[DATASET_NAME_LEN + 1] = {0};
     memcpy(dsNameNullTerm, datasetName.value, sizeof(datasetName.value));
     
@@ -1616,6 +1618,8 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
       return ERROR_DATASET_OR_MEMBER_NOT_EXIST;
     }
 
+    printf("Passing member exists check on line 1621\n");
+
     char *belowMemberName = NULL;
     belowMemberName = malloc24(DATASET_MEMBER_NAME_LEN); /* This must be allocated below the line */
     
@@ -1626,6 +1630,8 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
       closeSAM(dcb, 0);
       return ERROR_ALLOCATING_DATASET;
     }
+
+    printf("Passing allocate membername check on line 1634\n");
     
     memset(belowMemberName, ' ', DATASET_MEMBER_NAME_LEN);
     memcpy(belowMemberName, memberName.value, DATASET_MEMBER_NAME_LEN);
@@ -1650,6 +1656,8 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
       return ERROR_DELETING_DATASET_OR_MEMBER;
     }
 
+    printf("Passing show return code check on line 1659\n");
+
     if (daReturnCode != RC_DYNALLOC_OK) {
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,
     		      "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
@@ -1664,6 +1672,8 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
                                  "r", responseMessage, responseCode);
       return ERROR_ALLOCATING_DATASET;
     }
+    printf("Passing da return code check on line 1675\n");
+
   }
 
   if (isMemberEmpty) {
@@ -2432,7 +2442,7 @@ int getTargetDsnRecordLength(char* targetDataset) {
         // Get dsorg object
         JsonObject *dsOrg = jsonObjectGetObject(jsonDatasetObject,"dsorg");
         targetRecLen = jsonObjectGetNumber(dsOrg,"maxRecordLen");
-        printf("-----TARGET REC LENGTH : %d", targetRecLen);
+        printf("-----TARGET REC LENGTH : %d\n", targetRecLen);
       }
     }
   }
@@ -2476,11 +2486,11 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
   if(isTargetMember) {
     int targetRecordLen = getTargetDsnRecordLength(targetDataset);
     if(targetRecordLen < sourceRecordLen) {
-      rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
-      printf("3 Deleting from streamDatasetForCopyAndRespond. RC: %d \n", rc);
-      respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Cannot copy dataset. Record length for target dataset is shorter than the source");
       fclose(inDataset);
       fclose(outDataset);
+      respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Cannot copy dataset. Record length for target dataset is shorter than the source");
+      rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
+      printf("3 Deleting from streamDatasetForCopyAndRespond. RC: %d \n", rc);
       return;
     }
   }
@@ -2502,11 +2512,11 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
       }
       if ((bytesWritten < 0 && ferror(outDataset)) || (bytesWritten != bytesRead)){
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Copy Failed. Error writing to the dataset, rc=%d\n", bytesWritten);
-        rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
-        printf("4 Deleting from streamDatasetForCopyAndRespond. RC: %d \n", rc);
-        respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to dataset");
         fclose(inDataset);
         fclose(outDataset);
+        respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to dataset");
+        rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
+        printf("4 Deleting from streamDatasetForCopyAndRespond. RC: %d \n", rc);
         return;
       } else if (!rcEtag) {
         rcEtag = icsfDigestUpdate(&digest, buffer, bytesWritten);
@@ -2514,11 +2524,11 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
       recordsWritten++;
     } else if (ferror(inDataset)) {
       printf("---ferror inDataset\n");
-      rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
-      printf("4 Deleting from streamDatasetForCopyAndRespond. RC: %d \n", rc);
-      respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to the dataset");
       fclose(inDataset);
       fclose(outDataset);
+      respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to the dataset");
+      rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
+      printf("4 Deleting from streamDatasetForCopyAndRespond. RC: %d \n", rc);
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,  "Error reading DSN=%s, rc=%d\n", sourceDataset, bytesRead);
       return;
     }
