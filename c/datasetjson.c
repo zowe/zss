@@ -2443,7 +2443,11 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
 
   FILE *inDataset = fopen(sourceDataset,"rb, type=record");
 
+  char responseMessage[100];
+  int responseCode = 0;
+
   if (inDataset == NULL) {
+    deleteDatasetOrMemberAndRespond(response, targetDataset, responseMessage, &responseCode);
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"Source dataset could not be opened or does not exist");
     return;
   }
@@ -2451,6 +2455,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
   FILE *outDataset = fopen(targetDataset, "wb, recfm=*, type=record");
 
   if (outDataset == NULL) {
+    deleteDatasetOrMemberAndRespond(response, targetDataset, responseMessage, &responseCode);
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"Target dataset could not be opened or does not exist");
     fclose(inDataset);
     return;
@@ -2467,6 +2472,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
   if(isTargetMember) {
     int targetRecordLen = getTargetDsnRecordLength(targetDataset);
     if(targetRecordLen < sourceRecordLen) {
+      deleteDatasetOrMemberAndRespond(response, targetDataset, responseMessage, &responseCode);
       respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Cannot copy dataset. Record length for target dataset is shorter than the source");
       fclose(inDataset);
       fclose(outDataset);
@@ -2490,8 +2496,9 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
         printf("---ferror outDataset\n");
       }
       if ((bytesWritten < 0 && ferror(outDataset)) || (bytesWritten != bytesRead)){
-        zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Error writing to dataset, rc=%d\n", bytesWritten);
-        respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Error writing to dataset");
+        zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Copy Failed. Error writing to the dataset, rc=%d\n", bytesWritten);
+        deleteDatasetOrMemberAndRespond(response, targetDataset, responseMessage, &responseCode);
+        respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to dataset");
         fclose(inDataset);
         fclose(outDataset);
         return;
@@ -2501,7 +2508,8 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
       recordsWritten++;
     } else if (ferror(inDataset)) {
       printf("---ferror inDataset\n");
-      respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Error writing to dataset");
+      deleteDatasetOrMemberAndRespond(response, targetDataset, responseMessage, &responseCode);
+      respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to the dataset");
       fclose(inDataset);
       fclose(outDataset);
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,  "Error reading DSN=%s, rc=%d\n", sourceDataset, bytesRead);
@@ -2566,11 +2574,17 @@ void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, c
       &daSysRC, &daSysRSN
   );
 
+  char responseMessage[100];
+  int responseCode = 0;
+
   if (daRC != RC_DYNALLOC_OK) {
     zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
       	    "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN);
+
+    deleteDatasetOrMemberAndRespond(response, targetDataset, responseMessage, &responseCode);
+
     respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
                              &daDsn, &daMember, "r");
     return;
@@ -2595,6 +2609,7 @@ void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, c
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "read");
     }
+    deleteDatasetOrMemberAndRespond(response, targetDataset, responseMessage, &responseCode);
     return;
   }
 
