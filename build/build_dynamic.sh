@@ -23,7 +23,21 @@ echo "Building ZIS Dynamic Linkage Base plugin..."
 
 mkdir -p "${WORKING_DIR}/tmp-zisdyn" && cd "$_"
 
-IFS='.' read -r major minor micro < "${ZSS}/version.txt"
+. ${ZSS}/build/zis.proj.env
+OLDIFS=$IFS
+IFS="."
+echo "${VERSION}"
+for part in ${VERSION}; do
+  if [ -z "$major" ]; then
+    major=$part
+  elif [ -z "$minor" ]; then
+    minor=$part
+  else
+    micro=$part
+  fi
+done
+IFS=$OLDIFS
+
 date_stamp=$(date +%Y%m%d)
 echo "Version: $major.$minor.$micro"
 echo "Date stamp: $date_stamp"
