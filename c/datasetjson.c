@@ -1666,11 +1666,11 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
   }
 
   if (isMemberEmpty) {
-    printf("---DELETED DATASET: %s\n", dsName);
     char* dsName;
     dsName = absolutePath+3;
     dsName[strlen(dsName) - 1] = '\0';
     sprintf(responseMessage, "Data set %s was deleted successfully", dsName);
+    printf("---DELETED DATASET: %s\n", dsName);
   }
   else {
     printf("---DELETED MEMBER: %s\n", daMemberName.name);
