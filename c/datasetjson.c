@@ -914,6 +914,44 @@ static void respondWithDYNALLOCError(HttpResponse *response,
 
 }
 
+static void getDYNALLOCErrorCodeAndMsg(int rc, int sysRC, int sysRSN,
+                                       const DynallocDatasetName *dsn,
+                                       const DynallocMemberName *member,
+                                       const char *site,
+                                       char* responseMessage,
+                                       int* responseCode) {
+
+  if (rc ==  RC_DYNALLOC_SVC99_FAILED && sysRC == 4) {
+
+    if (sysRSN == 0x020C0000 || sysRSN == 0x02100000) {
+      *responseCode = HTTP_STATUS_FORBIDDEN;
+      sprintf(responseMessage, "Dataset \'%44.44s(%8.8s)\' busy (%s)",
+                        dsn->name, member->name, site);
+      return;
+    }
+
+    if (sysRSN == 0x02180000) {
+      *responseCode = HTTP_STATUS_NOT_FOUND;
+      sprintf(responseMessage, "Device not available for dataset \'%44.44s(%8.8s)\' "
+                        "(%s)", dsn->name, member->name, site);
+      return;
+    }
+
+    if (sysRSN == 0x023C0000) {
+      *responseCode = HTTP_STATUS_NOT_FOUND;
+      sprintf(responseMessage, "Catalog not available for dataset \'%44.44s(%8.8s)\' "
+                        "(%s)", dsn->name, member->name, site);
+      return;
+    }
+
+  }
+
+  *responseCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+  sprintf(responseMessage, "DYNALLOC failed with RC = %d, DYN RC = %d, RSN = 0x%08X, "
+                    "dsn=\'%44.44s(%8.8s)\', (%s)", rc, sysRC, sysRSN,
+                    dsn->name, member->name, site);
+}
+
 #define IS_DAMEMBER_EMPTY($member) \
   (!memcmp(&($member), &(DynallocMemberName){"        "}, sizeof($member)))
 
@@ -1471,7 +1509,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 #endif /* __ZOWE_OS_ZOS */
 }
 
-int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, char* responseMessage) {
+int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, char* responseMessage, int* responseCode) {
 #ifdef __ZOWE_OS_ZOS
   printf("----INSIDE ---deleteDatasetOrMemberAndRespond\n");
   DatasetName datasetName;
@@ -1485,14 +1523,19 @@ int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, 
 
   char CSIType = getCSIType(absolutePath);
   if (CSIType == '') {
-    respondWithMessage(response, HTTP_STATUS_NOT_FOUND,
-                      "Dataset or member does not exist \'%44.44s(%8.8s)\' "
+    // respondWithMessage(response, HTTP_STATUS_NOT_FOUND,
+    //                   "Dataset or member does not exist \'%44.44s(%8.8s)\' "
+    //                   "(%s)", daDatasetName.name, daMemberName.name, "r");
+    *responseCode = HTTP_STATUS_NOT_FOUND;
+    sprintf(responseMessage, "Dataset or member does not exist \'%44.44s(%8.8s)\' "
                       "(%s)", daDatasetName.name, daMemberName.name, "r");
     return ERROR_DATASET_OR_MEMBER_NOT_EXIST;
   }
   if (isVsam(CSIType)) {
-    respondWithError(response, HTTP_STATUS_BAD_REQUEST,
-                     "VSAM dataset detected. Please use regular dataset route");
+    // respondWithError(response, HTTP_STATUS_BAD_REQUEST,
+    //                  "VSAM dataset detected. Please use regular dataset route");
+    *responseCode = HTTP_STATUS_BAD_REQUEST;
+    sprintf(responseMessage, "VSAM dataset detected. Please use regular dataset route");
     return ERROR_VSAM_DATASET_DETECTED;
   }
 
@@ -1512,9 +1555,12 @@ int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, 
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDatasetName.name, daMemberName.name, daDDName.name,
             daReturnCode, daSysReturnCode, daSysReasonCode);
-    respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
-                             daSysReasonCode, &daDatasetName, &daMemberName,
-                             "r");
+    // respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
+    //                          daSysReasonCode, &daDatasetName, &daMemberName,
+    //                          "r");
+    getDYNALLOCErrorCodeAndMsg(daReturnCode, daSysReturnCode,
+                               daSysReasonCode, &daDatasetName, &daMemberName,
+                               "r", responseMessage, responseCode);
     return ERROR_ALLOCATING_DATASET;
   }
   
@@ -1531,9 +1577,12 @@ int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, 
               " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
               daDatasetName.name, daMemberName.name, daDDName.name,
               daReturnCode, daSysReturnCode, daSysReasonCode);
-      respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
-                               daSysReasonCode, &daDatasetName, &daMemberName,
-                               "r");
+      // respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
+      //                          daSysReasonCode, &daDatasetName, &daMemberName,
+      //                          "r");
+      getDYNALLOCErrorCodeAndMsg(daReturnCode, daSysReturnCode,
+                                 daSysReasonCode, &daDatasetName, &daMemberName,
+                                 "r", responseMessage, responseCode);
       return ERROR_DEALLOCATING_DATASET;
     }  
   }
@@ -1549,12 +1598,16 @@ int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, 
                         0);                 /* Block size (zero if unknown) */
                       
     if (dcb == NULL) {
-      respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Data set could not be opened");
+      // respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Data set could not be opened");
+      *responseCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+      sprintf(responseMessage, "Data set could not be opened");
       return ERROR_OPENING_DATASET;
     }
     
     if (!memberExists(dsNameNullTerm, daMemberName)) {
-      respondWithError(response, HTTP_STATUS_NOT_FOUND, "Data set member does not exist");
+      // respondWithError(response, HTTP_STATUS_NOT_FOUND, "Data set member does not exist");
+      *responseCode = HTTP_STATUS_NOT_FOUND;
+      sprintf(responseMessage, "Data set member does not exist");
       closeSAM(dcb, 0);
       daReturnCode = dynallocUnallocDatasetByDDName(&daDDName, DYNALLOC_UNALLOC_FLAG_NONE,
                                                     &daSysReturnCode, &daSysReasonCode); 
@@ -1565,7 +1618,9 @@ int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, 
     belowMemberName = malloc24(DATASET_MEMBER_NAME_LEN); /* This must be allocated below the line */
     
     if (belowMemberName == NULL) {
-      respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Could not allocate member name");
+      // respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Could not allocate member name");
+      *responseCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+      sprintf(responseMessage, "Could not allocate member name");
       closeSAM(dcb, 0);
       return ERROR_ALLOCATING_DATASET;
     }
@@ -1584,12 +1639,12 @@ int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, 
                                                   &daSysReturnCode, &daSysReasonCode); 
     
     if (stowReturnCode != 0) {
-      char responseMessage[128];
-      snprintf(responseMessage, sizeof(responseMessage), "Member %8.8s could not be deleted\n", daMemberName.name);
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,
               "error: stowReturnCode=%d, stowReasonCode=%d\n",
               stowReturnCode, stowReasonCode);
-      respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, responseMessage);
+      // respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, responseMessage);
+      *responseCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+      sprintf(responseMessage, "Member %8.8s could not be deleted\n", daMemberName.name);
       return ERROR_DELETING_DATASET_OR_MEMBER;
     }
 
@@ -1599,9 +1654,12 @@ int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, 
               " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
               daDatasetName.name, daMemberName.name, daDDName.name,
               daReturnCode, daSysReturnCode, daSysReasonCode);
-      respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
-                               daSysReasonCode, &daDatasetName, &daMemberName,
-                               "r");
+      // respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
+      //                          daSysReasonCode, &daDatasetName, &daMemberName,
+      //                          "r");
+      getDYNALLOCErrorCodeAndMsg(daReturnCode, daSysReturnCode,
+                                 daSysReasonCode, &daDatasetName, &daMemberName,
+                                 "r", responseMessage, responseCode);
       return ERROR_ALLOCATING_DATASET;
     }
   }
@@ -1631,8 +1689,9 @@ void deleteDatasetFromRequest(HttpResponse* response, char* absolutePath) {
   }
 
   char responseMessage[100];
+  int responseCode = 0;
 
-  int rc = deleteDatasetOrMemberAndRespond(response, absolutePath, responseMessage);
+  int rc = deleteDatasetOrMemberAndRespond(response, absolutePath, responseMessage, &responseCode);
   if(rc >= 0) {
     printf("----DELETING FROM ---deleteDatasetFromRequest\n");
     jsonPrinter *p = respondWithJsonPrinter(response);
@@ -1647,6 +1706,7 @@ void deleteDatasetFromRequest(HttpResponse* response, char* absolutePath) {
  
     finishResponse(response);
   } else {
+    respondWithError(response, responseCode, responseMessage);
     printf("----ERROR RC WHILE DELETING---%d\n", rc);
   }
 #endif /* __ZOWE_OS_ZOS */
