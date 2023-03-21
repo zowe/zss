@@ -1523,6 +1523,7 @@ int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, 
 
   char CSIType = getCSIType(absolutePath);
   if (CSIType == '') {
+    printf("--------------NEW FUNCTION TO GET DYNALLOC ERROR\n");
     // respondWithMessage(response, HTTP_STATUS_NOT_FOUND,
     //                   "Dataset or member does not exist \'%44.44s(%8.8s)\' "
     //                   "(%s)", daDatasetName.name, daMemberName.name, "r");
@@ -1605,6 +1606,7 @@ int deleteDatasetOrMemberAndRespond(HttpResponse* response, char* absolutePath, 
     }
     
     if (!memberExists(dsNameNullTerm, daMemberName)) {
+      printf("--------------NEW FUNCTION TO GET DYNALLOC ERROR\n");
       // respondWithError(response, HTTP_STATUS_NOT_FOUND, "Data set member does not exist");
       *responseCode = HTTP_STATUS_NOT_FOUND;
       sprintf(responseMessage, "Data set member does not exist");
