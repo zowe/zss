@@ -89,3 +89,8 @@ jobs:
             .pax/zss.pax
           perform-release: ${{ github.event.inputs.PERFORM_RELEASE }}
  
+
+      - name: '[Prep Release] Bump version'
+        uses: zowe-actions/zlux-builds/bump-zis-version@users/jstruga/bump-zis
+        env: 
+         GITHUB_TOKEN: ${{ secrets.ZOWE_ROBOT_TOKEN }}
