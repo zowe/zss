@@ -2837,7 +2837,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
 
   if(isPDS == 1) {
     // Paste the entire PDS(E) directory
-    pastePDSDirectory(response, sourceDataset, targetDataset, datasetAttributes);
+    pastePDSDirectory(response, datasetAttributes, sourceDataset, targetDataset);
     return;
   }
 
