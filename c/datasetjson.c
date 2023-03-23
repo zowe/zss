@@ -2365,6 +2365,7 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
   bool isPDSE = NULL;
   char recFormat[3];
   int dirBlock = 0;
+  int isPDS = 0;
 
   getDatasetAttributes(buffer, &organization, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked, &isPDSE);
 
@@ -2379,6 +2380,7 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
   }
 
   if(!strcmp(organization, "sequential") || isSourceMember) {
+    // Target is a Physical Sequential dataset
     // Pasting a PS as PS or a member as PS dataset [PS -> PS OR Member -> PS]
     organization = "PS";
     dsnt = "";
@@ -2386,9 +2388,10 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
     organization = "PO";
     dsnt = (isPDSE) ? "PDSE" : "PDS";
     dirBlock = 10;
+    isPDS = 1;
     // Todo: We need to implement the copy paste for the PDS(E) and members.
-    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Do not support copy-paste for PDS(E) Dataset");
-    return ERROR_COPY_NOT_SUPPORTED;
+    // respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Do not support copy-paste for PDS(E) Dataset");
+    // return ERROR_COPY_NOT_SUPPORTED;
   }
 
   // Hardcoding these attributes because datasetMetadata API does not return it.
@@ -2404,7 +2407,7 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
 
   sprintf(datasetAttributes, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"%s\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": %d,\"prime\": %d,\"secnd\": %d,\"avgr\": \"U\",\"dsnt\": \"%s\"}\0", organization, space, totalBlockSize, maxRecordLen, recFormat, dirBlock, primaryQuantity, secondaryQuantity, dsnt);
 
-  return 0;
+  return isPDS;
 }
 
 int getTargetDsnRecordLength(char* targetDataset) {
@@ -2718,6 +2721,39 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
   return readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember);
 }
 
+void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceDataset, char* targetDataset) {
+  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+  char errorBuffer[2048];
+  Json *json = jsonParseUnterminatedString(slh,
+                                             buffer->data, buffer->len,
+                                             errorBuffer, sizeof(errorBuffer));
+  if (json) {
+    if (jsonIsObject(json)){
+      JsonObject *jsonObject = jsonAsObject(json);
+      // Get dataset array
+      JsonArray *datasetArray = jsonObjectGetArray(jsonObject,"datasets");
+      int i = 0;
+      Json *element = jsonArrayGetItem(datasetArray,i);
+      if(element && jsonIsObject(element)) {
+        JsonObject *jsonDatasetObject = jsonAsObject(element);
+        // Get members array
+        JsonArray *membersArray = jsonObjectGetArray(jsonDatasetObject,"members");
+        int memCount = jsonArrayGetCount(membersArray);
+        for(i=0; i<memCount; i++) {
+          printf("MEMBERS COUNT: %d", i);
+          Json *memberObject = jsonArrayGetItem(membersArray,i);
+          if(memberObject && jsonIsObject(memberObject)) {
+            JsonObject *jsonMemberObject = jsonAsObject(memberObject);
+            char* memName = jsonObjectGetString(jsonMemberObject,"name");
+            printf("MEMBER'S NAME HERE: %s", memName);
+          }
+        }
+      }
+    }
+  }
+  SLHFree(slh);
+}
+
 void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset) {
   #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
@@ -2790,21 +2826,22 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
 
   // To set attributes for target dataset
   char datasetAttributes[300];
-  int rc = 0;
-  rc = setAttrForDSCopyAndRespondIfError(response, datasetAttrBuffer, datasetAttributes, !isSourceMemberEmpty);
-
-  safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
-
-  if(rc != 0) {
-    return;
-  }
+  int isPDS = setAttrForDSCopyAndRespondIfError(response, datasetAttrBuffer, datasetAttributes, !isSourceMemberEmpty);
 
   int reasonCode = 0;
-  rc = createDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
+  int rc = createDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
 
   if(rc != 0) {
     return;
   }
+
+  if(isPDS == 1) {
+    // Paste the entire PDS(E) directory
+    pastePDSDirectory(response, sourceDataset, targetDataset, datasetAttributes);
+    return;
+  }
+
+  safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
 
   return readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember);
 
