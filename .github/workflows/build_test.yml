@@ -94,3 +94,4 @@ jobs:
         uses: zowe-actions/zlux-builds/bump-zis-version@users/jstruga/bump-zis
         env: 
          GITHUB_TOKEN: ${{ secrets.ZOWE_ROBOT_TOKEN }}
+         branch: 'users/jstruga/fix-zss-versions'
