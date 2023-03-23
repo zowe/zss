@@ -92,6 +92,7 @@ jobs:
 
       - name: '[Prep Release] Bump version'
         uses: zowe-actions/zlux-builds/bump-zis-version@users/jstruga/bump-zis
+        with:
+          branch-name: 'users/jstruga/fix-zss-versions'
         env: 
          GITHUB_TOKEN: ${{ secrets.ZOWE_ROBOT_TOKEN }}
-         branch: 'users/jstruga/fix-zss-versions'
