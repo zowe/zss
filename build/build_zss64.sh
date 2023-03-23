@@ -210,6 +210,7 @@ if ! c89 \
   ${COMMON}/c/radmin.c \
   ${COMMON}/c/rawfd.c \
   ${COMMON}/c/recovery.c \
+  ${COMMON}/c/rusermap.c \
   ${COMMON}/jwt/rscrypto/rs_icsfp11.c \
   ${COMMON}/jwt/rscrypto/rs_rsclibc.c \
   ${COMMON}/c/scheduling.c \
