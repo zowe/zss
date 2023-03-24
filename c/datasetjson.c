@@ -2798,10 +2798,10 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
 
   bool isSourceMemberEmpty = IS_DAMEMBER_EMPTY(daSourceMemName);
 
-  int dsnExists = checkIfDatasetExistsAndRespond(response, sourceDataset, !isSourceMemberEmpty);
-  if(dsnExists < 0 ) {
+  int srcDsnExists = checkIfDatasetExistsAndRespond(response, sourceDataset, !isSourceMemberEmpty);
+  if(srcDsnExists < 0 ) {
     return;
-  } else if(dsnExists == 0) {
+  } else if(srcDsnExists == 0) {
     respondWithJsonError(response, "Source dataset does not exist", 400, "Bad Request");
     return;
   }
@@ -2818,10 +2818,10 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
 
   bool isTargetMemberEmpty = IS_DAMEMBER_EMPTY(daTargetMemName);
 
-  int dsnExists = checkIfDatasetExistsAndRespond(response, targetDataset, !isTargetMemberEmpty);
-  if(dsnExists < 0 ) {
+  int tarDsnExists = checkIfDatasetExistsAndRespond(response, targetDataset, !isTargetMemberEmpty);
+  if(tarDsnExists < 0 ) {
     return;
-  } else if(dsnExists == 1) {
+  } else if(tarDsnExists == 1) {
     respondWithJsonError(response, "Target dataset already exists", 400, "Bad Request");
     return;
   }
