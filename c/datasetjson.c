@@ -2741,12 +2741,15 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
         JsonArray *membersArray = jsonObjectGetArray(jsonDatasetObject,"members");
         int memCount = jsonArrayGetCount(membersArray);
         for(i=0; i<memCount; i++) {
-          printf("MEMBERS COUNT: %d", i);
+          printf("MEMBERS COUNT: %d\n", i);
           Json *memberObject = jsonArrayGetItem(membersArray,i);
           if(memberObject && jsonIsObject(memberObject)) {
             JsonObject *jsonMemberObject = jsonAsObject(memberObject);
             char* memName = jsonObjectGetString(jsonMemberObject,"name");
-            printf("MEMBER'S NAME HERE: %s", memName);
+            printf("MEMBER'S NAME HERE: %s\n", memName);
+            char newDSMemName[44];
+            sprintf(newDSMemName, "%s(%s)", targetDataset, memName);
+            printf("NEW DS MEMBER NAME: %s \n", newDSMemName);
           }
         }
       }
