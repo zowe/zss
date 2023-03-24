@@ -2803,6 +2803,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
     return;
   } else if(dsnExists == 0) {
     respondWithJsonError(response, "Source dataset does not exist", 400, "Bad Request");
+    return;
   }
 
   DatasetName targetDsnName;
@@ -2822,6 +2823,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
     return;
   } else if(dsnExists == 1) {
     respondWithJsonError(response, "Target dataset already exists", 400, "Bad Request");
+    return;
   }
 
   // Pasting as a dataset member [PS -> Member OR Member -> Member]
