@@ -2710,7 +2710,7 @@ int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool i
 }
 
 void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* targetDataset) {
-  printf("---PASTING AS A MEMBER\n");
+  printf("---PASTING AS A MEMBER: %s\n", targetDataset);
   bool isTargetMember = true;
 
   int reasonCode = 0;
@@ -2748,7 +2748,7 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
             char* memName = jsonObjectGetString(jsonMemberObject,"name");
             printf("MEMBER'S NAME HERE: %s\n", memName);
             char newDSMemName[44];
-            sprintf(newDSMemName, "%s(%s)", targetDataset, memName);
+            sprintf(newDSMemName, "//'%s(%s)'", targetDataset, memName);
             printf("NEW DS MEMBER NAME: %s \n", newDSMemName);
           }
         }
@@ -2852,7 +2852,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
 
   if(isPDS == 1) {
     // Paste the entire PDS(E) directory
-    pastePDSDirectory(response, datasetAttrBuffer, sourceDataset, targetDataset);
+    pastePDSDirectory(response, datasetAttrBuffer, sourceDataset, targetDsnName.value);
     return;
   }
 
