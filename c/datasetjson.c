@@ -1180,6 +1180,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
 static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char *datasetPath,
                                   const char *lastEtag, bool force) {
 
+  printf("FUNCTION updateDatasetWithJSON\n");
   HttpRequest *request = response->request;
 
   if (!isDatasetPathValid(datasetPath)) {
@@ -1511,6 +1512,8 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 
 int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* responseMessage, int* responseCode) {
   printf("----NAME---:%.*s \n", strlen(absolutePath), absolutePath);
+  printf("FUNCTION deleteDatasetOrMember\n");
+
 #ifdef __ZOWE_OS_ZOS
   printf("----INSIDE ---deleteDatasetOrMember\n");
   DatasetName datasetName;
@@ -1551,6 +1554,7 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
               );
   
   if (daReturnCode != RC_DYNALLOC_OK) {
+    printf("Line 1558\n");
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,
     		    "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
@@ -1574,6 +1578,7 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
                                                    TRUE /* Delete data set on deallocation */
                                                    ); 
     if (daReturnCode != RC_DYNALLOC_OK) {
+      printf("Line 1581\n");
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,
     		      "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
               " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
@@ -1659,6 +1664,7 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
     printf("Passing show return code check on line 1659\n");
 
     if (daReturnCode != RC_DYNALLOC_OK) {
+      printf("Line 1667\n");
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,
     		      "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
               " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
@@ -1950,7 +1956,7 @@ static void respondWithDatasetInternal(HttpResponse* response,
 }
 
 void respondWithDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
-
+  printf("FUNCTION respondWithDataset\n");
   HttpRequest *request = response->request;
 
   if (!isDatasetPathValid(absolutePath)) {
@@ -2573,7 +2579,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
 }
 
 void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset, bool isTargetMember) {
-
+  printf("FUNCTION readWriteToDatasetAndRespond\n");
   DatasetName dsn;
   DatasetMemberName memberName;
   extractDatasetAndMemberName(sourceDataset, &dsn, &memberName);
@@ -2661,8 +2667,9 @@ int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool i
         return ERROR_CLOSING_DATASET;
       }
       else {
-        respondWithJsonError(response, "Member already exists", 400, "Bad Request");
-        return ERROR_MEMBER_ALREADY_EXISTS;
+        // respondWithJsonError(response, "Member already exists", 400, "Bad Request");
+        // return ERROR_MEMBER_ALREADY_EXISTS;
+        return 1;
       }
     }
     return 0;
@@ -2702,8 +2709,9 @@ int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool i
   SLHFree(slh);
 
   if(datasetCount > 0) {
-    respondWithJsonError(response, "Target dataset already exists", 400, "Bad Request");
-    return ERROR_DATASET_ALREADY_EXIST;;
+    // respondWithJsonError(response, "Target dataset already exists", 400, "Bad Request");
+    // return ERROR_DATASET_ALREADY_EXIST;
+    return 1;
   }
   return 0;
 }
@@ -2790,6 +2798,13 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
 
   bool isSourceMemberEmpty = IS_DAMEMBER_EMPTY(daSourceMemName);
 
+  int dsnExists = checkIfDatasetExistsAndRespond(response, sourceDataset, !isSourceMemberEmpty);
+  if(dsnExists < 0 ) {
+    return;
+  } else if(dsnExists == 0) {
+    respondWithJsonError(response, "Source dataset does not exist", 400, "Bad Request");
+  }
+
   DatasetName targetDsnName;
   DatasetMemberName targetMemName;
   extractDatasetAndMemberName(targetDataset, &targetDsnName, &targetMemName);
@@ -2805,6 +2820,8 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   int dsnExists = checkIfDatasetExistsAndRespond(response, targetDataset, !isTargetMemberEmpty);
   if(dsnExists < 0 ) {
     return;
+  } else if(dsnExists == 1) {
+    respondWithJsonError(response, "Target dataset already exists", 400, "Bad Request");
   }
 
   // Pasting as a dataset member [PS -> Member OR Member -> Member]
@@ -3436,7 +3453,7 @@ int createDatasetMember(HttpResponse* response, DatasetName* datasetName, char* 
 
 int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode) {
   #ifdef __ZOWE_OS_ZOS
-
+  printf("FUNCTION createDataset");
   DatasetName datasetName;
   DatasetMemberName memberName;
   extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
