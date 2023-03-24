@@ -1180,7 +1180,6 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
 static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char *datasetPath,
                                   const char *lastEtag, bool force) {
 
-  printf("FUNCTION updateDatasetWithJSON\n");
   HttpRequest *request = response->request;
 
   if (!isDatasetPathValid(datasetPath)) {
@@ -1512,7 +1511,6 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 
 int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* responseMessage, int* responseCode) {
   printf("----NAME---:%.*s \n", strlen(absolutePath), absolutePath);
-  printf("FUNCTION deleteDatasetOrMember\n");
 
 #ifdef __ZOWE_OS_ZOS
   printf("----INSIDE ---deleteDatasetOrMember\n");
@@ -1554,7 +1552,6 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
               );
   
   if (daReturnCode != RC_DYNALLOC_OK) {
-    printf("Line 1558\n");
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,
     		    "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
@@ -1578,7 +1575,6 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
                                                    TRUE /* Delete data set on deallocation */
                                                    ); 
     if (daReturnCode != RC_DYNALLOC_OK) {
-      printf("Line 1581\n");
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,
     		      "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
               " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
@@ -1664,7 +1660,6 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
     printf("Passing show return code check on line 1659\n");
 
     if (daReturnCode != RC_DYNALLOC_OK) {
-      printf("Line 1667\n");
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,
     		      "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
               " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
@@ -1956,7 +1951,6 @@ static void respondWithDatasetInternal(HttpResponse* response,
 }
 
 void respondWithDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
-  printf("FUNCTION respondWithDataset\n");
   HttpRequest *request = response->request;
 
   if (!isDatasetPathValid(absolutePath)) {
@@ -2579,7 +2573,6 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
 }
 
 void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset, bool isTargetMember) {
-  printf("FUNCTION readWriteToDatasetAndRespond\n");
   DatasetName dsn;
   DatasetMemberName memberName;
   extractDatasetAndMemberName(sourceDataset, &dsn, &memberName);
@@ -3455,7 +3448,6 @@ int createDatasetMember(HttpResponse* response, DatasetName* datasetName, char* 
 
 int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode) {
   #ifdef __ZOWE_OS_ZOS
-  printf("FUNCTION createDataset");
   DatasetName datasetName;
   DatasetMemberName memberName;
   extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
