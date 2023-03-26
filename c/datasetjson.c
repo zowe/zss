@@ -41,6 +41,7 @@
 #include "jcsi.h"
 #include "impersonation.h"
 #include "dynalloc.h"
+#include "dsutils.h"
 #include "utils.h"
 #include "vsam.h"
 #include "qsam.h"
@@ -53,108 +54,19 @@
 #define CLASS_WRITER_SIZE 8
 #define TOTAL_TEXT_UNITS  23
 
-static char defaultDatasetTypesAllowed[3] = {'A','D','X'};
+
 static char clusterTypesAllowed[3] = {'C','D','I'}; /* TODO: support 'I' type DSNs */
 static int clusterTypesCount = 3;
 static char *datasetStart = "//'";
-static char *defaultCSIFields[] ={ "NAME    ", "TYPE    ", "VOLSER  "};
-static int defaultCSIFieldCount = 3;
+
+
 static char *defaultVSAMCSIFields[] ={"AMDCIREC", "AMDKEY  ", "ASSOC   ", "VSAMTYPE"};
 static int defaultVSAMCSIFieldCount = 4;
 static char vsamCSITypes[5] = {'R', 'D', 'G', 'I', 'C'};
 
-static char getRecordLengthType(char *dscb);
-static int getMaxRecordLength(char *dscb);
-
-const static int DSCB_TRACE = FALSE;
-
-typedef struct DatasetName_tag {
-  char value[44]; /* space-padded */
-} DatasetName;
-
-typedef struct DatasetMemberName_tag {
-  char value[8]; /* space-padded */
-} DatasetMemberName;
-
-typedef struct DDName_tag {
-  char value[8]; /* space-padded */
-} DDName;
-
-typedef struct Volser_tag {
-  char value[6]; /* space-padded */
-} Volser;
-
-static int getVolserForDataset(const DatasetName *dataset, Volser *volser);
 static bool memberExists(char* dsName, DynallocMemberName daMemberName);
 static int getDSCB(DatasetName *dsName, char* dscb, int bufferSize);
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit);
-
-
-static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
-  int lrecl = 0;
-
-  FileInfo info;
-  int returnCode;
-  int reasonCode;
-  FILE *in = fopen(ddPath, "r");
-  if (in == NULL) {
-    respondWithError(response,HTTP_STATUS_NOT_FOUND,"File could not be opened or does not exist");
-    return 0;
-  }
-
-  Volser volser;
-  memset(&volser.value, ' ', sizeof(volser.value));
-
-  int volserSuccess = getVolserForDataset(dsn, &volser);
-  int handledThroughDSCB = FALSE;
-
-  if (!volserSuccess){
-    
-    char dscb[INDEXED_DSCB] = {0};
-    int rc = obtainDSCB1(dsn->value, sizeof(dsn->value),
-                         volser.value, sizeof(volser.value),
-                         dscb);
-    if (rc == 0){
-      if (DSCB_TRACE){
-        zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "DSCB for %.*s found\n", sizeof(dsn->value), dsn->value);
-        dumpbuffer(dscb,INDEXED_DSCB);
-      }
-
-      lrecl = getMaxRecordLength(dscb);
-      char recordType = getRecordLengthType(dscb);
-      if (recordType == 'U'){
-        fclose(in);
-        respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
-        return 0;
-      }
-      handledThroughDSCB = TRUE;
-    }
-  }
-  if (!handledThroughDSCB){
-    FileInfo info;
-    fldata_t fileinfo = {0};
-    char filenameOutput[100];
-    int returnCode = fldata(in,filenameOutput,&fileinfo);
-    zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "FLData request rc=0x%x\n",returnCode);
-    if (!returnCode) {
-      if (fileinfo.__recfmU) {
-        fclose(in);
-        respondWithError(response,  HTTP_STATUS_BAD_REQUEST,
-                         "Undefined-length dataset");
-        return 0;
-      }
-      lrecl = fileinfo.__maxreclen;
-    } else {
-      fclose(in);
-      respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
-                       "Could not read dataset information");
-      return 0;
-    }
-  }
-  fclose(in);
-
-  return lrecl;
-}
 
 /*
  TODO this duplicates a lot of stremDataset. Thinking of putting conditionals on streamDataset writing to json stream, but then function becomes misleading.
@@ -164,7 +76,7 @@ static char *getDatasetETag(char *filename, int recordLength, int *rc, int *eTag
 #ifdef __ZOWE_OS_ZOS
   int rcEtag = 0;
   int eTagLength = 0;
-    
+   
   // Note: to allow processing of zero-length records set _EDC_ZERO_RECLEN=Y
   int defaultSize = DATA_STREAM_BUFFER_SIZE;
   FILE *in;
@@ -558,73 +470,6 @@ static bool isSupportedWriteDsorg(char *dscb, bool *isPds) {
   }
 }
 
-static int obtainDSCB1(const char *dsname, unsigned int dsnameLength,
-                       const char *volser, unsigned int volserLength,
-                       char *dscb1) {
-
-#define DSCB1_SIZE                    96
-
-#define SVC27_WORKAREA_SIZE           140
-#define SVC27_OPCODE_SEARCH           0xC100
-#define SVC27_OPCODE_SEEK             0xC080
-
-#define SVC27_OPTION_NO_TIOT_ENQ      0x80
-#define SVC27_OPTION_NO_DUMMY_DSCB1   0x40
-#define SVC27_OPTION_NO_CAT_ALLOC     0x20
-#define SVC27_OPTION_HIDE_NAME        0x10
-#define SVC27_OPTION_EADSCB_OK        0x08
-
-  ALLOC_STRUCT31(
-    STRUCT31_NAME(mem31),
-    STRUCT31_FIELDS(
-      char dsnameSpacePadded[44];
-      char volserSpacePadded[6];
-      char workArea[SVC27_WORKAREA_SIZE];
-      __packed struct {
-        int operationCode : 16;
-        int option        : 8;
-        int dscbNumber    : 8;
-        char * __ptr32 dsname;
-        char * __ptr32 volser;
-        char * __ptr32 workArea;
-      } parmList;
-    )
-  );
-
-  memset(mem31->dsnameSpacePadded, ' ', sizeof(mem31->dsnameSpacePadded));
-  memcpy(mem31->dsnameSpacePadded, dsname, dsnameLength);
-  memset(mem31->volserSpacePadded, ' ', sizeof(mem31->volserSpacePadded));
-  memcpy(mem31->volserSpacePadded, volser, volserLength);
-
-  memset(mem31->workArea, 0, sizeof(mem31->workArea));
-
-  mem31->parmList.operationCode = SVC27_OPCODE_SEARCH;
-  mem31->parmList.option = SVC27_OPTION_EADSCB_OK;
-  mem31->parmList.dscbNumber = 0;
-  mem31->parmList.dsname = mem31->dsnameSpacePadded;
-  mem31->parmList.volser =  mem31->volserSpacePadded;
-  mem31->parmList.workArea = mem31->workArea;
-
-  int rc = 0;
-
-  __asm(
-      "         LA    1,0(%1)                                                  \n"
-      "         SVC   27                                                       \n"
-      "         ST    15,%0                                                    \n"
-      : "=m"(rc)
-      : "r"(&mem31->parmList)
-      : "r0", "r15"
-  );
-
-  memcpy(dscb1, mem31->workArea, DSCB1_SIZE);
-
-  FREE_STRUCT31(
-    STRUCT31_NAME(mem31)
-  );
-
-  return rc;
-}
-
 #ifdef __ZOWE_OS_ZOS
 void addDetailedDatasetMetadata(char *datasetName, int nameLength,
                                 char *volser, int volserLength,
@@ -633,7 +478,7 @@ void addDetailedDatasetMetadata(char *datasetName, int nameLength,
   int isPDS = FALSE;
   zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Going to check dataset %s attributes\n",datasetName);
   char dscb[INDEXED_DSCB] = {0};
-  int rc = obtainDSCB1(datasetName, nameLength,
+  int rc = dsutilsObtainDSCB1(datasetName, nameLength,
                        volser, volserLength,
                        dscb);
   if (rc == 0){
@@ -660,7 +505,7 @@ void addMemberedDatasetMetadata(char *datasetName, int nameLength,
 
   int isPDS = FALSE;
   char dscb[INDEXED_DSCB] = {0};
-  int rc = obtainDSCB1(datasetName, nameLength,
+  int rc = dsutilsObtainDSCB1(datasetName, nameLength,
                        volser, volserLength,
                        dscb);
 
@@ -736,129 +581,6 @@ void addMemberedDatasetMetadata(char *datasetName, int nameLength,
 
 #ifdef __ZOWE_OS_ZOS
 
-#define DSPATH_PREFIX   "//\'"
-#define DSPATH_SUFFIX   "\'"
-
-static bool isDatasetPathValid(const char *path) {
-
-  /* Basic check. The fopen() dataset path format is //'dsn(member)' */
-
-  /* Min dataset file name:
-   * //'              - 3
-   * min ds name      - 1
-   * '                - 1
-   */
-#define PATH_MIN_LENGTH 5
-
-  /* Max dataset file name:
-   * //'              - 3
-   * man ds name      - 44
-   * (                - 1
-   * max member name  - 8
-   * )                - 1
-   * '                - 1
-   */
-#define PATH_MAX_LENGTH 58
-
-#define DSN_MIN_LENGTH      1
-#define DSN_MAX_LENGTH      44
-#define MEMBER_MIN_LENGTH   1
-#define MEMBER_MAX_LENGTH   8
-
-  size_t pathLength = strlen(path);
-
-  if (pathLength < PATH_MIN_LENGTH || PATH_MAX_LENGTH < pathLength) {
-    return false;
-  }
-
-  if (memcmp(path, DSPATH_PREFIX, strlen(DSPATH_PREFIX))) {
-    return false;
-  }
-  if (memcmp(&path[pathLength - 1], DSPATH_SUFFIX, strlen(DSPATH_SUFFIX))) {
-    return false;
-  }
-
-  const char *dsnStart = path + strlen(DSPATH_PREFIX);
-  const char *dsnEnd = path + pathLength - 1 - strlen(DSPATH_SUFFIX);
-
-  const char *leftParen = strchr(dsnStart, '(');
-  const char *rightParen = strchr(dsnStart, ')');
-
-  if (!leftParen ^ !rightParen) {
-    return false;
-  }
-
-  if (leftParen) {
-
-    ptrdiff_t dsnLength = leftParen - dsnStart;
-    if (dsnLength < DSN_MIN_LENGTH || DSN_MAX_LENGTH < dsnLength) {
-      return false;
-    }
-
-    if (rightParen != dsnEnd) {
-      return false;
-    }
-
-    ptrdiff_t memberNameLength = rightParen - leftParen - 1;
-    if (memberNameLength < MEMBER_MIN_LENGTH || MEMBER_MAX_LENGTH < memberNameLength) {
-      return false;
-    }
-
-  } else {
-
-    ptrdiff_t dsnLength = dsnEnd - dsnStart + 1;
-    if (dsnLength < DSN_MIN_LENGTH || DSN_MAX_LENGTH < dsnLength) {
-      return false;
-    }
-
-  }
-
-#undef PATH_MIN_LENGTH
-#undef PATH_MAX_LENGTH
-
-#undef DSN_MIN_LENGTH
-#undef DSN_MAX_LENGTH
-#undef MEMBER_MIN_LENGTH
-#undef MEMBER_MAX_LENGTH
-
-  return true;
-
-}
-
-static void extractDatasetAndMemberName(const char *datasetPath,
-                                        DatasetName *dsn,
-                                        DatasetMemberName *memberName) {
-
-  memset(&dsn->value, ' ', sizeof(dsn->value));
-  memset(&memberName->value, ' ', sizeof(memberName->value));
-
-  size_t pathLength = strlen(datasetPath);
-
-  const char *dsnStart = datasetPath + strlen(DSPATH_PREFIX);
-  const char *leftParen = strchr(datasetPath, '(');
-
-  if (leftParen) {
-    memcpy(dsn->value, dsnStart, leftParen - dsnStart);
-    const char *rightParen = strchr(datasetPath, ')');
-    memcpy(memberName->value, leftParen + 1, rightParen - leftParen - 1);
-  } else {
-    memcpy(dsn->value, dsnStart,
-           pathLength - strlen(DSPATH_PREFIX""DSPATH_SUFFIX));
-  }
-
-  for (int i = 0; i < sizeof(dsn->value); i++) {
-    dsn->value[i] = toupper(dsn->value[i]);
-  }
-
-  for (int i = 0; i < sizeof(memberName->value); i++) {
-    memberName->value[i] = toupper(memberName->value[i]);
-  }
-
-}
-
-#undef DSPATH_PREFIX
-#undef DSPATH_SUFFIX
-
 static void respondWithDYNALLOCError(HttpResponse *response,
                                      int rc, int sysRC, int sysRSN,
                                      const DynallocDatasetName *dsn,
@@ -918,11 +640,11 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
   Volser volser;
   memset(&volser.value, ' ', sizeof(volser.value));
 
-  int volserSuccess = getVolserForDataset(dsn, &volser);
+  int volserSuccess = dsutilsGetVolserForDataset(dsn, &volser);
   if (!volserSuccess){
     
     char dscb[INDEXED_DSCB] = {0};
-    int rc = obtainDSCB1(dsn->value, sizeof(dsn->value),
+    int rc = dsutilsObtainDSCB1(dsn->value, sizeof(dsn->value),
                          volser.value, sizeof(volser.value),
                          dscb);
     if (rc == 0){
@@ -950,8 +672,8 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
         }
       }
       
-      maxRecordLength = getMaxRecordLength(dscb);
-      char recordType = getRecordLengthType(dscb);
+      maxRecordLength = dsutilsGetMaxRecordLength(dscb);
+      char recordType = dsutilsGetRecordLengthType(dscb);
       if (recordType == 'F'){
         isFixed = TRUE;
       } else if (recordType == 'U') {
@@ -1127,7 +849,7 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
 
   HttpRequest *request = response->request;
 
-  if (!isDatasetPathValid(datasetPath)) {
+  if (!dsutilsIsDatasetPathValid(datasetPath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
     return;
   }
@@ -1139,7 +861,7 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
 
   DatasetName dsn;
   DatasetMemberName memberName;
-  extractDatasetAndMemberName(datasetPath, &dsn, &memberName);
+  dsutilsExtractDatasetAndMemberName(datasetPath, &dsn, &memberName);
   
   DynallocDatasetName daDsn;
   DynallocMemberName daMember;
@@ -1180,7 +902,18 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
   int eTagRC = 0;
   if (!force) { //do not write dataset if current contents do not match contents client expected, unless forced
     int eTagReturnLength = 0;
-    int lrecl = getLreclOrRespondError(response, &dsn, ddPath);
+    int lrecl = dsutilsGetLreclOr(&dsn, ddPath);
+    if (lrecl == -1) {
+      respondWithError(response, HTTP_STATUS_NOT_FOUND, "File could not be opened or does not exist");
+    }
+    else if (lrecl == -2){
+      respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Undefined-length dataset");
+    }
+    else if (lrecl == -3){
+      respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
+                       "Could not read dataset information");
+    }
+
     if (lrecl) {
       char *eTag = getDatasetETag(ddPath, lrecl, &eTagRC, &eTagReturnLength);
       zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_INFO, "Given etag=%s, current etag=%s\n",lastEtag, eTag);
@@ -1307,77 +1040,6 @@ static void updateVSAMDatasetWithJSON(HttpResponse *response, JsonObject *json, 
 #define NATIVE_CODEPAGE CCSID_EBCDIC_1047
 #endif
 
-/*
-  Dataset only, no wildcards or pds members accepted - beware that this should be wrapped with authentication
- */
-static int getVolserForDataset(const DatasetName *dataset, Volser *volser) {
-  if (dataset == NULL){
-    return -1;
-  }
-  int length = sizeof(dataset->value);
-
-  char dsnNullTerm[45] = {0};
-  memcpy(dsnNullTerm, dataset->value, sizeof(dataset->value));
-
-  int lParenIndex = indexOf(dsnNullTerm, length, '(', 0);
-  int asterixIndex = indexOf(dsnNullTerm, length, '*', 0);
-  int dollarIndex = indexOf(dsnNullTerm, length, '$', 0);
-  if (lParenIndex > -1 || asterixIndex > -1 || dollarIndex > -1){
-    return -1;
-  }
-  csi_parmblock * __ptr32 returnParms = (csi_parmblock* __ptr32)safeMalloc31(sizeof(csi_parmblock),"CSI ParmBlock");
-  EntryDataSet *entrySet = returnEntries(dsnNullTerm, defaultDatasetTypesAllowed,3, 0, defaultCSIFields, defaultCSIFieldCount, NULL, NULL, returnParms);
-  
-  EntryData *entry = entrySet->entries ? entrySet->entries[0] : NULL;
-  int rc = -1;
-  if (entry){
-    char *fieldData = (char*)entry+sizeof(EntryData);
-    unsigned short *fieldLengthArray = ((unsigned short *)((char*)entry+sizeof(EntryData)));
-    char *fieldValueStart = (char*)entry+sizeof(EntryData)+defaultCSIFieldCount*sizeof(short);
-    for (int j=0; j<defaultCSIFieldCount; j++){
-      if (!strcmp(defaultCSIFields[j],"VOLSER  ") && fieldLengthArray[j]){
-        memcpy(volser->value,fieldValueStart,6);
-        rc = 0;
-        break;
-      }
-      fieldValueStart += fieldLengthArray[j];
-    }
-  }
-
-  for (int i = 0; i < entrySet->length; i++){
-    EntryData *currentEntry = entrySet->entries[i];
-    int fieldDataLength = currentEntry->data.fieldInfoHeader.totalLength;
-    int entrySize = sizeof(EntryData)+fieldDataLength-4;
-    safeFree((char*)(currentEntry),entrySize);
-  }
-  if (entrySet->entries != NULL) {
-    safeFree((char*)(entrySet->entries),sizeof(EntryData*)*entrySet->size);
-    entrySet->entries = NULL;
-  }
-  safeFree((char*)entrySet,sizeof(EntryDataSet));    
-  safeFree31((char*)returnParms,sizeof(csi_parmblock));
-  return rc;
-}
-
-static char getRecordLengthType(char *dscb){
-  int posOffset = 44;
-  int recfm = dscb[84 - posOffset];
-  if ((recfm & 0xc0) == 0xc0){
-    return 'U';
-  }
-  else if (recfm & 0x80){
-    return 'F';
-  }
-  else if (recfm & 0x40){
-    return 'V';
-  }
-}
-
-static int getMaxRecordLength(char *dscb){
-  int posOffset = 44;
-  int lrecl = (dscb[88-posOffset] << 8) | dscb[89-posOffset];
-  return lrecl;
-}
 
 void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 #ifdef __ZOWE_OS_ZOS
@@ -1457,14 +1119,14 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 void deleteDatasetOrMember(HttpResponse* response, char* absolutePath) {
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
-  if (!isDatasetPathValid(absolutePath)) {
+  if (!dsutilsIsDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
     return;
   }
   
   DatasetName datasetName;
   DatasetMemberName memberName;
-  extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
+  dsutilsExtractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
   DynallocDatasetName daDatasetName;
   DynallocMemberName daMemberName;
   memcpy(daDatasetName.name, datasetName.value, sizeof(daDatasetName.name));
@@ -1661,7 +1323,7 @@ char getCSIType(char* absolutePath) {
 
   DatasetName datasetName;
   DatasetMemberName memberName;
-  extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
+  dsutilsExtractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
 
   char dsNameNullTerm[DATASET_NAME_LEN + 1] = {0};
   memcpy(dsNameNullTerm, datasetName.value, sizeof(datasetName.value));
@@ -1689,7 +1351,7 @@ void deleteVSAMDataset(HttpResponse* response, char* absolutePath) {
 #ifdef __ZOWE_OS_ZOS
   HttpRequest *request = response->request;
   
-  if (!isDatasetPathValid(absolutePath)) {
+  if (!dsutilsIsDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
     return;
   }
@@ -1823,9 +1485,16 @@ static void respondWithDatasetInternal(HttpResponse* response,
   char ddPath[16];
   snprintf(ddPath, sizeof(ddPath), "DD:%8.8s", ddName->value);
 
-  int lrecl = getLreclOrRespondError(response, dsn, ddPath);
-  if (!lrecl) {
-    return;
+  int lrecl = dsutilsGetLreclOr(dsn, ddPath);
+  if (lrecl == -1) {
+    respondWithError(response, HTTP_STATUS_NOT_FOUND, "File could not be opened or does not exist");
+  }
+  else if (lrecl == -2){
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Undefined-length dataset");
+  }
+  else if (lrecl == -3){
+    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
+                       "Could not read dataset information");
   }
 
   jsonPrinter *jPrinter = respondWithJsonPrinter(response);
@@ -1849,14 +1518,14 @@ void respondWithDataset(HttpResponse* response, char* absolutePath, int jsonMode
 
   HttpRequest *request = response->request;
 
-  if (!isDatasetPathValid(absolutePath)) {
+  if (!dsutilsIsDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
     return;
   }
 
   DatasetName dsn;
   DatasetMemberName memberName;
-  extractDatasetAndMemberName(absolutePath, &dsn, &memberName);
+  dsutilsExtractDatasetAndMemberName(absolutePath, &dsn, &memberName);
 
   DynallocDatasetName daDsn;
   DynallocMemberName daMember;
@@ -2235,7 +1904,7 @@ void respondWithDatasetMetadata(HttpResponse *response) {
   char *absDsPathTemp = stringConcatenate(response->slh, "//'", percentDecoded);
   char *absDsPath = stringConcatenate(response->slh, absDsPathTemp, "'");
 
-  if(!isDatasetPathValid(absDsPath)){
+  if(!dsutilsIsDatasetPathValid(absDsPath)){
     respondWithError(response,HTTP_STATUS_BAD_REQUEST,"Invalid dataset path");
     return;
   }
@@ -2247,7 +1916,7 @@ void respondWithDatasetMetadata(HttpResponse *response) {
   DatasetMemberName memName;
   int memberNameLength = 0;
 
-  extractDatasetAndMemberName(absDsPath, &dsnName, &memName);
+  dsutilsExtractDatasetAndMemberName(absDsPath, &dsnName, &memName);
   memberNameLength = (unsigned int)rParenIndex  - (unsigned int)lParenIndex -1;
   
   HttpRequestParam *addQualifiersParam = getCheckedParam(request,"addQualifiers");
@@ -2912,4 +2581,3 @@ void newDataset(HttpResponse* response, char* absolutePath, int jsonMode){
   
   Copyright Contributors to the Zowe Project.
 */
-

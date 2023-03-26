@@ -243,7 +243,9 @@ xlc \
   ${ZSS}/c/unixFileService.c \
   ${ZSS}/c/datasetService.c \
   ${ZSS}/c/datasetjson.c \
+  ${ZSS}/c/dsutils.c \
   ${ZSS}/c/envService.c \
+  ${ZSS}/c/jesService.c \
   ${ZSS}/c/zosDiscovery.c \
   ${ZSS}/c/securityService.c \
   ${ZSS}/c/registerProduct.c \
