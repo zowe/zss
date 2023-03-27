@@ -70,6 +70,7 @@
 #define ERROR_DELETING_DATASET_OR_MEMBER  -16
 #define ERROR_INVALID_JSON_BODY           -17
 #define ERROR_COPY_NOT_SUPPORTED          -18
+#define ERROR_COPYING_DATASET             -19
 
 static char defaultDatasetTypesAllowed[3] = {'A','D','X'};
 static char clusterTypesAllowed[3] = {'C','D','I'}; /* TODO: support 'I' type DSNs */
@@ -2453,7 +2454,7 @@ int getTargetDsnRecordLength(char* targetDataset) {
   return targetRecLen;
 }
 
-void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, int sourceRecordLen, char *targetDataset, bool isTargetMember) {
+int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, int sourceRecordLen, char *targetDataset, bool isTargetMember, char* msgBuffer, char* etag) {
 
   FILE *inDataset = fopen(sourceDataset,"rb, type=record");
 
@@ -2464,7 +2465,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
   if (inDataset == NULL) {
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"Source dataset could not be opened or does not exist");
-    return;
+    return ERROR_OPENING_DATASET;
   }
 
   FILE *outDataset = fopen(targetDataset, "wb, recfm=*, type=record");
@@ -2473,7 +2474,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"Target dataset could not be opened or does not exist");
     fclose(inDataset);
-    return;
+    return ERROR_OPENING_DATASET;
   }
 
   ICSFDigest digest;
@@ -2491,7 +2492,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
       fclose(outDataset);
       respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Cannot copy dataset. Record length for target dataset is shorter than the source");
       rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
-      return;
+      return ERROR_COPYING_DATASET;
     }
   }
 
@@ -2514,7 +2515,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
         fclose(outDataset);
         respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to dataset");
         rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
-        return;
+        return ERROR_COPYING_DATASET;
       } else if (!rcEtag) {
         rcEtag = icsfDigestUpdate(&digest, buffer, bytesWritten);
       }
@@ -2526,7 +2527,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
       respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to the dataset");
       rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,  "Error reading DSN=%s, rc=%d\n", sourceDataset, bytesRead);
-      return;
+      return ERROR_COPYING_DATASET;
     }
   }
 
@@ -2535,29 +2536,29 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "ICSF error for SHA etag, %d\n",rcEtag);
   }
 
-  jsonPrinter *p = respondWithJsonPrinter(response);
-  setResponseStatus(response, 201, "Successfully Copied Dataset");
-  setDefaultJSONRESTHeaders(response);
-  writeHeader(response);
-  jsonStart(p);
+  // jsonPrinter *p = respondWithJsonPrinter(response);
+  // setResponseStatus(response, 201, "Successfully Copied Dataset");
+  // setDefaultJSONRESTHeaders(response);
+  // writeHeader(response);
+  // jsonStart(p);
 
-  char msgBuffer[128];
+  // char msgBuffer[128];
   snprintf(msgBuffer, sizeof(msgBuffer), "Pasted dataset %s with %d records", targetDataset, recordsWritten);
-  jsonAddString(p, "msg", msgBuffer);
+  // jsonAddString(p, "msg", msgBuffer);
 
   if (!rcEtag) {
     // Convert hash text to hex.
     int eTagLength = digest.hashLength*2;
-    char eTag[eTagLength+1];
+    // char eTag[eTagLength+1];
     memset(eTag, '\0', eTagLength);
     int len = digest.hashLength;
     simpleHexPrint(eTag, hash, digest.hashLength);
-    jsonAddString(p, "etag", eTag);
+    // jsonAddString(p, "etag", eTag);
   }
 
-  jsonEnd(p);
+  // jsonEnd(p);
 
-  finishResponse(response);
+  // finishResponse(response);
 
   fclose(inDataset);
   fclose(outDataset);
@@ -2565,7 +2566,7 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
   return;
 }
 
-void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset, bool isTargetMember) {
+int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset, bool isTargetMember, char* msgBuffer, char* etag) {
   DatasetName dsn;
   DatasetMemberName memberName;
   extractDatasetAndMemberName(sourceDataset, &dsn, &memberName);
@@ -2600,7 +2601,7 @@ void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, c
 
     respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
                              &daDsn, &daMember, "r");
-    return;
+    return ERROR_ALLOCATING_DATASET;
   }
   zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
           "debug: reading dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\'\n",
@@ -2624,7 +2625,7 @@ void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, c
     }
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
 
-    return;
+    return ERROR_COPYING_DATASET;
   }
 
   streamDatasetForCopyAndRespond(response, ddPath, lrecl, targetDataset, isTargetMember);
@@ -2637,7 +2638,7 @@ void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, c
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "read");
   }
-  return;
+  return 0;
 }
 
 int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool isMember) {
@@ -2710,7 +2711,24 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
     return;
   }
 
-  return readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember);
+  char msgBuffer[128];
+  char etag[128];
+
+  rc = readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember);
+  if(rc >= 0) {
+    jsonPrinter *p = respondWithJsonPrinter(response);
+    setResponseStatus(response, 201, "Successfully Copied Dataset");
+    setDefaultJSONRESTHeaders(response);
+    writeHeader(response);
+    jsonStart(p);
+
+    jsonAddString(p, "msg", msgBuffer);
+    jsonAddString(p, "etag", eTag);
+
+    jsonEnd(p);
+    finishResponse(response);
+  }
+
 }
 
 void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceDataset, char* targetDataset) {
@@ -2865,7 +2883,23 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
 
   safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
 
-  return readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember);
+  char msgBuffer[128];
+  char etag[128];
+
+  rc = readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember, msgBuffer, etag);
+  if(rc >= 0) {
+    jsonPrinter *p = respondWithJsonPrinter(response);
+    setResponseStatus(response, 201, "Successfully Copied Dataset");
+    setDefaultJSONRESTHeaders(response);
+    writeHeader(response);
+    jsonStart(p);
+
+    jsonAddString(p, "msg", msgBuffer);
+    jsonAddString(p, "etag", eTag);
+
+    jsonEnd(p);
+    finishResponse(response);
+  }
 
   #endif /* __ZOWE_OS_ZOS */
 }
