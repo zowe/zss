@@ -1707,7 +1707,6 @@ void deleteDatasetFromRequest(HttpResponse* response, char* absolutePath) {
 
   int rc = deleteDatasetOrMember(response, absolutePath, responseMessage, &responseCode);
   if(rc >= 0) {
-    printf("----DELETING FROM ---deleteDatasetFromRequest\n");
     jsonPrinter *p = respondWithJsonPrinter(response);
     setResponseStatus(response, 200, "OK");
     setDefaultJSONRESTHeaders(response);
@@ -2463,7 +2462,6 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
 
   if (inDataset == NULL) {
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
-    printf("1 Deleting from streamDatasetForCopyAndRespond. RC: %d \n", rc);
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"Source dataset could not be opened or does not exist");
     return;
   }
@@ -2472,7 +2470,6 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
 
   if (outDataset == NULL) {
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
-    printf("2 Deleting from streamDatasetForCopyAndRespond. RC: %d \n", rc);
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"Target dataset could not be opened or does not exist");
     fclose(inDataset);
     return;
@@ -2493,7 +2490,6 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
       fclose(outDataset);
       respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Cannot copy dataset. Record length for target dataset is shorter than the source");
       rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
-      printf("3 Deleting from streamDatasetForCopyAndRespond. RC: %d \n", rc);
       return;
     }
   }
@@ -2506,10 +2502,8 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
 
   while (!feof(inDataset)){
     bytesRead = fread(buffer,1,sourceRecordLen,inDataset);
-    printf("---BYTES READ: %d\n", bytesRead);
     if (bytesRead > 0 && !ferror(inDataset)) {
       bytesWritten = fwrite(buffer,1,bytesRead,outDataset);
-      printf("---BYTES WRITTEN: %d\n", bytesWritten);
       if(ferror(outDataset)) {
         printf("---ferror outDataset\n");
       }
@@ -2519,7 +2513,6 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
         fclose(outDataset);
         respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to dataset");
         rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
-        printf("4 Deleting from streamDatasetForCopyAndRespond. RC: %d \n", rc);
         return;
       } else if (!rcEtag) {
         rcEtag = icsfDigestUpdate(&digest, buffer, bytesWritten);
@@ -2531,7 +2524,6 @@ void streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset,
       fclose(outDataset);
       respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to the dataset");
       rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
-      printf("4 Deleting from streamDatasetForCopyAndRespond. RC: %d \n", rc);
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,  "Error reading DSN=%s, rc=%d\n", sourceDataset, bytesRead);
       return;
     }
@@ -2604,7 +2596,6 @@ void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, c
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN);
 
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
-    printf("1 Deleting from readWriteToDatasetAndRespond. RC: %d \n", rc);
 
     respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
                              &daDsn, &daMember, "r");
@@ -2631,7 +2622,6 @@ void readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, c
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "read");
     }
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
-    printf("2 Deleting from readWriteToDatasetAndRespond. RC: %d \n", rc);
 
     return;
   }
@@ -2725,6 +2715,7 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
 void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceDataset, char* targetDataset) {
   ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
   char errorBuffer[2048];
+  char newDSMemName[44];
   Json *json = jsonParseUnterminatedString(slh,
                                              buffer->data, buffer->len,
                                              errorBuffer, sizeof(errorBuffer));
@@ -2747,7 +2738,7 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
             JsonObject *jsonMemberObject = jsonAsObject(memberObject);
             char* memName = jsonObjectGetString(jsonMemberObject,"name");
             printf("MEMBER'S NAME HERE: %s\n", memName);
-            char newDSMemName[44];
+            memset(newDSMemName, '\0', sizeof(newDSMemName));
             sprintf(newDSMemName, "//'%s(%s)'", targetDataset, memName);
             printf("NEW DS MEMBER NAME: %s \n", newDSMemName);
           }
