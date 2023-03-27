@@ -2454,7 +2454,7 @@ int getTargetDsnRecordLength(char* targetDataset) {
   return targetRecLen;
 }
 
-int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, int sourceRecordLen, char *targetDataset, bool isTargetMember, char* msgBuffer, char* etag) {
+int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, int sourceRecordLen, char *targetDataset, bool isTargetMember, char* msgBuffer, char* eTag) {
 
   FILE *inDataset = fopen(sourceDataset,"rb, type=record");
 
@@ -2628,7 +2628,7 @@ int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, ch
     return ERROR_COPYING_DATASET;
   }
 
-  streamDatasetForCopyAndRespond(response, ddPath, lrecl, targetDataset, isTargetMember);
+  streamDatasetForCopyAndRespond(response, ddPath, lrecl, targetDataset, isTargetMember, msgBuffer, etag);
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
                                         &daSysRC, &daSysRSN);
@@ -2714,7 +2714,7 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
   char msgBuffer[128];
   char etag[128];
 
-  rc = readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember);
+  rc = readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember, msgBuffer, etag);
   if(rc >= 0) {
     jsonPrinter *p = respondWithJsonPrinter(response);
     setResponseStatus(response, 201, "Successfully Copied Dataset");
@@ -2723,7 +2723,7 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
     jsonStart(p);
 
     jsonAddString(p, "msg", msgBuffer);
-    jsonAddString(p, "etag", eTag);
+    jsonAddString(p, "etag", etag);
 
     jsonEnd(p);
     finishResponse(response);
