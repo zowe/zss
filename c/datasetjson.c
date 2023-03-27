@@ -2563,7 +2563,7 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
   fclose(inDataset);
   fclose(outDataset);
 
-  return;
+  return 0;
 }
 
 int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset, bool isTargetMember, char* msgBuffer, char* etag) {
@@ -2895,7 +2895,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
     jsonStart(p);
 
     jsonAddString(p, "msg", msgBuffer);
-    jsonAddString(p, "etag", eTag);
+    jsonAddString(p, "etag", etag);
 
     jsonEnd(p);
     finishResponse(response);
