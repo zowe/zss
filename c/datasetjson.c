@@ -2729,7 +2729,7 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
 
 
   // To remove the last '
-  char newTarDataset[targetLen]
+  char newTarDataset[targetLen];
   strncpy(newTarDataset, tarDataset, targetLen - 1);
   newTarDataset[targetLen - 1] = '\0';
   printf("Target after modyfying 2: %s", newTarDataset);
