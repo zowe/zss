@@ -872,7 +872,6 @@ static void extractDatasetAndMemberName(const char *datasetPath,
     memberName->value[i] = toupper(memberName->value[i]);
   }
 
-  printf("dsn->value: %s\n", dsn->value);
 }
 
 #undef DSPATH_PREFIX
@@ -2721,6 +2720,20 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
   Json *json = jsonParseUnterminatedString(slh,
                                              buffer->data, buffer->len,
                                              errorBuffer, sizeof(errorBuffer));
+  // Format for target dataset is : //'DATASETNAME'.
+  // To remove the preceding //'
+  printf("Target before modyfying: %s", targetDataset);
+  char* tarDataset = targetDataset+3;
+  size_t targetLen = strlen(tarDataset);
+  printf("Target after modyfying 1: %s", tarDataset);
+
+
+  // To remove the last '
+  char newTarDataset[targetLen]
+  strncpy(newTarDataset, tarDataset, targetLen - 1);
+  newTarDataset[targetLen - 1] = '\0';
+  printf("Target after modyfying 2: %s", newTarDataset);
+
   if (json) {
     if (jsonIsObject(json)){
       JsonObject *jsonObject = jsonAsObject(json);
@@ -2741,9 +2754,8 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
             JsonObject *jsonMemberObject = jsonAsObject(memberObject);
             char* memName = jsonObjectGetString(jsonMemberObject,"name");
             printf("MEMBER'S NAME HERE: %s\n", memName);
-            printf("TARGET DATASET: %s\n", targetDataset);
             // memset(newDSMemName, '\0', sizeof(newDSMemName));
-            sprintf(newDSMemName, "//'%s(%s)'", targetDataset, memName);
+            sprintf(newDSMemName, "//'%s(%s)'", newTarDataset, memName);
             printf("NEW DS MEMBER NAME: %s \n", newDSMemName);
           }
         }
@@ -2780,7 +2792,6 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   DatasetName sourceDsnName;
   DatasetMemberName sourceMemName;
   extractDatasetAndMemberName(sourceDataset, &sourceDsnName, &sourceMemName);
-  printf("sourceDsnName.value: %s\n", sourceDsnName.value);
 
   // Checking if source dataset is a member
   DynallocDatasetName daSourceDsnName;
@@ -2848,8 +2859,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
 
   if(isPDS == 1) {
     // Paste the entire PDS(E) directory
-    printf("targetDsnName.value: %s\n", targetDsnName.value);
-    pastePDSDirectory(response, datasetAttrBuffer, sourceDataset, targetDsnName.value);
+    pastePDSDirectory(response, datasetAttrBuffer, sourceDataset, targetDataset);
     return;
   }
 
