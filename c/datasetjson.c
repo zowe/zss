@@ -2786,7 +2786,7 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
             char msgBuffer[128];
             char etag[128];
 
-            rc = readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember, msgBuffer, etag);
+            rc = readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, false, msgBuffer, etag);
             if(rc < 0) {
               respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to copy the dataset");
               return;
