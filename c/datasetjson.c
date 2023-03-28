@@ -2741,7 +2741,7 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
   return;
 }
 
-void pastePDSDirectory(HttpResponse *response, JsonBuffnewDSMemNameer *buffer, char* sourceDataset, char* targetDataset) {
+void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceDataset, char* targetDataset) {
   ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
   char errorBuffer[2048];
   char newMemberName[44];
