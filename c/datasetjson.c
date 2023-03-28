@@ -2814,9 +2814,17 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
             }
           }
         }
+        jsonPrinter *p = respondWithJsonPrinter(response);
         setResponseStatus(response, 201, "Successfully Copied Dataset");
         setDefaultJSONRESTHeaders(response);
         writeHeader(response);
+        jsonStart(p);
+
+        char msg[128];
+        sprintf(msg, "Pasted dataset %s", targetDataset);
+        jsonAddString(p, "msg", msg);
+
+        jsonEnd(p);
         finishResponse(response);
       }
     }
