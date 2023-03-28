@@ -2741,26 +2741,36 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
   return;
 }
 
-void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceDataset, char* targetDataset) {
+void pastePDSDirectory(HttpResponse *response, JsonBuffnewDSMemNameer *buffer, char* sourceDataset, char* targetDataset) {
   ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
   char errorBuffer[2048];
-  char newDSMemName[44];
+  char newMemberName[44];
+  char sourceMemberName[44];
   Json *json = jsonParseUnterminatedString(slh,
                                              buffer->data, buffer->len,
                                              errorBuffer, sizeof(errorBuffer));
-  // Format for target dataset is : //'DATASETNAME'.
+  // Format for target and source dataset is : //'DATASETNAME'.
   // To remove the preceding //'
-  printf("Target before modyfying: %s", targetDataset);
+  printf("Target before modyfying: %s\n", targetDataset);
   char* tarDataset = targetDataset+3;
   size_t targetLen = strlen(tarDataset);
-  printf("Target after modyfying 1: %s", tarDataset);
+  printf("Target after modyfying 1: %s\n", tarDataset);
 
+  printf("Source before modyfying: %s\n", sourceDataset);
+  char* srcDataset = sourceDataset+3;
+  size_t sourceLen = strlen(srcDataset);
+  printf("Source after modyfying 1: %s\n", srcDataset);
 
   // To remove the last '
-  char newTarDataset[targetLen];
-  strncpy(newTarDataset, tarDataset, targetLen - 1);
-  newTarDataset[targetLen - 1] = '\0';
-  printf("Target after modyfying 2: %s", newTarDataset);
+  char updatedTargetDataset[targetLen];
+  strncpy(updatedTargetDataset, tarDataset, targetLen - 1);
+  updatedTargetDataset[targetLen - 1] = '\0';
+  printf("Target after modyfying 2: %s\n", updatedTargetDataset);
+
+  char updatedSourceDataset[sourceLen];
+  strncpy(updatedSourceDataset, srcDataset, sourceLen - 1);
+  updatedSourceDataset[sourceLen - 1] = '\0';
+  printf("Source after modyfying 2: %s\n", updatedSourceDataset);
 
   if (json) {
     if (jsonIsObject(json)){
@@ -2782,12 +2792,14 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
             JsonObject *jsonMemberObject = jsonAsObject(memberObject);
             char* memName = jsonObjectGetString(jsonMemberObject,"name");
             printf("MEMBER'S NAME HERE: %s\n", memName);
-            // memset(newDSMemName, '\0', sizeof(newDSMemName));
-            sprintf(newDSMemName, "//'%s(%s)'", newTarDataset, memName);
-            printf("NEW DS MEMBER NAME: %s \n", newDSMemName);
+            // memset(newMemberName, '\0', sizeof(newMemberName));
+            sprintf(newMemberName, "//'%s(%s)'", updatedTargetDataset, memName);
+            sprintf(sourceMemberName, "//'%s(%s)'", updatedSourceDataset, memName);
+            printf("NEW TARGET DS MEMBER NAME: %s \n", newMemberName);
+            printf("NEW SOURCE DS MEMBER NAME: %s \n", sourceMemberName);
 
             int reasonCode = 0;
-            int rc = createDataset(response, newDSMemName, NULL, 0, &reasonCode);
+            int rc = createDataset(response, newMemberName, NULL, 0, &reasonCode);
             if(rc != 0) {
               return;
             }
@@ -2795,7 +2807,7 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
             char msgBuffer[128];
             char etag[128];
 
-            rc = readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, false, msgBuffer, etag);
+            rc = readWriteToDatasetAndRespond(response, sourceMemberName, newMemberName, false, msgBuffer, etag);
             if(rc < 0) {
               // respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to copy the dataset");
               return;
