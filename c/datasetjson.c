@@ -2777,9 +2777,8 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
             printf("NEW DS MEMBER NAME: %s \n", newDSMemName);
 
             int reasonCode = 0;
-            int rc = createDataset(response, targetDataset, NULL, 0, &reasonCode);
+            int rc = createDataset(response, newDSMemName, NULL, 0, &reasonCode);
             if(rc != 0) {
-              respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to copy the dataset");
               return;
             }
 
@@ -2788,7 +2787,7 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
 
             rc = readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, false, msgBuffer, etag);
             if(rc < 0) {
-              respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to copy the dataset");
+              // respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to copy the dataset");
               return;
             }
           }
