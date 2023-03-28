@@ -2455,6 +2455,7 @@ int getTargetDsnRecordLength(char* targetDataset) {
 }
 
 int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, int sourceRecordLen, char *targetDataset, bool isTargetMember, char* msgBuffer, char* eTag) {
+  printf("INSIDE streamDatasetForCopyAndRespond\n");
 
   FILE *inDataset = fopen(sourceDataset,"rb, type=record");
 
@@ -2463,6 +2464,7 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
   int rc = 0;
 
   if (inDataset == NULL) {
+    printf("INDATASET IS NULL, DELETING THE DATASET\n");
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"Source dataset could not be opened or does not exist");
     return ERROR_OPENING_DATASET;
@@ -2471,6 +2473,7 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
   FILE *outDataset = fopen(targetDataset, "wb, recfm=*, type=record");
 
   if (outDataset == NULL) {
+    printf("OUTDATASET IS NULL, DELETING THE DATASET\n");
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"Target dataset could not be opened or does not exist");
     fclose(inDataset);
@@ -2491,6 +2494,7 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
       fclose(inDataset);
       fclose(outDataset);
       respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Cannot copy dataset. Record length for target dataset is shorter than the source");
+      printf("RECORD LENGTH ERROR, DELETING THE DATASET\n");
       rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
       return ERROR_COPYING_DATASET;
     }
@@ -2514,6 +2518,7 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
         fclose(inDataset);
         fclose(outDataset);
         respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to dataset");
+        printf("ERROR WRITING TO DATASET, DELETING THE DATASET\n");
         rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
         return ERROR_COPYING_DATASET;
       } else if (!rcEtag) {
@@ -2525,6 +2530,7 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
       fclose(inDataset);
       fclose(outDataset);
       respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to the dataset");
+      printf("FERROR INDATASET, DELETING THE DATASET\n");
       rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,  "Error reading DSN=%s, rc=%d\n", sourceDataset, bytesRead);
       return ERROR_COPYING_DATASET;
@@ -2567,6 +2573,7 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
 }
 
 int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset, bool isTargetMember, char* msgBuffer, char* etag) {
+  printf("INSIDE readWriteToDatasetAndRespond\n");
   DatasetName dsn;
   DatasetMemberName memberName;
   extractDatasetAndMemberName(sourceDataset, &dsn, &memberName);
@@ -2597,6 +2604,7 @@ int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, ch
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN);
 
+    printf("daRC != RC_DYNALLOC_OK, DELETING THE DATASET\n");
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
 
     respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
@@ -2623,6 +2631,8 @@ int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, ch
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "read");
     }
+    printf("EMPTY LREC L, DELETING THE DATASET\n");
+
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
 
     return ERROR_COPYING_DATASET;
