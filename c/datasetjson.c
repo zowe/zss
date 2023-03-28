@@ -2926,8 +2926,13 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
 
   if(isPDS == 1) {
     // Paste the entire PDS(E) directory
-    pastePDSDirectory(response, datasetAttrBuffer, sourceDataset, targetDataset);
-    return;
+    if(isTargetMemberEmpty) {
+      pastePDSDirectory(response, datasetAttrBuffer, sourceDataset, targetDataset);
+      return;
+    } else {
+      respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid Target. Cannot paste PDS(E) as a member");
+      return;
+    }
   }
 
   safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
