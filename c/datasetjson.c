@@ -2543,7 +2543,7 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
   // jsonStart(p);
 
   // char msgBuffer[128];
-  snprintf(msgBuffer, sizeof(msgBuffer), "Pasted dataset %s with %d records", targetDataset, recordsWritten);
+  sprintf(msgBuffer, "Pasted dataset %s with %d records", targetDataset, recordsWritten);
   // jsonAddString(p, "msg", msgBuffer);
 
   if (!rcEtag) {
@@ -2628,7 +2628,7 @@ int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, ch
     return ERROR_COPYING_DATASET;
   }
 
-  streamDatasetForCopyAndRespond(response, ddPath, lrecl, targetDataset, isTargetMember, msgBuffer, etag);
+  rc = streamDatasetForCopyAndRespond(response, ddPath, lrecl, targetDataset, isTargetMember, msgBuffer, etag);
 
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
                                         &daSysRC, &daSysRSN);
@@ -2638,7 +2638,7 @@ int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, ch
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "read");
   }
-  return 0;
+  return rc;
 }
 
 int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool isMember) {
@@ -2728,7 +2728,7 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
     jsonEnd(p);
     finishResponse(response);
   }
-
+  return;
 }
 
 void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceDataset, char* targetDataset) {
@@ -2775,8 +2775,28 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
             // memset(newDSMemName, '\0', sizeof(newDSMemName));
             sprintf(newDSMemName, "//'%s(%s)'", newTarDataset, memName);
             printf("NEW DS MEMBER NAME: %s \n", newDSMemName);
+
+            int reasonCode = 0;
+            int rc = createDataset(response, targetDataset, NULL, 0, &reasonCode);
+            if(rc != 0) {
+              respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to copy the dataset");
+              return;
+            }
+
+            char msgBuffer[128];
+            char etag[128];
+
+            rc = readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember, msgBuffer, etag);
+            if(rc < 0) {
+              respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to copy the dataset");
+              return;
+            }
           }
         }
+        setResponseStatus(response, 201, "Successfully Copied Dataset");
+        setDefaultJSONRESTHeaders(response);
+        writeHeader(response);
+        finishResponse(response);
       }
     }
   }
