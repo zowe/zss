@@ -2898,7 +2898,14 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
 
   // Pasting as a dataset member [PS -> Member OR Member -> Member]
   if(!isTargetMemberEmpty){
-    return pasteAsDatasetMember(response, sourceDataset, targetDataset);
+    int targetDsnExists = checkIfDatasetExistsAndRespond(response, targetDataset, false);
+    if(targetDsnExists < 0) {
+      return;
+    } else if(targetDsnExists == 0) {
+      respondWithJsonError(response, "Cannot paste member. Target dataset does not exist.", 400, "Bad Request");
+    } else if(targetDsnExists == 1) {
+      return pasteAsDatasetMember(response, sourceDataset, targetDataset);
+    }
   }
 
   bool isTargetMember = false;
