@@ -2903,6 +2903,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
       return;
     } else if(targetDsnExists == 0) {
       respondWithJsonError(response, "Cannot paste member. Target dataset does not exist.", 400, "Bad Request");
+      return;
     } else if(targetDsnExists == 1) {
       return pasteAsDatasetMember(response, sourceDataset, targetDataset);
     }
