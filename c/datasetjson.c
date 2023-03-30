@@ -2489,6 +2489,7 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
   }
 
   if(isTargetMember) {
+    printf("Inside isTargetMember check\n");
     int targetRecordLen = getTargetDsnRecordLength(targetDataset);
     if(targetRecordLen < sourceRecordLen) {
       fclose(inDataset);
@@ -2887,6 +2888,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   memcpy(daTargetMemName.name, targetMemName.value, sizeof(daTargetMemName.name));
 
   bool isTargetMemberEmpty = IS_DAMEMBER_EMPTY(daTargetMemName);
+  printf("isTargetMemberEmpty: %d\n", isTargetMemberEmpty);
 
   int tarDsnExists = checkIfDatasetExistsAndRespond(response, targetDataset, !isTargetMemberEmpty);
   if(tarDsnExists < 0 ) {
@@ -2925,6 +2927,8 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   char datasetAttributes[300];
   int isPDS = setAttrForDSCopyAndRespondIfError(response, datasetAttrBuffer, datasetAttributes, !isSourceMemberEmpty);
 
+  printf("isPDS: %d\n", isPDS);
+
   int reasonCode = 0;
   int rc = createDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
 
@@ -2933,6 +2937,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   }
 
   if(isPDS == 1) {
+    printf("isTargetMemberEmpty: %d\n", isTargetMemberEmpty);
     // Paste the entire PDS(E) directory
     if(isTargetMemberEmpty) {
       pastePDSDirectory(response, datasetAttrBuffer, sourceDataset, targetDataset);
