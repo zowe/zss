@@ -1525,17 +1525,12 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
 
   char CSIType = getCSIType(absolutePath);
   if (CSIType == '') {
-    // respondWithMessage(response, HTTP_STATUS_NOT_FOUND,
-    //                   "Dataset or member does not exist \'%44.44s(%8.8s)\' "
-    //                   "(%s)", daDatasetName.name, daMemberName.name, "r");
     *responseCode = HTTP_STATUS_NOT_FOUND;
     sprintf(responseMessage, "Dataset or member does not exist \'%44.44s(%8.8s)\' "
                       "(%s)", daDatasetName.name, daMemberName.name, "r");
     return ERROR_DATASET_OR_MEMBER_NOT_EXIST;
   }
   if (isVsam(CSIType)) {
-    // respondWithError(response, HTTP_STATUS_BAD_REQUEST,
-    //                  "VSAM dataset detected. Please use regular dataset route");
     *responseCode = HTTP_STATUS_BAD_REQUEST;
     sprintf(responseMessage, "VSAM dataset detected. Please use regular dataset route");
     return ERROR_VSAM_DATASET_DETECTED;
@@ -1596,14 +1591,12 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
                         0);                 /* Block size (zero if unknown) */
                       
     if (dcb == NULL) {
-      // respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Data set could not be opened");
       *responseCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
       sprintf(responseMessage, "Data set could not be opened");
       return ERROR_OPENING_DATASET;
     }
     
     if (!memberExists(dsNameNullTerm, daMemberName)) {
-      // respondWithError(response, HTTP_STATUS_NOT_FOUND, "Data set member does not exist");
       *responseCode = HTTP_STATUS_NOT_FOUND;
       sprintf(responseMessage, "Data set member does not exist");
       closeSAM(dcb, 0);
@@ -1616,7 +1609,6 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
     belowMemberName = malloc24(DATASET_MEMBER_NAME_LEN); /* This must be allocated below the line */
     
     if (belowMemberName == NULL) {
-      // respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Could not allocate member name");
       *responseCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
       sprintf(responseMessage, "Could not allocate member name");
       closeSAM(dcb, 0);
@@ -1640,7 +1632,6 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,
               "error: stowReturnCode=%d, stowReasonCode=%d\n",
               stowReturnCode, stowReasonCode);
-      // respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, responseMessage);
       *responseCode = HTTP_STATUS_INTERNAL_SERVER_ERROR;
       sprintf(responseMessage, "Member %8.8s could not be deleted\n", daMemberName.name);
       return ERROR_DELETING_DATASET_OR_MEMBER;
@@ -2367,9 +2358,6 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
     dsnt = (isPDSE) ? "PDSE" : "PDS";
     dirBlock = 10;
     isPDS = 1;
-    // Todo: We need to implement the copy paste for the PDS(E) and members.
-    // respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Do not support copy-paste for PDS(E) Dataset");
-    // return ERROR_COPY_NOT_SUPPORTED;
   }
 
   // Hardcoding these attributes because datasetMetadata API does not return it.
@@ -3477,7 +3465,6 @@ int createDatasetMember(HttpResponse* response, DatasetName* datasetName, char* 
           return ERROR_BAD_DATASET_NAME;
         }
         if (fclose(newMember) == 0){
-          // response200WithMessage(response, "Successfully created member");
           return 0;
         }
         else {
