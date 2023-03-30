@@ -1512,10 +1512,8 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 }
 
 int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* responseMessage, int* responseCode) {
-  printf("----NAME---:%.*s \n", strlen(absolutePath), absolutePath);
 
 #ifdef __ZOWE_OS_ZOS
-  printf("----INSIDE ---deleteDatasetOrMember\n");
   DatasetName datasetName;
   DatasetMemberName memberName;
   extractDatasetAndMemberName(absolutePath, &datasetName, &memberName);
@@ -1571,7 +1569,6 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
   bool isMemberEmpty = IS_DAMEMBER_EMPTY(daMemberName);
   
   if (isMemberEmpty) {
-    printf("EMPTY MEMBER\n");
     daReturnCode = dynallocUnallocDatasetByDDName2(&daDDName, DYNALLOC_UNALLOC_FLAG_NONE,
                                                    &daSysReturnCode, &daSysReasonCode,
                                                    TRUE /* Delete data set on deallocation */
@@ -1592,7 +1589,6 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
     }  
   }
   else {
-    printf("NONEMPTY MEMBER\n");
     char dsNameNullTerm[DATASET_NAME_LEN + 1] = {0};
     memcpy(dsNameNullTerm, datasetName.value, sizeof(datasetName.value));
     
@@ -1611,7 +1607,6 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
     }
     
     if (!memberExists(dsNameNullTerm, daMemberName)) {
-      printf("--------------NEW FUNCTION TO GET DYNALLOC ERROR\n");
       // respondWithError(response, HTTP_STATUS_NOT_FOUND, "Data set member does not exist");
       *responseCode = HTTP_STATUS_NOT_FOUND;
       sprintf(responseMessage, "Data set member does not exist");
@@ -1620,8 +1615,6 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
                                                     &daSysReturnCode, &daSysReasonCode); 
       return ERROR_DATASET_OR_MEMBER_NOT_EXIST;
     }
-
-    printf("Passing member exists check on line 1621\n");
 
     char *belowMemberName = NULL;
     belowMemberName = malloc24(DATASET_MEMBER_NAME_LEN); /* This must be allocated below the line */
@@ -1633,8 +1626,6 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
       closeSAM(dcb, 0);
       return ERROR_ALLOCATING_DATASET;
     }
-
-    printf("Passing allocate membername check on line 1634\n");
     
     memset(belowMemberName, ' ', DATASET_MEMBER_NAME_LEN);
     memcpy(belowMemberName, memberName.value, DATASET_MEMBER_NAME_LEN);
@@ -1659,8 +1650,6 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
       return ERROR_DELETING_DATASET_OR_MEMBER;
     }
 
-    printf("Passing show return code check on line 1659\n");
-
     if (daReturnCode != RC_DYNALLOC_OK) {
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,
     		      "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
@@ -1675,8 +1664,6 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
                                  "r", responseMessage, responseCode);
       return ERROR_ALLOCATING_DATASET;
     }
-    printf("Passing da return code check on line 1675\n");
-
   }
 
   if (isMemberEmpty) {
@@ -1684,10 +1671,8 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
     dsName = absolutePath+3;
     dsName[strlen(dsName) - 1] = '\0';
     sprintf(responseMessage, "Data set %s was deleted successfully", dsName);
-    printf("---DELETED DATASET: %s\n", dsName);
   }
   else {
-    printf("---DELETED MEMBER: %s\n", daMemberName.name);
     sprintf(responseMessage, "Data set member %8.8s was deleted successfully", daMemberName.name);
   }
   return 0;
@@ -1697,7 +1682,6 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
 
 void deleteDatasetFromRequest(HttpResponse* response, char* absolutePath) {
 #ifdef __ZOWE_OS_ZOS
-  printf("----INSIDE ---deleteDatasetFromRequest\n");
   HttpRequest *request = response->request;
   if (!isDatasetPathValid(absolutePath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
@@ -1722,7 +1706,6 @@ void deleteDatasetFromRequest(HttpResponse* response, char* absolutePath) {
     finishResponse(response);
   } else {
     respondWithError(response, responseCode, responseMessage);
-    printf("----ERROR RC WHILE DELETING---%d\n", rc);
   }
 #endif /* __ZOWE_OS_ZOS */
 }
@@ -2446,7 +2429,6 @@ int getTargetDsnRecordLength(char* targetDataset) {
         // Get dsorg object
         JsonObject *dsOrg = jsonObjectGetObject(jsonDatasetObject,"dsorg");
         targetRecLen = jsonObjectGetNumber(dsOrg,"maxRecordLen");
-        printf("-----TARGET REC LENGTH : %d\n", targetRecLen);
       }
     }
   }
@@ -2455,7 +2437,6 @@ int getTargetDsnRecordLength(char* targetDataset) {
 }
 
 int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, int sourceRecordLen, char *targetDataset, bool isTargetMember, char* msgBuffer, char* eTag) {
-  printf("INSIDE streamDatasetForCopyAndRespond\n");
 
   FILE *inDataset = fopen(sourceDataset,"rb, type=record");
 
@@ -2464,7 +2445,6 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
   int rc = 0;
 
   if (inDataset == NULL) {
-    printf("INDATASET IS NULL, DELETING THE DATASET\n");
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"Source dataset could not be opened or does not exist");
     return ERROR_OPENING_DATASET;
@@ -2473,7 +2453,6 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
   FILE *outDataset = fopen(targetDataset, "wb, recfm=*, type=record");
 
   if (outDataset == NULL) {
-    printf("OUTDATASET IS NULL, DELETING THE DATASET\n");
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
     respondWithError(response,HTTP_STATUS_NOT_FOUND,"Target dataset could not be opened or does not exist");
     fclose(inDataset);
@@ -2489,13 +2468,11 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
   }
 
   if(isTargetMember) {
-    printf("Inside isTargetMember check\n");
     int targetRecordLen = getTargetDsnRecordLength(targetDataset);
     if(targetRecordLen < sourceRecordLen) {
       fclose(inDataset);
       fclose(outDataset);
       respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Cannot copy dataset. Record length for target dataset is shorter than the source");
-      printf("RECORD LENGTH ERROR, DELETING THE DATASET\n");
       rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
       return ERROR_COPYING_DATASET;
     }
@@ -2512,14 +2489,12 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
     if (bytesRead > 0 && !ferror(inDataset)) {
       bytesWritten = fwrite(buffer,1,bytesRead,outDataset);
       if(ferror(outDataset)) {
-        printf("---ferror outDataset\n");
       }
       if ((bytesWritten < 0 && ferror(outDataset)) || (bytesWritten != bytesRead)){
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Copy Failed. Error writing to the dataset, rc=%d\n", bytesWritten);
         fclose(inDataset);
         fclose(outDataset);
         respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to dataset");
-        printf("ERROR WRITING TO DATASET, DELETING THE DATASET\n");
         rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
         return ERROR_COPYING_DATASET;
       } else if (!rcEtag) {
@@ -2527,11 +2502,9 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
       }
       recordsWritten++;
     } else if (ferror(inDataset)) {
-      printf("---ferror inDataset\n");
       fclose(inDataset);
       fclose(outDataset);
       respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to the dataset");
-      printf("FERROR INDATASET, DELETING THE DATASET\n");
       rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,  "Error reading DSN=%s, rc=%d\n", sourceDataset, bytesRead);
       return ERROR_COPYING_DATASET;
@@ -2543,29 +2516,15 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "ICSF error for SHA etag, %d\n",rcEtag);
   }
 
-  // jsonPrinter *p = respondWithJsonPrinter(response);
-  // setResponseStatus(response, 201, "Successfully Copied Dataset");
-  // setDefaultJSONRESTHeaders(response);
-  // writeHeader(response);
-  // jsonStart(p);
-
-  // char msgBuffer[128];
   sprintf(msgBuffer, "Pasted dataset %s with %d records", targetDataset, recordsWritten);
-  // jsonAddString(p, "msg", msgBuffer);
 
   if (!rcEtag) {
     // Convert hash text to hex.
     int eTagLength = digest.hashLength*2;
-    // char eTag[eTagLength+1];
     memset(eTag, '\0', eTagLength);
     int len = digest.hashLength;
     simpleHexPrint(eTag, hash, digest.hashLength);
-    // jsonAddString(p, "etag", eTag);
   }
-
-  // jsonEnd(p);
-
-  // finishResponse(response);
 
   fclose(inDataset);
   fclose(outDataset);
@@ -2574,7 +2533,6 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
 }
 
 int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset, bool isTargetMember, char* msgBuffer, char* etag) {
-  printf("INSIDE readWriteToDatasetAndRespond\n");
   DatasetName dsn;
   DatasetMemberName memberName;
   extractDatasetAndMemberName(sourceDataset, &dsn, &memberName);
@@ -2605,7 +2563,6 @@ int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, ch
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN);
 
-    printf("daRC != RC_DYNALLOC_OK, DELETING THE DATASET\n");
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
 
     respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
@@ -2632,7 +2589,6 @@ int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, ch
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "read");
     }
-    printf("EMPTY LREC L, DELETING THE DATASET\n");
 
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
 
@@ -2713,7 +2669,6 @@ int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool i
 }
 
 void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* targetDataset) {
-  printf("---PASTING AS A MEMBER: %s\n", targetDataset);
   bool isTargetMember = true;
 
   int reasonCode = 0;
@@ -2752,26 +2707,20 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
                                              errorBuffer, sizeof(errorBuffer));
   // Format for target and source dataset is : //'DATASETNAME'.
   // To remove the preceding //'
-  printf("Target before modyfying: %s\n", targetDataset);
   char* tarDataset = targetDataset+3;
   size_t targetLen = strlen(tarDataset);
-  printf("Target after modyfying 1: %s\n", tarDataset);
 
-  printf("Source before modyfying: %s\n", sourceDataset);
   char* srcDataset = sourceDataset+3;
   size_t sourceLen = strlen(srcDataset);
-  printf("Source after modyfying 1: %s\n", srcDataset);
 
   // To remove the last '
   char updatedTargetDataset[targetLen];
   strncpy(updatedTargetDataset, tarDataset, targetLen - 1);
   updatedTargetDataset[targetLen - 1] = '\0';
-  printf("Target after modyfying 2: %s\n", updatedTargetDataset);
 
   char updatedSourceDataset[sourceLen];
   strncpy(updatedSourceDataset, srcDataset, sourceLen - 1);
   updatedSourceDataset[sourceLen - 1] = '\0';
-  printf("Source after modyfying 2: %s\n", updatedSourceDataset);
 
   if (json) {
     if (jsonIsObject(json)){
@@ -2785,19 +2734,14 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
         // Get members array
         JsonArray *membersArray = jsonObjectGetArray(jsonDatasetObject,"members");
         int memCount = jsonArrayGetCount(membersArray);
-        printf("TOTAL MEM COUNT: %d\n", memCount);
         for(int j=0; j<memCount; j++) {
-          printf("MEMBERS COUNT: %d\n", j);
           Json *memberObject = jsonArrayGetItem(membersArray,j);
           if(memberObject && jsonIsObject(memberObject)) {
             JsonObject *jsonMemberObject = jsonAsObject(memberObject);
             char* memName = jsonObjectGetString(jsonMemberObject,"name");
-            printf("MEMBER'S NAME HERE: %s\n", memName);
             // memset(newMemberName, '\0', sizeof(newMemberName));
             sprintf(newMemberName, "//'%s(%s)'", updatedTargetDataset, memName);
             sprintf(sourceMemberName, "//'%s(%s)'", updatedSourceDataset, memName);
-            printf("NEW TARGET DS MEMBER NAME: %s \n", newMemberName);
-            printf("NEW SOURCE DS MEMBER NAME: %s \n", sourceMemberName);
 
             int reasonCode = 0;
             int rc = createDataset(response, newMemberName, NULL, 0, &reasonCode);
@@ -2888,7 +2832,6 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   memcpy(daTargetMemName.name, targetMemName.value, sizeof(daTargetMemName.name));
 
   bool isTargetMemberEmpty = IS_DAMEMBER_EMPTY(daTargetMemName);
-  printf("isTargetMemberEmpty: %d\n", isTargetMemberEmpty);
 
   int tarDsnExists = checkIfDatasetExistsAndRespond(response, targetDataset, !isTargetMemberEmpty);
   if(tarDsnExists < 0 ) {
@@ -2897,19 +2840,6 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
     respondWithJsonError(response, "Target dataset already exists", 400, "Bad Request");
     return;
   }
-
-  // Pasting as a dataset member [PS -> Member OR Member -> Member]
-  // if(!isTargetMemberEmpty){
-  //   int targetDsnExists = checkIfDatasetExistsAndRespond(response, targetDataset, false);
-  //   if(targetDsnExists < 0) {
-  //     return;
-  //   } else if(targetDsnExists == 0) {
-  //     respondWithJsonError(response, "Cannot paste member. Target dataset does not exist.", 400, "Bad Request");
-  //     return;
-  //   } else if(targetDsnExists == 1) {
-  //     return pasteAsDatasetMember(response, sourceDataset, targetDataset);
-  //   }
-  // }
 
   bool isTargetMember = false;
 
@@ -2926,8 +2856,6 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   // To set attributes for target dataset
   char datasetAttributes[300];
   int isPDS = setAttrForDSCopyAndRespondIfError(response, datasetAttrBuffer, datasetAttributes, !isSourceMemberEmpty);
-
-  printf("isPDS: %d\n", isPDS);
 
   // Pasting as a dataset member [PS -> Member OR Member -> Member]
   if(!isTargetMemberEmpty && (!isPDS || !isSourceMemberEmpty)){
@@ -2950,7 +2878,6 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   }
 
   if(isPDS == 1) {
-    printf("isTargetMemberEmpty: %d\n", isTargetMemberEmpty);
     // Paste the entire PDS(E) directory
     if(isTargetMemberEmpty) {
       pastePDSDirectory(response, datasetAttrBuffer, sourceDataset, targetDataset);
