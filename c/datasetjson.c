@@ -2899,17 +2899,17 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   }
 
   // Pasting as a dataset member [PS -> Member OR Member -> Member]
-  if(!isTargetMemberEmpty){
-    int targetDsnExists = checkIfDatasetExistsAndRespond(response, targetDataset, false);
-    if(targetDsnExists < 0) {
-      return;
-    } else if(targetDsnExists == 0) {
-      respondWithJsonError(response, "Cannot paste member. Target dataset does not exist.", 400, "Bad Request");
-      return;
-    } else if(targetDsnExists == 1) {
-      return pasteAsDatasetMember(response, sourceDataset, targetDataset);
-    }
-  }
+  // if(!isTargetMemberEmpty){
+  //   int targetDsnExists = checkIfDatasetExistsAndRespond(response, targetDataset, false);
+  //   if(targetDsnExists < 0) {
+  //     return;
+  //   } else if(targetDsnExists == 0) {
+  //     respondWithJsonError(response, "Cannot paste member. Target dataset does not exist.", 400, "Bad Request");
+  //     return;
+  //   } else if(targetDsnExists == 1) {
+  //     return pasteAsDatasetMember(response, sourceDataset, targetDataset);
+  //   }
+  // }
 
   bool isTargetMember = false;
 
@@ -2928,6 +2928,19 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   int isPDS = setAttrForDSCopyAndRespondIfError(response, datasetAttrBuffer, datasetAttributes, !isSourceMemberEmpty);
 
   printf("isPDS: %d\n", isPDS);
+
+  // Pasting as a dataset member [PS -> Member OR Member -> Member]
+  if(!isTargetMemberEmpty && (!isPDS || !isSourceMemberEmpty)){
+    int targetDsnExists = checkIfDatasetExistsAndRespond(response, targetDataset, false);
+    if(targetDsnExists < 0) {
+      return;
+    } else if(targetDsnExists == 0) {
+      respondWithJsonError(response, "Cannot paste member. Target dataset does not exist.", 400, "Bad Request");
+      return;
+    } else if(targetDsnExists == 1) {
+      return pasteAsDatasetMember(response, sourceDataset, targetDataset);
+    }
+  }
 
   int reasonCode = 0;
   int rc = createDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
