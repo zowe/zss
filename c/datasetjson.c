@@ -1557,9 +1557,7 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDatasetName.name, daMemberName.name, daDDName.name,
             daReturnCode, daSysReturnCode, daSysReasonCode);
-    // respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
-    //                          daSysReasonCode, &daDatasetName, &daMemberName,
-    //                          "r");
+
     getDYNALLOCErrorCodeAndMsg(daReturnCode, daSysReturnCode,
                                daSysReasonCode, &daDatasetName, &daMemberName,
                                "r", responseMessage, responseCode);
@@ -1579,9 +1577,7 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
               " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
               daDatasetName.name, daMemberName.name, daDDName.name,
               daReturnCode, daSysReturnCode, daSysReasonCode);
-      // respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
-      //                          daSysReasonCode, &daDatasetName, &daMemberName,
-      //                          "r");
+
       getDYNALLOCErrorCodeAndMsg(daReturnCode, daSysReturnCode,
                                  daSysReasonCode, &daDatasetName, &daMemberName,
                                  "r", responseMessage, responseCode);
@@ -1656,9 +1652,7 @@ int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* resp
               " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
               daDatasetName.name, daMemberName.name, daDDName.name,
               daReturnCode, daSysReturnCode, daSysReasonCode);
-      // respondWithDYNALLOCError(response, daReturnCode, daSysReturnCode,
-      //                          daSysReasonCode, &daDatasetName, &daMemberName,
-      //                          "r");
+
       getDYNALLOCErrorCodeAndMsg(daReturnCode, daSysReturnCode,
                                  daSysReasonCode, &daDatasetName, &daMemberName,
                                  "r", responseMessage, responseCode);
