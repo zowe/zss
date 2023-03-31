@@ -2421,8 +2421,9 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "ICSF error for SHA etag init for write, %d\n",rcEtag);
   }
 
+  int targetRecordLen = getTargetDsnRecordLength(targetDataset);
+
   if(isTargetMember) {
-    int targetRecordLen = getTargetDsnRecordLength(targetDataset);
     if(targetRecordLen < sourceRecordLen) {
       fclose(inDataset);
       fclose(outDataset);
@@ -2441,6 +2442,11 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
   while (!feof(inDataset)){
     bytesRead = fread(buffer,1,sourceRecordLen,inDataset);
     if (bytesRead > 0 && !ferror(inDataset)) {
+      // Right-pad the record with spaces if necessary
+      if (bytesRead < targetRecordLen) {
+          memset(buffer + bytesRead, 0x40, targetRecordLen - bytesRead);
+          bytesRead = targetRecordLen; // Update the number of bytes read
+      }
       bytesWritten = fwrite(buffer,1,bytesRead,outDataset);
       if ((bytesWritten < 0 && ferror(outDataset)) || (bytesWritten != bytesRead)){
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Copy Failed. Error writing to the dataset, rc=%d\n", bytesWritten);
