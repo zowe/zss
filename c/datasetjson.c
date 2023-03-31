@@ -404,7 +404,62 @@ int streamVSAMDataset(HttpResponse* response, char *acb, int maxRecordLength, in
 
 static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
 #ifdef __ZOWE_OS_ZOS
+
     int posOffset = 44;
+
+    int blockSize = (dscb[86-posOffset] << 8 | dscb[87-posOffset]);
+
+    int scxtvMult = 1;
+    int primarySizeDiv = 1;
+    char spac = (dscb[94-posOffset]);
+    if ((spac & 0xc0) == 0xc0){
+      jsonAddString(jPrinter, "spaceUnit", "cyls");
+    } else if (spac & 0x80){
+      if (spac & 0x10){
+        char cxtf = (dscb[79-posOffset]);
+        if (cxtf & 0x80){
+          printf("!!!    scxtv is original block length     !!!\n");
+        }
+        if (cxtf & 0x40){
+          jsonAddString(jPrinter, "spaceUnit", "mb");
+          primarySizeDiv = 1048576;
+        } else if (cxtf & 0x20){
+          jsonAddString(jPrinter, "spaceUnit", "kb");
+          primarySizeDiv = 1024;
+        } else if (cxtf & 0x10){
+          jsonAddString(jPrinter, "spaceUnit", "bytes");
+        }
+        if (cxtf & 0x08){
+          scxtvMult=256;
+        }
+        if (cxtf & 0x04){
+          scxtvMult=65536;
+        }
+      } else{
+        jsonAddString(jPrinter, "spaceUnit", "trks");
+      }
+    } else if (spac & 0x40){
+      jsonAddString(jPrinter, "spaceUnit", "blks");
+      primarySizeDiv = blockSize;
+    } else{
+      jsonAddString(jPrinter, "spaceUnit", "trks");
+      printf("!!!    spac ABS (absolute track)    !!!\n");
+    }
+
+    int scxtv = (dscb[80-posOffset] << 8 | dscb[81-posOffset]);
+    int scal3 = (dscb[95-posOffset] << 16 | dscb[96-posOffset] << 8 | dscb[97-posOffset]);
+    printf("scxtv=%d, scal3=%d\n", scxtv, scal3);
+
+    if (scxtv){
+      jsonAddInt(jPrinter, "secondarySize", scxtvMult * scxtv);
+      jsonAddInt(jPrinter, "primarySize", (scal3 * blockSize) / primarySizeDiv);
+    } else {
+      jsonAddInt(jPrinter, "secondarySize", scal3);
+      jsonAddInt(jPrinter, "primarySize", scal3);
+    }
+
+   
+    
 
     int recfm = dscb[84-posOffset];
     
@@ -500,10 +555,12 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
       int lrecl = (dscb[88-posOffset] << 8) | dscb[89-posOffset];
       jsonAddInt(jPrinter,"maxRecordLen",lrecl);
       
-      int blockSize = (dscb[86-posOffset] << 8 | dscb[87-posOffset]);
       jsonAddInt(jPrinter,"totalBlockSize",blockSize);  
+
     }
     jsonEndObject(jPrinter);
+
+    
 #endif /* __ZOWE_OS_ZOS */
 }
 
