@@ -2470,8 +2470,6 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
     bytesRead = fread(buffer,1,sourceRecordLen,inDataset);
     if (bytesRead > 0 && !ferror(inDataset)) {
       bytesWritten = fwrite(buffer,1,bytesRead,outDataset);
-      if(ferror(outDataset)) {
-      }
       if ((bytesWritten < 0 && ferror(outDataset)) || (bytesWritten != bytesRead)){
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Copy Failed. Error writing to the dataset, rc=%d\n", bytesWritten);
         fclose(inDataset);
@@ -2728,6 +2726,7 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
             int reasonCode = 0;
             int rc = createDataset(response, newMemberName, NULL, 0, &reasonCode);
             if(rc != 0) {
+              SLHFree(slh);
               return;
             }
 
@@ -2736,7 +2735,7 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
 
             rc = readWriteToDatasetAndRespond(response, sourceMemberName, newMemberName, false, msgBuffer, etag);
             if(rc < 0) {
-              // respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Failed to copy the dataset");
+              SLHFree(slh);
               return;
             }
           }
