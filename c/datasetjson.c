@@ -878,44 +878,6 @@ static void extractDatasetAndMemberName(const char *datasetPath,
 #undef DSPATH_PREFIX
 #undef DSPATH_SUFFIX
 
-static void respondWithDYNALLOCError(HttpResponse *response,
-                                     int rc, int sysRC, int sysRSN,
-                                     const DynallocDatasetName *dsn,
-                                     const DynallocMemberName *member,
-                                     const char *site) {
-
-  if (rc ==  RC_DYNALLOC_SVC99_FAILED && sysRC == 4) {
-
-    if (sysRSN == 0x020C0000 || sysRSN == 0x02100000) {
-      respondWithMessage(response, HTTP_STATUS_FORBIDDEN,
-                        "Dataset \'%44.44s(%8.8s)\' busy (%s)",
-                        dsn->name, member->name, site);
-      return;
-    }
-
-    if (sysRSN == 0x02180000) {
-      respondWithMessage(response, HTTP_STATUS_NOT_FOUND,
-                        "Device not available for dataset \'%44.44s(%8.8s)\' "
-                        "(%s)", dsn->name, member->name, site);
-      return;
-    }
-
-    if (sysRSN == 0x023C0000) {
-      respondWithMessage(response, HTTP_STATUS_NOT_FOUND,
-                        "Catalog not available for dataset \'%44.44s(%8.8s)\' "
-                        "(%s)", dsn->name, member->name, site);
-      return;
-    }
-
-  }
-
-  respondWithMessage(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
-                    "DYNALLOC failed with RC = %d, DYN RC = %d, RSN = 0x%08X, "
-                    "dsn=\'%44.44s(%8.8s)\', (%s)", rc, sysRC, sysRSN,
-                    dsn->name, member->name, site);
-
-}
-
 static void getDYNALLOCErrorCodeAndMsg(int rc, int sysRC, int sysRSN,
                                        const DynallocDatasetName *dsn,
                                        const DynallocMemberName *member,
