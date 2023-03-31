@@ -1186,7 +1186,7 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
     int responseCode = 0;
 
     getDYNALLOCErrorCodeAndMsg(daRC, daSysRC, daSysRSN,
-                             &daDsn, &daMember, "w", responseMessage, responseCode);
+                             &daDsn, &daMember, "w", responseMessage, &responseCode);
     respondWithMessage(response, responseCode, responseMessage);
     return;
   }
@@ -1924,7 +1924,7 @@ void respondWithDataset(HttpResponse* response, char* absolutePath, int jsonMode
     int responseCode = 0;
 
     getDYNALLOCErrorCodeAndMsg(daRC, daSysRC, daSysRSN,
-                             &daDsn, &daMember, "r", responseMessage, responseCode);
+                             &daDsn, &daMember, "r", responseMessage, &responseCode);
     respondWithMessage(response, responseCode, responseMessage);
     return;
   }
@@ -2521,7 +2521,7 @@ int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, ch
     int responseCode = 0;
 
     getDYNALLOCErrorCodeAndMsg(daRC, daSysRC, daSysRSN,
-                             &daDsn, &daMember, "r", responseMessage, responseCode);
+                             &daDsn, &daMember, "r", responseMessage, &responseCode);
     respondWithMessage(response, responseCode, responseMessage);
 
     return ERROR_ALLOCATING_DATASET;
