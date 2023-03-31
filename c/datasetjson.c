@@ -1219,8 +1219,13 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
             "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
             " rc=%d sysRC=%d, sysRSN=0x%08X (update)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN, "update");
-    respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
-                             &daDsn, &daMember, "w");
+
+    char responseMessage[100];
+    int responseCode = 0;
+
+    getDYNALLOCErrorCodeAndMsg(daRC, daSysRC, daSysRSN,
+                             &daDsn, &daMember, "w", responseMessage, responseCode);
+    respondWithMessage(response, responseCode, responseMessage);
     return;
   }
 
@@ -1952,8 +1957,13 @@ void respondWithDataset(HttpResponse* response, char* absolutePath, int jsonMode
     		    "error: ds alloc dsn=\'%44.44s\', member=\'%8.8s\', dd=\'%8.8s\',"
             " rc=%d sysRC=%d, sysRSN=0x%08X (read)\n",
             daDsn.name, daMember.name, daDDname.name, daRC, daSysRC, daSysRSN);
-    respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
-                             &daDsn, &daMember, "r");
+
+    char responseMessage[100];
+    int responseCode = 0;
+
+    getDYNALLOCErrorCodeAndMsg(daRC, daSysRC, daSysRSN,
+                             &daDsn, &daMember, "r", responseMessage, responseCode);
+    respondWithMessage(response, responseCode, responseMessage);
     return;
   }
 
@@ -2545,8 +2555,13 @@ int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, ch
 
     rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
 
-    respondWithDYNALLOCError(response, daRC, daSysRC, daSysRSN,
-                             &daDsn, &daMember, "r");
+    char responseMessage[100];
+    int responseCode = 0;
+
+    getDYNALLOCErrorCodeAndMsg(daRC, daSysRC, daSysRSN,
+                             &daDsn, &daMember, "r", responseMessage, responseCode);
+    respondWithMessage(response, responseCode, responseMessage);
+
     return ERROR_ALLOCATING_DATASET;
   }
   zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_DEBUG,
