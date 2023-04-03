@@ -2390,6 +2390,53 @@ int getTargetDsnRecordLength(char* targetDataset) {
   return targetRecLen;
 }
 
+void getTargetDsnRecordInfo(char* targetDataset, char** recordFormat, int** recordLength) {
+
+  DatasetName targetDsnName;
+  DatasetMemberName targetMemName;
+  extractDatasetAndMemberName(targetDataset, &targetDsnName, &targetMemName);
+
+  // Buffer to save attributes for target dataset
+  JsonBuffer *datasetAttrBuffer = makeJsonBuffer();
+  jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, datasetAttrBuffer);
+  jsonStart(jPrinter);
+
+  // To get the attributes for target dataset
+  getDatasetMetadata(&targetDsnName, &targetMemName, targetDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
+  jsonEnd(jPrinter);
+
+  int targetRecLen = 0;
+  char* recFormat = NULL;
+
+  ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
+  char errorBuffer[2048];
+  Json *json = jsonParseUnterminatedString(slh,
+                                             datasetAttrBuffer->data, datasetAttrBuffer->len,
+                                             errorBuffer, sizeof(errorBuffer));
+
+  if (json) {
+    if (jsonIsObject(json)){
+      JsonObject *jsonObject = jsonAsObject(json);
+      //Get array of datasets
+      JsonArray *datasetArray = jsonObjectGetArray(jsonObject,"datasets");
+      int i = 0;
+      Json *element = jsonArrayGetItem(datasetArray,i);
+      if(element && jsonIsObject(element)) {
+        JsonObject *jsonDatasetObject = jsonAsObject(element);
+        // Get dsorg object
+        JsonObject *dsOrg = jsonObjectGetObject(jsonDatasetObject,"dsorg");
+        *recordLength = jsonObjectGetNumber(dsOrg,"maxRecordLen");
+        // Get recfm object
+        JsonObject *recfm = jsonObjectGetObject(jsonDatasetObject,"recfm");
+        *recordFormat = jsonObjectGetString(recfm,"recordLength");
+      }
+    }
+  }
+  printf("RECORD FORMAT: %s\n", *recordFormat);
+  printf("RECORD LENGTH: %d\n", *recordLength);
+  SLHFree(slh);
+}
+
 int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, int sourceRecordLen, char *targetDataset, bool isTargetMember, char* msgBuffer, char* eTag) {
 
   FILE *inDataset = fopen(sourceDataset,"rb, type=record");
@@ -2421,7 +2468,14 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "ICSF error for SHA etag init for write, %d\n",rcEtag);
   }
 
-  int targetRecordLen = getTargetDsnRecordLength(targetDataset);
+  // int targetRecordLen = getTargetDsnRecordLength(targetDataset);
+  int targetRecordLen = 0;
+  char* recFormat = NULL;
+
+  getTargetDsnRecordInfo(targetDataset, &recFormat, &targetRecordLen);
+
+  printf("RECORD FORMAT: %s\n", recFormat);
+  printf("RECORD LENGTH: %d\n", targetRecordLen);
 
   if(isTargetMember) {
     if(targetRecordLen < sourceRecordLen) {
@@ -2445,7 +2499,8 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
 
     if (bytesRead > 0 && !ferror(inDataset)) {
       // Right-pad the record with spaces if necessary
-      if (bytesRead < targetRecordLen) {
+      if ((bytesRead < targetRecordLen) && !strcmp(recFormat, 'F')) {
+        printf("ADDING PADDING\n");
         memset(buffer + bytesRead, 0x40, targetRecordLen - bytesRead);
         bytesRead = targetRecordLen; // Update the number of bytes read
       }
