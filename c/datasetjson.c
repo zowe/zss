@@ -2390,7 +2390,7 @@ int getTargetDsnRecordLength(char* targetDataset) {
   return targetRecLen;
 }
 
-void getTargetDsnRecordInfo(char* targetDataset, char** recordFormat, int** recordLength) {
+void getTargetDsnRecordInfo(char* targetDataset, char** recordFormat, int* recordLength) {
 
   DatasetName targetDsnName;
   DatasetMemberName targetMemName;
@@ -2499,7 +2499,7 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
 
     if (bytesRead > 0 && !ferror(inDataset)) {
       // Right-pad the record with spaces if necessary
-      if ((bytesRead < targetRecordLen) && !strcmp(recFormat, 'F')) {
+      if ((bytesRead < targetRecordLen) && !strcmp(recFormat, "F")) {
         printf("ADDING PADDING\n");
         memset(buffer + bytesRead, 0x40, targetRecordLen - bytesRead);
         bytesRead = targetRecordLen; // Update the number of bytes read
