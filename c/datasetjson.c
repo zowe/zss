@@ -2440,14 +2440,26 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
   int recordsWritten = 0;
 
   while (!feof(inDataset)){
+    printf("Inside main while loop\n");
     bytesRead = fread(buffer,1,sourceRecordLen,inDataset);
+    if(ferror(inDataset)) {
+      printf("ferror(inDataset)\n");
+    }
+    if (bytesRead < 0) {
+      printf("bytesRead < 0\n");
+    }
     if (bytesRead > 0 && !ferror(inDataset)) {
       // Right-pad the record with spaces if necessary
       if (bytesRead < targetRecordLen) {
-          memset(buffer + bytesRead, 0x40, targetRecordLen - bytesRead);
-          bytesRead = targetRecordLen; // Update the number of bytes read
+        printf("---bytesRead < targetRecordLen\n");
+        memset(buffer + bytesRead, 0x40, targetRecordLen - bytesRead);
+        bytesRead = targetRecordLen; // Update the number of bytes read
       }
       bytesWritten = fwrite(buffer,1,bytesRead,outDataset);
+      printf("bytesWritten: %d\n", bytesWritten);
+      if(ferror(outDataset)) {
+        printf("ferror(outDataset)\n");
+      }
       if ((bytesWritten < 0 && ferror(outDataset)) || (bytesWritten != bytesRead)){
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Copy Failed. Error writing to the dataset, rc=%d\n", bytesWritten);
         fclose(inDataset);
@@ -2456,10 +2468,13 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
         rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
         return ERROR_COPYING_DATASET;
       } else if (!rcEtag) {
+        printf("Inside rc etag check\n");
         rcEtag = icsfDigestUpdate(&digest, buffer, bytesWritten);
       }
       recordsWritten++;
+      printf("TOTAL RECORDS WRITTEN: %d\n", recordsWritten);
     } else if (ferror(inDataset)) {
+      printf("ferror(inDataset)\n");
       fclose(inDataset);
       fclose(outDataset);
       respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to the dataset");
@@ -2468,7 +2483,7 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
       return ERROR_COPYING_DATASET;
     }
   }
-
+  printf("OUT OF WHILE LOOP\n");
   if (!rcEtag) { rcEtag = icsfDigestFinish(&digest, hash); }
   if (rcEtag) {
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "ICSF error for SHA etag, %d\n",rcEtag);
@@ -2559,7 +2574,7 @@ int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, ch
   }
 
   rc = streamDatasetForCopyAndRespond(response, ddPath, lrecl, targetDataset, isTargetMember, msgBuffer, etag);
-
+  printf("RETURN CODE FROM STREAM DATASET: %d\n", rc);
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
                                         &daSysRC, &daSysRSN);
   if (daRC != RC_DYNALLOC_OK) {
@@ -2644,6 +2659,7 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
   char etag[128];
 
   rc = readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember, msgBuffer, etag);
+  printf("INSIDE pasteAsDatasetMember, RETURN FROM READWRITEDATASET RC: %d\n", rc);
   if(rc >= 0) {
     jsonPrinter *p = respondWithJsonPrinter(response);
     setResponseStatus(response, 201, "Successfully Copied Dataset");
@@ -2717,6 +2733,7 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
             char etag[128];
 
             rc = readWriteToDatasetAndRespond(response, sourceMemberName, newMemberName, false, msgBuffer, etag);
+            printf("INSIDE pastePDSDirectory, RETURN FROM READWRITEDATASET RC: %d\n", rc);
             if(rc < 0) {
               SLHFree(slh);
               return;
@@ -2858,6 +2875,8 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   char etag[128];
 
   rc = readWriteToDatasetAndRespond(response, sourceDataset, targetDataset, isTargetMember, msgBuffer, etag);
+  printf("INSIDE copyDatasetAndRespond, RETURN FROM READWRITEDATASET RC: %d\n", rc);
+
   if(rc >= 0) {
     jsonPrinter *p = respondWithJsonPrinter(response);
     setResponseStatus(response, 201, "Successfully Copied Dataset");
