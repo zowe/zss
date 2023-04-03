@@ -2452,8 +2452,8 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
       // Right-pad the record with spaces if necessary
       if (bytesRead < targetRecordLen) {
         printf("---bytesRead < targetRecordLen\n");
-        memset(buffer + bytesRead, 0x40, targetRecordLen - bytesRead);
-        bytesRead = targetRecordLen; // Update the number of bytes read
+        // memset(buffer + bytesRead, 0x40, targetRecordLen - bytesRead);
+        // bytesRead = targetRecordLen; // Update the number of bytes read
       }
       bytesWritten = fwrite(buffer,1,bytesRead,outDataset);
       printf("bytesWritten: %d\n", bytesWritten);
