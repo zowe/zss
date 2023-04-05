@@ -92,6 +92,6 @@ jobs:
 
       - name: '[Prep Release] Bump version'
         if: ${{ github.event.inputs.PERFORM_RELEASE == 'true' && env.RELEASE == 'true' }}
-        uses: zowe-actions/zlux-builds/bump-zis-version@users/jstruga/bump-zis
+        uses: zowe-actions/zlux-builds/bump-zis-version@v2.x/main
         env: 
          GITHUB_TOKEN: ${{ secrets.ZOWE_ROBOT_TOKEN }}
