@@ -125,7 +125,6 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
                                         char *resolvedPluginLocation);
 static WebPluginListElt* readWebPluginDefinitions(HttpServer* server, ShortLivedHeap *slh, char *dirname,
                                                   ConfigManager *configmgr, ApimlStorageSettings *apimlStorageSettings);
-static void configureAndSetComponentLogLevel(LogComponentsMap *logComponent, JsonObject *logLevels, char *logCompPrefix);
 static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename);
 static JsonObject *getDefaultServerSettings(ShortLivedHeap *slh);
 static hashtable *getServerTimeoutsHt(ShortLivedHeap *slh, Json *serverTimeouts, const char *key);
@@ -429,65 +428,6 @@ TraceDefinition traceDefs[] = {
 LOGGING_COMPONENTS_MAP(logComponents)
 
 ZSS_LOGGING_COMPONENTS_MAP(zssLogComponents)
-
-static void configureAndSetComponentLogLevel(LogComponentsMap *logComponent, JsonObject *logLevels, char *logCompPrefix) {
-  int logLevel = ZOWE_LOG_NA;
-  char *logCompName = NULL;
-  int logCompLen = 0;
-  while (logComponent->name != NULL) {
-    logCompLen = strlen(logComponent->name) + strlen (logCompPrefix) + 1;
-    logCompName = (char*) safeMalloc(logCompLen, "Log Component Name");
-    memset(logCompName, '\0', logCompLen);
-    strcpy(logCompName, logCompPrefix);
-    strcat(logCompName, logComponent->name);
-    logConfigureComponent(NULL, logComponent->compID, (char *)logComponent->name,
-                      LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
-    if (jsonObjectHasKey(logLevels, logCompName)) {
-      logLevel = jsonObjectGetNumber(logLevels, logCompName);
-      if (isLogLevelValid(logLevel)) {
-        logSetLevel(NULL, logComponent->compID, logLevel);  
-      }
-    }
-    safeFree(logCompName, logCompLen);
-    ++logComponent;
-  }
-}
-
-static JsonObject *readServerSettings(ShortLivedHeap *slh, const char *filename) {
-
-  char jsonErrorBuffer[512] = { 0 };
-  int jsonErrorBufferSize = sizeof(jsonErrorBuffer);
-  Json *mvdSettings = NULL; 
-  JsonObject *mvdSettingsJsonObject = NULL;
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "reading server settings from %s\n", filename);
-  mvdSettings = jsonParseFile(slh, filename, jsonErrorBuffer, jsonErrorBufferSize);
-  if (mvdSettings) {
-    if (jsonIsObject(mvdSettings)) {
-      mvdSettingsJsonObject = jsonAsObject(mvdSettings);
-    } else {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_FILE_EXPECTED_TOP_MSG, filename);
-    }
-    JsonObject *logLevels = jsonObjectGetObject(mvdSettingsJsonObject, "logLevels");
-    if (logLevels) {
-      TraceDefinition *traceDef = traceDefs;
-      while (traceDef->name != 0) {
-        int traceLevel = jsonObjectGetNumber(logLevels, (char*) traceDef->name);
-        if (traceLevel > 0) {
-          traceDef->function(traceLevel);
-        }
-        ++traceDef;
-      }
-      LogComponentsMap *logComponent = (LogComponentsMap *)logComponents;
-      configureAndSetComponentLogLevel(logComponent, logLevels, LOGGING_COMPONENT_PREFIX);
-      LogComponentsMap *zssLogComponent = (LogComponentsMap *)zssLogComponents;
-      configureAndSetComponentLogLevel(zssLogComponent, logLevels, LOGGING_COMPONENT_PREFIX);
-    }
-    dumpJson(mvdSettings);
-  } else {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_PARS_ZSS_SETTING_MSG, filename, jsonErrorBuffer);
-  }
-  return mvdSettingsJsonObject;
-}
 
 #define DEFAULT_CONFIG "                                               \
                        {                                               \
@@ -1716,14 +1656,6 @@ int main(int argc, char **argv){
   logLevelConfiguratorV2(configmgr);
   JsonObject *mvdSettings = NULL;
   JsonObject *envSettings = NULL;
-  /*
-    JOE: More legacy stuff
-    if (serverConfigFile) {
-      mvdSettings = readServerSettings(slh, serverConfigFile);
-    } else {
-      mvdSettings = getDefaultServerSettings(slh);
-    }
-    */
 
   bool hasProductReg = false;
   if (configmgr) { /* mvdSettings */
@@ -1847,7 +1779,7 @@ int main(int argc, char **argv){
       loadWebServerConfigV2(server, configmgr, htUsers, htGroups, defaultSeconds);
       readWebPluginDefinitions(server, slh, pluginsDir, configmgr, apimlStorageSettings);
       configureJwt(server, jwkSettings);
-      installCertificateService(server);
+      installUserMappingService(server);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
       installUnixFileCopyService(server);
