@@ -1416,7 +1416,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
   char *forceArg = (forceParam ? forceParam->stringValue : NULL);
   bool force = (forceArg != NULL && !strcmp(forceArg,"true"));
 
-  printf("strcmp(forceArg,"true"): %d\n", strcmp(forceArg,"true"));
+  printf("strcmp(forceArg,true): %d\n", strcmp(forceArg,"true"));
   printf("---forceArg: %s\n", forceArg);
   printf("---force: %d\n", force);
 
