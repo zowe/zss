@@ -1413,7 +1413,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
   }
 
   HttpRequest *request = response->request;
-  HttpRequestParam *forceParam = getCheckedParam(request,"force");
+  HttpRequestParam *forceParam =  getQueryParam(response->request, "force")
   char *forceArg = (forceParam ? forceParam->stringValue : NULL);
   bool force = (forceArg != NULL && !strcmp(forceArg,"true"));
 
