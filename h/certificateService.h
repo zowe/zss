@@ -15,7 +15,7 @@
 
 #include "httpserver.h"
 
-void installCertificateService(HttpServer *server);
+void installUserMappingService(HttpServer *server);
 
 #endif /* __CERT_SERVICE_H__ */
 

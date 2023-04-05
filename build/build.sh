@@ -32,3 +32,7 @@ fi
 if [ "$1" = "zss64" ] || [ "$1" = "" ]; then
   "${WORKING_DIR}/build_zss64.sh"
 fi
+
+if [ "$1" = "dynamic_zis_plugin" ] || [ "$1" = "" ]; then
+  "${WORKING_DIR}/build_dynamic.sh"
+fi

@@ -38,6 +38,7 @@
 #include "zis/plugin.h"
 #include "zis/server.h"
 #include "zis/service.h"
+#include "zis/server-api.h"
 
 #include "zis/services/auth.h"
 #include "zis/services/nwm.h"
@@ -67,6 +68,7 @@ See details in the ZSS Cross Memory Server installation guide
 #define ZIS_PARM_SERVER_NAME                  "NAME"
 #define ZIS_PARM_COLD_START                   "COLD"
 #define ZIS_PARM_DEBUG_MODE                   "DEBUG"
+#define ZIS_PARM_RESET_LOOKUP                 "RESET(LOOKUP)"
 
 #define ZIS_PARM_PCSS_STACK_POOL_SIZE         CMS_PROD_ID".PCSS_STACK_POOL_SIZE"
 #define ZIS_PCSS_STACK_POOL_DEFAULT_SIZSE     1024
@@ -82,10 +84,8 @@ See details in the ZSS Cross Memory Server installation guide
 
 #define ZIS_PARMLIB_PARM_SERVER_NAME          CMS_PROD_ID".NAME"
 
-/* Check this for backward compatibility with the compile-time dev mode. */
-#ifndef ZIS_LPA_DEV_MODE
-#define ZIS_LPA_DEV_MODE 0
-#endif
+#define ZIS_DYN_LINKAGE_PLUGIN_MOD_SUFFIX     "ISDL"
+
 
 static int zisRouteService(struct CrossMemoryServerGlobalArea_tag *globalArea,
                            struct CrossMemoryService_tag *service,
@@ -624,11 +624,6 @@ static int installServices(ZISContext *context, ZISPlugin *plugin,
   return RC_ZIS_OK;
 }
 
-static bool isLPADevMode(const ZISContext *context) {
-  int devFlags = CMS_SERVER_FLAG_DEV_MODE_LPA | CMS_SERVER_FLAG_DEV_MODE;
-  return (context->cmsFlags & devFlags) || ZIS_LPA_DEV_MODE;
-}
-
 static int relocatePluginToLPAIfNeeded(ZISContext *context,
                                        ZISPlugin **pluginAddr,
                                        ZISPluginAnchor *anchor,
@@ -653,7 +648,7 @@ static int relocatePluginToLPAIfNeeded(ZISContext *context,
       lpaDiscarded = true;
     }
 
-    if (isLPADevMode(context)) {
+    if (zisIsLPADevModeOn(context)) {
 
       zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
               " Plugin LPA dev mode enabled, issuing CSVDYLPA DELETE of "
@@ -716,7 +711,7 @@ static int removePluginFromLPAIfNeeded(ZISContext *context,
 
   if (lpaPresent) {
 
-    if (isLPADevMode(context)) {
+    if (zisIsLPADevModeOn(context)) {
 
       zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
               " Plugin LPA dev mode enabled, issuing CSVDYLPA DELETE of "
@@ -1003,12 +998,45 @@ static bool isDuplicatePlugin(ZISContext *context,
   return false;
 }
 
+typedef struct ContextAndState_tag {
+  ZISContext *context;
+  bool        lookingForDynamicPlugin;
+} ContextAndState;
+
+/**
+ * @brief Check if the plugin satisfies the provided condition.
+ * @param[in] context The ZIS server context.
+ * @param[in] moduleName The plugin's module name.
+ * @param[in] dynLinkPluginNeeded The only condition - whether the plugin is the
+ * dynamic linkage plugin or not.
+ * @return @c true if the plugin satisfies the condition, otherwise @c false.
+ */
+static bool isPluginSuitable(const ZISContext *context,
+                             const char *moduleName,
+                             bool dynLinkPluginNeeded) {
+  /* This little bit of magic forces ZWES.PLUGIN.DYNBASE to be installed first
+   * if it exists in the PARMLIB */
+  if (dynLinkPluginNeeded) {
+    if (strcmp(moduleName, context->dynlinkModuleNameNullTerm)) {
+      return false;
+    }
+  } else {
+    if (!strcmp(moduleName, context->dynlinkModuleNameNullTerm)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 static void visitPluginParm(const char *name, const char *value,
                             void *userData) {
 
   if (strstr(name, "ZWES.PLUGIN.") != name) {
     return;
   }
+
+  ContextAndState *contextAndState = userData;
+
   const char *pluginName = name + strlen("ZWES.PLUGIN.");
   zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
           "visitPluginParm %s value=%s\n",
@@ -1020,6 +1048,16 @@ static void visitPluginParm(const char *name, const char *value,
     return;
   }
 
+  /* This check helps to organize the plugin deployment in the following order:
+   * 1. The dynamic linkage plugin
+   * 2. Everything else
+   * Such logic ensures that any plugins relying on the dynamic linkage plugin
+   * will be able to use it during their initialization.
+   */
+  if (!isPluginSuitable(contextAndState->context, value,
+                        contextAndState->lookingForDynamicPlugin)) {
+    return;
+  }
 
   EightCharString moduleName = {"        "};
   size_t moduleNameLength = strlen(value);
@@ -1040,7 +1078,7 @@ static void visitPluginParm(const char *name, const char *value,
     return;
   }
 
-  ZISContext *context = userData;
+  ZISContext *context = contextAndState->context;
 
   if (isDuplicatePlugin(context, plugin)) {
     return;
@@ -1068,8 +1106,21 @@ ZISServerAnchor *createZISServerAnchor() {
   anchor->key = key;
   anchor->subpool = subpool;
   anchor->size = size;
+  
+  /* new feature bit for dynamic linking - Fall 2021 */
+  anchor->flags |= ZIS_SERVER_ANCHOR_FLAG_DYNLINK;
+  anchor->flags |= ZIS_SERVER_ANCHOR_VERSIONED_CONTEXT;
 
   return anchor;
+}
+
+static void enableDynLink(ZISServerAnchor *anchor) {
+  /* new feature bit for dynamic linking - Fall 2021 */
+  anchor->flags |= ZIS_SERVER_ANCHOR_FLAG_DYNLINK;
+}
+
+static void enableVersionedContext(ZISServerAnchor *anchor) {
+  anchor->flags |= ZIS_SERVER_ANCHOR_VERSIONED_CONTEXT;
 }
 
 static void removeZISServerAnchor(ZISServerAnchor **anchor) {
@@ -1094,6 +1145,11 @@ static int initGlobalResources(ZISContext *context) {
       return RC_ZIS_ERROR;
     }
     cmsGA->userServerAnchor = anchor;
+  } else {
+    // make sure any existing anchors supports dynamic linkage now
+    enableDynLink(anchor);
+    // make sure it also supports a versioned ZIS context
+    enableVersionedContext(anchor);
   }
   context->zisAnchor = anchor;
 
@@ -1109,6 +1165,11 @@ static ZISContext makeContext(STCBase *base) {
 
   ZISContext cntx = {
       .eyecatcher = ZIS_CONTEXT_EYECATCHER,
+      .version = ZIS_CONTEXT_VERSION,
+      .size = sizeof(ZISContext),
+      .zisVersion.major = ZIS_MAJOR_VERSION,
+      .zisVersion.minor = ZIS_MINOR_VERSION,
+      .zisVersion.revision = ZIS_REVISION,
       .stcBase = base,
       .parms = NULL,
       .cmServer = NULL,
@@ -1168,7 +1229,12 @@ static void printStopMessage(int status) {
 
 static void deployPlugins(ZISContext *context) {
   zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG, "Deploy the ZIS plugins\n");
-  zisIterateParms(context->parms, visitPluginParm, context);
+  ContextAndState contextAndState;
+  contextAndState.context = context;
+  contextAndState.lookingForDynamicPlugin = true;
+  zisIterateParms(context->parms, visitPluginParm, &contextAndState);
+  contextAndState.lookingForDynamicPlugin = false;
+  zisIterateParms(context->parms, visitPluginParm, &contextAndState);
 }
 
 static void terminatePlugins(ZISContext *context) {
@@ -1277,21 +1343,14 @@ typedef struct PARMBLIBMember_tag {
   char nameNullTerm[16];
 } PARMLIBMember;
 
-static int extractPARMLIBMemberName(ZISParmSet *parms,
+static int extractPARMLIBMemberName(const ZISContext *context,
                                     PARMLIBMember *member) {
-
-  EightCharString currModuleName;
-  int modRC = getCurrentModuleName(&currModuleName);
-  if (modRC != 0) {
-    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
-            ZIS_LOG_CXMS_PMEM_NAME_FAILED_MSG, modRC);
-    return RC_ZIS_ERROR;
-  }
 
   /* find out if MEM has been specified in the JCL and use it to create
    * the parmlib member name */
 
-  const char *memberSuffix = zisGetParmValue(parms, ZIS_PARM_MEMBER_SUFFIX);
+  const char *memberSuffix = zisGetParmValue(context->parms,
+                                             ZIS_PARM_MEMBER_SUFFIX);
   if (memberSuffix == NULL) {
     memberSuffix = ZIS_PARM_MEMBER_DEFAULT_SUFFIX;
   }
@@ -1299,7 +1358,7 @@ static int extractPARMLIBMemberName(ZISParmSet *parms,
   memset(member->nameNullTerm, 0, sizeof(member->nameNullTerm));
   if (strlen(memberSuffix) == ZIS_PARM_MEMBER_SUFFIX_SIZE) {
     // copy the 3-letter element ID and the subcomponent
-    memcpy(member->nameNullTerm, currModuleName.text, 4);
+    memcpy(member->nameNullTerm, context->zisModuleName.text, 4);
     strcat(member->nameNullTerm, "IP"); // fixed part
     strcat(member->nameNullTerm, memberSuffix);
   } else {
@@ -1307,6 +1366,23 @@ static int extractPARMLIBMemberName(ZISParmSet *parms,
             ZIS_LOG_CXMS_BAD_PMEM_SUFFIX_MSG, memberSuffix);
     return RC_ZIS_ERROR;
   }
+
+  return RC_ZIS_OK;
+}
+
+static int initContext(ZISContext *context) {
+
+  int modRC = getCurrentModuleName(&context->zisModuleName);
+  if (modRC != 0) {
+    zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE,
+            ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG, modRC);
+    return RC_ZIS_ERROR;
+  }
+
+  memcpy(context->dynlinkModuleNameNullTerm, context->zisModuleName.text, 4);
+  strcat(context->dynlinkModuleNameNullTerm, ZIS_DYN_LINKAGE_PLUGIN_MOD_SUFFIX);
+
+  setRLEApplicationAnchor(context->stcBase->rleAnchor, context);
 
   return RC_ZIS_OK;
 }
@@ -1337,7 +1413,7 @@ static int loadConfig(ZISContext *context,
   }
 
   PARMLIBMember parmlibMember;
-  int parmlibRC = extractPARMLIBMemberName(context->parms, &parmlibMember);
+  int parmlibRC = extractPARMLIBMemberName(context, &parmlibMember);
   if (parmlibRC != RC_ZIS_OK) {
     zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_SEVERE, ZIS_LOG_CONFIG_FAILURE_MSG,
             "PARMLIB member not extracted", parmlibRC);
@@ -1392,6 +1468,11 @@ static int getCMSConfigFlags(const ZISParmSet *zisParms) {
   const char *lpaDevMode = zisGetParmValue(zisParms, ZIS_PARM_DEV_MODE_LPA);
   if (lpaDevMode && !strcmp(lpaDevMode, ZIS_PARM_DEV_MODE_ON)) {
     flags |= CMS_SERVER_FLAG_DEV_MODE_LPA;
+  }
+
+  const char *resetLookup = zisGetParmValue(zisParms, ZIS_PARM_RESET_LOOKUP);
+  if (resetLookup && strlen(coldStartValue) == 0) {
+    flags |= CMS_SERVER_FLAG_RESET_LOOKUP;
   }
 
   return flags;
@@ -1502,16 +1583,31 @@ static int runCoreServer(ZISContext *context) {
   return RC_ZIS_OK;
 }
 
+static void printDiagInfo(const STCBase *base) {
+  RLEAnchor *rleAnchor = base->rleAnchor;
+  zowelog(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+          "ZIS Server Start rleAnchor 0x%p:\n", rleAnchor);
+  zowedump(NULL, LOG_COMP_STCBASE, ZOWE_LOG_DEBUG,
+           (void *) rleAnchor, sizeof(RLEAnchor));
+}
+
 static int run(STCBase *base, const ZISMainFunctionParms *mainParms) {
 
   initLoggin();
 
   printStartMessage();
 
+  printDiagInfo(base);
+
   ZISContext context = makeContext(base);
 
   int status = RC_ZIS_OK;
   do {
+
+    status = initContext(&context);
+    if (status != RC_ZIS_OK) {
+      break;
+    }
 
     status = loadConfig(&context, mainParms);
     if (status != RC_ZIS_OK) {

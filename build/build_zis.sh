@@ -24,7 +24,27 @@ echo "Building ZIS..."
 
 mkdir -p "${WORKING_DIR}/tmp-zis" && cd "$_"
 
-IFS='.' read -r major minor micro < "${ZSS}/version.txt"
+
+. ${ZSS}/build/zis.proj.env
+# no dependencies yet
+# . ${COMMON}/build/dependencies.sh
+# check_dependencies "${ZSS}" "${ZSS}/build/zis.proj.env"
+# DEPS_DESTINATION=$(get_destination "${ZIS}" "${PROJECT}")
+
+# Split version into parts
+OLDIFS=$IFS
+IFS="."
+for part in ${VERSION}; do
+  if [ -z "$major" ]; then
+    major=$part
+  elif [ -z "$minor" ]; then
+    minor=$part
+  else
+    micro=$part
+  fi
+done
+IFS=$OLDIFS
+
 date_stamp=$(date +%Y%m%d)
 echo "Version: $major.$minor.$micro"
 echo "Date stamp: $date_stamp"
@@ -69,6 +89,7 @@ xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
    ${ZSS}/c/zis/parm.c \
    ${ZSS}/c/zis/plugin.c \
    ${ZSS}/c/zis/server.c \
+   ${ZSS}/c/zis/server-api.c \
    ${ZSS}/c/zis/service.c \
    ${ZSS}/c/zis/services/auth.c \
    ${ZSS}/c/zis/services/nwm.c \
@@ -84,7 +105,7 @@ for file in \
     alloc as cellpool cmutils collections crossmemory isgenq le logging lpa metalio mtlskt nametoken \
     pause-element pc qsam radmin recovery resmgr scheduling shrmem64 stcbase timeutls utils xlate \
     zos zvt \
-    parm plugin server service \
+    parm plugin server server-api service \
     auth nwm snarfer secmgmt tssparsing secmgmttss secmgmtUtils \
     aux-utils aux-host
 do
@@ -120,6 +141,7 @@ ld -V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus \
   parm.o \
   plugin.o \
   server.o \
+  server-api.o \
   service.o \
   auth.o \
   nwm.o \

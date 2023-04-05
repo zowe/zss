@@ -4,7 +4,6 @@
   "title": "zss configuration",
   "description": "Configuration properties for zss, as specified within a configuration file such as zowe.yaml",
   "type": "object",
-  "required": [ "pluginsDir", "instanceDir", "productDir", "tls", "dataserviceAuthentication", "agent" ],
   "additionalProperties": true,
   "properties": {
     "tls": {
@@ -216,6 +215,7 @@
     },
     "logLevels": {
       "type": "object",
+      "description": "Loggers here are either for builtin logs (_zss) or plugins. The dots (.) are literally part of the strings, and not another level in the configuration. For example, components.zss.logLevels['_zss.traceLevel']=5 is a logLevels object with a member zss.traceLevel",
       "patternProperties": {
         "_zss.traceLevel": {
           "description": "Controls general server logging verbosity.",
@@ -254,99 +254,99 @@
           "$ref": "#/$defs/logLevel"
         },
         "_zss.mvdserver": {
-          "description": "Generic logging for ZSS items not covered by other loggers",
+          "description": "Generic logging for ZSS items not covered by other loggers.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.ctds": {
-          "description": "Controls logging of the built-in CTDS service",
+          "description": "Controls logging of the built-in CTDS service.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.security": {
-          "description": "Controls logging of the built-in security service",
+          "description": "Controls logging of the built-in security service.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.unixfile": {
-          "description": "Controls logging of the built-in unixfile service",
+          "description": "Controls logging of the built-in unixfile service.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.dataservice": {
-          "description": "Controls logging of generic dataservice tasks",
+          "description": "Controls logging of generic dataservice tasks.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.apimlstorage": {
-          "description": "Controls logging of the dataservice storage API",
+          "description": "Controls logging of the dataservice storage API.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.jwk": {
-          "description": "Controls logging of JWK use for SSO",
+          "description": "Controls logging of JWK use for SSO.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.alloc": {
-          "description": "Controls logging of JWK use for SSO",
+          "description": "Controls logging of alloc library functions.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.utils": {
-          "description": "Controls logging of util library functions",
+          "description": "Controls logging of util library functions.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.collections": {
-          "description": "Controls logging of collection structure library functions",
+          "description": "Controls logging of collection structure library functions.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.serialization": {
-          "description": "Controls logging of serialiation library functions",
+          "description": "Controls logging of serialiation library functions.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.zlparser": {
-          "description": "Controls logging of zlparser library functions",
+          "description": "Controls logging of zlparser library functions.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.zlcompiler": {
-          "description": "Controls logging of zlcompiler library functions",
+          "description": "Controls logging of zlcompiler library functions.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.zlruntime": {
-          "description": "Controls logging of zlruntime library functions",
+          "description": "Controls logging of zlruntime library functions.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.stcbase": {
-          "description": "Controls logging of STC Base functions",
+          "description": "Controls logging of STC Base functions.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.httpserver": {
-          "description": "Controls logging of the http server base",
+          "description": "Controls logging of the http server base.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.discovery": {
-          "description": "Controls logging of discovery tools",
+          "description": "Controls logging of discovery tools.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.cms": {
-          "description": "Controls logging of cms library functions",
+          "description": "Controls logging of cms library functions.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.lpa": {
-          "description": "Controls logging of lpa library functions",
+          "description": "Controls logging of lpa library functions.",
           "$ref": "#/$defs/logLevel"
         },
-        "_zss.resetdataset": {
-          "description": "Controls logging of resetdataset functions",
+        "_zss.restdataset": {
+          "description": "Controls logging of restdataset functions.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.restfile": {
-          "description": "Controls logging of the REST api for files",
+          "description": "Controls logging of the REST api for files.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.zos": {
-          "description": "Controls logging of zos utility library functions",
+          "description": "Controls logging of zos utility library functions.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.httpclient": {
-          "description": "Controls logging of http client calls",
+          "description": "Controls logging of http client calls.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.jwt": {
-          "description": "Controls logging of JWT library functions",
+          "description": "Controls logging of JWT library functions.",
           "$ref": "#/$defs/logLevel"
         },
         "^.*$": {

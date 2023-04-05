@@ -117,17 +117,39 @@ ZOWE_PRAGMA_PACK_RESET
 
 #pragma map(zisCreateService, "ZISCRSVC")
 #pragma map(zisCreateSpaceSwitchService, "ZISCSWSV")
-#pragma map(zisCreateCurrentPrimaryService, "ZISCCPSVC")
-#pragma map(zisCreateServiceAnchor, "ZISSERVCA")
-#pragma map(zisRemoveServiceAnchor, "ZISSERVRA")
-#pragma map(zisUpdateServiceAnchor, "ZISSERVUA")
+#pragma map(zisCreateCurrentPrimaryService, "ZISCCPSV")
+#pragma map(zisCreateServiceAnchor, "ZISCSVCA")
+#pragma map(zisRemoveServiceAnchor, "ZISRSVCA")
+#pragma map(zisUpdateServiceAnchor, "ZISUSVCA")
+#pragma map(zisServiceUseSpecificAuth, "ZISUSAUT")
 
+/**
+ * @brief Create a service descriptor.
+ * @param[in] name The service name (unique within the plugin).
+ * @param[in] flags Various flags (use the @c ZIS_SERVICE_FLAG_xxxx values).
+ * @param[in] initFunction The init callback function invoked at ZIS startup.
+ * @param[in] termFunction The term callback function invoked at ZIS termination.
+ * @param[in] serveFunction The serve callback function invoked when the service
+ * is called.
+ * @param[in] version The version of the service.
+ * @return The result service descriptor.
+ */
 ZISService zisCreateService(ZISServiceName name, int flags,
                             ZISServiceInitFunction *initFunction,
                             ZISServiceTermFunction *termFunction,
                             ZISServiceServeFunction *serveFunction,
                             unsigned int version);
 
+/**
+ * @brief Create service descriptor for a space-switch service.
+ * @param[in] name The service name (unique within the plugin).
+ * @param[in] initFunction The init callback function invoked at ZIS startup.
+ * @param[in] termFunction The term callback function invoked at ZIS termination.
+ * @param[in] serveFunction The serve callback function invoked when the service
+ * is called.
+ * @param[in] version The version of the service.
+ * @return The result service descriptor.
+ */
 ZISService zisCreateSpaceSwitchService(
     ZISServiceName name,
     ZISServiceInitFunction *initFunction,
@@ -136,6 +158,16 @@ ZISService zisCreateSpaceSwitchService(
     unsigned int version
 );
 
+/**
+ * @brief Create service descriptor for a current-primary service.
+ * @param[in] name The service name (unique within the plugin).
+ * @param[in] initFunction The init callback function invoked at ZIS startup.
+ * @param[in] termFunction The term callback function invoked at ZIS termination.
+ * @param[in] serveFunction The serve callback function invoked when the service
+ * is called.
+ * @param[in] version The version of the service.
+ * @return The result service descriptor.
+ */
 ZISService zisCreateCurrentPrimaryService(
     ZISServiceName name,
     ZISServiceInitFunction *initFunction,
@@ -147,9 +179,9 @@ ZISService zisCreateCurrentPrimaryService(
 /**
  * Adds class and entity names to a service.
  *
- * @param service The service to be used with the class and entity.
- * @param className The class name to be used.
- * @param entityName The entity name to be used.
+ * @param[in,out] service The service to be used with the class and entity.
+ * @param[in] className The class name to be used.
+ * @param[in] entityName The entity name to be used.
  * @return 0 in case of success, -1 if the class or entity name is too long.
  */
 int zisServiceUseSpecificAuth(ZISService *service,

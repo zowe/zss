@@ -14,7 +14,7 @@ components:
         fallback: true
         retryIntervalSeconds: 10
       https:
-        keyring: ${{ ()=> { if (components.zss.tls) { if (zowe.certificate.keystore.type == "JCERACFKS") { return zowe.certificate.keystore.file.substring(15) } else { return zowe.certificate.keystore.file } } else { return null } }() }}
+        keyring: ${{ ()=> { if (components.zss.tls) { if (zowe.certificate.keystore.type == "JCERACFKS") { return zowe.certificate.keystore.file.replace(/safkeyring:\/+/,"") } else { return zowe.certificate.keystore.file } } else { return null } }() }}
         password: ${{ ()=> { if (components.zss.tls) { if (zowe.certificate.keystore.type == "JCERACFKS") { return null } else { return zowe.certificate.keystore.password } } else { return null } }() }}
         label: ${{ ()=> { if (components.zss.tls) { return zowe.certificate.keystore.alias } else { return null } }() }}
         port: ${{ ()=> { if (components.zss.tls) { return  components.zss.port } else { return null } }() }}

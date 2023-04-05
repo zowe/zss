@@ -8,9 +8,23 @@ All notable changes to the ZSS package will be documented in this file.
 
 - Enhancement: ZSS dataset creation api now supports space values of "BYTE", "KB", and "MB" instead of just "CYL" and "TRK"
 
+## `2.7.0`
+
+- Enhancement: A new ZIS plugin, "ZISDYNAMIC" is available within the LOADLIB as ZWESISDL. This plugin allows for ZIS plugins to access utility functions of the zowe-common-c libraries without needing to statically build them into the plugin itself.
+- Enhancement: New REST endpoint that maps distributed username to RACF user ID.
+- Bugfix: Fixed /unixfile/metadata not working when URL encoded spaces were present in file names
+
+## `2.5.0`
+
+- Bugfix: In 2.3 and 2.4, 'safkeyring://' syntax stopped working, only allowing 'safkeyring:////'. Now, support for both is restored.
+- Support ZIS runtime version check 
+- Update the dynamic linkage stub vector to include new functions
+- Add ZIS plugin development documentation and samples
+
 ## `2.4.0`
 
 - Enhancement: ZSS /datasetContents now has a PUT API for creating datasets.
+- Enhancement: ZIS dynamic linkage support
 
 ## `2.3.0`
 
