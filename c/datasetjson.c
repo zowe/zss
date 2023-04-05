@@ -1145,6 +1145,7 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
                                   const char *lastEtag, bool force) {
 
   HttpRequest *request = response->request;
+  printf("---force: %d\n", force);
 
   if (!isDatasetPathValid(datasetPath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
@@ -1414,7 +1415,12 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
   HttpRequestParam *forceParam = getCheckedParam(request,"force");
   char *forceArg = (forceParam ? forceParam->stringValue : NULL);
   bool force = (forceArg != NULL && !strcmp(forceArg,"true"));
-  
+
+  printf("forceArg != NULL: %d\n", forceArg != NULL);
+  printf("strcmp(forceArg,"true"): %d\n", strcmp(forceArg,"true"));
+  printf("---forceArg: %d\n", forceArg);
+  printf("---force: %d\n", force);
+
   FileInfo info;
   int returnCode;
   int reasonCode;
@@ -1460,6 +1466,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
             etag = etagHeader->nativeValue;
           }
         }
+        printf("---force: %d\n", force);
         updateDatasetWithJSON(response, jsonObject, absolutePath, etag, force);
       } else{
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "*** INTERNAL ERROR *** message is JSON, but not an object\n");
