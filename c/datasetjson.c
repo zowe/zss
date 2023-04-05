@@ -1413,12 +1413,11 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
   }
 
   HttpRequest *request = response->request;
-  HttpRequestParam *forceParam =  getQueryParam(response->request, "force")
-  char *forceArg = (forceParam ? forceParam->stringValue : NULL);
-  bool force = (forceArg != NULL && !strcmp(forceArg,"true"));
+  char *forceParam =  getQueryParam(response->request, "force");
+  bool force = (forceParam != NULL && !strcmp(forceParam,"true"));
 
-  printf("strcmp(forceArg,true): %d\n", strcmp(forceArg,"true"));
-  printf("---forceArg: %s\n", forceArg);
+  printf("strcmp(forceParam,true): %d\n", strcmp(forceParam,"true"));
+  printf("---forceParam: %s\n", forceParam);
   printf("---force: %d\n", force);
 
   char *newForce = getQueryParam(response->request, "force");
