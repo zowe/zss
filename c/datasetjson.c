@@ -1421,6 +1421,11 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
   printf("---forceArg: %s\n", forceArg);
   printf("---force: %d\n", force);
 
+  char *newForce = getQueryParam(response->request, "force");
+  printf("---newForce: %s\n", newForce);
+  bool newF = (newForce != NULL && !strcmp(newForce,"true"));
+  printf("---newF: %d\n", newF);
+
   FileInfo info;
   int returnCode;
   int reasonCode;
