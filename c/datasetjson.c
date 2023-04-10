@@ -478,7 +478,7 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     uint32_t difftrk = hightrk-lowtrk +1;
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "diff cyl 0x%x - 0x%x, trk 0x%x - 0x%x is (%d cyl, %d trk)\n", highcyl, lowcyl, hightrk, lowtrk, diffcyl, difftrk);
 
-    uint64_t primarySizeBytes = (diffcyl * 849960) + (difftrk * 56664);
+    uint64_t primarySizeBytes = (diffcyl * bytesPerCylinder) + (difftrk * bytesPerTrack);
     /* debugging of interesting size types
     printf("primarySizeBytes is %lld\n", primarySizeBytes);
     if (sizeType==DATASET_ALLOC_TYPE_MB) {
@@ -501,9 +501,9 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     }
     
     if (sizeType==DATASET_ALLOC_TYPE_CYL) { //cyl & track prime size seems to work reliably based on extent info
-      jsonAddInt(jPrinter, "prime", primarySizeBytes/849960);
+      jsonAddInt(jPrinter, "prime", primarySizeBytes/bytesPerCylinder);
     } else if (sizeType==DATASET_ALLOC_TYPE_TRK) {
-      jsonAddInt(jPrinter, "prime", primarySizeBytes/56664);
+      jsonAddInt(jPrinter, "prime", primarySizeBytes/bytesPerTrack);
     } else { //but other types, the extent info is way too large, so these numbers observed to be closer, often correct.
       if (scxtv){
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "scal3=%d, blocksize=%d, primarySizeDiv=%d, scxtv=%d\n", scal3, blockSize, primarySizeDiv, scxtv);
@@ -511,7 +511,7 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
           jsonAddInt(jPrinter, "prime", (scal3 * blockSize) / primarySizeDiv);
         } else {
           //this works well for block sizes like 32720 or 27990, but returns somewhat larger than expected values for small block sizes like 320
-          jsonAddInt(jPrinter, "prime", ((scal3 * blockSize) * (56664/blockSize)) / primarySizeDiv);
+          jsonAddInt(jPrinter, "prime", ((scal3 * blockSize) * (bytesPerTrack/blockSize)) / primarySizeDiv);
         }
       } else {
         jsonAddInt(jPrinter, "prime", scal3);
