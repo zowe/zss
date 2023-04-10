@@ -24,7 +24,27 @@ echo "Building ZIS..."
 
 mkdir -p "${WORKING_DIR}/tmp-zis" && cd "$_"
 
-IFS='.' read -r major minor micro < "${ZSS}/version.txt"
+
+. ${ZSS}/build/zis.proj.env
+# no dependencies yet
+# . ${COMMON}/build/dependencies.sh
+# check_dependencies "${ZSS}" "${ZSS}/build/zis.proj.env"
+# DEPS_DESTINATION=$(get_destination "${ZIS}" "${PROJECT}")
+
+# Split version into parts
+OLDIFS=$IFS
+IFS="."
+for part in ${VERSION}; do
+  if [ -z "$major" ]; then
+    major=$part
+  elif [ -z "$minor" ]; then
+    minor=$part
+  else
+    micro=$part
+  fi
+done
+IFS=$OLDIFS
+
 date_stamp=$(date +%Y%m%d)
 echo "Version: $major.$minor.$micro"
 echo "Date stamp: $date_stamp"

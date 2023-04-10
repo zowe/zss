@@ -111,7 +111,7 @@ static int serveMappingService(HttpService *service, HttpResponse *response) {
     char *x509URI = strstr(translatedURL, "x509/map");
     char *distinguishedNameURI = strstr(translatedURL, "dn");
 
-    char useridRacf[9];
+    char useridRacf[9] = {0};
     int returnCodeRacf = 0;
     int reasonCodeRacf = 0;
     int rc;

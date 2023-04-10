@@ -53,6 +53,14 @@
 #define CLASS_WRITER_SIZE 8
 #define TOTAL_TEXT_UNITS  23
 
+#define DATASET_ALLOC_TYPE_BYTE  0
+#define DATASET_ALLOC_TYPE_CYL   1
+#define DATASET_ALLOC_TYPE_TRK   2
+#define DATASET_ALLOC_TYPE_BLOCK 3
+#define DATASET_ALLOC_TYPE_KB    4
+#define DATASET_ALLOC_TYPE_MB    5
+
+
 static char defaultDatasetTypesAllowed[3] = {'A','D','X'};
 static char clusterTypesAllowed[3] = {'C','D','I'}; /* TODO: support 'I' type DSNs */
 static int clusterTypesCount = 3;
@@ -65,6 +73,11 @@ static char vsamCSITypes[5] = {'R', 'D', 'G', 'I', 'C'};
 
 static char getRecordLengthType(char *dscb);
 static int getMaxRecordLength(char *dscb);
+
+//Below uses CKD 3390 numbers
+static int bytesPerTrack=56664;
+static int tracksPerCylinder=15;
+static int bytesPerCylinder=849960;
 
 const static int DSCB_TRACE = FALSE;
 
@@ -404,7 +417,108 @@ int streamVSAMDataset(HttpResponse* response, char *acb, int maxRecordLength, in
 
 static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
 #ifdef __ZOWE_OS_ZOS
+
     int posOffset = 44;
+
+    int blockSize = (dscb[86-posOffset] << 8 | dscb[87-posOffset]);
+
+    int scxtvMult = 1;
+    int primarySizeDiv = 1;
+    char spac = (dscb[94-posOffset]);
+    int sizeType = DATASET_ALLOC_TYPE_BYTE;
+    if ((spac & 0xc0) == 0xc0){
+      jsonAddString(jPrinter, "space", "cyls");
+      sizeType=DATASET_ALLOC_TYPE_CYL;
+    } else if (spac & 0x80){
+      if (spac & 0x10){
+        char cxtf = (dscb[79-posOffset]);
+        if (cxtf & 0x80){
+          zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "scxtv original blklen!\n");
+        }
+        if (cxtf & 0x40){
+          jsonAddString(jPrinter, "space", "mb");
+          sizeType=DATASET_ALLOC_TYPE_MB;
+          primarySizeDiv = 1048576;
+        } else if (cxtf & 0x20){
+          jsonAddString(jPrinter, "space", "kb");
+          sizeType=DATASET_ALLOC_TYPE_KB;
+          primarySizeDiv = 1024;
+        } else if (cxtf & 0x10){
+          jsonAddString(jPrinter, "space", "bytes");
+        }
+        if (cxtf & 0x08){
+          scxtvMult=256;
+        }
+        if (cxtf & 0x04){
+          scxtvMult=65536;
+        }
+      } else{
+        jsonAddString(jPrinter, "space", "trks");
+        sizeType=DATASET_ALLOC_TYPE_TRK;
+      }
+    } else if (spac & 0x40){
+      jsonAddString(jPrinter, "space", "blks");
+      sizeType=DATASET_ALLOC_TYPE_BLOCK;
+      primarySizeDiv = blockSize;
+    } else{
+      jsonAddString(jPrinter, "space", "trks");
+      sizeType=DATASET_ALLOC_TYPE_TRK;
+      zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "spac ABS!\n");
+    }
+
+    int scxtv = (dscb[80-posOffset] << 8 | dscb[81-posOffset]);
+    int scal3 = (dscb[95-posOffset] << 16 | dscb[96-posOffset] << 8 | dscb[97-posOffset]);
+    
+    uint32_t lowcyl = dscb[109-posOffset]<<24 | ((dscb[110-posOffset]&0xf0)<<16) | dscb[107-posOffset]<<8 | dscb[108-posOffset];
+    uint32_t highcyl = dscb[113-posOffset]<<24 | ((dscb[114-posOffset]&0xf0)<<16) | dscb[111-posOffset]<<8 | dscb[112-posOffset];
+    uint32_t lowtrk = dscb[110-posOffset]&0x0f;
+    uint32_t hightrk = dscb[114-posOffset]&0x0f;
+
+    uint32_t diffcyl = highcyl-lowcyl;
+    uint32_t difftrk = hightrk-lowtrk +1;
+    zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "diff cyl 0x%x - 0x%x, trk 0x%x - 0x%x is (%d cyl, %d trk)\n", highcyl, lowcyl, hightrk, lowtrk, diffcyl, difftrk);
+
+    uint64_t primarySizeBytes = (diffcyl * bytesPerCylinder) + (difftrk * bytesPerTrack);
+    /* debugging of interesting size types
+    printf("primarySizeBytes is %lld\n", primarySizeBytes);
+    if (sizeType==DATASET_ALLOC_TYPE_MB) {
+      printf("size mb=%lld\n", primarySizeBytes/primarySizeDiv);
+    } else if (sizeType==DATASET_ALLOC_TYPE_KB) {
+      printf("size kb=%lld\n", primarySizeBytes/primarySizeDiv);
+    } else if (sizeType==DATASET_ALLOC_TYPE_BLOCK) {
+      printf("size blk=%lld\n",primarySizeBytes/blockSize);
+    }
+    */
+
+    if(scxtv) {
+      if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //observationally special case
+        jsonAddInt(jPrinter, "secnd", ((scxtvMult * scxtv) * scal3) / primarySizeDiv);
+      } else {
+        jsonAddInt(jPrinter, "secnd", scxtvMult * scxtv);
+      }
+    } else {
+      jsonAddInt(jPrinter, "secnd", scal3);
+    }
+    
+    if (sizeType==DATASET_ALLOC_TYPE_CYL) { //cyl & track prime size seems to work reliably based on extent info
+      jsonAddInt(jPrinter, "prime", primarySizeBytes/bytesPerCylinder);
+    } else if (sizeType==DATASET_ALLOC_TYPE_TRK) {
+      jsonAddInt(jPrinter, "prime", primarySizeBytes/bytesPerTrack);
+    } else { //but other types, the extent info is way too large, so these numbers observed to be closer, often correct.
+      if (scxtv){
+        zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "scal3=%d, blocksize=%d, primarySizeDiv=%d, scxtv=%d\n", scal3, blockSize, primarySizeDiv, scxtv);
+        if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //works sometimes, but not always.
+          jsonAddInt(jPrinter, "prime", (scal3 * blockSize) / primarySizeDiv);
+        } else {
+          //this works well for block sizes like 32720 or 27990, but returns somewhat larger than expected values for small block sizes like 320
+          jsonAddInt(jPrinter, "prime", ((scal3 * blockSize) * (bytesPerTrack/blockSize)) / primarySizeDiv);
+        }
+      } else {
+        jsonAddInt(jPrinter, "prime", scal3);
+      }
+    }
+
+    
 
     int recfm = dscb[84-posOffset];
     
@@ -500,10 +614,12 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
       int lrecl = (dscb[88-posOffset] << 8) | dscb[89-posOffset];
       jsonAddInt(jPrinter,"maxRecordLen",lrecl);
       
-      int blockSize = (dscb[86-posOffset] << 8 | dscb[87-posOffset]);
       jsonAddInt(jPrinter,"totalBlockSize",blockSize);  
+
     }
     jsonEndObject(jPrinter);
+
+    
 #endif /* __ZOWE_OS_ZOS */
 }
 
@@ -2525,6 +2641,23 @@ void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQue
 #endif /* __ZOWE_OS_ZOS */
 }
 
+/* Returns a quantity of tracks or cylinders for dynalloc in case the user asked for bytes */
+/* Yes, these are approximations but if people really want exact numbers they should use cyl & trk */
+static int getDSSizeValueFromType(int quantity, char *spaceType) {
+  if (!strcmp(spaceType, "CYL")) {
+    return quantity;
+  } else if (!strcmp(spaceType, "TRK")) {
+    return quantity;
+  } else if (!strcmp(spaceType, "BYTE")) {
+    return quantity / bytesPerTrack;
+  } else if (!strcmp(spaceType, "KB")) {
+    return (quantity*1024) / bytesPerTrack;
+  } else if (!strcmp(spaceType, "MB")) {
+    return (quantity*1048576) / bytesPerCylinder;
+  }
+  return quantity;
+}
+
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit) {
   JsonProperty *currentProp = jsonObjectGetFirstProperty(object);
   Json *value = NULL;
@@ -2539,6 +2672,7 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
   // most parameters below explained here https://www.ibm.com/docs/en/zos/2.1.0?topic=dfsms-zos-using-data-sets
   // or here https://www.ibm.com/docs/en/zos/2.1.0?topic=function-non-jcl-dynamic-allocation-functions
   // or here https://www.ibm.com/docs/en/zos/2.1.0?topic=function-dsname-allocation-text-units
+  
   while(currentProp != NULL){
     value = jsonPropertyGetValue(currentProp);
     char *propString = jsonPropertyGetKey(currentProp);
@@ -2599,11 +2733,24 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
           }
           rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, setRECFM, DALRECFM, configsCount, inputTextUnit);
         }
-      } else if(!strcmp(propString, "blkln")) {
+      } else if(!strcmp(propString, "blkln")
+                && !jsonObjectHasKey(object, "space")) { //mutually exclusive with daltrk, dalcyl
         // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-block-length-specification-key-0009
         int valueInt = jsonAsNumber(value);
         if (valueInt <= 0xFFFF && valueInt >= 0){
           rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALBLKLN, configsCount, inputTextUnit);
+        }
+        if (jsonObjectHasKey(object, "prime")) { //in tracks for blkln
+          int primeSize = jsonObjectGetNumber(object, "prime");
+          if (primeSize <= 0xFFFFFF && primeSize >= 0) {
+            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, primeSize, DALPRIME, configsCount, inputTextUnit);
+          }
+        }
+        if (jsonObjectHasKey(object, "secnd")) { //in tracks for blkln
+          int secondarySize = jsonObjectGetNumber(object, "secnd");
+          if (secondarySize <= 0xFFFFFF && secondarySize >= 0) {
+            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, secondarySize, DALSECND, configsCount, inputTextUnit);
+          }
         }
       } else if (!strcmp(propString, "ndisp")) {
         char *valueString = jsonAsString(value);
@@ -2640,32 +2787,40 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
           }
         }
       } else if(!strcmp(propString, "space")) {
-        char *valueString = jsonAsString(value);
-        if (valueString != NULL) {
-          if (!strcmp(valueString, "CYL")) {
+        char *spaceType = jsonAsString(value);
+        if (spaceType != NULL) {
+          if (!strcmp(spaceType, "CYL")) {
             parmDefn = DALCYL;
-          } else if (!strcmp(valueString, "TRK")) {
+          } else if (!strcmp(spaceType, "TRK")) {
             // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-track-space-type-trk-specification-key-0007
             parmDefn = DALTRK;
+          } else if (!strcmp(spaceType, "BYTE")) {
+            parmDefn = DALTRK;
+          } else if (!strcmp(spaceType, "KB")) {
+            parmDefn = DALTRK;
+          } else if (!strcmp(spaceType, "MB")) {
+            parmDefn = DALCYL;
           }
           if(parmDefn != DALDSORG_NULL) {
             rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, parmDefn, configsCount, inputTextUnit);
+          }
+          if (jsonObjectHasKey(object, "prime")) { //in tracks for blkln
+            int primeSize = jsonObjectGetNumber(object, "prime");
+            if (primeSize <= 0xFFFFFF && primeSize >= 0) {
+              rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, getDSSizeValueFromType(primeSize, spaceType), DALPRIME, configsCount, inputTextUnit);
+            }
+          }
+          if (jsonObjectHasKey(object, "secnd")) { //in tracks for blkln
+            int secondarySize = jsonObjectGetNumber(object, "secnd");
+            if (secondarySize <= 0xFFFFFF && secondarySize >= 0) {
+              rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, getDSSizeValueFromType(secondarySize, spaceType), DALSECND, configsCount, inputTextUnit);
+            }
           }
         }
       } else if(!strcmp(propString, "dir")) {
         int valueInt = jsonAsNumber(value);
         if (valueInt <= 0xFFFFFF && valueInt >= 0) {
           rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALDIR, configsCount, inputTextUnit);
-        }
-      } else if(!strcmp(propString, "prime")) {
-        int valueInt = jsonAsNumber(value);
-        if (valueInt <= 0xFFFFFF && valueInt >= 0) {
-          rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALPRIME, configsCount, inputTextUnit);
-        }
-      } else if(!strcmp(propString, "secnd")) {
-        int valueInt = jsonAsNumber(value);
-        if (valueInt <= 0xFFFFFF && valueInt >= 0) {
-          rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALSECND, configsCount, inputTextUnit);
         }
       } else if(!strcmp(propString, "avgr")) {
         // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-avgrec-parameter
