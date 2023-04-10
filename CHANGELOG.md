@@ -6,7 +6,8 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## `2.8.0`
 
-- Enhancement: /datasetMetadata now returns primarySize, secondarySize, and spaceUnit fields
+- Enhancement: /datasetMetadata now returns prime, secnd, and space fields for showing the primary and secondary extent sizes and the unit type for them. (#582)
+- Enhancement: ZSS dataset creation api now supports space values of "BYTE", "KB", and "MB" instead of just "CYL" and "TRK"
 
 ## `2.7.0`
 
