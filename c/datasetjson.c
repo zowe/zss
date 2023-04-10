@@ -66,6 +66,11 @@ static char vsamCSITypes[5] = {'R', 'D', 'G', 'I', 'C'};
 static char getRecordLengthType(char *dscb);
 static int getMaxRecordLength(char *dscb);
 
+//Below uses CKD 3390 numbers
+static int bytesPerTrack=56664;
+static int tracksPerCylinder=15;
+static int bytesPerCylinder=849960;
+
 const static int DSCB_TRACE = FALSE;
 
 typedef struct DatasetName_tag {
@@ -2525,6 +2530,23 @@ void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQue
 #endif /* __ZOWE_OS_ZOS */
 }
 
+/* Returns a quantity of tracks or cylinders for dynalloc in case the user asked for bytes */
+/* Yes, these are approximations but if people really want exact numbers they should use cyl & trk */
+static int getDSSizeValueFromType(int quantity, char *spaceType) {
+  if (!strcmp(spaceType, "CYL")) {
+    return quantity;
+  } else if (!strcmp(spaceType, "TRK")) {
+    return quantity;
+  } else if (!strcmp(spaceType, "BYTE")) {
+    return quantity / bytesPerTrack;
+  } else if (!strcmp(spaceType, "KB")) {
+    return (quantity*1024) / bytesPerTrack;
+  } else if (!strcmp(spaceType, "MB")) {
+    return (quantity*1048576) / bytesPerCylinder;
+  }
+  return quantity;
+}
+
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit) {
   JsonProperty *currentProp = jsonObjectGetFirstProperty(object);
   Json *value = NULL;
@@ -2539,6 +2561,7 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
   // most parameters below explained here https://www.ibm.com/docs/en/zos/2.1.0?topic=dfsms-zos-using-data-sets
   // or here https://www.ibm.com/docs/en/zos/2.1.0?topic=function-non-jcl-dynamic-allocation-functions
   // or here https://www.ibm.com/docs/en/zos/2.1.0?topic=function-dsname-allocation-text-units
+  
   while(currentProp != NULL){
     value = jsonPropertyGetValue(currentProp);
     char *propString = jsonPropertyGetKey(currentProp);
@@ -2599,11 +2622,24 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
           }
           rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, setRECFM, DALRECFM, configsCount, inputTextUnit);
         }
-      } else if(!strcmp(propString, "blkln")) {
+      } else if(!strcmp(propString, "blkln")
+                && !jsonObjectHasKey(object, "space")) { //mutually exclusive with daltrk, dalcyl
         // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-block-length-specification-key-0009
         int valueInt = jsonAsNumber(value);
         if (valueInt <= 0xFFFF && valueInt >= 0){
           rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALBLKLN, configsCount, inputTextUnit);
+        }
+        if (jsonObjectHasKey(object, "prime")) { //in tracks for blkln
+          int primeSize = jsonObjectGetNumber(object, "prime");
+          if (primeSize <= 0xFFFFFF && primeSize >= 0) {
+            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, primeSize, DALPRIME, configsCount, inputTextUnit);
+          }
+        }
+        if (jsonObjectHasKey(object, "secnd")) { //in tracks for blkln
+          int secondarySize = jsonObjectGetNumber(object, "secnd");
+          if (secondarySize <= 0xFFFFFF && secondarySize >= 0) {
+            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, secondarySize, DALSECND, configsCount, inputTextUnit);
+          }
         }
       } else if (!strcmp(propString, "ndisp")) {
         char *valueString = jsonAsString(value);
@@ -2640,32 +2676,40 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
           }
         }
       } else if(!strcmp(propString, "space")) {
-        char *valueString = jsonAsString(value);
-        if (valueString != NULL) {
-          if (!strcmp(valueString, "CYL")) {
+        char *spaceType = jsonAsString(value);
+        if (spaceType != NULL) {
+          if (!strcmp(spaceType, "CYL")) {
             parmDefn = DALCYL;
-          } else if (!strcmp(valueString, "TRK")) {
+          } else if (!strcmp(spaceType, "TRK")) {
             // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-track-space-type-trk-specification-key-0007
             parmDefn = DALTRK;
+          } else if (!strcmp(spaceType, "BYTE")) {
+            parmDefn = DALTRK;
+          } else if (!strcmp(spaceType, "KB")) {
+            parmDefn = DALTRK;
+          } else if (!strcmp(spaceType, "MB")) {
+            parmDefn = DALCYL;
           }
           if(parmDefn != DALDSORG_NULL) {
             rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, parmDefn, configsCount, inputTextUnit);
+          }
+          if (jsonObjectHasKey(object, "prime")) { //in tracks for blkln
+            int primeSize = jsonObjectGetNumber(object, "prime");
+            if (primeSize <= 0xFFFFFF && primeSize >= 0) {
+              rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, getDSSizeValueFromType(primeSize, spaceType), DALPRIME, configsCount, inputTextUnit);
+            }
+          }
+          if (jsonObjectHasKey(object, "secnd")) { //in tracks for blkln
+            int secondarySize = jsonObjectGetNumber(object, "secnd");
+            if (secondarySize <= 0xFFFFFF && secondarySize >= 0) {
+              rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, getDSSizeValueFromType(secondarySize, spaceType), DALSECND, configsCount, inputTextUnit);
+            }
           }
         }
       } else if(!strcmp(propString, "dir")) {
         int valueInt = jsonAsNumber(value);
         if (valueInt <= 0xFFFFFF && valueInt >= 0) {
           rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALDIR, configsCount, inputTextUnit);
-        }
-      } else if(!strcmp(propString, "prime")) {
-        int valueInt = jsonAsNumber(value);
-        if (valueInt <= 0xFFFFFF && valueInt >= 0) {
-          rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALPRIME, configsCount, inputTextUnit);
-        }
-      } else if(!strcmp(propString, "secnd")) {
-        int valueInt = jsonAsNumber(value);
-        if (valueInt <= 0xFFFFFF && valueInt >= 0) {
-          rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALSECND, configsCount, inputTextUnit);
         }
       } else if(!strcmp(propString, "avgr")) {
         // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-avgrec-parameter
