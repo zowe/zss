@@ -1145,8 +1145,6 @@ static void updateDatasetWithJSON(HttpResponse *response, JsonObject *json, char
                                   const char *lastEtag, bool force) {
 
   HttpRequest *request = response->request;
-  printf("---force: %d\n", force);
-  printf("---lastEtag: %s\n", lastEtag);
 
   if (!isDatasetPathValid(datasetPath)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset name");
@@ -1461,8 +1459,6 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
             etag = etagHeader->nativeValue;
           }
         }
-        printf("---force: %d\n", force);
-        printf("---etag: %s\n", etag);
         updateDatasetWithJSON(response, jsonObject, absolutePath, etag, force);
       } else{
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "*** INTERNAL ERROR *** message is JSON, but not an object\n");
@@ -3027,11 +3023,6 @@ void respondWithDatasetMetadata(HttpResponse *response) {
 
   HttpRequestParam *addQualifiersParam = getCheckedParam(request,"addQualifiers");
   char *addQualifiersArg = (addQualifiersParam ? addQualifiersParam->stringValue : NULL);
-  bool addq = (addQualifiersArg != NULL && !strcmp(addQualifiersArg,"true"));
-
-  printf("strcmp(addQualifiersArg,true): %d\n", strcmp(addQualifiersArg,"true"));
-  printf("---addQualifiersArg: %s\n", addQualifiersArg);
-  printf("---addq: %d\n", addq);
 
   HttpRequestParam *detailParam = getCheckedParam(request,"detail");
   char *detailArg = (detailParam ? detailParam->stringValue : NULL);
