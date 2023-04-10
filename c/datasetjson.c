@@ -53,6 +53,14 @@
 #define CLASS_WRITER_SIZE 8
 #define TOTAL_TEXT_UNITS  23
 
+#define DATASET_ALLOC_TYPE_BYTE  0
+#define DATASET_ALLOC_TYPE_CYL   1
+#define DATASET_ALLOC_TYPE_TRK   2
+#define DATASET_ALLOC_TYPE_BLOCK 3
+#define DATASET_ALLOC_TYPE_KB    4
+#define DATASET_ALLOC_TYPE_MB    5
+
+
 static char defaultDatasetTypesAllowed[3] = {'A','D','X'};
 static char clusterTypesAllowed[3] = {'C','D','I'}; /* TODO: support 'I' type DSNs */
 static int clusterTypesCount = 3;
@@ -417,22 +425,26 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     int scxtvMult = 1;
     int primarySizeDiv = 1;
     char spac = (dscb[94-posOffset]);
+    int sizeType = DATASET_ALLOC_TYPE_BYTE;
     if ((spac & 0xc0) == 0xc0){
-      jsonAddString(jPrinter, "spaceUnit", "cyls");
+      jsonAddString(jPrinter, "space", "cyls");
+      sizeType=DATASET_ALLOC_TYPE_CYL;
     } else if (spac & 0x80){
       if (spac & 0x10){
         char cxtf = (dscb[79-posOffset]);
         if (cxtf & 0x80){
-          printf("!!!    scxtv is original block length     !!!\n");
+          zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "scxtv original blklen!\n");
         }
         if (cxtf & 0x40){
-          jsonAddString(jPrinter, "spaceUnit", "mb");
+          jsonAddString(jPrinter, "space", "mb");
+          sizeType=DATASET_ALLOC_TYPE_MB;
           primarySizeDiv = 1048576;
         } else if (cxtf & 0x20){
-          jsonAddString(jPrinter, "spaceUnit", "kb");
+          jsonAddString(jPrinter, "space", "kb");
+          sizeType=DATASET_ALLOC_TYPE_KB;
           primarySizeDiv = 1024;
         } else if (cxtf & 0x10){
-          jsonAddString(jPrinter, "spaceUnit", "bytes");
+          jsonAddString(jPrinter, "space", "bytes");
         }
         if (cxtf & 0x08){
           scxtvMult=256;
@@ -441,29 +453,71 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
           scxtvMult=65536;
         }
       } else{
-        jsonAddString(jPrinter, "spaceUnit", "trks");
+        jsonAddString(jPrinter, "space", "trks");
+        sizeType=DATASET_ALLOC_TYPE_TRK;
       }
     } else if (spac & 0x40){
-      jsonAddString(jPrinter, "spaceUnit", "blks");
+      jsonAddString(jPrinter, "space", "blks");
+      sizeType=DATASET_ALLOC_TYPE_BLOCK;
       primarySizeDiv = blockSize;
     } else{
-      jsonAddString(jPrinter, "spaceUnit", "trks");
-      printf("!!!    spac ABS (absolute track)    !!!\n");
+      jsonAddString(jPrinter, "space", "trks");
+      sizeType=DATASET_ALLOC_TYPE_TRK;
+      zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "spac ABS!\n");
     }
 
     int scxtv = (dscb[80-posOffset] << 8 | dscb[81-posOffset]);
     int scal3 = (dscb[95-posOffset] << 16 | dscb[96-posOffset] << 8 | dscb[97-posOffset]);
-    printf("scxtv=%d, scal3=%d\n", scxtv, scal3);
+    
+    uint32_t lowcyl = dscb[109-posOffset]<<24 | ((dscb[110-posOffset]&0xf0)<<16) | dscb[107-posOffset]<<8 | dscb[108-posOffset];
+    uint32_t highcyl = dscb[113-posOffset]<<24 | ((dscb[114-posOffset]&0xf0)<<16) | dscb[111-posOffset]<<8 | dscb[112-posOffset];
+    uint32_t lowtrk = dscb[110-posOffset]&0x0f;
+    uint32_t hightrk = dscb[114-posOffset]&0x0f;
 
-    if (scxtv){
-      jsonAddInt(jPrinter, "secondarySize", scxtvMult * scxtv);
-      jsonAddInt(jPrinter, "primarySize", (scal3 * blockSize) / primarySizeDiv);
+    uint32_t diffcyl = highcyl-lowcyl;
+    uint32_t difftrk = hightrk-lowtrk +1;
+    zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "diff cyl 0x%x - 0x%x, trk 0x%x - 0x%x is (%d cyl, %d trk)\n", highcyl, lowcyl, hightrk, lowtrk, diffcyl, difftrk);
+
+    uint64_t primarySizeBytes = (diffcyl * 849960) + (difftrk * 56664);
+    /* debugging of interesting size types
+    printf("primarySizeBytes is %lld\n", primarySizeBytes);
+    if (sizeType==DATASET_ALLOC_TYPE_MB) {
+      printf("size mb=%lld\n", primarySizeBytes/primarySizeDiv);
+    } else if (sizeType==DATASET_ALLOC_TYPE_KB) {
+      printf("size kb=%lld\n", primarySizeBytes/primarySizeDiv);
+    } else if (sizeType==DATASET_ALLOC_TYPE_BLOCK) {
+      printf("size blk=%lld\n",primarySizeBytes/blockSize);
+    }
+    */
+
+    if(scxtv) {
+      if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //observationally special case
+        jsonAddInt(jPrinter, "secnd", ((scxtvMult * scxtv) * scal3) / primarySizeDiv);
+      } else {
+        jsonAddInt(jPrinter, "secnd", scxtvMult * scxtv);
+      }
     } else {
-      jsonAddInt(jPrinter, "secondarySize", scal3);
-      jsonAddInt(jPrinter, "primarySize", scal3);
+      jsonAddInt(jPrinter, "secnd", scal3);
+    }
+    
+    if (sizeType==DATASET_ALLOC_TYPE_CYL) { //cyl & track prime size seems to work reliably based on extent info
+      jsonAddInt(jPrinter, "prime", primarySizeBytes/849960);
+    } else if (sizeType==DATASET_ALLOC_TYPE_TRK) {
+      jsonAddInt(jPrinter, "prime", primarySizeBytes/56664);
+    } else { //but other types, the extent info is way too large, so these numbers observed to be closer, often correct.
+      if (scxtv){
+        zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "scal3=%d, blocksize=%d, primarySizeDiv=%d, scxtv=%d\n", scal3, blockSize, primarySizeDiv, scxtv);
+        if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //works sometimes, but not always.
+          jsonAddInt(jPrinter, "prime", (scal3 * blockSize) / primarySizeDiv);
+        } else {
+          //this works well for block sizes like 32720 or 27990, but returns somewhat larger than expected values for small block sizes like 320
+          jsonAddInt(jPrinter, "prime", ((scal3 * blockSize) * (56664/blockSize)) / primarySizeDiv);
+        }
+      } else {
+        jsonAddInt(jPrinter, "prime", scal3);
+      }
     }
 
-   
     
 
     int recfm = dscb[84-posOffset];
