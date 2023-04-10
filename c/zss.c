@@ -221,7 +221,6 @@ static int extractAuthorizationFromJson(HttpService *service, HttpRequest *reque
     } else {
       request->username = jsonAsString(username);
     }
-  
     if (password == NULL){
       return -1;
     } else if (!jsonIsString(password)){
@@ -229,8 +228,9 @@ static int extractAuthorizationFromJson(HttpService *service, HttpRequest *reque
     } else {
       request->password = jsonAsString(password);
     }
+    return 0;
   }
-  return 0;
+  return -1;
 }
 
 static
