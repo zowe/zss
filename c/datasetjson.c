@@ -778,9 +778,9 @@ void addDetailedDatasetMetadata(char *datasetName, int nameLength,
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "DSCB for %s found\n",datasetName);
       dumpbuffer(dscb,INDEXED_DSCB);
     }
-    printf("Before addDetailsFromDSCB/n");
+    printf("Before addDetailsFromDSCB\n");
     addDetailsFromDSCB(dscb,jPrinter,&isPDS);
-    printf("Before addDetailsFromDSCB/n");
+    printf("Before addDetailsFromDSCB\n");
   }
   else{
     char buffer[100];
@@ -3089,11 +3089,11 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
 
         if (detail){
           if (!isMigrated || !strcmp(migratedArg, "true")){
-            printf("Before addDetailedDatasetMetadata/n");
+            printf("Before addDetailedDatasetMetadata\n");
             addDetailedDatasetMetadata(datasetName, datasetNameLength,
                                        volser, volserLength,
                                        jPrinter);
-            printf("After addDetailedDatasetMetadata/n");
+            printf("After addDetailedDatasetMetadata\n");
           }
         }
         if (shouldListMembers) {
