@@ -2377,7 +2377,7 @@ int decodePercentByte(char *inString, int inLength, char *outString, int *outStr
   return 0;
 }
 
-void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE) {
+void getDatasetAttributes(JsonBuffer *buffer, char** organization, char** space, int* prime, int* secnd, int* maxRecordLen, int* totalBlockSize, char** recordLength, bool* isBlocked, bool* isPDSE) {
   ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
   char errorBuffer[2048];
   Json *json = jsonParseUnterminatedString(slh,
@@ -2393,6 +2393,13 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, int* maxRecor
       Json *element = jsonArrayGetItem(datasetArray,i);
       if(element && jsonIsObject(element)) {
         JsonObject *jsonDatasetObject = jsonAsObject(element);
+        // Get space attributes
+        *space = jsonObjectGetString(jsonDatasetObject,"space");
+        *prime = jsonObjectGetNumber(jsonDatasetObject,"prime");
+        *secnd = jsonObjectGetNumber(jsonDatasetObject,"secnd");
+        printf("space from attr: %s\n", *space);
+        printf("prime from attr: %d\n", *prime);
+        printf("secnd from attr: %d\n", *secnd);
         // Get dsorg object
         JsonObject *dsOrg = jsonObjectGetObject(jsonDatasetObject,"dsorg");
         *organization = jsonObjectGetString(dsOrg,"organization");
@@ -2441,15 +2448,15 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
   } else {
     organization = "PO";
     dsnt = (isPDSE) ? "PDSE" : "PDS";
+    // Hardcoding the directory block attribute because datasetMetadata API does not return it.
     dirBlock = 10;
     isPDS = 1;
   }
 
-  // Hardcoding these attributes because datasetMetadata API does not return it.
-  // To do: Update this after the datasetMetadata API is updated
-  char *space = "TRK";
-  int primaryQuantity = 10;
-  int secondaryQuantity = 10;
+  printf("space: %s\n", space);
+  printf("space: %d\n", prime);
+  printf("space: %d\n", secnd);
+
 
   strcpy(recFormat, recordLength);
   if(isBlocked) {
@@ -2457,6 +2464,7 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
   }
 
   sprintf(datasetAttributes, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"%s\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": %d,\"prime\": %d,\"secnd\": %d,\"avgr\": \"U\",\"dsnt\": \"%s\"}\0", organization, space, totalBlockSize, maxRecordLen, recFormat, dirBlock, primaryQuantity, secondaryQuantity, dsnt);
+  sprintf(datasetAttributes, "{\"ndisp\": \"CATALOG\",\"status\": \"NEW\",\"dsorg\": \"%s\",\"space\": \"%s\",\"blksz\": %d,\"lrecl\": %d,\"recfm\": \"%s\",\"close\": \"true\",\"dir\": %d,\"prime\": %d,\"secnd\": %d,\"avgr\": \"U\",\"dsnt\": \"%s\"}\0", organization, space, totalBlockSize, maxRecordLen, recFormat, dirBlock, prime, secnd, dsnt);
 
   return isPDS;
 }
