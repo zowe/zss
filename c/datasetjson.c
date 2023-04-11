@@ -439,8 +439,6 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
 
     int posOffset = 44;
 
-    printf("Before blockSize\n");
-
     int blockSize = (dscb[86-posOffset] << 8 | dscb[87-posOffset]);
 
     int scxtvMult = 1;
@@ -539,8 +537,6 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
       }
     }
 
-    
-    printf("Before recfm\n");
     int recfm = dscb[84-posOffset];
     
     jsonStartObject(jPrinter,"recfm");
@@ -778,9 +774,7 @@ void addDetailedDatasetMetadata(char *datasetName, int nameLength,
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "DSCB for %s found\n",datasetName);
       dumpbuffer(dscb,INDEXED_DSCB);
     }
-    printf("Before addDetailsFromDSCB\n");
     addDetailsFromDSCB(dscb,jPrinter,&isPDS);
-    printf("Before addDetailsFromDSCB\n");
   }
   else{
     char buffer[100];
@@ -3089,11 +3083,9 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
 
         if (detail){
           if (!isMigrated || !strcmp(migratedArg, "true")){
-            printf("Before addDetailedDatasetMetadata\n");
             addDetailedDatasetMetadata(datasetName, datasetNameLength,
                                        volser, volserLength,
                                        jPrinter);
-            printf("After addDetailedDatasetMetadata\n");
           }
         }
         if (shouldListMembers) {
