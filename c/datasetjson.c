@@ -2503,6 +2503,7 @@ void getTargetDsnRecordInfo(char* targetDataset, char** recordFormat, int* recor
       }
     }
   }
+  safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
   SLHFree(slh);
 }
 
@@ -2945,11 +2946,14 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   if(!isTargetMemberEmpty && (!isPDS || !isSourceMemberEmpty)){
     int targetDsnExists = checkIfDatasetExistsAndRespond(response, targetDataset, false);
     if(targetDsnExists < 0) {
+      safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
       return;
     } else if(targetDsnExists == 0) {
       respondWithJsonError(response, "Cannot paste member. Target dataset does not exist.", 400, "Bad Request");
+      safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
       return;
     } else if(targetDsnExists == 1) {
+      safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
       return pasteAsDatasetMember(response, sourceDataset, targetDataset);
     }
   }
@@ -2965,9 +2969,11 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
     // Paste the entire PDS(E) directory
     if(isTargetMemberEmpty) {
       pastePDSDirectory(response, datasetAttrBuffer, sourceDataset, targetDataset);
+      safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
       return;
     } else {
       respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid Target. Cannot paste PDS(E) as a member");
+      safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
       return;
     }
   }
@@ -3665,6 +3671,7 @@ int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttri
     }
   } else {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid JSON request body");
+    SLHFree(slh);
     return ERROR_INVALID_JSON_BODY;
   }
 
@@ -3685,6 +3692,7 @@ int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttri
             "error: ds alloc dsn=\'%44.44s\' dd=\'%8.8s\', sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, ddNameBuffer, returnCode, *reasonCode);
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to allocate a DD for ACB");
+    SLHFree(slh);
     return ERROR_ALLOCATING_DATASET;
   }
 
@@ -3695,8 +3703,10 @@ int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttri
             "error: ds unalloc dsn=\'%44.44s\' dd=\'%8.8s\', rc=%d sysRC=%d, sysRSN=0x%08X\n",
             daDatasetName.name, daDDName.name, daRC, returnCode, *reasonCode);
     respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Unable to deallocate DDNAME");
+    SLHFree(slh);
     return ERROR_DEALLOCATING_DATASET;
   }
+  SLHFree(slh);
   return 0;
   #endif
 }
@@ -3743,6 +3753,7 @@ void createDatasetAndRespond(HttpResponse* response, char* absolutePath, int jso
     response200WithMessage(response, "Successfully created dataset");
   }
 
+  safeFree(convertedBody,conversionBufferLength);
   #endif
 }
 
