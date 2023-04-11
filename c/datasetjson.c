@@ -2576,13 +2576,16 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
 
     if (bytesRead > 0 && !ferror(inDataset)) {
       // Right-pad the record with spaces if necessary
-      // if ((bytesRead < targetRecordLen) && !strcmp(recFormat, "F")) {
-      if ((bytesRead < targetRecordLen)) {
+      if ((bytesRead < targetRecordLen) && !strcmp(recFormat, "F")) {
         memset(buffer + bytesRead, 0x40, targetRecordLen - bytesRead);
         bytesRead = targetRecordLen; // Update the number of bytes read
       }
       bytesWritten = fwrite(buffer,1,bytesRead,outDataset);
-
+      printf("--bytesRead: %d\n", bytesRead);
+      printf("--bytesWritten: %d\n", bytesWritten);
+      if(bytesWritten != bytesRead) {
+        printf("bytesWritten  != bytesRead \n");
+      }
       if ((bytesWritten < 0 && ferror(outDataset)) || (bytesWritten != bytesRead)){
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Copy Failed. Error writing to the dataset, rc=%d\n", bytesWritten);
         fclose(inDataset);
