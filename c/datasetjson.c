@@ -2586,7 +2586,7 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
       if(bytesWritten != bytesRead) {
         printf("bytesWritten  != bytesRead \n");
       }
-      if ((bytesWritten < 0 && ferror(outDataset)) || (bytesWritten != bytesRead)){
+      if ((bytesWritten < 0 && ferror(outDataset)) || ((bytesWritten != bytesRead) && strcmp(recFormat, "V"))){
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Copy Failed. Error writing to the dataset, rc=%d\n", bytesWritten);
         fclose(inDataset);
         fclose(outDataset);
