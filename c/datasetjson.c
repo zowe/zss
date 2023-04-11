@@ -2431,7 +2431,7 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
   int dirBlock = 0;
   int isPDS = 0;
 
-  getDatasetAttributes(buffer, &organization, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked, &isPDSE);
+  getDatasetAttributes(buffer, &organization, &space, &prime, &secnd, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked, &isPDSE);
 
   if(recordLength == "U") {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
