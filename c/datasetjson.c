@@ -2418,10 +2418,13 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, char** space,
 
 int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer, char* datasetAttributes, bool isSourceMember) {
   char *organization = NULL;
+  char *space = NULL;
   char *recordLength = NULL;
   char *dsnt = NULL;
   int maxRecordLen = 0;
   int totalBlockSize = 0;
+  int prime = 0;
+  int secnd = 0;
   bool isBlocked = NULL;
   bool isPDSE = NULL;
   char recFormat[3];
