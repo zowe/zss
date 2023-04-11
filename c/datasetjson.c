@@ -1592,7 +1592,6 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 }
 
 int deleteDatasetOrMember(HttpResponse* response, char* absolutePath, char* responseMessage, int* responseCode) {
-printf("START OF deleteDatasetOrMember\n");
 #ifdef __ZOWE_OS_ZOS
   DatasetName datasetName;
   DatasetMemberName memberName;
@@ -1741,7 +1740,6 @@ printf("START OF deleteDatasetOrMember\n");
     sprintf(responseMessage, "Data set member %8.8s was deleted successfully", daMemberName.name);
   }
   return 0;
-  printf("END OF deleteDatasetOrMember\n");
   
 #endif /* __ZOWE_OS_ZOS */
 }
@@ -2398,9 +2396,6 @@ void getDatasetAttributes(JsonBuffer *buffer, char** organization, char** space,
         *space = jsonObjectGetString(jsonDatasetObject,"space");
         *prime = jsonObjectGetNumber(jsonDatasetObject,"prime");
         *secnd = jsonObjectGetNumber(jsonDatasetObject,"secnd");
-        printf("space from attr: %s\n", *space);
-        printf("prime from attr: %d\n", *prime);
-        printf("secnd from attr: %d\n", *secnd);
         // Get dsorg object
         JsonObject *dsOrg = jsonObjectGetObject(jsonDatasetObject,"dsorg");
         *organization = jsonObjectGetString(dsOrg,"organization");
@@ -2456,11 +2451,6 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
     dirBlock = 10;
     isPDS = 1;
   }
-
-  printf("space: %s\n", space);
-  printf("space: %d\n", prime);
-  printf("space: %d\n", secnd);
-
 
   strcpy(recFormat, recordLength);
   if(isBlocked) {
@@ -2581,18 +2571,13 @@ int streamDatasetForCopyAndRespond(HttpResponse *response, char *sourceDataset, 
         bytesRead = targetRecordLen; // Update the number of bytes read
       }
       bytesWritten = fwrite(buffer,1,bytesRead,outDataset);
-      printf("--bytesRead: %d\n", bytesRead);
-      printf("--bytesWritten: %d\n", bytesWritten);
-      if(bytesWritten != bytesRead) {
-        printf("bytesWritten  != bytesRead \n");
-      }
+
       if ((bytesWritten < 0 && ferror(outDataset)) || ((bytesWritten != bytesRead) && strcmp(recFormat, "V"))){
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Copy Failed. Error writing to the dataset, rc=%d\n", bytesWritten);
         fclose(inDataset);
         fclose(outDataset);
         respondWithError(response,HTTP_STATUS_INTERNAL_SERVER_ERROR,"Copy Failed. Error writing to dataset");
         rc = deleteDatasetOrMember(response, targetDataset, responseMessage, &responseCode);
-        printf("---RC DEL: %d\n", rc);
         return ERROR_COPYING_DATASET;
       } else if (!rcEtag) {
         rcEtag = icsfDigestUpdate(&digest, buffer, bytesWritten);
@@ -2697,7 +2682,6 @@ int readWriteToDatasetAndRespond(HttpResponse *response, char* sourceDataset, ch
   }
 
   rc = streamDatasetForCopyAndRespond(response, ddPath, lrecl, targetDataset, isTargetMember, msgBuffer, etag);
-  printf("--rc from streamDatasetForCopyAndRespond: %d\n", rc);
   daRC = dynallocUnallocDatasetByDDName(&daDDname, DYNALLOC_UNALLOC_FLAG_NONE,
                                         &daSysRC, &daSysRSN);
   if (daRC != RC_DYNALLOC_OK) {
