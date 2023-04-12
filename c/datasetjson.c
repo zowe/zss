@@ -2669,6 +2669,8 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
   rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALSTATS, configsCount, inputTextUnit);
 
 
+  bool avgrSet=false;
+  
   // most parameters below explained here https://www.ibm.com/docs/en/zos/2.1.0?topic=dfsms-zos-using-data-sets
   // or here https://www.ibm.com/docs/en/zos/2.1.0?topic=function-non-jcl-dynamic-allocation-functions
   // or here https://www.ibm.com/docs/en/zos/2.1.0?topic=function-dsname-allocation-text-units
@@ -2789,21 +2791,29 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
       } else if(!strcmp(propString, "space")) {
         char *spaceType = jsonAsString(value);
         if (spaceType != NULL) {
+          // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-track-space-type-trk-specification-key-0007
           if (!strcmp(spaceType, "CYL")) {
-            parmDefn = DALCYL;
+            rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, DALCYL, configsCount, inputTextUnit);
           } else if (!strcmp(spaceType, "TRK")) {
-            // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-track-space-type-trk-specification-key-0007
-            parmDefn = DALTRK;
+            rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, DALTRK, configsCount, inputTextUnit);
           } else if (!strcmp(spaceType, "BYTE")) {
-            parmDefn = DALTRK;
+          // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-avgrec-parameter
+            if (!avgrSet) {
+              avgrSet=true;
+              rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, DALDSORD_UREC, DALAVGR, configsCount, inputTextUnit);
+            }
           } else if (!strcmp(spaceType, "KB")) {
-            parmDefn = DALTRK;
+            if (!avgrSet) {
+              avgrSet=true;
+              rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, DALDSORD_KREC, DALAVGR, configsCount, inputTextUnit);
+            }
           } else if (!strcmp(spaceType, "MB")) {
-            parmDefn = DALCYL;
+            if (!avgrSet) {
+              avgrSet=true;
+              rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, DALDSORG_MREC, DALAVGR, configsCount, inputTextUnit);
+            }
           }
-          if(parmDefn != DALDSORG_NULL) {
-            rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, parmDefn, configsCount, inputTextUnit);
-          }
+
           if (jsonObjectHasKey(object, "prime")) { //in tracks for blkln
             int primeSize = jsonObjectGetNumber(object, "prime");
             if (primeSize <= 0xFFFFFF && primeSize >= 0) {
@@ -2825,7 +2835,8 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
       } else if(!strcmp(propString, "avgr")) {
         // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-avgrec-parameter
         char *valueString = jsonAsString(value);
-        if (valueString != NULL) {
+        //NOTE: avgr and space must not conflict - space can help to set avgr.
+        if (valueString != NULL && !avgrSet) {
           if (!strcmp(valueString, "M")) {
             parmDefn = DALDSORG_MREC;
           } else if (!strcmp(valueString, "K")) {
@@ -2834,6 +2845,7 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
             parmDefn = DALDSORG_UREC;
           }
           if(parmDefn != DALDSORG_NULL) {
+            avgrSet=true;
             rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, parmDefn, DALAVGR, configsCount, inputTextUnit);
           }
         }
