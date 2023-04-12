@@ -2891,6 +2891,12 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   DatasetMemberName sourceMemName;
   extractDatasetAndMemberName(sourceDataset, &sourceDsnName, &sourceMemName);
 
+  char CSIType = getCSIType(sourceDataset);
+  if (isVsam(CSIType)) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Copy not supported for VSAM DATASET");
+    return;
+  }
+
   // Checking if source dataset is a member
   DynallocDatasetName daSourceDsnName;
   DynallocMemberName daSourceMemName;
