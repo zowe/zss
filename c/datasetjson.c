@@ -2969,6 +2969,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   int rc = createDataset(response, targetDataset, datasetAttributes, strlen(datasetAttributes), &reasonCode);
 
   if(rc != 0) {
+    safeFree((char*)datasetAttrBuffer, datasetAttrBuffer->size);
     return;
   }
 
