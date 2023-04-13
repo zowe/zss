@@ -2800,12 +2800,12 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
           // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-avgrec-parameter
             if (!avgrSet) {
               avgrSet=true;
-              rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, DALDSORD_UREC, DALAVGR, configsCount, inputTextUnit);
+              rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, DALDSORG_UREC, DALAVGR, configsCount, inputTextUnit);
             }
           } else if (!strcmp(spaceType, "KB")) {
             if (!avgrSet) {
               avgrSet=true;
-              rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, DALDSORD_KREC, DALAVGR, configsCount, inputTextUnit);
+              rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, DALDSORG_KREC, DALAVGR, configsCount, inputTextUnit);
             }
           } else if (!strcmp(spaceType, "MB")) {
             if (!avgrSet) {
