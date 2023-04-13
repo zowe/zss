@@ -106,7 +106,6 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Updating if exists: %s\n", filename);
     fflush(stdout);
     updateDataset(response, filename, TRUE);
-
   }
   else if (!strcmp(request->method, methodDELETE)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
@@ -115,7 +114,7 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Deleting if exists: %s\n", filename);
     fflush(stdout);
-    deleteDatasetOrMember(response, filename);
+    deleteDatasetFromRequest(response, filename);
   }
   else if (!strcmp(request->method, methodPUT)) {
     char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
@@ -124,11 +123,10 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
     char *filename = stringConcatenate(response->slh, filenamep1, "'");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Allocating dataset: %s\n", filename);
     fflush(stdout);
-    newDataset(response, filename, TRUE);
+    createDatasetAndRespond(response, filename, TRUE);
   }
   else {
     jsonPrinter *out = respondWithJsonPrinter(response);
-
     setContentType(response, "text/json");
     setResponseStatus(response, 405, "Method Not Allowed");
     addStringHeader(response, "Server", "jdmfws");
@@ -143,6 +141,33 @@ static int serveDatasetContents(HttpService *service, HttpResponse *response){
   }
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Returning from servedatasetcontents\n");
+  return 0;
+}
+
+static int serveDatasetCopy(HttpService *service, HttpResponse *response){
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  HttpRequest *request = response->request;
+
+  if (!strcmp(request->method, methodPOST)){
+    char *l1 = stringListPrint(request->parsedFile, 1, 1, "/", 0);
+    char *percentDecoded = cleanURLParamValue(response->slh, l1);
+    char *datasetNameP1 = stringConcatenate(response->slh, "//'", percentDecoded);
+    char *datasetName = stringConcatenate(response->slh, datasetNameP1, "'");
+    char *newDataset = getQueryParam(response->request, "newDataset");
+    char *newDatasetNameP1 = stringConcatenate(response->slh, "//'", newDataset);
+    char *newDatasetName = stringConcatenate(response->slh, newDatasetNameP1, "'");
+    copyDatasetAndRespond(response, datasetName, newDatasetName);
+  } else {
+    setContentType(response, "text/json");
+    setResponseStatus(response, 405, "Method Not Allowed");
+    addStringHeader(response, "Server", "jdmfws");
+    addStringHeader(response, "Transfer-Encoding", "chunked");
+    addStringHeader(response, "Allow", "POST");
+    writeHeader(response);
+    finishResponse(response);
+  }
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Returning from servedatasetcopy\n");
   return 0;
 }
 
@@ -200,6 +225,18 @@ void installDatasetContentsService(HttpServer *server) {
   httpService->runInSubtask = TRUE;
   httpService->doImpersonation = TRUE;
   httpService->serviceFunction = serveDatasetContents;
+  registerHttpService(server, httpService);
+}
+
+void installDatasetCopyService(HttpServer *server) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_INSTALL_MSG, "dataset copy paste");
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+
+  HttpService *httpService = makeGeneratedService("datasetCopy", "/datasetCopy/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
+  httpService->serviceFunction = serveDatasetCopy;
   httpService->paramSpecList = makeStringParamSpec("force",SERVICE_ARG_OPTIONAL, NULL);
   registerHttpService(server, httpService);
 }
