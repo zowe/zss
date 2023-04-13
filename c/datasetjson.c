@@ -2724,7 +2724,7 @@ int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool i
   jsonStart(jPrinter);
 
    // To get the attributes for target dataset
-  getDatasetMetadata(&dsnName, &memName, dataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
+  getDatasetMetadata(&dsnName, &memName, dataset, "true", NULL, defaultDatasetTypesAllowed, NULL, 0, NULL, NULL, "", NULL, jPrinter);
   jsonEnd(jPrinter);
 
   ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
