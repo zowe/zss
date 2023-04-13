@@ -51,7 +51,7 @@ typedef struct StatefulACB_tag {
   } argPtr;
 } StatefulACB;
 
-int streamDataset(Socket *socket, char *filename, int recordLength, jsonPrinter *jPrinter);
+int streamDataset(char *filename, int recordLength, jsonPrinter *jPrinter);
 int streamVSAMDataset(HttpResponse* response, char *acb, int maxRecordLength, int maxRecords, int maxBytes, int keyLoc, int keyLen, jsonPrinter *jPrinter);
 void addDetailedDatasetMetadata(char *datasetName, int nameLength,
                                 char *volser, int volserLength,
@@ -65,11 +65,12 @@ void respondWithDataset(HttpResponse* response, char* absolutePath, int jsonMode
 void respondWithVSAMDataset(HttpResponse* response, char* absolutePath, hashtable *acbTable, int jsonMode);
 void respondWithDatasetMetadata(HttpResponse *response);
 void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQueryCache);
-void newDataset(HttpResponse* response, char* absolutePath, int jsonMode);
+void createDatasetAndRespond(HttpResponse* response, char* absolutePath, int jsonMode);
 void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode);
 void updateVSAMDataset(HttpResponse* response, char* absolutePath, hashtable *acbTable, int jsonMode);
 void deleteVSAMDataset(HttpResponse* response, char* absolutePath);
-void deleteDatasetOrMember(HttpResponse* response, char* absolutePath);
+void deleteDatasetFromRequest(HttpResponse* response, char* absolutePath);
+void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset);
 char getCSIType(char* absolutePath);
 bool isVsam(char CSIType);
 #endif
