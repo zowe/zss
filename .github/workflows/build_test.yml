@@ -55,7 +55,6 @@ jobs:
         run: |
           COMMIT_HASH=$(git rev-parse --verify HEAD)
           CURRENT_TIME=$(date +%s%3N)
-          ZSS_VERSION=$(cat version.txt)
           if [ -z ${{ github.event.pull_request.number }} ]
           then
             CURRENT_BRANCH=${GITHUB_REF#refs/heads/} 
@@ -66,7 +65,6 @@ jobs:
               -e "s|{{build\.number}}|${{ github.run_number }}|g" \
               -e "s|{{build\.commitHash}}|${COMMIT_HASH}|g" \
               -e "s|{{build\.timestamp}}|${CURRENT_TIME}|g" \
-              -e "s|{{build\.version}}|${ZSS_VERSION}|g" \
               manifest.template.yaml > manifest.yaml
           
           echo "Current manifest.yaml is:"
@@ -91,3 +89,9 @@ jobs:
             .pax/zss.pax
           perform-release: ${{ github.event.inputs.PERFORM_RELEASE }}
  
+
+      - name: '[Prep Release] Bump version'
+        if: ${{ github.event.inputs.PERFORM_RELEASE == 'true' && env.RELEASE == 'true' }}
+        uses: zowe-actions/zlux-builds/bump-zis-version@v2.x/main
+        env: 
+         GITHUB_TOKEN: ${{ secrets.ZOWE_ROBOT_TOKEN }}
