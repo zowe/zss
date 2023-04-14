@@ -3322,23 +3322,6 @@ void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQue
 #endif /* __ZOWE_OS_ZOS */
 }
 
-/* Returns a quantity of tracks or cylinders for dynalloc in case the user asked for bytes */
-/* Yes, these are approximations but if people really want exact numbers they should use cyl & trk */
-static int getDSSizeValueFromType(int quantity, char *spaceType) {
-  if (!strcmp(spaceType, "CYL")) {
-    return quantity;
-  } else if (!strcmp(spaceType, "TRK")) {
-    return quantity;
-  } else if (!strcmp(spaceType, "BYTE")) {
-    return quantity / bytesPerTrack;
-  } else if (!strcmp(spaceType, "KB")) {
-    return (quantity*1024) / bytesPerTrack;
-  } else if (!strcmp(spaceType, "MB")) {
-    return (quantity*1048576) / bytesPerCylinder;
-  }
-  return quantity;
-}
-
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit) {
   JsonProperty *currentProp = jsonObjectGetFirstProperty(object);
   Json *value = NULL;
@@ -3378,6 +3361,7 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
             type = TEXT_UNIT_LONGINT;
           }
           if(type != TEXT_UNIT_NULL) {
+            printf("setting blksz 64 as  %lld\n", valueInt);
             rc = setTextUnit(type, 0, NULL, valueInt, DALBLKSZ, configsCount, inputTextUnit);
           }
         }
@@ -3416,24 +3400,24 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
           }
           rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, setRECFM, DALRECFM, configsCount, inputTextUnit);
         }
-      } else if(!strcmp(propString, "blkln")
-                && !jsonObjectHasKey(object, "space")) { //mutually exclusive with daltrk, dalcyl
+      } else if (!strcmp(propString, "prime")) { //needs either blkln, or space=track/cyl
+        int primeSize = jsonAsNumber(value);
+        if (primeSize <= 0xFFFFFF && primeSize >= 0) {
+          printf("set prime to %d\n", primeSize);
+          rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, primeSize, DALPRIME, configsCount, inputTextUnit);
+        }
+      } else if (!strcmp(propString, "secnd")) { //needs either blkln, or space=track/cyl
+        int secondarySize = jsonAsNumber(value);
+        if (secondarySize <= 0xFFFFFF && secondarySize >= 0) {
+          printf("set secnd to %d\n", secondarySize);
+          rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, secondarySize, DALSECND, configsCount, inputTextUnit);
+        }
+      } else if(!strcmp(propString, "blkln")) {
         // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-block-length-specification-key-0009
         int valueInt = jsonAsNumber(value);
         if (valueInt <= 0xFFFF && valueInt >= 0){
+          printf("setting blkln %d\n",valueInt);
           rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, valueInt, DALBLKLN, configsCount, inputTextUnit);
-        }
-        if (jsonObjectHasKey(object, "prime")) { //in tracks for blkln
-          int primeSize = jsonObjectGetNumber(object, "prime");
-          if (primeSize <= 0xFFFFFF && primeSize >= 0) {
-            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, primeSize, DALPRIME, configsCount, inputTextUnit);
-          }
-        }
-        if (jsonObjectHasKey(object, "secnd")) { //in tracks for blkln
-          int secondarySize = jsonObjectGetNumber(object, "secnd");
-          if (secondarySize <= 0xFFFFFF && secondarySize >= 0) {
-            rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, secondarySize, DALSECND, configsCount, inputTextUnit);
-          }
         }
       } else if (!strcmp(propString, "ndisp")) {
         char *valueString = jsonAsString(value);
@@ -3473,40 +3457,48 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
         char *spaceType = jsonAsString(value);
         if (spaceType != NULL) {
           // https://www.ibm.com/docs/en/zos/2.1.0?topic=units-track-space-type-trk-specification-key-0007
-          if (!strcmp(spaceType, "CYL")) {
-            rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, DALCYL, configsCount, inputTextUnit);
-          } else if (!strcmp(spaceType, "TRK")) {
-            rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, DALTRK, configsCount, inputTextUnit);
-          } else if (!strcmp(spaceType, "BYTE")) {
-          // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-avgrec-parameter
-            if (!avgrSet) {
-              avgrSet=true;
-              rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, DALDSORG_UREC, DALAVGR, configsCount, inputTextUnit);
+          if (!strcmp(spaceType, "CYL") || !strcmp(spaceType, "TRK")) {
+            if (spaceType[0] == 'C') {
+              rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, DALCYL, configsCount, inputTextUnit);
+            } else {
+              rc = setTextUnit(TEXT_UNIT_BOOLEAN, 0, NULL, 0, DALTRK, configsCount, inputTextUnit);
             }
-          } else if (!strcmp(spaceType, "KB")) {
+          } else {
             if (!avgrSet) {
-              avgrSet=true;
-              rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, DALDSORG_KREC, DALAVGR, configsCount, inputTextUnit);
+              if (!strcmp(spaceType, "BYTE")) {
+                // https://www.ibm.com/docs/en/zos/2.1.0?topic=statement-avgrec-parameter
+                avgrSet=true;
+                printf("set avgr to urec\n");
+                rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, DALDSORG_UREC, DALAVGR, configsCount, inputTextUnit);
+              } else if (!strcmp(spaceType, "KB")) {
+                printf("set avgr to krec\n");
+                rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, DALDSORG_KREC, DALAVGR, configsCount, inputTextUnit);
+              } else if (!strcmp(spaceType, "MB")) {
+                printf("set avgr to mrec\n");
+                rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, DALDSORG_MREC, DALAVGR, configsCount, inputTextUnit);
+              }
             }
-          } else if (!strcmp(spaceType, "MB")) {
-            if (!avgrSet) {
-              avgrSet=true;
-              rc = setTextUnit(TEXT_UNIT_CHAR, 0, NULL, DALDSORG_MREC, DALAVGR, configsCount, inputTextUnit);
+            if (!jsonObjectHasKey(object, "blkln") && jsonObjectHasKey(object, "lrecl")) {
+              int lrecl = jsonObjectGetNumber(object, "lrecl");
+              if (lrecl <= 0xFFFF && lrecl >= 0){
+                printf("setting blkln from lrecl %d\n",lrecl);
+                rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, lrecl, DALBLKLN, configsCount, inputTextUnit);
+              }
             }
           }
-
-          if (jsonObjectHasKey(object, "prime")) { //in tracks for blkln
-            int primeSize = jsonObjectGetNumber(object, "prime");
-            if (primeSize <= 0xFFFFFF && primeSize >= 0) {
-              rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, getDSSizeValueFromType(primeSize, spaceType), DALPRIME, configsCount, inputTextUnit);
-            }
-          }
-          if (jsonObjectHasKey(object, "secnd")) { //in tracks for blkln
-            int secondarySize = jsonObjectGetNumber(object, "secnd");
-            if (secondarySize <= 0xFFFFFF && secondarySize >= 0) {
-              rc = setTextUnit(TEXT_UNIT_INT24, 0, NULL, getDSSizeValueFromType(secondarySize, spaceType), DALSECND, configsCount, inputTextUnit);
-            }
-          }
+        }
+      } else if (!strcmp(propString, "like")) {
+        //https://www.ibm.com/docs/en/zos/2.1.0?topic=units-copy-model-specification-key-800f
+        char *valueString = jsonAsString(value);
+        int valueLength = strlen(valueString);
+        if (valueLength>0 && valueLength<45) {
+          rc = setTextUnit(TEXT_UNIT_STRING, strlen(valueString), &(valueString)[0], 0, DALLIKE, configsCount, inputTextUnit);
+        }
+      } else if (!strcmp(propString, "refd")) {
+        char *valueString = jsonAsString(value);
+        int valueLength = strlen(valueString);
+        if (valueLength>0 && valueLength<45) {
+          rc = setTextUnit(TEXT_UNIT_STRING, strlen(valueString), &(valueString)[0], 0, DALREFD, configsCount, inputTextUnit);
         }
       } else if(!strcmp(propString, "dir")) {
         int valueInt = jsonAsNumber(value);
@@ -3520,10 +3512,13 @@ static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount
         if (valueString != NULL && !avgrSet) {
           if (!strcmp(valueString, "M")) {
             parmDefn = DALDSORG_MREC;
+            printf("actual avgr. setting mrec\n");
           } else if (!strcmp(valueString, "K")) {
             parmDefn = DALDSORG_KREC;
+            printf("actual avgr. setting krec\n");
           } else if (!strcmp(valueString, "U")) {
             parmDefn = DALDSORG_UREC;
+            printf("actual avgr. setting urec\n");
           }
           if(parmDefn != DALDSORG_NULL) {
             avgrSet=true;
