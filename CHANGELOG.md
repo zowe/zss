@@ -9,6 +9,7 @@ All notable changes to the ZSS package will be documented in this file.
 - Feature: Added the API /datasetCopy to copy the datasets
 - Enhancement: /datasetMetadata now returns prime, secnd, and space fields for showing the primary and secondary extent sizes and the unit type for them. (#582)
 - Enhancement: ZSS dataset creation api now supports space values of "BYTE", "KB", and "MB" instead of just "CYL" and "TRK"
+- Bugfix: change conflicting message IDs in the ZIS dynamic linkage base plugin
 
 ## `2.7.0`
 
