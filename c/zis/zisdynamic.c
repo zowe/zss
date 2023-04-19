@@ -399,13 +399,13 @@ static int verifyZISVersion(void) {
   zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_DEBUG,
           "ZIS major=%d, minor=%d, rev=%d\n", zisMajor, zisMinor, zisRev);
 
-  if (zisMajor != ZISDYN_MAJOR_VERSION) {
+  if (zisMajor != ZIS_MIN_MAJOR_VERSION) {
     goto out_bad_version;
   }
-  if (zisMinor < ZISDYN_MINOR_VERSION) {
+  if (zisMinor < ZIS_MIN_MINOR_VERSION) {
     goto out_bad_version;
   }
-  if (zisMinor == ZISDYN_MINOR_VERSION && zisRev < ZISDYN_REVISION) {
+  if (zisMinor == ZIS_MIN_MINOR_VERSION && zisRev < ZIS_MIN_REVISION) {
     goto out_bad_version;
   }
 
