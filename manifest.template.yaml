@@ -3,7 +3,7 @@ name: zss
 # Component identifier. This identifier matches artifact path in Zowe Artifactory https://zowe.jfrog.io/.
 id: org.zowe.zss
 # Without the v
-version: 2.8.0
+version: 2.9.0
 # Component version is defined in gradle.properties for Gradle project
 # Human readable component name
 title: Zowe System Services (ZSS)
