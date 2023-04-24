@@ -42,6 +42,9 @@ echo "Version: $major.$minor.$micro"
 echo "Date stamp: $date_stamp"
 
 xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
+  -DZIS_MAJOR_VERSION="$major" \
+  -DZIS_MINOR_VERSION="$minor" \
+  -DZIS_REVISION="$micro" \
   -DZISDYN_MAJOR_VERSION="$major" \
   -DZISDYN_MINOR_VERSION="$minor" \
   -DZISDYN_REVISION="$micro" \
