@@ -2430,7 +2430,7 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
   getDatasetAttributes(buffer, &organization, &space, &prime, &secnd, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked, &isPDSE);
 
   printf("-----RECORD LENGTH: %s\n", recordLength);
-  if(recordLength == "U") {
+  if(!strcmp(recordLength, "U")) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
     return ERROR_UNDEFINED_LENGTH_DATASET;
   }
