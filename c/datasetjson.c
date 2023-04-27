@@ -2949,6 +2949,11 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   char datasetAttributes[300];
   int isPDS = setAttrForDSCopyAndRespondIfError(response, datasetAttrBuffer, datasetAttributes, !isSourceMemberEmpty);
 
+  if(isPDS < 0) {
+    printf("-----------isPDS: %d\n", isPDS);
+    return;
+  }
+
   // Pasting as a dataset member [PS -> Member OR Member -> Member]
   if(!isTargetMemberEmpty && (!isPDS || !isSourceMemberEmpty)){
     int targetDsnExists = checkIfDatasetExistsAndRespond(response, targetDataset, false);
