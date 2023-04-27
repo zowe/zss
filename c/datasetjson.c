@@ -2429,6 +2429,7 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
 
   getDatasetAttributes(buffer, &organization, &space, &prime, &secnd, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked, &isPDSE);
 
+  printf("-----RECORD LENGTH: %s\n", recordLength);
   if(recordLength == "U") {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
     return ERROR_UNDEFINED_LENGTH_DATASET;
@@ -2952,6 +2953,8 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   if(isPDS < 0) {
     printf("-----------isPDS: %d\n", isPDS);
     return;
+  } else {
+    printf("-----------isPDS: %d\n", isPDS);
   }
 
   // Pasting as a dataset member [PS -> Member OR Member -> Member]
