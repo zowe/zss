@@ -4,6 +4,12 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `2.8.0`
+
+- Feature: Added the API /datasetCopy to copy the datasets
+- Enhancement: /datasetMetadata now returns prime, secnd, and space fields for showing the primary and secondary extent sizes and the unit type for them. (#582)
+- Enhancement: ZSS dataset creation api now supports space values of "BYTE", "KB", and "MB" instead of just "CYL" and "TRK"
+
 ## `2.7.0`
 
 - Enhancement: A new ZIS plugin, "ZISDYNAMIC" is available within the LOADLIB as ZWESISDL. This plugin allows for ZIS plugins to access utility functions of the zowe-common-c libraries without needing to statically build them into the plugin itself.
