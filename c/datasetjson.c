@@ -2429,7 +2429,7 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
 
   getDatasetAttributes(buffer, &organization, &space, &prime, &secnd, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked, &isPDSE);
 
-  if(recordLength == "U") {
+  if(!strcmp(recordLength, "U")) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
     return ERROR_UNDEFINED_LENGTH_DATASET;
   }
@@ -2948,6 +2948,10 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   // To set attributes for target dataset
   char datasetAttributes[300];
   int isPDS = setAttrForDSCopyAndRespondIfError(response, datasetAttrBuffer, datasetAttributes, !isSourceMemberEmpty);
+
+  if(isPDS < 0) {
+    return;
+  }
 
   // Pasting as a dataset member [PS -> Member OR Member -> Member]
   if(!isTargetMemberEmpty && (!isPDS || !isSourceMemberEmpty)){
