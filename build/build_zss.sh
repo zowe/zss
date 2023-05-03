@@ -69,7 +69,6 @@ xlclang \
   "-Wc,ILP32,float(ieee),longname,langlvl(extc99),gonum,goff,ASM,asmlib('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN')" \
   -DYAML_VERSION_MAJOR=${YAML_MAJOR} \
   -DYAML_VERSION_MINOR=${YAML_MINOR} \
-  -DLE_MAX_SUPPORTED_ZOS=0x01030100u \
   -DYAML_VERSION_PATCH=${YAML_PATCH} \
   -DYAML_VERSION_STRING="${YAML_VERSION}" \
   -DYAML_DECLARE_STATIC=1 \
@@ -150,6 +149,7 @@ xlc \
   -DAPF_AUTHORIZED=0 \
   -DUSE_ZOWE_TLS=1 \
   -DNEW_CAA_LOCATIONS=1 \
+  -DLE_MAX_SUPPORTED_ZOS=0x01030100u \
   -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
   -Wc,xplink,agg,exp,list,so\(\),off,xref \
   -Wl,ac=1 \
