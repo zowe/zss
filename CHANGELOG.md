@@ -4,6 +4,9 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `2.9.0`
+- Bugfix: expose the version of the ZIS dynamic linkage base plugin so it can be updated during a build
+
 ## `2.8.0`
 
 - Feature: Added the API /datasetCopy to copy the datasets
