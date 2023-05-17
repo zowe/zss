@@ -6,6 +6,7 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## `2.9.0`
 - Bugfix: expose the version of the ZIS dynamic linkage base plugin so it can be updated during a build
+- Disable the ZIS dynamic linkage plugin as it's not needed by default
 
 ## `2.8.0`
 
