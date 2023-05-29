@@ -3016,6 +3016,8 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
 
 getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, char *unprintableArg, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
 #ifdef __ZOWE_OS_ZOS
+  printf("----INSIDE getDatasetMetadata()\n");
+
   int dsnLen = strlen(datasetOrMember);
   int lParenIndex = indexOf(datasetOrMember, dsnLen, '(', 0);
   int rParenIndex = indexOf(datasetOrMember, dsnLen, ')', 0);
@@ -3123,12 +3125,13 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
   safeFree31((char*)returnParms,sizeof(csi_parmblock));
   safeFree((char*)(entrySet->entries),sizeof(EntryData*)*entrySet->size);
   safeFree((char*)entrySet,sizeof(EntryDataSet));
-
+  printf("----MEMORY FREED UP\n");
 #endif /* __ZOWE_OS_ZOS */
 }
 
 void respondWithDatasetMetadata(HttpResponse *response) {
 #ifdef __ZOWE_OS_ZOS
+  printf("----INSIDE respondWithDatasetMetadata()\n");
   HttpRequest *request = response->request;
   char *datasetOrMember = stringListPrint(request->parsedFile, 2, 2, "?", 0); /*get search term*/
 
@@ -3158,6 +3161,7 @@ void respondWithDatasetMetadata(HttpResponse *response) {
 
   HttpRequestParam *detailParam = getCheckedParam(request,"detail");
   char *detailArg = (detailParam ? detailParam->stringValue : NULL);
+  printf("----DETAIL ARG: %s\n", detailArg);
 
   HttpRequestParam *typesParam = getCheckedParam(request,"types");
   char *typesArg = (typesParam ? typesParam->stringValue : defaultDatasetTypesAllowed);
@@ -3329,6 +3333,7 @@ void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQue
 /* Returns a quantity of tracks or cylinders for dynalloc in case the user asked for bytes */
 /* Yes, these are approximations but if people really want exact numbers they should use cyl & trk */
 static int getDSSizeValueFromType(int quantity, char *spaceType) {
+  printf("-----INSIDE getDSSizeValueFromType()\n");
   if (!strcmp(spaceType, "CYL")) {
     return quantity;
   } else if (!strcmp(spaceType, "TRK")) {
@@ -3344,6 +3349,7 @@ static int getDSSizeValueFromType(int quantity, char *spaceType) {
 }
 
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit) {
+  printf("-----INSIDE setDatasetAttributesForCreation()\n");
   JsonProperty *currentProp = jsonObjectGetFirstProperty(object);
   Json *value = NULL;
   int parmDefn = DALDSORG_NULL;
