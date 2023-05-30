@@ -617,6 +617,7 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
   
       }
       else if (dsorgHigh & 0x02){ /*Partitioned / PO*/
+        printf("---CHECKING FOR PDSCHECK\n");
         int pdsCheck = dscb[78-posOffset] & 0x0a;
         printf("---pdsCheck IS: %d\n", pdsCheck);
 
