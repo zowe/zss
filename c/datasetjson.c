@@ -436,7 +436,7 @@ int streamVSAMDataset(HttpResponse* response, char *acb, int maxRecordLength, in
 
 static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
 #ifdef __ZOWE_OS_ZOS
-
+    printf("---INSIDE addDetailsFromDSCB\n");
     int posOffset = 44;
 
     int blockSize = (dscb[86-posOffset] << 8 | dscb[87-posOffset]);
@@ -635,7 +635,8 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
 
     }
     jsonEndObject(jPrinter);
-
+    printf("---LEAVING addDetailsFromDSCB\n");
+    
     
 #endif /* __ZOWE_OS_ZOS */
 }
@@ -694,7 +695,7 @@ static bool isSupportedWriteDsorg(char *dscb, bool *isPds) {
 static int obtainDSCB1(const char *dsname, unsigned int dsnameLength,
                        const char *volser, unsigned int volserLength,
                        char *dscb1) {
-
+printf("---INSIDE obtainDSCB1\n");
 #define DSCB1_SIZE                    96
 
 #define SVC27_WORKAREA_SIZE           140
@@ -754,7 +755,8 @@ static int obtainDSCB1(const char *dsname, unsigned int dsnameLength,
   FREE_STRUCT31(
     STRUCT31_NAME(mem31)
   );
-
+  printf("---LEAVING obtainDSCB1\n");
+  
   return rc;
 }
 
