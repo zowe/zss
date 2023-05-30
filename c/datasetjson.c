@@ -763,6 +763,7 @@ void addDetailedDatasetMetadata(char *datasetName, int nameLength,
                                 char *volser, int volserLength,
                                 jsonPrinter *jPrinter) {
 
+  printf("---INSIDE addDetailedDatasetMetadata\n");
   int isPDS = FALSE;
   zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Going to check dataset %s attributes\n",datasetName);
   char dscb[INDEXED_DSCB] = {0};
@@ -781,6 +782,7 @@ void addDetailedDatasetMetadata(char *datasetName, int nameLength,
     sprintf(buffer,"Type 1 or 8 DSCB for dataset %s not found",datasetName);
     jsonAddString(jPrinter,"error",buffer);
   }
+  printf("---LEAVING addDetailedDatasetMetadata\n");
 }
 #endif /* __ZOWE_OS_ZOS */
 
@@ -790,7 +792,7 @@ void addMemberedDatasetMetadata(char *datasetName, int nameLength,
                                 char *memberQuery, int memberLength,
                                 jsonPrinter *jPrinter,
                                 int includeUnprintable) {
-
+  printf("---INSIDE addMemberedDatasetMetadata\n");
   int isPDS = FALSE;
   char dscb[INDEXED_DSCB] = {0};
   int rc = obtainDSCB1(datasetName, nameLength,
@@ -864,6 +866,8 @@ void addMemberedDatasetMetadata(char *datasetName, int nameLength,
     jsonEndArray(jPrinter);
   }
   SLHFree(memberList->slh);
+  printf("---LEAVING addMemberedDatasetMetadata\n");
+
 }
 #endif /* __ZOWE_OS_ZOS */
 
@@ -3025,7 +3029,9 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
   int datasetTypeCount = (typesArg == NULL) ? 3 : strlen(typesArg);
   int includeUnprintable = !strcmp(unprintableArg, "true") ? TRUE : FALSE;
 
+  printf("---BEFORE IF OF addQualifiersArg\n");
   if(addQualifiersArg != NULL) {
+    printf("---INSIDE IF OF addQualifiersArg\n");
     int addQualifiers = !strcmp(addQualifiersArg, "true");
     #define DSN_MAX_LEN 44
     char dsnNameNullTerm[DSN_MAX_LEN + 1] = {0}; //+1 for null term
@@ -3042,7 +3048,9 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
     }
     memcpy(&dsnName->value, dsnNameNullTerm, strlen(dsnNameNullTerm));
     #undef DSN_MAX_LEN
+    printf("---GETTING OUT OF IF OF addQualifiersArg\n");
   }
+  printf("---BEFORE fieldCount\n");
 
   int fieldCount = defaultCSIFieldCount;
   char **csiFields = defaultCSIFields;
@@ -3057,6 +3065,7 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
 
   char volser[7];
   memset(volser,0,7);
+  printf("---BEFORE jsonAddInt hasMore\n");
 
   {
     jsonAddInt(jPrinter,"hasMore",isResume);
@@ -3069,6 +3078,8 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
       EntryData *entry = entrySet->entries[i];
 
       if (entry) {
+        printf("---INSIDE IF ENTRY\n");
+
         int fieldDataLength = entry->data.fieldInfoHeader.totalLength;
         int entrySize = sizeof(EntryData)+fieldDataLength-4; /* -4 for the fact that the length is 4 from end of EntryData */
         int isMigrated = FALSE;
@@ -3117,13 +3128,18 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
           }
         }
         jsonEndObject(jPrinter);
+        printf("---SAFEDREE IN IN ENTRY\n");
         safeFree((char*)(entry),entrySize);
+        printf("---GETTING OUT OF IF ENTRY\n");
       }
     }
     jsonEndArray(jPrinter);
   }
+  printf("---BEFORE SAFEFREE 1\n");
   safeFree31((char*)returnParms,sizeof(csi_parmblock));
+  printf("---BEFORE SAFEFREE 2\n");
   safeFree((char*)(entrySet->entries),sizeof(EntryData*)*entrySet->size);
+  printf("---BEFORE SAFEFREE 3\n");
   safeFree((char*)entrySet,sizeof(EntryDataSet));
   printf("----MEMORY FREED UP\n");
 #endif /* __ZOWE_OS_ZOS */
