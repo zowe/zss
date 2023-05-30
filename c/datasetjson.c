@@ -540,6 +540,9 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     } else {
       jsonAddInt(jPrinter, "secnd", scal3);
     }
+
+    printf("---AFTER IF scxtv\n");
+
     
     if (sizeType==DATASET_ALLOC_TYPE_CYL) { //cyl & track prime size seems to work reliably based on extent info
       jsonAddInt(jPrinter, "prime", primarySizeBytes/bytesPerCylinder);
@@ -559,7 +562,11 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
       }
     }
 
+    printf("---AFTER IF sizeType\n");
+
+
     int recfm = dscb[84-posOffset];
+    printf("---RECFM: %d\n", recfm);
     
     jsonStartObject(jPrinter,"recfm");
     {
@@ -601,8 +608,12 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     }
     jsonEndObject(jPrinter);
 
+    printf("---END OF JSON OBJECT\n");
+    
 
     int dsorgHigh = dscb[82-posOffset];
+    printf("---dsorgHigh: %d\n", dsorgHigh);
+
     int isUnmovable = FALSE;
 
     jsonStartObject(jPrinter,"dsorg");
