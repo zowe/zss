@@ -769,6 +769,7 @@ void addDetailedDatasetMetadata(char *datasetName, int nameLength,
   int isPDS = FALSE;
   zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Going to check dataset %s attributes\n",datasetName);
   char dscb[INDEXED_DSCB] = {0};
+  printf("---ABOUT TO CALL obtainDSCB1\n");
   int rc = obtainDSCB1(datasetName, nameLength,
                        volser, volserLength,
                        dscb);
