@@ -440,10 +440,13 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     int posOffset = 44;
 
     int blockSize = (dscb[86-posOffset] << 8 | dscb[87-posOffset]);
-
+    printf("---BLOCKSIZE IS: %d\n", blockSize);
+    
     int scxtvMult = 1;
     int primarySizeDiv = 1;
     char spac = (dscb[94-posOffset]);
+    printf("---SPAC IS: %c\n", spac);
+
     int sizeType = DATASET_ALLOC_TYPE_BYTE;
     if ((spac & 0xc0) == 0xc0){
       jsonAddString(jPrinter, "space", "CYL");
@@ -451,6 +454,8 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     } else if (spac & 0x80){
       if (spac & 0x10){
         char cxtf = (dscb[79-posOffset]);
+        printf("---cxtf IS: %c\n", cxtf);
+
         if (cxtf & 0x80){
           zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "scxtv original blklen!\n");
         }
@@ -486,18 +491,35 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     }
 
     int scxtv = (dscb[80-posOffset] << 8 | dscb[81-posOffset]);
+    printf("---scxtv IS: %d\n", scxtv);
+
     int scal3 = (dscb[95-posOffset] << 16 | dscb[96-posOffset] << 8 | dscb[97-posOffset]);
+    printf("---scal3 IS: %d\n", scal3);
     
     uint32_t lowcyl = dscb[109-posOffset]<<24 | ((dscb[110-posOffset]&0xf0)<<16) | dscb[107-posOffset]<<8 | dscb[108-posOffset];
+    printf("---lowcyl IS: %u\n", lowcyl);
+
     uint32_t highcyl = dscb[113-posOffset]<<24 | ((dscb[114-posOffset]&0xf0)<<16) | dscb[111-posOffset]<<8 | dscb[112-posOffset];
+    printf("---highcyl IS: %u\n", highcyl);
+    
     uint32_t lowtrk = dscb[110-posOffset]&0x0f;
+    printf("---lowtrk IS: %u\n", lowtrk);
+
     uint32_t hightrk = dscb[114-posOffset]&0x0f;
+    printf("---hightrk IS: %u\n", hightrk);
+
 
     uint32_t diffcyl = highcyl-lowcyl;
+    printf("---diffcyl IS: %u\n", diffcyl);
+
     uint32_t difftrk = hightrk-lowtrk +1;
+    printf("---difftrk IS: %u\n", difftrk);
+
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "diff cyl 0x%x - 0x%x, trk 0x%x - 0x%x is (%d cyl, %d trk)\n", highcyl, lowcyl, hightrk, lowtrk, diffcyl, difftrk);
 
     uint64_t primarySizeBytes = (diffcyl * bytesPerCylinder) + (difftrk * bytesPerTrack);
+    printf("---primarySizeBytes IS: %u\n", primarySizeBytes);
+
     /* debugging of interesting size types
     printf("primarySizeBytes is %lld\n", primarySizeBytes);
     if (sizeType==DATASET_ALLOC_TYPE_MB) {
@@ -596,6 +618,8 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
       }
       else if (dsorgHigh & 0x02){ /*Partitioned / PO*/
         int pdsCheck = dscb[78-posOffset] & 0x0a;
+        printf("---pdsCheck IS: %d\n", pdsCheck);
+
         if (pdsCheck == 0x0a){/*pdse & pdsex = hfs*/
           jsonAddString(jPrinter,"organization","hfs");
         }
@@ -616,6 +640,8 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
       }
       
       int dsorgLow = dscb[83-posOffset];
+      printf("---dsorgLow IS: %d\n", dsorgLow);
+
   
       if (dsorgLow & 0x80){/*Graphics / GS*/
   
@@ -623,12 +649,18 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
       else if (dsorgLow & 0x08){/*VSAM*/
         jsonAddString(jPrinter,"organization","vsam");
         int keylen = dscb[90-posOffset] << 12;
+        printf("---keylen IS: %d\n", keylen);
+
         int keyoffset = dscb[91-posOffset] << 8;
+        printf("---keylen IS: %d\n", keyoffset);
+
         jsonAddInt(jPrinter,"keylen",keylen);
         jsonAddInt(jPrinter,"keyoffset",keyoffset);
       }
       
       int lrecl = (dscb[88-posOffset] << 8) | dscb[89-posOffset];
+      printf("---lrecl IS: %d\n", lrecl);
+
       jsonAddInt(jPrinter,"maxRecordLen",lrecl);
       
       jsonAddInt(jPrinter,"totalBlockSize",blockSize);  
