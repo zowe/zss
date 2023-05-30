@@ -530,17 +530,20 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
       printf("size blk=%lld\n",primarySizeBytes/blockSize);
     }
     */
-
+    printf("---BEFORE IF scxtv\n");
     if(scxtv) {
+      printf("---INSIDE IF scxtv\n");
+
       if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //observationally special case
         jsonAddInt(jPrinter, "secnd", ((scxtvMult * scxtv) * scal3) / primarySizeDiv);
       } else {
         jsonAddInt(jPrinter, "secnd", scxtvMult * scxtv);
       }
     } else {
+      printf("---INSIDE ELSE OF scxtv\n");
       jsonAddInt(jPrinter, "secnd", scal3);
     }
-
+    
     printf("---AFTER IF scxtv\n");
 
     
