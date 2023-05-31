@@ -440,6 +440,8 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     int posOffset = 44;
 
     int blockSize = (dscb[86-posOffset] << 8 | dscb[87-posOffset]);
+    printf("---dscb[86-posOffset]: %d\n", dscb[86-posOffset]);
+    printf("---dscb[86-posOffset]: %d\n", dscb[87-posOffset]);
     printf("---BLOCKSIZE IS: %d\n", blockSize);
     
     int scxtvMult = 1;
@@ -484,6 +486,7 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
       jsonAddString(jPrinter, "space", "BLK");
       sizeType=DATASET_ALLOC_TYPE_BLOCK;
       primarySizeDiv = blockSize;
+      printf("-----------primarySizeDiv=blockSize\n");
     } else{
       jsonAddString(jPrinter, "space", "TRK");
       sizeType=DATASET_ALLOC_TYPE_TRK;
@@ -535,7 +538,6 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
       printf("---INSIDE IF scxtv\n");
 
       if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //observationally special case
-        printf("--- IF sizeType\n");
         printf("---primarySizeDiv: %d\n", primarySizeDiv);
         printf("---scxtvMult: %d\n", scxtvMult);
         printf("---scxtv: %d\n", scxtv);
@@ -750,7 +752,7 @@ static bool isSupportedWriteDsorg(char *dscb, bool *isPds) {
 static int obtainDSCB1(const char *dsname, unsigned int dsnameLength,
                        const char *volser, unsigned int volserLength,
                        char *dscb1) {
-printf("---INSIDE obtainDSCB1\n");
+
 #define DSCB1_SIZE                    96
 
 #define SVC27_WORKAREA_SIZE           140
@@ -810,8 +812,7 @@ printf("---INSIDE obtainDSCB1\n");
   FREE_STRUCT31(
     STRUCT31_NAME(mem31)
   );
-  printf("---LEAVING obtainDSCB1\n");
-  
+
   return rc;
 }
 
@@ -820,11 +821,10 @@ void addDetailedDatasetMetadata(char *datasetName, int nameLength,
                                 char *volser, int volserLength,
                                 jsonPrinter *jPrinter) {
 
-  printf("---INSIDE addDetailedDatasetMetadata\n");
   int isPDS = FALSE;
   zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Going to check dataset %s attributes\n",datasetName);
   char dscb[INDEXED_DSCB] = {0};
-  printf("---ABOUT TO CALL obtainDSCB1\n");
+
   int rc = obtainDSCB1(datasetName, nameLength,
                        volser, volserLength,
                        dscb);
@@ -840,7 +840,7 @@ void addDetailedDatasetMetadata(char *datasetName, int nameLength,
     sprintf(buffer,"Type 1 or 8 DSCB for dataset %s not found",datasetName);
     jsonAddString(jPrinter,"error",buffer);
   }
-  printf("---LEAVING addDetailedDatasetMetadata\n");
+
 }
 #endif /* __ZOWE_OS_ZOS */
 
@@ -850,7 +850,7 @@ void addMemberedDatasetMetadata(char *datasetName, int nameLength,
                                 char *memberQuery, int memberLength,
                                 jsonPrinter *jPrinter,
                                 int includeUnprintable) {
-  printf("---INSIDE addMemberedDatasetMetadata\n");
+
   int isPDS = FALSE;
   char dscb[INDEXED_DSCB] = {0};
   int rc = obtainDSCB1(datasetName, nameLength,
@@ -924,7 +924,6 @@ void addMemberedDatasetMetadata(char *datasetName, int nameLength,
     jsonEndArray(jPrinter);
   }
   SLHFree(memberList->slh);
-  printf("---LEAVING addMemberedDatasetMetadata\n");
 
 }
 #endif /* __ZOWE_OS_ZOS */
@@ -3078,7 +3077,6 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
 
 getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, char *unprintableArg, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
 #ifdef __ZOWE_OS_ZOS
-  printf("----INSIDE getDatasetMetadata()\n");
 
   int dsnLen = strlen(datasetOrMember);
   int lParenIndex = indexOf(datasetOrMember, dsnLen, '(', 0);
@@ -3087,9 +3085,7 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
   int datasetTypeCount = (typesArg == NULL) ? 3 : strlen(typesArg);
   int includeUnprintable = !strcmp(unprintableArg, "true") ? TRUE : FALSE;
 
-  printf("---BEFORE IF OF addQualifiersArg\n");
   if(addQualifiersArg != NULL) {
-    printf("---INSIDE IF OF addQualifiersArg\n");
     int addQualifiers = !strcmp(addQualifiersArg, "true");
     #define DSN_MAX_LEN 44
     char dsnNameNullTerm[DSN_MAX_LEN + 1] = {0}; //+1 for null term
@@ -3106,9 +3102,7 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
     }
     memcpy(&dsnName->value, dsnNameNullTerm, strlen(dsnNameNullTerm));
     #undef DSN_MAX_LEN
-    printf("---GETTING OUT OF IF OF addQualifiersArg\n");
   }
-  printf("---BEFORE fieldCount\n");
 
   int fieldCount = defaultCSIFieldCount;
   char **csiFields = defaultCSIFields;
@@ -3123,7 +3117,6 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
 
   char volser[7];
   memset(volser,0,7);
-  printf("---BEFORE jsonAddInt hasMore\n");
 
   {
     jsonAddInt(jPrinter,"hasMore",isResume);
@@ -3136,7 +3129,6 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
       EntryData *entry = entrySet->entries[i];
 
       if (entry) {
-        printf("---INSIDE IF ENTRY\n");
 
         int fieldDataLength = entry->data.fieldInfoHeader.totalLength;
         int entrySize = sizeof(EntryData)+fieldDataLength-4; /* -4 for the fact that the length is 4 from end of EntryData */
@@ -3186,26 +3178,19 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
           }
         }
         jsonEndObject(jPrinter);
-        printf("---SAFEDREE IN IN ENTRY\n");
         safeFree((char*)(entry),entrySize);
-        printf("---GETTING OUT OF IF ENTRY\n");
       }
     }
     jsonEndArray(jPrinter);
   }
-  printf("---BEFORE SAFEFREE 1\n");
   safeFree31((char*)returnParms,sizeof(csi_parmblock));
-  printf("---BEFORE SAFEFREE 2\n");
   safeFree((char*)(entrySet->entries),sizeof(EntryData*)*entrySet->size);
-  printf("---BEFORE SAFEFREE 3\n");
   safeFree((char*)entrySet,sizeof(EntryDataSet));
-  printf("----MEMORY FREED UP\n");
 #endif /* __ZOWE_OS_ZOS */
 }
 
 void respondWithDatasetMetadata(HttpResponse *response) {
 #ifdef __ZOWE_OS_ZOS
-  printf("----INSIDE respondWithDatasetMetadata()\n");
   HttpRequest *request = response->request;
   char *datasetOrMember = stringListPrint(request->parsedFile, 2, 2, "?", 0); /*get search term*/
 
@@ -3407,7 +3392,6 @@ void respondWithHLQNames(HttpResponse *response, MetadataQueryCache *metadataQue
 /* Returns a quantity of tracks or cylinders for dynalloc in case the user asked for bytes */
 /* Yes, these are approximations but if people really want exact numbers they should use cyl & trk */
 static int getDSSizeValueFromType(int quantity, char *spaceType) {
-  printf("-----INSIDE getDSSizeValueFromType()\n");
   if (!strcmp(spaceType, "CYL")) {
     return quantity;
   } else if (!strcmp(spaceType, "TRK")) {
@@ -3423,7 +3407,6 @@ static int getDSSizeValueFromType(int quantity, char *spaceType) {
 }
 
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit) {
-  printf("-----INSIDE setDatasetAttributesForCreation()\n");
   JsonProperty *currentProp = jsonObjectGetFirstProperty(object);
   Json *value = NULL;
   int parmDefn = DALDSORG_NULL;
