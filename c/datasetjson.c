@@ -564,9 +564,9 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     } else { //but other types, the extent info is way too large, so these numbers observed to be closer, often correct.
       if (scxtv){
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "scal3=%d, blocksize=%d, primarySizeDiv=%d, scxtv=%d\n", scal3, blockSize, primarySizeDiv, scxtv);
-        if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //works sometimes, but not always.
+        if (sizeType==DATASET_ALLOC_TYPE_BLOCK && primarySizeDiv>0) { //works sometimes, but not always.
           jsonAddInt(jPrinter, "prime", (scal3 * blockSize) / primarySizeDiv);
-        } else {
+        } else if(primarySizeDiv>0) {
           //this works well for block sizes like 32720 or 27990, but returns somewhat larger than expected values for small block sizes like 320
           jsonAddInt(jPrinter, "prime", ((scal3 * blockSize) * (bytesPerTrack/blockSize)) / primarySizeDiv);
         }
