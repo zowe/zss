@@ -537,7 +537,7 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     if(scxtv) {
       printf("---INSIDE IF scxtv\n");
 
-      if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //observationally special case
+      if (sizeType==DATASET_ALLOC_TYPE_BLOCK && primarySizeDiv>0) { //observationally special case
         printf("---primarySizeDiv: %d\n", primarySizeDiv);
         printf("---scxtvMult: %d\n", scxtvMult);
         printf("---scxtv: %d\n", scxtv);
