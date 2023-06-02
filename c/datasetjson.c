@@ -434,7 +434,7 @@ int streamVSAMDataset(HttpResponse* response, char *acb, int maxRecordLength, in
 }
 
 
-static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
+static void addDetailsFromDSCB(char* datasetName, char *dscb, jsonPrinter *jPrinter, int *isPDS) {
 #ifdef __ZOWE_OS_ZOS
 
     int posOffset = 44;
@@ -443,6 +443,10 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     printf("---dscb[86-posOffset]: %d\n", dscb[86-posOffset]);
     printf("---dscb[87-posOffset]: %d\n", dscb[87-posOffset]);
     printf("---BLOCKSIZE IS: %d\n", blockSize);
+    if(blockSize <= 0) {
+      printf("---BLOCK SIZE < = 0 AND DATASETNAME: %s\n", datasetName);
+    }
+    printf("---DATASETNAME: %s\n", datasetName);
 
     int scxtvMult = 1;
     int primarySizeDiv = 1;
@@ -778,7 +782,7 @@ void addDetailedDatasetMetadata(char *datasetName, int nameLength,
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "DSCB for %s found\n",datasetName);
       dumpbuffer(dscb,INDEXED_DSCB);
     }
-    addDetailsFromDSCB(dscb,jPrinter,&isPDS);
+    addDetailsFromDSCB(datasetName, dscb,jPrinter,&isPDS);
   }
   else{
     char buffer[100];
