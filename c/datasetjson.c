@@ -434,19 +434,12 @@ int streamVSAMDataset(HttpResponse* response, char *acb, int maxRecordLength, in
 }
 
 
-static void addDetailsFromDSCB(char* datasetName, char *dscb, jsonPrinter *jPrinter, int *isPDS) {
+static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
 #ifdef __ZOWE_OS_ZOS
 
     int posOffset = 44;
 
     int blockSize = (dscb[86-posOffset] << 8 | dscb[87-posOffset]);
-    printf("---dscb[86-posOffset]: %d\n", dscb[86-posOffset]);
-    printf("---dscb[87-posOffset]: %d\n", dscb[87-posOffset]);
-    printf("---BLOCKSIZE IS: %d\n", blockSize);
-    if(blockSize <= 0) {
-      printf("---BLOCK SIZE < = 0 AND DATASETNAME: %s\n", datasetName);
-    }
-    printf("---DATASETNAME: %s\n", datasetName);
 
     int scxtvMult = 1;
     int primarySizeDiv = 1;
@@ -486,7 +479,6 @@ static void addDetailsFromDSCB(char* datasetName, char *dscb, jsonPrinter *jPrin
       jsonAddString(jPrinter, "space", "BLK");
       sizeType=DATASET_ALLOC_TYPE_BLOCK;
       primarySizeDiv = blockSize;
-      printf("-----------primarySizeDiv=blockSize\n");
     } else{
       jsonAddString(jPrinter, "space", "TRK");
       sizeType=DATASET_ALLOC_TYPE_TRK;
@@ -516,7 +508,6 @@ static void addDetailsFromDSCB(char* datasetName, char *dscb, jsonPrinter *jPrin
       printf("size blk=%lld\n",primarySizeBytes/blockSize);
     }
     */
-    printf("---primarySizeDiv: %d\n", primarySizeDiv);
     if(scxtv) {
       if (sizeType==DATASET_ALLOC_TYPE_BLOCK && primarySizeDiv>0) { //observationally special case
         jsonAddInt(jPrinter, "secnd", ((scxtvMult * scxtv) * scal3) / primarySizeDiv);
@@ -782,7 +773,7 @@ void addDetailedDatasetMetadata(char *datasetName, int nameLength,
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "DSCB for %s found\n",datasetName);
       dumpbuffer(dscb,INDEXED_DSCB);
     }
-    addDetailsFromDSCB(datasetName, dscb,jPrinter,&isPDS);
+    addDetailsFromDSCB(dscb,jPrinter,&isPDS);
   }
   else{
     char buffer[100];
