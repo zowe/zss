@@ -32,66 +32,8 @@ jobs:
         with: 
             submodules: true
 
-      - name: '[Dep 1] Libyaml'
-        uses: actions/checkout@v3
-        with:
-          repository: yaml/libyaml
-          path: deps/zss/libyaml
-          ref: '0.2.5'
-
-      - name: '[Dep 2] Quickjs'
-        uses: actions/checkout@v3
-        with:
-          repository: joenemo/quickjs-portable
-          path: deps/zss/quickjs
-          ref: 'main'
-
-      - name: '[Prep 2] Setup jFrog CLI'
-        uses: jfrog/setup-jfrog-cli@v2
-        env:
-          JF_ARTIFACTORY_1: ${{ secrets.JF_ARTIFACTORY_TOKEN }}
-          
-      - name: 'convert manifest'
-        run: |
-          COMMIT_HASH=$(git rev-parse --verify HEAD)
-          CURRENT_TIME=$(date +%s%3N)
-          if [ -z ${{ github.event.pull_request.number }} ]
-          then
-            CURRENT_BRANCH=${GITHUB_REF#refs/heads/} 
-          else
-            CURRENT_BRANCH=PR-${{ github.event.pull_request.number }}
-          fi
-          sed -e "s|{{build\.branch}}|${CURRENT_BRANCH}|g" \
-              -e "s|{{build\.number}}|${{ github.run_number }}|g" \
-              -e "s|{{build\.commitHash}}|${COMMIT_HASH}|g" \
-              -e "s|{{build\.timestamp}}|${CURRENT_TIME}|g" \
-              manifest.template.yaml > manifest.yaml
-          
-          echo "Current manifest.yaml is:"
-          cat manifest.yaml
-      
-      - name: '[Prep 3] Prepare workflow'
-        uses: zowe-actions/shared-actions/prepare-workflow@main
-
-      - name: '[Packaging] Make pax'
-        uses: zowe-actions/shared-actions/make-pax@main
-        with:
-          pax-name: 'zss'
-          pax-options: '-x os390 -pp'
-          pax-ssh-username: ${{ secrets.SSH_MARIST_USERNAME }}
-          pax-ssh-password: ${{ secrets.SSH_MARIST_RACF_PASSWORD }}
-
-      - name: '[Publish] Publish'
-        uses: zowe-actions/shared-actions/publish@main
-        if: success()
-        with:
-          artifacts: |
-            .pax/zss.pax
-          perform-release: ${{ github.event.inputs.PERFORM_RELEASE }}
- 
 
       - name: '[Prep Release] Bump version'
-        if: ${{ github.event.inputs.PERFORM_RELEASE == 'true' }}
-        uses: zowe-actions/zlux-builds/bump-zis-version@v2.x/main
+        uses: zowe-actions/zlux-builds/bump-zis-version@users/jstruga/bump-dynamic-plugin
         env: 
          GITHUB_TOKEN: ${{ secrets.ZOWE_ROBOT_TOKEN }}
