@@ -508,10 +508,13 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
       printf("size blk=%lld\n",primarySizeBytes/blockSize);
     }
     */
-
     if(scxtv) {
       if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //observationally special case
-        jsonAddInt(jPrinter, "secnd", ((scxtvMult * scxtv) * scal3) / primarySizeDiv);
+        if (primarySizeDiv > 0) {
+          jsonAddInt(jPrinter, "secnd", ((scxtvMult * scxtv) * scal3) / primarySizeDiv);
+        } else {
+          jsonAddInt(jPrinter, "secnd", 0);
+        }
       } else {
         jsonAddInt(jPrinter, "secnd", scxtvMult * scxtv);
       }
@@ -524,13 +527,17 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     } else if (sizeType==DATASET_ALLOC_TYPE_TRK) {
       jsonAddInt(jPrinter, "prime", primarySizeBytes/bytesPerTrack);
     } else { //but other types, the extent info is way too large, so these numbers observed to be closer, often correct.
-      if (scxtv){
+      if (scxtv) {
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "scal3=%d, blocksize=%d, primarySizeDiv=%d, scxtv=%d\n", scal3, blockSize, primarySizeDiv, scxtv);
-        if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //works sometimes, but not always.
-          jsonAddInt(jPrinter, "prime", (scal3 * blockSize) / primarySizeDiv);
+        if (primarySizeDiv > 0) {
+          if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //works sometimes, but not always.
+            jsonAddInt(jPrinter, "prime", (scal3 * blockSize) / primarySizeDiv);
+          } else {
+            //this works well for block sizes like 32720 or 27990, but returns somewhat larger than expected values for small block sizes like 320
+            jsonAddInt(jPrinter, "prime", ((scal3 * blockSize) * (bytesPerTrack/blockSize)) / primarySizeDiv);
+          }
         } else {
-          //this works well for block sizes like 32720 or 27990, but returns somewhat larger than expected values for small block sizes like 320
-          jsonAddInt(jPrinter, "prime", ((scal3 * blockSize) * (bytesPerTrack/blockSize)) / primarySizeDiv);
+            jsonAddInt(jPrinter, "prime", 0);
         }
       } else {
         jsonAddInt(jPrinter, "prime", scal3);
