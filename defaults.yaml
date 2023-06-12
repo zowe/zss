@@ -14,14 +14,14 @@ components:
         fallback: true
         retryIntervalSeconds: 10
       https:
-        keyring: ${{ ()=> { if (components.zss.tls) { if (zowe.certificate.keystore.type == "JCERACFKS") { return zowe.certificate.keystore.file.replace(/safkeyring:\/+/,"") } else { return zowe.certificate.keystore.file } } else { return null } }() }}
-        password: ${{ ()=> { if (components.zss.tls) { if (zowe.certificate.keystore.type == "JCERACFKS") { return null } else { return zowe.certificate.keystore.password } } else { return null } }() }}
-        label: ${{ ()=> { if (components.zss.tls) { return zowe.certificate.keystore.alias } else { return null } }() }}
-        port: ${{ ()=> { if (components.zss.tls) { return  components.zss.port } else { return null } }() }}
-        ipAddresses: ${{ ()=> { if (components.zss.tls){ if (zowe.environments?.ZWED_agent_https_ipAddresses){ return zowe.environments.ZWED_agent_https_ipAddresses.split(',') } else { return [ '0.0.0.0' ] } } else { return null } }() }}
+        keyring: ${{ ()=> { if (zowe.network.attls || components.zss.launcher.attls) { if (zowe.certificate.keystore.type == "JCERACFKS") { return zowe.certificate.keystore.file.replace(/safkeyring:\/+/,"") } else { return zowe.certificate.keystore.file } } else { return null } }() }}
+        password: ${{ ()=> { if (zowe.network.attls || components.zss.launcher.attls) { if (zowe.certificate.keystore.type == "JCERACFKS") { return null } else { return zowe.certificate.keystore.password } } else { return null } }() }}
+        label: ${{ ()=> { if (zowe.network.attls || components.zss.launcher.attls) { return zowe.certificate.keystore.alias } else { return null } }() }}
+        port: ${{ ()=> { if (zowe.network.attls || components.zss.launcher.attls) { return  components.zss.port } else { return null } }() }}
+        ipAddresses: ${{ ()=> { if (zowe.network.attls || components.zss.launcher.attls){ if (zowe.environments?.ZWED_agent_https_ipAddresses){ return zowe.environments.ZWED_agent_https_ipAddresses.split(',') } else { return [ '0.0.0.0' ] } } else { return null } }() }}
       http:
-        port: ${{ ()=> { if (components.zss.tls) { return null } else { return components.zss.port } }() }}
-        ipAddresses: ${{ () => { if (components.zss.tls) { return null } else { if (zowe.environments?.ZWED_agent_http_ipAddresses) {  return zowe.environments.ZWED_agent_http_ipAddresses.split(',') } else { return [ '127.0.0.1' ] } } }() }}
+        port: ${{ ()=> { if (zowe.network.attls || components.zss.launcher.attls) { return null } else { return components.zss.port } }() }}
+        ipAddresses: ${{ () => { if (zowe.network.attls || components.zss.launcher.attls) { return null } else { if (zowe.environments?.ZWED_agent_http_ipAddresses) {  return zowe.environments.ZWED_agent_http_ipAddresses.split(',') } else { return [ '127.0.0.1' ] } } }() }}
       mediationLayer:
         server:
           isHttps: true
