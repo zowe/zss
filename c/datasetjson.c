@@ -446,7 +446,7 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     char spac = (dscb[94-posOffset]);
     int sizeType = DATASET_ALLOC_TYPE_BYTE;
     if ((spac & 0xc0) == 0xc0){
-      jsonAddString(jPrinter, "space", "cyls");
+      jsonAddString(jPrinter, "space", "CYL");
       sizeType=DATASET_ALLOC_TYPE_CYL;
     } else if (spac & 0x80){
       if (spac & 0x10){
@@ -455,15 +455,15 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
           zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "scxtv original blklen!\n");
         }
         if (cxtf & 0x40){
-          jsonAddString(jPrinter, "space", "mb");
+          jsonAddString(jPrinter, "space", "MB");
           sizeType=DATASET_ALLOC_TYPE_MB;
           primarySizeDiv = 1048576;
         } else if (cxtf & 0x20){
-          jsonAddString(jPrinter, "space", "kb");
+          jsonAddString(jPrinter, "space", "KB");
           sizeType=DATASET_ALLOC_TYPE_KB;
           primarySizeDiv = 1024;
         } else if (cxtf & 0x10){
-          jsonAddString(jPrinter, "space", "bytes");
+          jsonAddString(jPrinter, "space", "BYTE");
         }
         if (cxtf & 0x08){
           scxtvMult=256;
@@ -472,15 +472,15 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
           scxtvMult=65536;
         }
       } else{
-        jsonAddString(jPrinter, "space", "trks");
+        jsonAddString(jPrinter, "space", "TRK");
         sizeType=DATASET_ALLOC_TYPE_TRK;
       }
     } else if (spac & 0x40){
-      jsonAddString(jPrinter, "space", "blks");
+      jsonAddString(jPrinter, "space", "BLK");
       sizeType=DATASET_ALLOC_TYPE_BLOCK;
       primarySizeDiv = blockSize;
     } else{
-      jsonAddString(jPrinter, "space", "trks");
+      jsonAddString(jPrinter, "space", "TRK");
       sizeType=DATASET_ALLOC_TYPE_TRK;
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "spac ABS!\n");
     }
@@ -2429,7 +2429,7 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
 
   getDatasetAttributes(buffer, &organization, &space, &prime, &secnd, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked, &isPDSE);
 
-  if(recordLength == "U") {
+  if(!strcmp(recordLength, "U")) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
     return ERROR_UNDEFINED_LENGTH_DATASET;
   }
@@ -2948,6 +2948,10 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   // To set attributes for target dataset
   char datasetAttributes[300];
   int isPDS = setAttrForDSCopyAndRespondIfError(response, datasetAttrBuffer, datasetAttributes, !isSourceMemberEmpty);
+
+  if(isPDS < 0) {
+    return;
+  }
 
   // Pasting as a dataset member [PS -> Member OR Member -> Member]
   if(!isTargetMemberEmpty && (!isPDS || !isSourceMemberEmpty)){

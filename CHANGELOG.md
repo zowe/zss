@@ -4,11 +4,16 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `2.9.0`
+- Bugfix: expose the version of the ZIS dynamic linkage base plugin so it can be updated during a build
+- Disable the ZIS dynamic linkage plugin as it's not needed by default
+
 ## `2.8.0`
 
 - Feature: Added the API /datasetCopy to copy the datasets
 - Enhancement: /datasetMetadata now returns prime, secnd, and space fields for showing the primary and secondary extent sizes and the unit type for them. (#582)
 - Enhancement: ZSS dataset creation api now supports space values of "BYTE", "KB", and "MB" instead of just "CYL" and "TRK"
+- Bugfix: change conflicting message IDs in the ZIS dynamic linkage base plugin
 
 ## `2.7.0`
 
