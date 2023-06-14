@@ -2,7 +2,7 @@ components:
   zss:
     port: 7557
     crossMemoryServerName: ${{ ()=> { if (zowe.environments?.ZWED_privilegedServerName) { return zowe.environments.ZWED_privilegedServerName } else { if (zowe.environments?.ZWES_XMEM_SERVER_NAME) { return zowe.environments.ZWES_XMEM_SERVER_NAME } else { return "ZWESIS_STD" } } }() }}
-    tls: ${{ ()=> { return !(zowe.network.attls || components.zss.launcher.attls) }() }}
+    tls: ${{ ()=> { return !(zowe.network?.attls || components.zss.launcher?.attls) }() }}
     productDir: ${{ zowe.runtimeDirectory }}/components/zss/defaults
     pluginsDir: ${{ zowe.workspaceDirectory }}/app-server/plugins
     instanceDir: ${{ zowe.workspaceDirectory }}/zss
