@@ -18,6 +18,8 @@ schemas:
   configs: 
   - schemas/zowe-schema.json
   - schemas/zss-config.json
+configs:
+  defaults: defaults.yaml
 repository:
   type: git
   url: https://github.com/zowe/zss.git
