@@ -13,6 +13,13 @@
 
 OSNAME=$(uname)
 if [[ "${OSNAME}" == "OS/390" ]]; then
+  # we use this as an indication that zwe exists
+  if [ -n ${ZWE_VERSION} ]; then
+    ZWES_PROD=true
+  else
+    ZWES_PROD=false
+  fi
+
   export _EDC_ZERO_RECLEN=Y # allow processing of zero-length records in datasets
   cd ${ZWE_zowe_runtimeDirectory}/components/zss/bin
 
@@ -22,6 +29,7 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
   if [ -z "${ZWES_COMPONENT_HOME}" ]; then
     if [ -z "${ZWE_zowe_runtimeDirectory}" ]; then
       echo 'ZWE_zowe_runtimeDirectory is not defined. Run with ZWES_COMPONENT_HOME defined to the path of the zss root folder or ZWE_zowe_runtimeDirectory defined to the path of a zowe install that includes zowe core schemas and zss within /components/zss'
+      exit 1
     else
       ZWES_COMPONENT_HOME="${ZWE_zowe_runtimeDirectory}/components/zss"
     fi
@@ -31,23 +39,36 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
   if [ -z "${ZWES_SCHEMA_PATHS}" ]; then
     if [ -z "${ZWE_zowe_runtimeDirectory}" ]; then
       echo "ZWE_zowe_runtimeDirectory is not defined. Run with ZWES_SCHEA_PATHS defined to the colon-separated file paths of zowe json schemas used to validate the ZSS configuration yaml file, or have ZWE_zowe_runtimeDirectory defined to the path of a zowe install that includes zowe core schemas and zss within /components/zss"
+      exit 1
+    else
+      ZWES_SCHEMA_PATHS="${ZWES_COMPONENT_HOME}/schemas/zowe-schema.json:${ZWE_zowe_runtimeDirectory}/schemas/zowe-yaml-schema.json:${ZWE_zowe_runtimeDirectory}/schemas/server-common.json:${ZWES_COMPONENT_HOME}/schemas/zss-config.json"
     fi
   fi
   
   # Get config path or fail
   if [ -z "${ZWE_CLI_PARAMETER_CONFIG}" ]; then
     echo "ZWE_CLI_PARAMETER_CONFIG is not defined. Rerun script with it defined to a list of paths to zowe.yaml files such as /path/to/zowe.yaml or FILE(/yaml1.yaml):LIB(other.yaml):FILE(/path/to/yaml3.yaml)"
+    exit 1
   fi
-  
-  # Take in our defaults
-  ZWES_CONFIG="FILE(${ZWE_CLI_PARAMETER_CONFIG}):FILE(${ZWES_COMPONENT_HOME}/defaults.yaml)"
-  
+
+  if [ "${ZWES_PROD}" = "true" ]; then
+    # defaults already given as a file on disk
+    ZWES_CONFIG="FILE(${ZWE_CLI_PARAMETER_CONFIG})"
+  else 
+    # Take in our defaults
+    case "$ZWE_CLI_PARAMETER_CONFIG" in
+    FILE*)
+      ZWES_CONFIG="${ZWE_CLI_PARAMETER_CONFIG}:FILE(${ZWES_COMPONENT_HOME}/defaults.yaml)"
+      ;;
+    *)
+      ZWES_CONFIG="FILE(${ZWE_CLI_PARAMETER_CONFIG}):FILE(${ZWES_COMPONENT_HOME}/defaults.yaml)"
+      ;;
+    esac
+  fi
+
   # Essential parameters now set up.
   
   ZSS_SCRIPT_DIR="${ZWES_COMPONENT_HOME}/bin"
-  
-  ZWES_SCHEMA_PATHS="${ZWES_COMPONENT_HOME}/schemas/zowe-schema.json:${ZWE_zowe_runtimeDirectory}/schemas/zowe-yaml-schema.json:${ZWE_zowe_runtimeDirectory}/schemas/server-common.json:${ZWES_COMPONENT_HOME}/schemas/zss-config.json"
-  
   
   # this is to resolve ZSS bin path in LIBPATH variable.
   LIBPATH="${LIBPATH}:${ZSS_SCRIPT_DIR}"
