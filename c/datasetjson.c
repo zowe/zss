@@ -718,6 +718,7 @@ static int obtainDSCB1(const char *dsname, unsigned int dsnameLength,
       safeFree(result, strlen(result));
     } else if (rc) {
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "symbol lookup error rc=0x%x rsn=0x%x\n", rc, rsn);
+      return rc;
     }
   }
 
