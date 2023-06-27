@@ -433,8 +433,8 @@ int zisReadParmlib(ZISParmSet *parms, const char *ddname, const char *member,
       freeReadBuffer(readBuffer);
       readBuffer = NULL;
     } else {
-      readStatus->internalRC = allocRC;
-      readStatus->internalRSN = allocRSN;
+      readStatus->internalRC = readRC;
+      readStatus->internalRSN = readRSN;
       status = RC_ZISPARM_PARMLIB_READ_FAILED;
     }
 
@@ -467,8 +467,8 @@ int zisReadParmlib(ZISParmSet *parms, const char *ddname, const char *member,
       ddnameAllocated = false;
     } else {
       if (status != RC_ZISPARM_OK) {
-        readStatus->internalRC = allocRC;
-        readStatus->internalRSN = allocRSN;
+        readStatus->internalRC = freeRC;
+        readStatus->internalRSN = freeRSN;
         status = RC_ZISPARM_PARMLIB_FREE_FAILED;
       }
     }

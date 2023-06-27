@@ -4,6 +4,20 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `2.10.0`
+- Bugfix:  Preventing error code 0C9-09 caused by a block size of zero
+
+## `2.9.0`
+- Bugfix: expose the version of the ZIS dynamic linkage base plugin so it can be updated during a build
+- Disable the ZIS dynamic linkage plugin as it's not needed by default
+
+## `2.8.0`
+
+- Feature: Added the API /datasetCopy to copy the datasets
+- Enhancement: /datasetMetadata now returns prime, secnd, and space fields for showing the primary and secondary extent sizes and the unit type for them. (#582)
+- Enhancement: ZSS dataset creation api now supports space values of "BYTE", "KB", and "MB" instead of just "CYL" and "TRK"
+- Bugfix: change conflicting message IDs in the ZIS dynamic linkage base plugin
+
 ## `2.7.0`
 
 - Enhancement: A new ZIS plugin, "ZISDYNAMIC" is available within the LOADLIB as ZWESISDL. This plugin allows for ZIS plugins to access utility functions of the zowe-common-c libraries without needing to statically build them into the plugin itself.
