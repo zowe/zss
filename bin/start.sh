@@ -51,10 +51,20 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
   
   # this is to resolve ZSS bin path in LIBPATH variable.
   LIBPATH="${LIBPATH}:${ZSS_SCRIPT_DIR}"
+
+  if [ -n "$ZWE_zowe_logDirectory" ]; then
+    echo "zowe logdir defined, it is $ZWE_zowe_logDirectory"
+    if [ -d "$ZWE_zowe_logDirectory" ]; then
+      echo "zowe log directory exists."
+    else
+      echo "zowe log directory doesnt exist yet!!"
+    fi
+  fi
   
   #### Log file initialization ####
   if [ -n "$ZWES_LOG_FILE" ]
   then
+    echo "zwes_log_file given????"
     if [[ $ZWES_LOG_FILE == /* ]]
     then
       echo "Absolute log location given."
@@ -70,10 +80,12 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
   # _FILE was not specified; default filename, and check and maybe default _DIR
     if [ -z "$ZWES_LOG_DIR" ]
     then
+      echo "zwes_log_dir not given."
       if [ -n "$ZWE_zowe_logDirectory" -a -d "$ZWE_zowe_logDirectory" ]
       then
         ZWES_LOG_DIR=${ZWE_zowe_logDirectory}
       else
+        echo "log dir default"
         ZWES_LOG_DIR="../log"
       fi
     fi
