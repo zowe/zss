@@ -1,0 +1,31 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`zowe-cli-sample list profile-args command should list profile args from old school profile and other sources 1`] = `
+"arguments: 
+  host:               new.host.com
+  port:               1337
+  user:               user1
+  password:           123456
+  rejectUnauthorized: true
+  tshirtSize:         M
+environment: 
+  usingTeamConfig:   false
+  sampleProfileName: my_sample
+  baseProfileName:   my_base
+"
+`;
+
+exports[`zowe-cli-sample list profile-args command should list profile args from team config profile and other sources 1`] = `
+"arguments: 
+  host:               new.host.com
+  port:               1337
+  user:               user1
+  password:           123456
+  rejectUnauthorized: true
+  tshirtSize:         M
+environment: 
+  usingTeamConfig:   true
+  sampleProfileName: my_sample
+  baseProfileName:   my_base
+"
+`;

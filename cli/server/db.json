@@ -1,0 +1,62 @@
+{
+  "info": {
+    "zosmf_saf_realm": "SAFRealm",
+    "zosmf_port": "443",
+    "zosmf_full_version": "24.02",
+    "plugins": [
+      {
+        "pluginVersion": "hsma210.spe2;driver05;2014-02-11T03:21:53",
+        "pluginStatus": "ACTIVE",
+        "pluginDefaultName": "Import Manager"
+      },
+      {
+        "pluginVersion": "hsma213.spe2;driver05;2014-02-11T10:17:27",
+        "pluginStatus": "ACTIVE",
+        "pluginDefaultName": "WorkloadManagement"
+      },
+      {
+        "pluginVersion": "HQX7790;driver122;2014-02-18T00:00:00Z",
+        "pluginDefaultName": "IBM SDSF"
+      },
+      {
+        "pluginVersion": "hsma216;DRIVER04;2014-01-14T19:03:40",
+        "pluginStatus": "ACTIVE",
+        "pluginDefaultName": "Capacity Provisioning"
+      },
+      {
+        "pluginVersion": "hsma214.spe2;driver05;2014-02-11T08:28:24",
+        "pluginStatus": "ACTIVE",
+        "pluginDefaultName": "Software Deployment"
+      },
+      {
+        "pluginVersion": "hsma21a;pm93903;2013-08-12T03:52:53",
+        "pluginStatus": "ACTIVE",
+        "pluginDefaultName": "NetworkConfigurationAssistant"
+      },
+      {
+        "pluginVersion": "hsma215.spe2;driver05;2014-02-11T10:16:30",
+        "pluginStatus": "ACTIVE",
+        "pluginDefaultName": "IncidentLog"
+      },
+      {
+        "pluginVersion": "hsma211.spe2;driver05;2014-02-11T03:29:52",
+        "pluginStatus": "ACTIVE",
+        "pluginDefaultName": "ISPF"
+      },
+      {
+        "pluginVersion": "hsma212;DRIVER4B;2014-01-14T12:43:43",
+        "pluginStatus": "ACTIVE",
+        "pluginDefaultName": "ResourceMonitoring"
+      },
+      {
+        "pluginVersion": "hsma217.spe2;driver05;2014-02-11T12:01:40",
+        "pluginStatus": "ACTIVE",
+        "pluginDefaultName": "Workflow"
+      }
+    ],
+    "api_version": "1",
+    "zos_version": "04.24.00",
+    "zosmf_version": "24",
+    "zosmf_hostname": "host.name.com"
+  }
+}

@@ -1,0 +1,16 @@
+{
+    "profiles": {
+        "my_sample": {
+            "type": "sample",
+            "properties": {
+                "user": "user1",
+                "password": "123456"
+            },
+            "secure": []
+        }
+    },
+    "defaults": {
+        "sample": "my_sample"
+    },
+    "autoStore": true
+}

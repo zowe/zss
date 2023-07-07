@@ -1,0 +1,17 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`zowe-cli-sample fail error-handler command should fail the handler 1`] = `""`;
+
+exports[`zowe-cli-sample fail error-handler command should fail the handler 2`] = `
+"{
+  \\"success\\": false,
+  \\"exitCode\\": 1,
+  \\"message\\": \\"\\\\\\"zowe zowe-cli-sample zcsp fail error-handler\\\\\\" command failed!\\",
+  \\"stdout\\": \\"\\",
+  \\"stderr\\": \\"Command Error:\\\\n\\\\\\"zowe zowe-cli-sample zcsp fail error-handler\\\\\\" command failed!\\\\n\\",
+  \\"data\\": {},
+  \\"error\\": {
+    \\"msg\\": \\"\\\\\\"zowe zowe-cli-sample zcsp fail error-handler\\\\\\" command failed!\\"
+  }
+}"
+`;
