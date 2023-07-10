@@ -519,22 +519,38 @@ def unixfile_rename(subpath):
         return {"msg": "File Successfully Renamed"}
 
 
+#TODO: Add in created time
+#TODO: Add in parent and active directory support
 @app.route('/unixfile/copy/<path:subpath>', methods=['POST'])
 def unixfile_copy(subpath):
     if request.method == 'POST':
-        newNames = request.get_json()['newName'].split('/')
-        paths = subpath.split('/')
         directory = global_directory
-        for i in range(len(paths)-1):
-            directory = directory["contents"][paths[i]]
-        newDirectory  = directory['contents'][paths[len(paths)-1]].copy()
-        dir = global_directory
-        for i in range(len(newNames)):
-            if i == len(newNames)-1:
-                dir['contents'][newNames[i]] = newDirectory
-            dir = dir["contents"][newNames[i]]
-        return {"msg": "File Successfully Copied"}
+        newName = request.args.get('newName')
+        if(newName is None or newName == ""):
+            return {"msg": "newName query parameter is missing."}, 400
+        newNames = newName.split("/")
+        currPath = directory["contents"]
+        overwrite = request.args.get('forceOverwrite')
+        if(overwrite is None or overwrite.lower() == "false"):
+            overwrite = False
+        else:
+            overwrite = True
+        #Get to one above the path of the destination the copy goes to
+        for x in range(0, len(newNames)-1):
+            if(newNames[x] not in currPath):
+                currPath[newNames[x]] = {"contents": {}}
+            currPath = currPath[newNames[x]]["contents"]
+        subpath = subpath.split("/")
+        #Get directory/file that to be copied while also checking if it even exists
+        for x in range(0, len(subpath)):
+            if(subpath[x] not in directory["contents"]):
+                return {"msg": "Directory/File not found."}, 404
+            directory = directory["contents"][subpath[x]]
+        if(newNames[len(newNames)-1] not in currPath or overwrite):
+            currPath[newNames[len(newNames)-1]] = directory
+        else:
+            return{"msg": "Directory/File already exists"}, 403
+        return {"msg": "Successfully copied the directory/file"}, 200
 
 if __name__ == '__main__':
     app.run(debug=True)
-
