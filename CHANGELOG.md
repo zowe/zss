@@ -6,6 +6,7 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## `2.10.0`
 - Bugfix: Datasets with VOLSER set to an MVS Symbol would cause dataset read, write, and metadata API calls to fail for those datasets. (#603)
+- Bugfix:  Preventing error code 0C9-09 caused by a block size of zero (#606)
 
 ## `2.9.0`
 - Bugfix: expose the version of the ZIS dynamic linkage base plugin so it can be updated during a build
