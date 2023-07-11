@@ -141,7 +141,7 @@ static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn
   int handledThroughDSCB = FALSE;
 
   if (!volserSuccess){
-    
+
     char dscb[INDEXED_DSCB] = {0};
     int rc = obtainDSCB1(dsn->value, sizeof(dsn->value),
                          volser.value, sizeof(volser.value),
@@ -508,10 +508,13 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
       printf("size blk=%lld\n",primarySizeBytes/blockSize);
     }
     */
-
     if(scxtv) {
       if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //observationally special case
-        jsonAddInt(jPrinter, "secnd", ((scxtvMult * scxtv) * scal3) / primarySizeDiv);
+        if (primarySizeDiv > 0) {
+          jsonAddInt(jPrinter, "secnd", ((scxtvMult * scxtv) * scal3) / primarySizeDiv);
+        } else {
+          jsonAddInt(jPrinter, "secnd", 0);
+        }
       } else {
         jsonAddInt(jPrinter, "secnd", scxtvMult * scxtv);
       }
@@ -524,13 +527,17 @@ static void addDetailsFromDSCB(char *dscb, jsonPrinter *jPrinter, int *isPDS) {
     } else if (sizeType==DATASET_ALLOC_TYPE_TRK) {
       jsonAddInt(jPrinter, "prime", primarySizeBytes/bytesPerTrack);
     } else { //but other types, the extent info is way too large, so these numbers observed to be closer, often correct.
-      if (scxtv){
+      if (scxtv) {
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "scal3=%d, blocksize=%d, primarySizeDiv=%d, scxtv=%d\n", scal3, blockSize, primarySizeDiv, scxtv);
-        if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //works sometimes, but not always.
-          jsonAddInt(jPrinter, "prime", (scal3 * blockSize) / primarySizeDiv);
+        if (primarySizeDiv > 0) {
+          if (sizeType==DATASET_ALLOC_TYPE_BLOCK) { //works sometimes, but not always.
+            jsonAddInt(jPrinter, "prime", (scal3 * blockSize) / primarySizeDiv);
+          } else {
+            //this works well for block sizes like 32720 or 27990, but returns somewhat larger than expected values for small block sizes like 320
+            jsonAddInt(jPrinter, "prime", ((scal3 * blockSize) * (bytesPerTrack/blockSize)) / primarySizeDiv);
+          }
         } else {
-          //this works well for block sizes like 32720 or 27990, but returns somewhat larger than expected values for small block sizes like 320
-          jsonAddInt(jPrinter, "prime", ((scal3 * blockSize) * (bytesPerTrack/blockSize)) / primarySizeDiv);
+            jsonAddInt(jPrinter, "prime", 0);
         }
       } else {
         jsonAddInt(jPrinter, "prime", scal3);
@@ -707,6 +714,21 @@ static int obtainDSCB1(const char *dsname, unsigned int dsnameLength,
 #define SVC27_OPTION_HIDE_NAME        0x10
 #define SVC27_OPTION_EADSCB_OK        0x08
 
+  char resolvedVolser[VOLSER_SIZE+1] = {0};
+
+  if (volser[0] == '&'){
+    int rc = 0;
+    int rsn = 0;
+    char *result = resolveSymbol(volser, &rc, &rsn);
+    if (result != NULL && rc == 0){
+      snprintf(resolvedVolser, VOLSER_SIZE+1, "%s", result);
+      safeFree(result, strlen(result));
+    } else if (rc) {
+      zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "symbol lookup error rc=0x%x rsn=0x%x\n", rc, rsn);
+      return rc;
+    }
+  }
+
   ALLOC_STRUCT31(
     STRUCT31_NAME(mem31),
     STRUCT31_FIELDS(
@@ -727,7 +749,7 @@ static int obtainDSCB1(const char *dsname, unsigned int dsnameLength,
   memset(mem31->dsnameSpacePadded, ' ', sizeof(mem31->dsnameSpacePadded));
   memcpy(mem31->dsnameSpacePadded, dsname, dsnameLength);
   memset(mem31->volserSpacePadded, ' ', sizeof(mem31->volserSpacePadded));
-  memcpy(mem31->volserSpacePadded, volser, volserLength);
+  memcpy(mem31->volserSpacePadded, volser[0] == '&' ? resolvedVolser: volser, volserLength);
 
   memset(mem31->workArea, 0, sizeof(mem31->workArea));
 
@@ -1053,7 +1075,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
 
   int volserSuccess = getVolserForDataset(dsn, &volser);
   if (!volserSuccess){
-    
+
     char dscb[INDEXED_DSCB] = {0};
     int rc = obtainDSCB1(dsn->value, sizeof(dsn->value),
                          volser.value, sizeof(volser.value),
