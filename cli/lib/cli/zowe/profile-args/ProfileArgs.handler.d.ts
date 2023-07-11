@@ -7,9 +7,7 @@
  *
  * Copyright Contributors to the Zowe Project.
  */
-
-export class ZoweCli {
-    public static async login(profile: string, username: string, password: string) {
-        return "Password: " + profile + "; username: " + username + "; password: " + password;
-    }
+import { ICommandHandler, IHandlerParameters } from "@zowe/imperative";
+export default class ProfileArgsHandler implements ICommandHandler {
+    process(params: IHandlerParameters): Promise<void>;
 }

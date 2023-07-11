@@ -9,12 +9,13 @@
  * Copyright Contributors to the Zowe Project.
  */
 const Login_definition_1 = require("./login/Login.definition");
+const ProfileArgs_definition_1 = require("./profile-args/ProfileArgs.definition");
 const ZoweCliDefinition = {
     name: "zss",
     summary: "Zowe CLI ZSS plugin",
     description: "n/a",
     type: "group",
-    children: [Login_definition_1.LoginDefinition]
+    children: [Login_definition_1.LoginDefinition, ProfileArgs_definition_1.ProfileArgsDefinition]
 };
 module.exports = ZoweCliDefinition;
 //# sourceMappingURL=ZoweCli.definition.js.map

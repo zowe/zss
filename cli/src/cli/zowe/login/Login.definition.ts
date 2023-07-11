@@ -19,6 +19,11 @@ export const LoginDefinition: ICommandDefinition = {
     handler: __dirname + "/Login.handler",
     positionals: [
         {
+            name: "profile",
+            description: "Profile",
+            type: "string",
+        },
+        {
             name: "username",
             description: "Username",
             type: "string"

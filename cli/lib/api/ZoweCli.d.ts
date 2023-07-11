@@ -8,5 +8,5 @@
  * Copyright Contributors to the Zowe Project.
  */
 export declare class ZoweCli {
-    static login(username: string, password: string): Promise<string>;
+    static login(profile: string, username: string, password: string): Promise<string>;
 }

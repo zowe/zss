@@ -20,9 +20,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ZoweCli = void 0;
 class ZoweCli {
-    static login(username, password) {
+    static login(profile, username, password) {
         return __awaiter(this, void 0, void 0, function* () {
-            return "Username " + username + "; password: " + password;
+            return "Password: " + profile + "; username: " + username + "; password: " + password;
         });
     }
 }
