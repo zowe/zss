@@ -182,6 +182,9 @@ global_directory = {
 @app.route('/login/', methods=['POST'])
 @app.route('/login', methods=['POST'])
 def login():
+    print(request.get_json())
+    if "username" in request.get_json():
+        print(request.get_json()['username'])
     if request.get_json()['username'] == global_username:
         if request.get_json()['password'] == global_password:
             if global_password_expired == False:

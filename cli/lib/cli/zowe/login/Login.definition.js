@@ -10,6 +10,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LoginDefinition = void 0;
+const ProfileConstants_1 = require("../../../api/ProfileConstants");
 exports.LoginDefinition = {
     name: "login",
     aliases: ["login"],
@@ -17,22 +18,9 @@ exports.LoginDefinition = {
     description: "n/a",
     type: "command",
     handler: __dirname + "/Login.handler",
-    positionals: [
-        {
-            name: "profile",
-            description: "Profile",
-            type: "string",
-        },
-        {
-            name: "username",
-            description: "Username",
-            type: "string"
-        },
-        {
-            name: "password",
-            description: "Password",
-            type: "string"
-        }
-    ]
+    profile: {
+        optional: ["sample"],
+    },
+    options: [...ProfileConstants_1.ProfileConstants.SAMPLE_CONNECTION_OPTIONS]
 };
 //# sourceMappingURL=Login.definition.js.map

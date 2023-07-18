@@ -22,34 +22,28 @@ exports.ZoweCli = void 0;
 const ZssRestClient_1 = require("./ZssRestClient");
 const imperative_1 = require("@zowe/imperative");
 class ZoweCli {
-    static testLogin(profile, username, password) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return "Password: " + profile + "; username: " + username + "; password: " + password;
-        });
-    }
     static login(session) {
         return __awaiter(this, void 0, void 0, function* () {
-            imperative_1.Logger.getAppLogger().trace("Login");
+            imperative_1.Logger.getAppLogger().info("ZoweCli.login()");
             imperative_1.ImperativeExpect.toNotBeNullOrUndefined(session, "Required session must be defined");
-            imperative_1.ImperativeExpect.toNotBeNullOrUndefined(session.ISession.user, "User name for basic login must be defined.");
-            imperative_1.ImperativeExpect.toNotBeNullOrUndefined(session.ISession.password, "Password for basic login must be defined.");
-            const client = new ZssRestClient_1.ZssRestClient(session);
-            yield client.request({
-                request: "POST",
-                resource: this.LoginPath,
-            });
-            if (client.response.statusCode !== imperative_1.RestConstants.HTTP_STATUS_204) {
-                throw new imperative_1.ImperativeError(client.populateError({
-                    msg: `REST API Failure with HTTP(S) status ${client.response.statusCode}`,
-                    causeErrors: client.dataString,
-                    source: imperative_1.SessConstants.HTTP_PROTOCOL
-                }));
-            }
-            // return token to the caller
-            return session.ISession.tokenValue;
+            session.ISession.protocol = "http";
+            // const client = new ZssRestClient(session);
+            const resp = yield ZssRestClient_1.ZssRestClient.postExpectString(session, this.LoginPath, [imperative_1.Headers.APPLICATION_JSON], JSON.stringify({ "username": session.ISession.user, "password": session.ISession.password }));
+            imperative_1.Logger.getAppLogger().info(resp);
+            imperative_1.Logger.getAppLogger().info("Session", session);
+            return "";
+            // if (client.response.statusCode !== RestConstants.HTTP_STATUS_204) {
+            //     throw new ImperativeError((client as any).populateError({
+            //         msg: `REST API Failure with HTTP(S) status ${client.response.statusCode}`,
+            //         causeErrors: client.dataString,
+            //         source: SessConstants.HTTP_PROTOCOL
+            //     }));
+            // }
+            // // return token to the caller
+            // return session.ISession.tokenValue;
         });
     }
 }
 exports.ZoweCli = ZoweCli;
-ZoweCli.LoginPath = "";
+ZoweCli.LoginPath = "/login";
 //# sourceMappingURL=ZoweCli.js.map

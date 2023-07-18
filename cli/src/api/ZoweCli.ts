@@ -9,34 +9,33 @@
  */
 
 import { ZssRestClient } from "./ZssRestClient";
-import { AbstractSession, Logger, ImperativeExpect, ImperativeError, RestConstants, SessConstants } from "@zowe/imperative";
+import { AbstractSession, Logger, ImperativeExpect, Headers } from "@zowe/imperative";
 export class ZoweCli {
-    public static LoginPath = "";
-    public static async testLogin(profile: string, username: string, password: string) {
-        return "Password: " + profile + "; username: " + username + "; password: " + password;
-    }
+    static LoginPath = "/login";
 
     public static async login(session: AbstractSession) {
-        Logger.getAppLogger().trace("Login");
+        Logger.getAppLogger().info("ZoweCli.login()");
         ImperativeExpect.toNotBeNullOrUndefined(session, "Required session must be defined");
-        ImperativeExpect.toNotBeNullOrUndefined(session.ISession.user, "User name for basic login must be defined.");
-        ImperativeExpect.toNotBeNullOrUndefined(session.ISession.password, "Password for basic login must be defined.");
+        session.ISession.protocol = "http";
+        // const client = new ZssRestClient(session);
+        const resp = await ZssRestClient.postExpectString(
+            session,
+            this.LoginPath,
+            [Headers.APPLICATION_JSON],
+            JSON.stringify({"username": session.ISession.user, "password": session.ISession.password}),
+        );
+        Logger.getAppLogger().info(resp);
+        Logger.getAppLogger().info("Session", session);
+        return "";
+        // if (client.response.statusCode !== RestConstants.HTTP_STATUS_204) {
+        //     throw new ImperativeError((client as any).populateError({
+        //         msg: `REST API Failure with HTTP(S) status ${client.response.statusCode}`,
+        //         causeErrors: client.dataString,
+        //         source: SessConstants.HTTP_PROTOCOL
+        //     }));
+        // }
 
-        const client = new ZssRestClient(session);
-        await client.request({
-            request: "POST",
-            resource: this.LoginPath,
-        });
-
-        if (client.response.statusCode !== RestConstants.HTTP_STATUS_204) {
-            throw new ImperativeError((client as any).populateError({
-                msg: `REST API Failure with HTTP(S) status ${client.response.statusCode}`,
-                causeErrors: client.dataString,
-                source: SessConstants.HTTP_PROTOCOL
-            }));
-        }
-
-        // return token to the caller
-        return session.ISession.tokenValue;
+        // // return token to the caller
+        // return session.ISession.tokenValue;
     }
 }

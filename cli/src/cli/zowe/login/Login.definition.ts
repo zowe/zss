@@ -9,6 +9,7 @@
  */
 
 import { ICommandDefinition } from "@zowe/imperative";
+import { ProfileConstants } from "../../../api/ProfileConstants";
 
 export const LoginDefinition: ICommandDefinition = {
     name: "login",
@@ -17,21 +18,8 @@ export const LoginDefinition: ICommandDefinition = {
     description: "n/a",
     type: "command",
     handler: __dirname + "/Login.handler",
-    positionals: [
-        {
-            name: "profile",
-            description: "Profile",
-            type: "string",
-        },
-        {
-            name: "username",
-            description: "Username",
-            type: "string"
-        },
-        {
-            name: "password",
-            description: "Password",
-            type: "string"
-        }
-    ]
+    profile: {
+        optional: ["sample"],
+    },
+    options: [...ProfileConstants.SAMPLE_CONNECTION_OPTIONS]
 };
