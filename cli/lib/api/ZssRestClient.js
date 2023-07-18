@@ -1,3 +1,4 @@
+"use strict";
 /**
  * This program and the accompanying materials are made available and may be used, at your option, under either:
  * * Eclipse Public License v2.0, available at https://www.eclipse.org/legal/epl-v20.html, OR
@@ -7,9 +8,10 @@
  *
  * Copyright Contributors to the Zowe Project.
  */
-import { AbstractSession } from "@zowe/imperative";
-export declare class ZoweCli {
-    static LoginPath: string;
-    static testLogin(profile: string, username: string, password: string): Promise<string>;
-    static login(session: AbstractSession): Promise<string>;
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ZssRestClient = void 0;
+const imperative_1 = require("@zowe/imperative");
+class ZssRestClient extends imperative_1.RestClient {
 }
+exports.ZssRestClient = ZssRestClient;
+//# sourceMappingURL=ZssRestClient.js.map

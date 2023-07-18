@@ -7,9 +7,7 @@
  *
  * Copyright Contributors to the Zowe Project.
  */
-import { AbstractSession } from "@zowe/imperative";
-export declare class ZoweCli {
-    static LoginPath: string;
-    static testLogin(profile: string, username: string, password: string): Promise<string>;
-    static login(session: AbstractSession): Promise<string>;
+
+import { RestClient } from "@zowe/imperative";
+export class ZssRestClient extends RestClient {
 }

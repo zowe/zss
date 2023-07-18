@@ -32,7 +32,7 @@ class LoginHandler {
             // const sessCfgWithCreds = await ConnectionPropsForSessCfg.addPropsOrPrompt<ISession>(sessCfg, params.arguments,
             //     { doPrompting: true, parms: params });
             // const session = new Session(sessCfgWithCreds);
-            const resp = yield ZoweCli_1.ZoweCli.login(params.arguments.profile, params.arguments.username, params.arguments.password);
+            const resp = yield ZoweCli_1.ZoweCli.testLogin(params.arguments.profile, params.arguments.username, params.arguments.password);
             params.response.console.log(resp);
         });
     }

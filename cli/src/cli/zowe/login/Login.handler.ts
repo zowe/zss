@@ -24,7 +24,7 @@ export default class LoginHandler implements ICommandHandler {
         //     { doPrompting: true, parms: params });
         // const session = new Session(sessCfgWithCreds);
 
-        const resp = await ZoweCli.login(params.arguments.profile, params.arguments.username, params.arguments.password);
+        const resp = await ZoweCli.testLogin(params.arguments.profile, params.arguments.username, params.arguments.password);
         params.response.console.log(resp);
     }
 }
