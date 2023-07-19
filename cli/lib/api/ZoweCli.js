@@ -44,8 +44,7 @@ class ZoweCli {
                     throw err;
                 }
             }
-            imperative_1.Logger.getAppLogger().info("Test");
-            imperative_1.Logger.getAppLogger().info("Session", session);
+            imperative_1.Logger.getAppLogger().info("Session", JSON.stringify(session));
             return resp;
         });
     }

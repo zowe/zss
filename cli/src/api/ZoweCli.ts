@@ -37,7 +37,7 @@ export class ZoweCli {
                 throw err;
             }
         }
-        Logger.getAppLogger().info("Session", session);
+        Logger.getAppLogger().info("Session", JSON.stringify(session));
         return resp;
     }
 }
