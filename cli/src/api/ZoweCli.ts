@@ -9,7 +9,7 @@
  */
 
 import { ZssRestClient } from "./ZssRestClient";
-import { AbstractSession, Logger, ImperativeExpect, Headers } from "@zowe/imperative";
+import { AbstractSession, Logger, ImperativeExpect, Headers, RestClientError, ImperativeError } from "@zowe/imperative";
 export class ZoweCli {
     static LoginPath = "/login";
 
@@ -17,25 +17,27 @@ export class ZoweCli {
         Logger.getAppLogger().info("ZoweCli.login()");
         ImperativeExpect.toNotBeNullOrUndefined(session, "Required session must be defined");
         session.ISession.protocol = "http";
-        // const client = new ZssRestClient(session);
-        const resp = await ZssRestClient.postExpectString(
-            session,
-            this.LoginPath,
-            [Headers.APPLICATION_JSON],
-            JSON.stringify({"username": session.ISession.user, "password": session.ISession.password}),
-        );
-        Logger.getAppLogger().info(resp);
+        const credentials = {"username": session.ISession.user, "password": session.ISession.password};
+        let resp;
+        try {
+            resp = await ZssRestClient.postExpectString(
+                session,
+                this.LoginPath,
+                [Headers.APPLICATION_JSON],
+                credentials,
+            );
+        } catch (err) {
+            if (err instanceof RestClientError && err.mDetails && err.mDetails.httpStatus) {
+                throw new ImperativeError({
+                    msg: `HTTP(S) error status ${err.mDetails.httpStatus} received`,
+                    additionalDetails: err.mDetails.additionalDetails,
+                    causeErrors: err
+                });
+            } else {
+                throw err;
+            }
+        }
         Logger.getAppLogger().info("Session", session);
-        return "";
-        // if (client.response.statusCode !== RestConstants.HTTP_STATUS_204) {
-        //     throw new ImperativeError((client as any).populateError({
-        //         msg: `REST API Failure with HTTP(S) status ${client.response.statusCode}`,
-        //         causeErrors: client.dataString,
-        //         source: SessConstants.HTTP_PROTOCOL
-        //     }));
-        // }
-
-        // // return token to the caller
-        // return session.ISession.tokenValue;
+        return resp;
     }
 }

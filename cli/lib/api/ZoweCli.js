@@ -27,20 +27,26 @@ class ZoweCli {
             imperative_1.Logger.getAppLogger().info("ZoweCli.login()");
             imperative_1.ImperativeExpect.toNotBeNullOrUndefined(session, "Required session must be defined");
             session.ISession.protocol = "http";
-            // const client = new ZssRestClient(session);
-            const resp = yield ZssRestClient_1.ZssRestClient.postExpectString(session, this.LoginPath, [imperative_1.Headers.APPLICATION_JSON], JSON.stringify({ "username": session.ISession.user, "password": session.ISession.password }));
-            imperative_1.Logger.getAppLogger().info(resp);
+            const credentials = { "username": session.ISession.user, "password": session.ISession.password };
+            let resp;
+            try {
+                resp = yield ZssRestClient_1.ZssRestClient.postExpectString(session, this.LoginPath, [imperative_1.Headers.APPLICATION_JSON], credentials);
+            }
+            catch (err) {
+                if (err instanceof imperative_1.RestClientError && err.mDetails && err.mDetails.httpStatus) {
+                    throw new imperative_1.ImperativeError({
+                        msg: `HTTP(S) error status ${err.mDetails.httpStatus} received`,
+                        additionalDetails: err.mDetails.additionalDetails,
+                        causeErrors: err
+                    });
+                }
+                else {
+                    throw err;
+                }
+            }
+            imperative_1.Logger.getAppLogger().info("Test");
             imperative_1.Logger.getAppLogger().info("Session", session);
-            return "";
-            // if (client.response.statusCode !== RestConstants.HTTP_STATUS_204) {
-            //     throw new ImperativeError((client as any).populateError({
-            //         msg: `REST API Failure with HTTP(S) status ${client.response.statusCode}`,
-            //         causeErrors: client.dataString,
-            //         source: SessConstants.HTTP_PROTOCOL
-            //     }));
-            // }
-            // // return token to the caller
-            // return session.ISession.tokenValue;
+            return resp;
         });
     }
 }
