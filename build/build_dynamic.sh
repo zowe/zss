@@ -15,13 +15,18 @@ export _LD_SYSLIB="//'SYS1.CSSLIB'://'CEE.SCEELKEX'://'CEE.SCEELKED'://'CEE.SCEE
 
 WORKING_DIR=$(dirname "$0")
 ZSS="../.."
-COMMON="../../deps/zowe-common-c"
 
 
 echo "********************************************************************************"
 echo "Building ZIS Dynamic Linkage Base plugin..."
 
 mkdir -p "${WORKING_DIR}/tmp-zisdyn" && cd "$_"
+
+. ${ZSS}/build/zis.proj.env
+. ${ZSS}/build//dependencies.sh
+check_dependencies "${ZSS}" "${ZSS}/build/zis.proj.env"
+DEPS_DESTINATION=$(get_destination "${ZSS}" "${PROJECT}")
+
 
 . ${ZSS}/build/zis.proj.env
 OLDIFS=$IFS
@@ -54,7 +59,7 @@ xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
   -DRCVR_CPOOL_STATES \
   -DHAVE_METALIO=1 \
   -Wc,langlvl\(extc99\),arch\(8\),agg,exp,list\(\),so\(\),off,xref,roconst,longname,lp64 \
-  -I ${COMMON}/h -I ${ZSS}/h \
+  -I ${DEPS_DESTINATION}/${ZCC}/h -I ${ZSS}/h \
   -I ${ZSS}/zis-aux/include -I ${ZSS}/zis-aux/src \
   ${ZSS}/c/zis/zisdynamic.c \
   ${ZSS}/c/zis/server-api.c \
@@ -66,37 +71,37 @@ xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
   ${ZSS}/zis-aux/src/aux-guest.c \
   ${ZSS}/zis-aux/src/aux-manager.c \
   ${ZSS}/zis-aux/src/aux-utils.c \
-  ${COMMON}/c/alloc.c \
-  ${COMMON}/c/as.c \
-  ${COMMON}/c/mtlskt.c \
-  ${COMMON}/c/cellpool.c \
-  ${COMMON}/c/cmutils.c \
-  ${COMMON}/c/collections.c \
-  ${COMMON}/c/cpool64.c \
-  ${COMMON}/c/crossmemory.c \
-  ${COMMON}/c/dynalloc.c \
-  ${COMMON}/c/idcams.c \
-  ${COMMON}/c/isgenq.c \
-  ${COMMON}/c/le.c \
-  ${COMMON}/c/logging.c \
-  ${COMMON}/c/lpa.c \
-  ${COMMON}/c/metalio.c \
-  ${COMMON}/c/nametoken.c \
-  ${COMMON}/c/pause-element.c \
-  ${COMMON}/c/pc.c \
-  ${COMMON}/c/qsam.c \
-  ${COMMON}/c/radmin.c \
-  ${COMMON}/c/recovery.c \
-  ${COMMON}/c/resmgr.c \
-  ${COMMON}/c/scheduling.c \
-  ${COMMON}/c/shrmem64.c \
-  ${COMMON}/c/stcbase.c \
-  ${COMMON}/c/timeutls.c \
-  ${COMMON}/c/utils.c \
-  ${COMMON}/c/vsam.c \
-  ${COMMON}/c/xlate.c \
-  ${COMMON}/c/zos.c \
-  ${COMMON}/c/zvt.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/alloc.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/as.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/mtlskt.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/cellpool.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/cmutils.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/collections.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/cpool64.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/crossmemory.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/dynalloc.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/idcams.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/isgenq.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/le.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/logging.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/lpa.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/metalio.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/nametoken.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/pause-element.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/pc.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/qsam.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/radmin.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/recovery.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/resmgr.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/scheduling.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/shrmem64.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/stcbase.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/timeutls.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/utils.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/vsam.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/xlate.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/zos.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/zvt.c \
 
 
 for file in \
