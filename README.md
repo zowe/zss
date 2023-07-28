@@ -13,7 +13,6 @@ Copyright Contributors to the Zowe Project.
 ```
 git clone git@github.com:zowe/zss.git
 cd zss
-git submodule update --init
 ./build/build.sh
 ``` 
 
