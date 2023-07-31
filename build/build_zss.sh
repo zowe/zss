@@ -19,12 +19,10 @@ export _LD_SYSLIB="//'SYS1.CSSLIB'://'GDDM.SADMMOD'://'ISP.SISPLOAD'://'CEE.SCEE
 
 WORKING_DIR=$(cd $(dirname "$0") && pwd)
 ZSS_ROOT="$WORKING_DIR/.."
-COMMON_BUILD="$WORKING_DIR/../deps/zowe-common-c/build"
 ZSS="../.."
-COMMON="../../deps/zowe-common-c"
 
 . ${ZSS_ROOT}/build/zss.proj.env
-. $COMMON_BUILD/dependencies.sh
+. ${ZSS_ROOT}/build//dependencies.sh
 check_dependencies "${ZSS_ROOT}" "${ZSS_ROOT}/build/zss.proj.env"
 DEPS_DESTINATION=$(get_destination "${ZSS}" "${PROJECT}")
 
@@ -124,10 +122,10 @@ xlclang \
   -DCONFIG_VERSION=\"2021-03-27\" \
   -I "${DEPS_DESTINATION}/${LIBYAML}/include" \
   -I "${DEPS_DESTINATION}/${QUICKJS}" \
-  -I ${COMMON}/h \
-  ${COMMON}/c/qjszos.c \
-  ${COMMON}/c/qjsnet.c \
-  ${COMMON}/c/embeddedjs.c 
+  -I ${DEPS_DESTINATION}/${ZCC}/h \
+  ${DEPS_DESTINATION}/${ZCC}/c/qjszos.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/qjsnet.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/embeddedjs.c 
 
 echo "Done with embedded JS interface"
 
@@ -152,10 +150,10 @@ xlc \
   -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
   -Wc,xplink,agg,exp,list,so\(\),off,xref \
   -Wl,ac=1 \
-  -I ${COMMON}/h \
-  -I ${COMMON}/platform/posix \
-  -I ${COMMON}/jwt/jwt \
-  -I ${COMMON}/jwt/rscrypto \
+  -I ${DEPS_DESTINATION}/${ZCC}/h \
+  -I ${DEPS_DESTINATION}/${ZCC}/platform/posix \
+  -I ${DEPS_DESTINATION}/${ZCC}/jwt/jwt \
+  -I ${DEPS_DESTINATION}/${ZCC}/jwt/rscrypto \
   -I ${ZSS}/h \
   -I ${GSKINC} \
   -I ${DEPS_DESTINATION}/${LIBYAML}/include \
@@ -178,61 +176,61 @@ xlc \
   qjszos.o \
   qjsnet.o \
   embeddedjs.o \
-  ${COMMON}/c/alloc.c \
-  ${COMMON}/c/bpxskt.c \
-  ${COMMON}/c/charsets.c \
-  ${COMMON}/c/cmutils.c \
-  ${COMMON}/c/collections.c \
-  ${COMMON}/c/configmgr.c \
-  ${COMMON}/c/crossmemory.c \
-  ${COMMON}/c/crypto.c \
-  ${COMMON}/c/dataservice.c \
-  ${COMMON}/c/discovery.c \
-  ${COMMON}/c/dynalloc.c \
-  ${COMMON}/c/fdpoll.c \
-  ${COMMON}/c/http.c \
-  ${COMMON}/c/httpclient.c \
-  ${COMMON}/c/httpserver.c \
-  ${COMMON}/c/httpfileservice.c \
-  ${COMMON}/c/icsf.c \
-  ${COMMON}/c/idcams.c \
-  ${COMMON}/c/impersonation.c \
-  ${COMMON}/c/jcsi.c \
-  ${COMMON}/c/json.c \
-  ${COMMON}/c/jsonschema.c \
-  ${COMMON}/jwt/jwt/jwt.c \
-  ${COMMON}/c/le.c \
-  ${COMMON}/c/logging.c \
-  ${COMMON}/c/nametoken.c \
-  ${COMMON}/c/zos.c \
-  ${COMMON}/c/parsetools.c \
-  ${COMMON}/c/pause-element.c \
-  ${COMMON}/c/pdsutil.c \
-  ${COMMON}/c/qsam.c \
-  ${COMMON}/c/radmin.c \
-  ${COMMON}/c/rawfd.c \
-  ${COMMON}/c/recovery.c \
-  ${COMMON}/c/rusermap.c \
-  ${COMMON}/jwt/rscrypto/rs_icsfp11.c \
-  ${COMMON}/jwt/rscrypto/rs_rsclibc.c \
-  ${COMMON}/c/scheduling.c \
-  ${COMMON}/c/signalcontrol.c \
-  ${COMMON}/c/socketmgmt.c \
-  ${COMMON}/c/stcbase.c \
-  ${COMMON}/c/storage.c \
-  ${COMMON}/c/storage_mem.c \
-  ${COMMON}/c/timeutls.c \
-  ${COMMON}/c/tls.c \
-  ${COMMON}/c/utils.c \
-  ${COMMON}/c/vsam.c \
-  ${COMMON}/c/xlate.c \
-  ${COMMON}/c/xml.c \
-  ${COMMON}/c/yaml2json.c \
-  ${COMMON}/c/zosaccounts.c \
-  ${COMMON}/c/zosfile.c \
-  ${COMMON}/c/zvt.c \
-  ${COMMON}/c/shrmem64.c \
-  ${COMMON}/platform/posix/psxregex.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/alloc.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/bpxskt.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/charsets.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/cmutils.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/collections.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/configmgr.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/crossmemory.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/crypto.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/dataservice.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/discovery.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/dynalloc.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/fdpoll.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/http.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/httpclient.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/httpserver.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/httpfileservice.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/icsf.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/idcams.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/impersonation.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/jcsi.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/json.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/jsonschema.c \
+  ${DEPS_DESTINATION}/${ZCC}/jwt/jwt/jwt.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/le.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/logging.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/nametoken.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/zos.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/parsetools.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/pause-element.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/pdsutil.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/qsam.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/radmin.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/rawfd.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/recovery.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/rusermap.c \
+  ${DEPS_DESTINATION}/${ZCC}/jwt/rscrypto/rs_icsfp11.c \
+  ${DEPS_DESTINATION}/${ZCC}/jwt/rscrypto/rs_rsclibc.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/scheduling.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/signalcontrol.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/socketmgmt.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/stcbase.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/storage.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/storage_mem.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/timeutls.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/tls.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/utils.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/vsam.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/xlate.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/xml.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/yaml2json.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/zosaccounts.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/zosfile.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/zvt.c \
+  ${DEPS_DESTINATION}/${ZCC}/c/shrmem64.c \
+  ${DEPS_DESTINATION}/${ZCC}/platform/posix/psxregex.c \
   ${ZSS}/c/zssLogging.c \
   ${ZSS}/c/zss.c \
   ${ZSS}/c/storageApiml.c \
