@@ -51,7 +51,6 @@ typedef struct StatefulACB_tag {
   } argPtr;
 } StatefulACB;
 
-void extractDatasetAndMemberName(const char *datasetPath, DatasetName *dsn, DatasetMemberName *memberName);
 int streamDataset(char *filename, int recordLength, jsonPrinter *jPrinter);
 int streamVSAMDataset(HttpResponse* response, char *acb, int maxRecordLength, int maxRecords, int maxBytes, int keyLoc, int keyLen, jsonPrinter *jPrinter);
 void addDetailedDatasetMetadata(char *datasetName, int nameLength,
@@ -76,8 +75,9 @@ char getCSIType(char* absolutePath);
 bool isVsam(char CSIType);
 int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool isMember);
 bool isDatasetPathValid(const char *path);
+// void extractDatasetAndMemberName(const char *datasetPath, DatasetName *dsn, DatasetMemberName *memberName);
 
-#endif /* __DATASETJSON__ */
+#endif
 
 
 /*
