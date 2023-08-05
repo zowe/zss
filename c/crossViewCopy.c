@@ -36,10 +36,8 @@
 
 #include "socketmgmt.h"
 #include "httpserver.h"
-#include "crossViewCopy.h"
 #include "datasetjson.h"
-#include "datasetService.h"
-#include "unixFileService.h"
+#include "crossViewCopy.h"
 #include "pdsutil.h"
 #include "jcsi.h"
 #include "impersonation.h"
