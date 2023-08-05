@@ -92,13 +92,13 @@ static int defaultVSAMCSIFieldCount = 4;
 static char vsamCSITypes[5] = {'R', 'D', 'G', 'I', 'C'};
 
 
-typedef struct DatasetName_tag {
-  char value[44]; /* space-padded */
-} DatasetName;
+// typedef struct DatasetName_tag {
+//   char value[44]; /* space-padded */
+// } DatasetName;
 
-typedef struct DatasetMemberName_tag {
-  char value[8]; /* space-padded */
-} DatasetMemberName;
+// typedef struct DatasetMemberName_tag {
+//   char value[8]; /* space-padded */
+// } DatasetMemberName;
 
 typedef struct DDName_tag {
   char value[8]; /* space-padded */

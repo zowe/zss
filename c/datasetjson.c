@@ -100,13 +100,13 @@ static int bytesPerCylinder=849960;
 
 const static int DSCB_TRACE = FALSE;
 
-typedef struct DatasetName_tag {
-  char value[44]; /* space-padded */
-} DatasetName;
+// typedef struct DatasetName_tag {
+//   char value[44]; /* space-padded */
+// } DatasetName;
 
-typedef struct DatasetMemberName_tag {
-  char value[8]; /* space-padded */
-} DatasetMemberName;
+// typedef struct DatasetMemberName_tag {
+//   char value[8]; /* space-padded */
+// } DatasetMemberName;
 
 typedef struct DDName_tag {
   char value[8]; /* space-padded */
