@@ -51,6 +51,14 @@ typedef struct StatefulACB_tag {
   } argPtr;
 } StatefulACB;
 
+typedef struct DatasetName_tag {
+  char value[44]; /* space-padded */
+} DatasetName;
+
+typedef struct DatasetMemberName_tag {
+  char value[8]; /* space-padded */
+} DatasetMemberName;
+
 int streamDataset(char *filename, int recordLength, jsonPrinter *jPrinter);
 int streamVSAMDataset(HttpResponse* response, char *acb, int maxRecordLength, int maxRecords, int maxBytes, int keyLoc, int keyLen, jsonPrinter *jPrinter);
 void addDetailedDatasetMetadata(char *datasetName, int nameLength,
