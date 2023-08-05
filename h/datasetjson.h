@@ -73,6 +73,11 @@ void deleteDatasetFromRequest(HttpResponse* response, char* absolutePath);
 void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* targetDataset);
 char getCSIType(char* absolutePath);
 bool isVsam(char CSIType);
+static void extractDatasetAndMemberName(const char *datasetPath,
+                                        DatasetName *dsn,
+                                        DatasetMemberName *memberName);
+int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool isMember);
+static bool isDatasetPathValid(const char *path);
 #endif
 
 
