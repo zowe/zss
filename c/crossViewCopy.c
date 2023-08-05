@@ -38,6 +38,7 @@
 #include "httpserver.h"
 #include "crossViewCopy.h"
 #include "datasetjson.h"
+#include "datasetService.h"
 #include "unixFileService.h"
 #include "pdsutil.h"
 #include "jcsi.h"
@@ -109,6 +110,9 @@ typedef struct Volser_tag {
   char value[6]; /* space-padded */
 } Volser;
 
+
+#define IS_DAMEMBER_EMPTY($member) \
+  (!memcmp(&($member), &(DynallocMemberName){"        "}, sizeof($member)))
 
 void copyDatasetToUnixAndRespond(HttpResponse *response, char* sourceDataset) {
   printf("--------INSIDE copyDatasetToUnixAndRespond/n");
