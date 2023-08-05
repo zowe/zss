@@ -894,7 +894,7 @@ void addMemberedDatasetMetadata(char *datasetName, int nameLength,
 #define DSPATH_PREFIX   "//\'"
 #define DSPATH_SUFFIX   "\'"
 
-static bool isDatasetPathValid(const char *path) {
+bool isDatasetPathValid(const char *path) {
 
   /* Basic check. The fopen() dataset path format is //'dsn(member)' */
 
@@ -980,7 +980,7 @@ static bool isDatasetPathValid(const char *path) {
 
 }
 
-static void extractDatasetAndMemberName(const char *datasetPath,
+void extractDatasetAndMemberName(const char *datasetPath,
                                         DatasetName *dsn,
                                         DatasetMemberName *memberName) {
 
