@@ -980,9 +980,7 @@ bool isDatasetPathValid(const char *path) {
 
 }
 
-void extractDatasetAndMemberName(const char *datasetPath,
-                                        DatasetName *dsn,
-                                        DatasetMemberName *memberName) {
+void extractDatasetAndMemberName(const char *datasetPath, DatasetName *dsn, DatasetMemberName *memberName) {
 
   memset(&dsn->value, ' ', sizeof(dsn->value));
   memset(&memberName->value, ' ', sizeof(memberName->value));
