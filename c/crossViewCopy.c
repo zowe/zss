@@ -156,14 +156,14 @@ void copyDatasetToUnixAndRespond(HttpResponse *response, char* sourceDataset) {
     return;
   }
 
-  HttpRequestParam *isFolder = getCheckedParam(request,"isFolder");
-  char *isFolder = (isFolder ? isFolder->stringValue : NULL);
+  HttpRequestParam *isFolderParam = getCheckedParam(request,"isFolder");
+  char *isFolderArg = (isFolderParam ? isFolderParam->stringValue : NULL);
 
-  HttpRequestParam *name = getCheckedParam(request,"name");
-  char *name = (name ? name->stringValue : NULL);
+  HttpRequestParam *nameParam = getCheckedParam(request,"name");
+  char *nameArg = (nameParam ? nameParam->stringValue : NULL);
 
-  printf("---isFolder: %s \n", isFolder);
-  printf("---name %s \n", name);
+  printf("---isFolder: %s \n", isFolderArg);
+  printf("---name %s \n", nameArg);
 
   #endif /* __ZOWE_OS_ZOS */
 }
