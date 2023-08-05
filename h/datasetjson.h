@@ -75,9 +75,11 @@ char getCSIType(char* absolutePath);
 bool isVsam(char CSIType);
 int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool isMember);
 bool isDatasetPathValid(const char *path);
+// void extractDatasetAndMemberName(const char *datasetPath, DatasetName *dsn, DatasetMemberName *memberName);
 void extractDatasetAndMemberName(const char *datasetPath,
-                                        DatasetName *dsn,
-                                        DatasetMemberName *memberName);
+                                 DatasetName *dsn,
+                                 DatasetMemberName *memberName);
+
 #endif
 
 
