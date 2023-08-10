@@ -30,3 +30,4 @@ To change the port you can set your environment variable
 FLASK_RUN_PORT=5000
 ```
 
+**Note:** The mock server may produce a Session Renewal Error when the user tries to log in or perform certain actions. This is an expected behavior and does not indicate a problem with the code. This error occurs only when you use the mock server in combination with the App server and Zowe Desktop.
