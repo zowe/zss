@@ -29,6 +29,53 @@
 
 #define ZIS_PARMLIB_PARM_AUTH_USER_CLASS    CMS_PROD_ID".AUTH.CLASS"
 
+static int handleVerifyUser(AuthServiceParmList *parmList,
+                            const CrossMemoryServerGlobalArea *globalArea) {
+  ACEE *acee = NULL;
+  int safRC = 0, racfRC = 0, racfRsn = 0;
+  int deleteSAFRC = 0, deleteRACFRC = 0, deleteRACFRsn = 0;
+  int rc = RC_ZIS_AUTHSRV_OK;
+
+  CMS_DEBUG(globalArea, "handleVerifyUser(): username = %s\n",
+      parmList->userIDNullTerm);
+
+  if (parmList->_padding0[0] & ZIS_AUTH_SERVICE_SAFIDT_OPTION_RESERVED) {
+    return RC_ZIS_AUTHSRV_BAD_SAF_SERVICE_VERSION;
+  }
+
+ int options = VERIFY_CREATE | VERIFY_WITHOUT_PASSWORD;
+
+ safRC = safVerify(options,
+                   parmList->userIDNullTerm,
+                   NULL,
+                   &acee,
+                   &racfRC,
+                   &racfRsn);
+
+  CMS_DEBUG(globalArea, "safVerify(VERIFY_CREATE) safStatus = %d, RACF RC = %d, "
+      "RSN = %d, ACEE=0x%p\n", safRC, racfRC, racfRsn, acee);
+
+  if (safRC != 0) {
+    rc = RC_ZIS_AUTHSRV_SAF_ERROR;
+    goto acee_deleted;
+  }
+  deleteSAFRC = safVerify(VERIFY_DELETE, NULL, NULL, &acee, &deleteRACFRC,
+      &deleteRACFRsn);
+  CMS_DEBUG(globalArea, "safVerify(VERIFY_DELETE) safStatus = %d, RACF RC = %d, "
+      "RSN = %d, ACEE=0x%p\n", deleteSAFRC, deleteRACFRC, deleteRACFRsn,
+      acee);
+  if (deleteSAFRC != 0) {
+    rc = RC_ZIS_AUTHSRV_DELETE_FAILED;
+  }
+  acee_deleted:
+
+  FILL_SAF_STATUS(&parmList->safStatus, safRC, racfRC, racfRsn);
+  CMS_DEBUG(globalArea, "handleVerifyPassword() done\n");
+  return rc;
+
+
+}
+
 static int handleVerifyPassword(AuthServiceParmList *parmList,
                                 const CrossMemoryServerGlobalArea *globalArea) {
   ACEE *acee = NULL;
@@ -392,6 +439,9 @@ int zisAuthServiceFunction(CrossMemoryServerGlobalArea *globalArea,
     break;
   case ZIS_AUTH_SERVICE_PARMLIST_FC_GENERATE_TOKEN:
     handlerRC = handleGenerateToken(&localParmList, globalArea);
+    break;
+  case ZIS_AUTH_SERVICE_PARMLIST_FC_VERIFY_USER:
+    handlerRC = handleVerifyUser(&localParmList, globalArea);
     break;
   default:
     handlerRC = RC_ZIS_AUTHSRV_UNKNOWN_FUNCTION_CODE;

@@ -141,7 +141,7 @@ static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn
   int handledThroughDSCB = FALSE;
 
   if (!volserSuccess){
-    
+
     char dscb[INDEXED_DSCB] = {0};
     int rc = obtainDSCB1(dsn->value, sizeof(dsn->value),
                          volser.value, sizeof(volser.value),
@@ -714,6 +714,21 @@ static int obtainDSCB1(const char *dsname, unsigned int dsnameLength,
 #define SVC27_OPTION_HIDE_NAME        0x10
 #define SVC27_OPTION_EADSCB_OK        0x08
 
+  char resolvedVolser[VOLSER_SIZE+1] = {0};
+
+  if (volser[0] == '&'){
+    int rc = 0;
+    int rsn = 0;
+    char *result = resolveSymbol(volser, &rc, &rsn);
+    if (result != NULL && rc == 0){
+      snprintf(resolvedVolser, VOLSER_SIZE+1, "%s", result);
+      safeFree(result, strlen(result));
+    } else if (rc) {
+      zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING, "symbol lookup error rc=0x%x rsn=0x%x\n", rc, rsn);
+      return rc;
+    }
+  }
+
   ALLOC_STRUCT31(
     STRUCT31_NAME(mem31),
     STRUCT31_FIELDS(
@@ -734,7 +749,7 @@ static int obtainDSCB1(const char *dsname, unsigned int dsnameLength,
   memset(mem31->dsnameSpacePadded, ' ', sizeof(mem31->dsnameSpacePadded));
   memcpy(mem31->dsnameSpacePadded, dsname, dsnameLength);
   memset(mem31->volserSpacePadded, ' ', sizeof(mem31->volserSpacePadded));
-  memcpy(mem31->volserSpacePadded, volser, volserLength);
+  memcpy(mem31->volserSpacePadded, volser[0] == '&' ? resolvedVolser: volser, volserLength);
 
   memset(mem31->workArea, 0, sizeof(mem31->workArea));
 
@@ -1060,7 +1075,7 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
 
   int volserSuccess = getVolserForDataset(dsn, &volser);
   if (!volserSuccess){
-    
+
     char dscb[INDEXED_DSCB] = {0};
     int rc = obtainDSCB1(dsn->value, sizeof(dsn->value),
                          volser.value, sizeof(volser.value),
