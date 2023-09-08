@@ -24,6 +24,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
   update-changelog:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       was_updated: ${{ steps.check-change.outputs.change_detected }}
@@ -99,6 +100,7 @@ jobs:
           fi
 
   check_changelog:
+    if: github.event_name == 'pull_request'
     needs: update-changelog
     runs-on: ubuntu-latest
     steps:
