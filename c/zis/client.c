@@ -196,6 +196,22 @@ int zisCheckUsernameAndPassword(const CrossMemoryServerName *serverName,
   return authRequest(serverName, &parmList, status);
 }
 
+int zisCheckUsername(const CrossMemoryServerName *serverName,
+                     const char *userName,
+                     ZISAuthServiceStatus *status) {
+  AuthServiceParmList parmList = {0};
+
+  memcpy(&parmList.eyecatcher[0], ZIS_AUTH_SERVICE_PARMLIST_EYECATCHER,
+      sizeof(parmList.eyecatcher));
+  parmList.fc = ZIS_AUTH_SERVICE_PARMLIST_FC_VERIFY_USER;
+  if (strlen(userName) >= sizeof (parmList.userIDNullTerm)) {
+    status->baseStatus.serviceRC = RC_ZIS_AUTHSRV_INPUT_STRING_TOO_LONG;
+    return RC_ZIS_SRVC_SERVICE_FAILED;
+  }
+  strncpy(parmList.userIDNullTerm, userName, sizeof(parmList.userIDNullTerm));
+  return authRequest(serverName, &parmList, status);
+}
+
 int zisCheckEntity(const CrossMemoryServerName *serverName,
                    const char *userName, const char *class, const char *entity,
                    int access, ZISAuthServiceStatus *status) {
