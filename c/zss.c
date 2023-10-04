@@ -1434,6 +1434,7 @@ static void readAndConfigureLogLevelFromConfig(LogComponentsMap *logComponent, C
                           LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
     if (true){
       int cfgStatus = cfgGetIntC(configmgr,ZSS_CFGNAME,&logLevel,4,"components","zss","logLevels",logCompName);
+      printf("TEMPTRACELOG logCompName=%s cfgStatus=%d\n",logCompName,cfgStatus);
       if (!cfgStatus && isLogLevelValid(logLevel)) {
         logSetLevel(NULL, logComponent->compID, logLevel);  
       }
