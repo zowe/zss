@@ -128,8 +128,8 @@
             },
             "maxTls": {
               "type": [ "string", "null" ],
-							"enum": ["TLSv1.0", "TLSv1.1", "TLSv1.2", "TLSv1.3"],
-							"default": "TLSv1.3",
+              "enum": ["TLSv1.0", "TLSv1.1", "TLSv1.2", "TLSv1.3"],
+              "default": "TLSv1.3",
               "description": "Maximum tls version allowed."
             }
           }
