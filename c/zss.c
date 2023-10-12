@@ -1173,8 +1173,7 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
    */
   char *keyshares = jsonObjectGetString(httpsConfigObject, "keyshares");
   settings->keyshares = keyshares ? keyshares : DEFAULT_TLS_KEY_SHARES;
-  char *maxTls = jsonObjectGetString(httpsConfigObject, "maxTls");
-  settings->maxTls = maxTls;
+  settings->maxTls = jsonObjectGetString(httpsConfigObject, "maxTls");
   settings->keyring = jsonObjectGetString(httpsConfigObject, "keyring");
   settings->label = jsonObjectGetString(httpsConfigObject, "label");
   /*  settings->stash = jsonObjectGetString(httpsConfigObject, "stash"); - this is obsolete */
