@@ -125,6 +125,10 @@
             "keyshares": {
               "type": [ "string", "null" ],
               "description": "The list of key shares in order of priority"
+            },
+            "maxTls": {
+              "type": [ "string", "null" ],
+              "description": "Maximum tls version allowed."
             }
           }
         },
