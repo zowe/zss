@@ -113,11 +113,6 @@ static int traceLevel = 0;
   TLS_SECP521R1                 \
   TLS_X25519
 
-#define DEFAULT_TLS_CIPHERS_V13           \
-  TLS_AES_256_GCM_SHA384                  \
-  TLS_AES_128_GCM_SHA256                  \
-  TLS_CHACHA20_POLY1305_SHA256
-
 #define DEFAULT_TLS_CIPHERS_V12           \
   TLS_DHE_RSA_WITH_AES_128_GCM_SHA256     \
   TLS_DHE_RSA_WITH_AES_256_GCM_SHA384     \
@@ -125,6 +120,12 @@ static int traceLevel = 0;
   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 \
   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256   \
   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+
+#define DEFAULT_TLS_CIPHERS_V13           \
+  TLS_AES_256_GCM_SHA384                  \
+  TLS_AES_128_GCM_SHA256                  \
+  TLS_CHACHA20_POLY1305_SHA256            \
+  DEFAULT_TLS_CIPHERS_V12
 
 #define LOGGING_COMPONENT_PREFIX "_zss."
 
