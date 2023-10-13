@@ -1160,16 +1160,23 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
   }
   JsonObject *httpsConfigObject = jsonAsObject(httpsConfig);
   TlsSettings *settings = (TlsSettings*)SLHAlloc(slh, sizeof(*settings));
-  char *ciphers1_3 = jsonObjectGetString(httpsConfigObject, "ciphersTLSv13");
-  char *ciphers1_2 = jsonObjectGetString(httpsConfigObject, "ciphersTLSv12");
+  settings->maxTls = jsonObjectGetString(httpsConfigObject, "maxTls");
+  char *ciphers = jsonObjectGetString(httpsConfigObject, "ciphers");
   /* 
    * Takes a string of ciphers. This isn't ideal, but any other methods are
    * going to be fairly complicated.
    *
    * ciphers: 13021303003500380039002F00320033
    */
-  settings->ciphers1_2 = ciphers1_2 ? ciphers1_2 : DEFAULT_TLS_CIPHERS_V12;
-  settings->ciphers1_3 = ciphers1_3 ? ciphers1_3 : DEFAULT_TLS_CIPHERS_V13;
+  ECVT *ecvt = getECVT();
+  /*
+     2.3 (1020300) no tls 1.3
+  */
+  if ((ecvt->ecvtpseq > 0x1020300) && (settings->maxTls == NULL || !strcmp(settings->maxTls, "TLSv1.3"))) {
+    settings->ciphers = ciphers ? ciphers : DEFAULT_TLS_CIPHERS_V13;
+  } else {
+    settings->ciphers = ciphers ? ciphers : DEFAULT_TLS_CIPHERS_V12;
+  }
   /* 
    * Takes a string of keyshares. This isn't ideal, but any other methods are
    * going to be fairly complicated.
@@ -1178,7 +1185,6 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
    */
   char *keyshares = jsonObjectGetString(httpsConfigObject, "keyshares");
   settings->keyshares = keyshares ? keyshares : DEFAULT_TLS_KEY_SHARES;
-  settings->maxTls = jsonObjectGetString(httpsConfigObject, "maxTls");
   settings->keyring = jsonObjectGetString(httpsConfigObject, "keyring");
   settings->label = jsonObjectGetString(httpsConfigObject, "label");
   /*  settings->stash = jsonObjectGetString(httpsConfigObject, "stash"); - this is obsolete */
