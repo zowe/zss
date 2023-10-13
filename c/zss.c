@@ -113,10 +113,12 @@ static int traceLevel = 0;
   TLS_SECP521R1                 \
   TLS_X25519
 
-#define DEFAULT_TLS_CIPHERS               \
+#define DEFAULT_TLS_CIPHERS_V13           \
   TLS_AES_256_GCM_SHA384                  \
   TLS_AES_128_GCM_SHA256                  \
-  TLS_CHACHA20_POLY1305_SHA256            \
+  TLS_CHACHA20_POLY1305_SHA256
+
+#define DEFAULT_TLS_CIPHERS_V12           \
   TLS_DHE_RSA_WITH_AES_128_GCM_SHA256     \
   TLS_DHE_RSA_WITH_AES_256_GCM_SHA384     \
   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 \
@@ -1157,14 +1159,16 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
   }
   JsonObject *httpsConfigObject = jsonAsObject(httpsConfig);
   TlsSettings *settings = (TlsSettings*)SLHAlloc(slh, sizeof(*settings));
-  char *ciphers = jsonObjectGetString(httpsConfigObject, "ciphers");
+  char *ciphers1_3 = jsonObjectGetString(httpsConfigObject, "ciphersTLSv13");
+  char *ciphers1_2 = jsonObjectGetString(httpsConfigObject, "ciphersTLSv12");
   /* 
    * Takes a string of ciphers. This isn't ideal, but any other methods are
    * going to be fairly complicated.
    *
    * ciphers: 13021303003500380039002F00320033
    */
-  settings->ciphers = ciphers ? ciphers : DEFAULT_TLS_CIPHERS;
+  settings->ciphers1_2 = ciphers1_2 ? ciphers1_2 : DEFAULT_TLS_CIPHERS_V12;
+  settings->ciphers1_3 = ciphers1_3 ? ciphers1_3 : DEFAULT_TLS_CIPHERS_V13;
   /* 
    * Takes a string of keyshares. This isn't ideal, but any other methods are
    * going to be fairly complicated.

@@ -118,9 +118,13 @@
               "type": [ "string", "null" ],
               "description": "The password to the keyring"
             },
-            "ciphers": {
+            "ciphers1_2": {
               "type": [ "string", "null" ],
-              "description": "The list of ciphers in order of priority"
+              "description": "The list of ciphers for TLSv1.2 in order of priority"
+            },
+            "ciphers1_3": {
+              "type": [ "string", "null" ],
+              "description": "The list of ciphers for TLSv1.3 in order of priority"
             },
             "keyshares": {
               "type": [ "string", "null" ],
