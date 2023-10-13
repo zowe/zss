@@ -173,7 +173,12 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
   else
     ZSS_SERVER="${ZSS_SERVER_31}"
   fi
-  
+
+  if [ "$ZWE_components_zss_https_trace" = "true" ] && [ "$ZWES_LOG_FILE" != "/dev/null" ]; then
+    export GSK_TRACE_FILE="${ZWES_LOG_FILE}.tlstrace"
+    export GSK_TRACE=0xFF
+  fi
+
   if [ "$ZWES_LOG_FILE" = "/dev/null" ]; then
     _BPX_SHAREAS=NO _BPX_JOBNAME=${ZWE_zowe_job_prefix}SZ ${ZSS_SERVER} --schemas "${ZWES_SCHEMA_PATHS}" --configs "${ZWES_CONFIG}" 2>&1
   else
