@@ -117,6 +117,14 @@
             "password": {
               "type": [ "string", "null" ],
               "description": "The password to the keyring"
+            },
+            "ciphers": {
+              "type": [ "string", "null" ],
+              "description": "The list of ciphers in order of priority"
+            },
+            "keyshares": {
+              "type": [ "string", "null" ],
+              "description": "The list of key shares in order of priority"
             }
           }
         },
