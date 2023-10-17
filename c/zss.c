@@ -113,16 +113,19 @@ static int traceLevel = 0;
   TLS_SECP521R1                 \
   TLS_X25519
 
-#define DEFAULT_TLS_CIPHERS               \
-  TLS_AES_256_GCM_SHA384                  \
-  TLS_AES_128_GCM_SHA256                  \
-  TLS_CHACHA20_POLY1305_SHA256            \
+#define DEFAULT_TLS_CIPHERS_V12           \
   TLS_DHE_RSA_WITH_AES_128_GCM_SHA256     \
   TLS_DHE_RSA_WITH_AES_256_GCM_SHA384     \
   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 \
   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 \
   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256   \
   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+
+#define DEFAULT_TLS_CIPHERS_V13           \
+  TLS_AES_256_GCM_SHA384                  \
+  TLS_AES_128_GCM_SHA256                  \
+  TLS_CHACHA20_POLY1305_SHA256            \
+  DEFAULT_TLS_CIPHERS_V12
 
 #define LOGGING_COMPONENT_PREFIX "_zss."
 
@@ -1157,6 +1160,7 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
   }
   JsonObject *httpsConfigObject = jsonAsObject(httpsConfig);
   TlsSettings *settings = (TlsSettings*)SLHAlloc(slh, sizeof(*settings));
+  settings->maxTls = jsonObjectGetString(httpsConfigObject, "maxTls");
   char *ciphers = jsonObjectGetString(httpsConfigObject, "ciphers");
   /* 
    * Takes a string of ciphers. This isn't ideal, but any other methods are
@@ -1164,7 +1168,15 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
    *
    * ciphers: 13021303003500380039002F00320033
    */
-  settings->ciphers = ciphers ? ciphers : DEFAULT_TLS_CIPHERS;
+  ECVT *ecvt = getECVT();
+  /*
+     2.3 (1020300) no tls 1.3
+  */
+  if ((ecvt->ecvtpseq > 0x1020300) && (settings->maxTls == NULL || !strcmp(settings->maxTls, "TLSv1.3"))) {
+    settings->ciphers = ciphers ? ciphers : DEFAULT_TLS_CIPHERS_V13;
+  } else {
+    settings->ciphers = ciphers ? ciphers : DEFAULT_TLS_CIPHERS_V12;
+  }
   /* 
    * Takes a string of keyshares. This isn't ideal, but any other methods are
    * going to be fairly complicated.
