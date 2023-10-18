@@ -17,7 +17,7 @@ CFLAGS=(-S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX='"IDX"'
 
 ASFLAGS=(-mgoff -mobject -mflag=nocont --TERM --RENT)
 
-LDFLAGS=(-V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus)
+LDFLAGS=(-V -b rent -b case=mixed -b map -b xref -b reus)
 
 xlc "${CFLAGS[@]}" \
 $COMMON/c/alloc.c \
