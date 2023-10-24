@@ -6,6 +6,7 @@ All notable changes to the ZSS package will be documented in this file.
 - Enhancement: Change pattern matching for keyrings to allow more types of keyrings in the future (#581)
 - Bugfix:  Corrected build environment file's use of IP address to github.com (#660)
 - Enhancement: Consolidate JWK warnings into improved ZWES1606W message (#663)
+- Added support for using "zowe.network" and "components.app-server.zowe.network" to set listener IP and TLS version properties. (#659)
 
 ## `2.10.0`
 - This action making a CHANGELOG note via special syntax from the GitHub PR commit message, like it could automatically update CHANGELOG.md with the message. First job checks if PR body has changelog note or not if it's not there then it asked them to add it and second job is to check if changelog note has been added in changelog.md file or not. (#636)
