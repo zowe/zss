@@ -18,10 +18,12 @@ components:
         password: ${{ ()=> { if (components.zss.tls) { if (zowe.certificate.keystore.type.match(/JCE.*KS/)) { return null } else { return zowe.certificate.keystore.password } } else { return null } }() }}
         label: ${{ ()=> { if (components.zss.tls) { return zowe.certificate.keystore.alias } else { return null } }() }}
         port: ${{ ()=> { if (components.zss.tls) { return  components.zss.port } else { return null } }() }}
-        ipAddresses: ${{ ()=> { if (components.zss.tls){ if (zowe.environments?.ZWED_agent_https_ipAddresses){ return zowe.environments.ZWED_agent_https_ipAddresses.split(',') } else { return [ '0.0.0.0' ] } } else { return null } }() }}
+        ipAddresses: ${{ ()=> { if (components.zss.tls){ if (zowe.environments?.ZWED_agent_https_ipAddresses){ return zowe.environments.ZWED_agent_https_ipAddresses.split(',') } else if (components.zss.zowe.network.server.listenAddresses) { return components.zss.zowe.network.server.listenAddresses } else if (zowe.network.server.listenAddresses) { return zowe.network.server.listenAddresses } else { return [ '0.0.0.0' ] } } else { return null } }() }}
+        maxTls: ${{ ()=> { if (components.zss.zowe.network.server.maxTls) { return components.zss.zowe.network.server.maxTls } else if (zowe.network.server.maxTls) { return zowe.network.server.maxTls } else { return "TLSv1.3" } }() }}
+        minTls: ${{ ()=> { if (components.zss.zowe.network.server.minTls) { return components.zss.zowe.network.server.minTls } else if (zowe.network.server.minTls) { return zowe.network.server.minTls } else { return "TLSv1.2" } }() }}
       http:
         port: ${{ ()=> { if (components.zss.tls) { return null } else { return components.zss.port } }() }}
-        ipAddresses: ${{ () => { if (components.zss.tls) { return null } else { if (zowe.environments?.ZWED_agent_http_ipAddresses) {  return zowe.environments.ZWED_agent_http_ipAddresses.split(',') } else { return [ '127.0.0.1' ] } } }() }}
+        ipAddresses: ${{ () => { if (components.zss.tls) { return null } else { if (zowe.environments?.ZWED_agent_http_ipAddresses) {  return zowe.environments.ZWED_agent_http_ipAddresses.split(',') } else if (components.zss.zowe.network.server.listenAddresses) { return components.zss.zowe.network.server.listenAddresses } else if (zowe.network.server.listenAddresses) { return zowe.network.server.listenAddresses } else { return [ '127.0.0.1' ] } } }() }}
       mediationLayer:
         server:
           isHttps: true
