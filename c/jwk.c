@@ -46,6 +46,7 @@ static void getJwk(JwkContext *context, int *rc, int *rsn);
 static int checkJwtSignature(JwsAlgorithm algorithm, int sigLen, const uint8_t *signature, int msgLen, const uint8_t *message, void *userData);
 static bool decodeBase64Url(const char *data, char *resultBuf, int *lenOut);
 static int jwkTaskMain(RLETask *task);
+static const char *jwkHttpClientGetStrStatus(int status);
 
 void configureJwt(HttpServer *server, JwkSettings *settings) {
   int rc = 0;
@@ -412,7 +413,7 @@ const char *jwkGetStrStatus(int status) {
   return message;
 }
 
-const char *jwkHttpClientGetStrStatus(int status) {
+static const char *jwkHttpClientGetStrStatus(int status) {
   if (status >= HTTP_CLIENT_TLS_NOT_CONFIGURED || status < 0) {
     return "Unknown reason";
   }
