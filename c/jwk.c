@@ -1,4 +1,3 @@
-
 /*
   This program and the accompanying materials are
   made available under the terms of the Eclipse Public License v2.0 which accompanies
@@ -41,9 +40,9 @@
 #include "jwk.h"
 
 static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut);
-static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, TlsEnvironment *tlsEnv, char *path, int *statusOut);
+static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, TlsEnvironment *tlsEnv, char *path, int *rc, int *rsn);
 static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *statusOut);
-static int getJwk(JwkContext *context);
+static void getJwk(JwkContext *context, int *rc, int *rsn);
 static int checkJwtSignature(JwsAlgorithm algorithm, int sigLen, const uint8_t *signature, int msgLen, const uint8_t *message, void *userData);
 static bool decodeBase64Url(const char *data, char *resultBuf, int *lenOut);
 static int jwkTaskMain(RLETask *task);
@@ -123,10 +122,8 @@ static int jwkTaskMain(RLETask *task) {
   fflush(stdout);
 }
 
-static int getJwk(JwkContext *context) {
+static void getJwk(JwkContext *context, int *rc, int *rsn) {
   JwkSettings *settings = context->settings;
-  int rc = 0;
-  int rsn = 0;
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
 
   HttpClientSettings clientSettings = {0};
@@ -134,16 +131,15 @@ static int getJwk(JwkContext *context) {
   clientSettings.port = settings->port;
   clientSettings.recvTimeoutSeconds = (settings->timeoutSeconds > 0) ? settings->timeoutSeconds : 10;
 
-  Json *jwkJson = doRequest(slh, &clientSettings, settings->tlsEnv, settings->path, &rc, &rsn);
-  if (!rc) {
+  Json *jwkJson = doRequest(slh, &clientSettings, settings->tlsEnv, settings->path, rc, rsn);
+  if (*rc == 0) {
     x509_public_key_info publicKey;
-    getPublicKey(jwkJson, &publicKey, &status);
-    if (status == 0) {
+    getPublicKey(jwkJson, &publicKey, rc);
+    if (*rc == 0) {
       context->publicKey = publicKey;
     }
   }
   SLHFree(slh);
-  return status; 
 }
 
 static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, TlsEnvironment *tlsEnv, char *path, int *rc, int *rsn) {
@@ -391,7 +387,7 @@ static const char *HTTP_CLIENT_MESSAGES[] = {
   [HTTP_CLIENT_SESSION_ERR] = "Client session error",
   [HTTP_CLIENT_ADDRBYNAME_ERR] = "Hostname to IP error",
   [HTTP_CLIENT_SEND_ERROR] = "Failed to send",
-  [HTTP_CLIENT_SOCKET_UNREGISTERED] = "Socket unregistered",
+  [HTTP_CLIENT_SOCK_UNREGISTERED] = "Socket unregistered",
   [HTTP_CLIENT_SXREAD_ERROR] = "SelectX Read Error",
   [HTTP_CLIENT_NO_REQUEST] = "No request",
   [HTTP_CLIENT_NO_SOCKET] = "No Socket", 
