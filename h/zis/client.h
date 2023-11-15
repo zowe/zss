@@ -175,6 +175,11 @@ typedef struct ZISAuthServiceStatus_tag {
     _ZIS_FORMAT_CALL_STATUS_TMPL($rc, $status, $printf, \
         _ZIS_AUTH_SERVICE_ERROR_CASES, ZIS_AUTH_RC_DESCRIPTION)
 
+
+int zisCheckUsername(const CrossMemoryServerName *serverName,
+                     const char *userName,
+                     ZISAuthServiceStatus *status);
+
 int zisCheckUsernameAndPassword(const CrossMemoryServerName *serverName,
                                 const char *userName, const char *password,
                                 ZISAuthServiceStatus *status);

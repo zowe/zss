@@ -3,9 +3,12 @@
 All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
+- Bugfix:  Corrected build environment file's use of IP address to github.com (#660)
 
 ## `2.10.0`
-- Bugfix:  Preventing error code 0C9-09 caused by a block size of zero
+- This action making a CHANGELOG note via special syntax from the GitHub PR commit message, like it could automatically update CHANGELOG.md with the message. First job checks if PR body has changelog note or not if it's not there then it asked them to add it and second job is to check if changelog note has been added in changelog.md file or not. (#636)
+- Bugfix: Datasets with VOLSER set to an MVS Symbol would cause dataset read, write, and metadata API calls to fail for those datasets. (#603)
+- Bugfix:  Preventing error code 0C9-09 caused by a block size of zero (#606)
 
 ## `2.9.0`
 - Bugfix: expose the version of the ZIS dynamic linkage base plugin so it can be updated during a build
