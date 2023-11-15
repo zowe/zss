@@ -1161,6 +1161,7 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
   JsonObject *httpsConfigObject = jsonAsObject(httpsConfig);
   TlsSettings *settings = (TlsSettings*)SLHAlloc(slh, sizeof(*settings));
   settings->maxTls = jsonObjectGetString(httpsConfigObject, "maxTls");
+  settings->minTls = jsonObjectGetString(httpsConfigObject, "minTls");
   char *ciphers = jsonObjectGetString(httpsConfigObject, "ciphers");
   /* 
    * Takes a string of ciphers. This isn't ideal, but any other methods are
