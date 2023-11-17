@@ -3,9 +3,8 @@
 All notable changes to the ZSS package will be documented in this file.
 
 ## `2.13.0`
-- Added support for using "zowe.network" and "components.app-server.zowe.network" to set listener IP and TLS version properties. (#659)
-
-## Recent Changes
+- Enhancement: Added support for using "zowe.network" and "components.app-server.zowe.network" to set listener IP and TLS version properties. (#659)
+- Enhancement: Change pattern matching for keyrings to allow more types of keyrings in the future (#581)
 - Bugfix:  Corrected build environment file's use of IP address to github.com (#660)
 
 ## `2.10.0`
