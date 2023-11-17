@@ -108,7 +108,8 @@ static int jwkTaskMain(RLETask *task) {
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG);
       break;
     } else {
-      if (i % warnInterval == 0) {
+      //+1 to skip first round, with good timing message may be skipped entirely.
+      if ((i+1) % warnInterval == 0) {
         zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_RETRY_MSG,
                 jwkGetStrStatus(rc), rc, jwkHttpClientGetStrStatus(rsn), rsn, retryIntervalSeconds);
       }
@@ -160,20 +161,17 @@ static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, 
     }
     *rsn = httpClientSessionInit(httpClientContext, &session);
     if (*rsn) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error initing session: %d\n", *rsn);
       *rc = JWK_STATUS_HTTP_REQ_INIT_ERROR;
       break;
     }
     *rsn = httpClientSessionStageRequest(httpClientContext, session, "GET", path, NULL, NULL, NULL, 0);
     if (*rsn) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error staging request: %d\n", *rsn);
       *rc = JWK_STATUS_HTTP_REQ_STAGING_ERROR;
       break;
     }
     requestStringHeader(session->request, TRUE, "accept", "application/json");
     *rsn = httpClientSessionSend(httpClientContext, session);
     if (*rsn) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error sending request: %d\n", *rsn);
       *rc = JWK_STATUS_HTTP_REQ_SEND_ERROR;
       break;
     }
@@ -184,7 +182,6 @@ static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, 
     }
     int statusCode = session->response->statusCode;
     if (statusCode != 200) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "HTTP status %d\n", statusCode);
       *rc = JWK_STATUS_RESPONSE_ERROR;
       break;
     }
