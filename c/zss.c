@@ -1175,7 +1175,7 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
     ciphers = jsonObjectGetString(httpsConfigObject, "ciphers");
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher string override to %s\n", ciphers);
   } else {
-    JsonArray cipherArray = jsonObjectGetArray(httpsConfigObject, "ciphers");
+    JsonArray *cipherArray = jsonObjectGetArray(httpsConfigObject, "ciphers");
     int count = jsonArrayGetCount(cipherArray);
     ciphers = (char *)safeMalloc((4*count)+1, "cipher list");
     for (int i = 0; i < count; i++) {
