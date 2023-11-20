@@ -124,8 +124,16 @@
               "description": "The password to the keyring"
             },
             "ciphers": {
-              "type": [ "string", "null" ],
-              "description": "The list of ciphers in order of priority"
+              "oneOf": {
+                { "type": "string",
+                  "description": "A set of cipher suite IDs as a number string without separators. The numbers are in order of priority."},
+                { "type": "array",
+                  "description": "A set of IANA names for cipher suites, in order of priority",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
             },
             "keyshares": {
               "type": [ "string", "null" ],

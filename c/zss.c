@@ -1147,6 +1147,8 @@ static char* generateCookieName(JsonObject *envConfig, int port) {
 #define AGENT_HTTPS_PREFIX       "ZWED_agent_https_"
 #define ENV_AGENT_HTTPS_KEY(key) AGENT_HTTPS_PREFIX key
 
+TLS_IANA_CIPHER_MAP(ianaCipherMap)
+
 static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
                                      ConfigManager *configmgr,
                                      char **outAddress,
@@ -1162,13 +1164,36 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
   TlsSettings *settings = (TlsSettings*)SLHAlloc(slh, sizeof(*settings));
   settings->maxTls = jsonObjectGetString(httpsConfigObject, "maxTls");
   settings->minTls = jsonObjectGetString(httpsConfigObject, "minTls");
-  char *ciphers = jsonObjectGetString(httpsConfigObject, "ciphers");
+  
+  Json *cipherJson = jsonObjectGetPropertyValue(httpsConfigObject, "ciphers");
+  char *ciphers = NULL;
+  if (jsonIsString(cipherJson)) {
   /* 
-   * Takes a string of ciphers. This isn't ideal, but any other methods are
-   * going to be fairly complicated.
-   *
+   * Takes a string of ciphers.
    * ciphers: 13021303003500380039002F00320033
    */
+    ciphers = jsonObjectGetString(httpsConfigObject, "ciphers");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher string override to %s\n", ciphers);
+  } else {
+    JsonArray cipherArray = jsonObjectGetArray(httpsConfigObject, "ciphers");
+    int count = jsonArrayGetCount(cipherArray);
+    ciphers = (char *)safeMalloc((4*count)+1, "cipher list");
+    for (int i = 0; i < count; i++) {
+      char *ianaName = jsonArrayGetString(cipherArray, i);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher request=%s\n", ianaName);
+      CipherMap *cipher = (CipherMap *)ianaCipherMap;
+      while (cipher->suiteId != NULL) {
+        if (!strcmp(ianaName, cipher->name)) {
+          strcat(ciphers, cipher->suiteId);
+          zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher match=%s\n", cipher->suiteId);
+        }
+        ++cipher;
+      }
+    }
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher array override to %s\n", ciphers);    
+    
+  }
+
   ECVT *ecvt = getECVT();
   /*
      2.3 (1020300) no tls 1.3
