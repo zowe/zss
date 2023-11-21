@@ -673,12 +673,17 @@ static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, ch
 }
 
 static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
+  printf("***serveUnixFileContents\n");
   HttpRequest *request = response->request;
   char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *encodedRouteFileName = stringConcatenate(response->slh, "/", routeFileFrag);
   char *routeFileName = cleanURLParamValue(response->slh, encodedRouteFileName);
   unsigned int currUnixTime = (unsigned)time(NULL);
 
+
+    printf("Route File Fragment: %s\n", routeFileFrag);
+    printf("Encoded Route File Name: %s\n", encodedRouteFileName);
+    printf("Cleaned Route File Name: %s\n", routeFileName);
 
   if (!strcmp(request->method, methodPUT)) {
     zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_DEBUG, "Serve PUT unix file contents, path=%s\n", routeFileName);
@@ -704,6 +709,7 @@ static int serveUnixFileContents(HttpService *service, HttpResponse *response) {
     }
   }
   else if (!strcmp(request->method, methodGET)) {
+    printf("***serveUnixFileContents getmethod\n");
     zowelog(NULL, LOG_COMP_ID_UNIXFILE, ZOWE_LOG_DEBUG, "Serve GET unix file contents, path=%s\n", routeFileName);
 
     respondWithUnixFileContentsWithAutocvtMode(NULL, response, routeFileName, TRUE, 0);
@@ -938,12 +944,18 @@ static int serveUnixFileChangeMode(HttpService *service, HttpResponse *response)
 }
 
 static int serveUnixFileMetadata(HttpService *service, HttpResponse *response) {
+  printf("***serveUnixFileMetadata\n");
   HttpRequest *request = response->request;
   char *fileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
   char *encodedFileName = stringConcatenate(response->slh, "/", fileFrag);
   char *fileName = cleanURLParamValue(response->slh, encodedFileName);
 
+    printf("***fileFrag: %s\n", fileFrag);
+    printf("***encodedFileName: %s\n", encodedFileName);
+    printf("***fileName: %s\n", fileName);
+
   if (!strcmp(request->method, methodGET)) {
+    printf("***methodget serveUnixFileMetadata\n");
     respondWithUnixFileMetadata(response, fileName);
   }
   else {
