@@ -515,7 +515,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_JWK_RETRY_MSG_ID
 #define ZSS_LOG_JWK_RETRY_MSG_ID     ZSS_LOG_MSG_PRFX"1606W"
 #endif
-#define ZSS_LOG_JWK_RETRY_MSG_TEXT   "Failed to get JWK - %s, retry in %d seconds\n"
+#define ZSS_LOG_JWK_RETRY_MSG_TEXT   "Failed to get JWK. rc=%s (%d), rsn=%s (%d). Retry in %d seconds\n"
 #define ZSS_LOG_JWK_RETRY_MSG        ZSS_LOG_JWK_RETRY_MSG_ID" "ZSS_LOG_JWK_RETRY_MSG_TEXT
 
 #endif /* MVD_H_ZSSLOGGING_H_ */
