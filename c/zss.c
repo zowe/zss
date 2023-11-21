@@ -1177,17 +1177,26 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
   } else {
     JsonArray *cipherArray = jsonObjectGetArray(httpsConfigObject, "ciphers");
     int count = jsonArrayGetCount(cipherArray);
-    ciphers = (char *)safeMalloc((4*count)+1, "cipher list");
+
+    int cipherCharLength = 4;
+    ciphers = (char *)safeMalloc((sizeof(char) * cipherCharLength * count)+1, "cipher list");
+
     for (int i = 0; i < count; i++) {
       char *ianaName = jsonArrayGetString(cipherArray, i);
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher request=%s\n", ianaName);
       CipherMap *cipher = (CipherMap *)ianaCipherMap;
+      bool found = false;
       while (cipher->suiteId != NULL) {
         if (!strcmp(ianaName, cipher->name)) {
           strcat(ciphers, cipher->suiteId);
           zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher match=%s\n", cipher->suiteId);
+          found = true;
+          break;
         }
         ++cipher;
+      }
+      if (!found) {
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_CIPHER_INVALID_MSG, ianaName);
       }
     }
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher array override to %s\n", ciphers);    
