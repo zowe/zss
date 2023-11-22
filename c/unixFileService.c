@@ -1118,6 +1118,7 @@ static int serveTableOfContents(HttpService *service, HttpResponse *response) {
 }
 
 void installUnixFileContentsService(HttpServer *server) {
+  printf("***Inside installUnixFileContentsService\n");
   HttpService *httpService = makeGeneratedService("UnixFileContents",
       "/unixfile/contents/**");
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;

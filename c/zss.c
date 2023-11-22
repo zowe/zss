@@ -1595,6 +1595,7 @@ static bool validateConfiguration(ConfigManager *cmgr, FILE *out){
 #define ZSS_STATUS_ERROR  8
 
 int main(int argc, char **argv){
+  printf("***zss main function\n");
   int zssStatus = ZSS_STATUS_OK;
 
   STCBase *base = (STCBase*) safeMalloc31(sizeof(STCBase), "stcbase");
@@ -1806,6 +1807,7 @@ int main(int argc, char **argv){
     
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "made http(s) server at 0x%p\n",server);
     if (server){
+      printf("***zss if server check\n");
       httpServerConfigManager(server) = configmgr;
       ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettingsV2(slh, configmgr, tlsEnv);
       JwkSettings *jwkSettings = readJwkSettingsV2(slh, configmgr, tlsEnv);
