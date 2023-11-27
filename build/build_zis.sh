@@ -57,7 +57,7 @@ xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
   -DRADMIN_XMEM_MODE \
   -DRCVR_CPOOL_STATES \
   -qreserved_reg=r12 \
-  -Wc,arch\(8\),agg,exp,list\(\),so\(\),off,xref,roconst,longname,lp64 \
+  -Wc,arch\(9\),agg,exp,list\(\),so\(\),off,xref,roconst,longname,lp64 \
   -I ${COMMON}/h -I ${ZSS}/h -I ${ZSS}/zis-aux/include -I ${ZSS}/zis-aux/src \
    ${COMMON}/c/alloc.c \
    ${COMMON}/c/as.c \

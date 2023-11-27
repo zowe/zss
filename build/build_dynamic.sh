@@ -53,7 +53,7 @@ xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
   -qreserved_reg=r12 \
   -DRCVR_CPOOL_STATES \
   -DHAVE_METALIO=1 \
-  -Wc,langlvl\(extc99\),arch\(8\),agg,exp,list\(\),so\(\),off,xref,roconst,longname,lp64 \
+  -Wc,langlvl\(extc99\),arch\(9\),agg,exp,list\(\),so\(\),off,xref,roconst,longname,lp64 \
   -I ${COMMON}/h -I ${ZSS}/h \
   -I ${ZSS}/zis-aux/include -I ${ZSS}/zis-aux/src \
   ${ZSS}/c/zis/zisdynamic.c \
