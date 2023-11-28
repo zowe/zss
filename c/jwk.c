@@ -1,4 +1,3 @@
-
 /*
   This program and the accompanying materials are
   made available under the terms of the Eclipse Public License v2.0 which accompanies
@@ -41,12 +40,13 @@
 #include "jwk.h"
 
 static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut);
-static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, TlsEnvironment *tlsEnv, char *path, int *statusOut);
+static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, TlsEnvironment *tlsEnv, char *path, int *rc, int *rsn);
 static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *statusOut);
-static int getJwk(JwkContext *context);
+static void getJwk(JwkContext *context, int *rc, int *rsn);
 static int checkJwtSignature(JwsAlgorithm algorithm, int sigLen, const uint8_t *signature, int msgLen, const uint8_t *message, void *userData);
 static bool decodeBase64Url(const char *data, char *resultBuf, int *lenOut);
 static int jwkTaskMain(RLETask *task);
+static const char *jwkHttpClientGetStrStatus(int status);
 
 void configureJwt(HttpServer *server, JwkSettings *settings) {
   int rc = 0;
@@ -86,26 +86,33 @@ static int jwkTaskMain(RLETask *task) {
   JwkSettings *settings = context->settings;
   const int maxAttempts = 1000;
   const int retryIntervalSeconds = settings->retryIntervalSeconds;
+  const int warnInterval = 10;
   bool success = false;
 
+  int rc = 0;
+  int rsn = 0;
+
   for (int i = 0; i < maxAttempts; i++) {
-    int status = getJwk(context);
-    if (status == JWK_STATUS_OK) {
+    getJwk(context, &rc, &rsn);
+    if (rc == JWK_STATUS_OK) {
       success = true;
       context->isPublicKeyInitialized = true;
       break;
-    } else if (status == JWK_STATUS_UNRECOGNIZED_FMT_ERROR) {
+    } else if (rc == JWK_STATUS_UNRECOGNIZED_FMT_ERROR) {
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_UNRECOGNIZED_MSG);
       break;
-    } else if (status == JWK_STATUS_PUBLIC_KEY_ERROR) {
+    } else if (rc == JWK_STATUS_PUBLIC_KEY_ERROR) {
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_PUBLIC_KEY_ERROR_MSG);
       break;
-    } else if (status == JWK_STATUS_HTTP_CONTEXT_ERROR) {
+    } else if (rc == JWK_STATUS_HTTP_CONTEXT_ERROR) {
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_HTTP_CTX_ERROR_MSG);
       break;
     } else {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_RETRY_MSG,
-              jwkGetStrStatus(status), retryIntervalSeconds);
+      //+1 to skip first round, with good timing message may be skipped entirely.
+      if ((i+1) % warnInterval == 0) {
+        zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_RETRY_MSG,
+                jwkGetStrStatus(rc), rc, jwkHttpClientGetStrStatus(rsn), rsn, retryIntervalSeconds);
+      }
       sleep(retryIntervalSeconds);
     }
   }
@@ -117,9 +124,8 @@ static int jwkTaskMain(RLETask *task) {
   fflush(stdout);
 }
 
-static int getJwk(JwkContext *context) {
+static void getJwk(JwkContext *context, int *rc, int *rsn) {
   JwkSettings *settings = context->settings;
-  int status = 0;
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
 
   HttpClientSettings clientSettings = {0};
@@ -127,22 +133,19 @@ static int getJwk(JwkContext *context) {
   clientSettings.port = settings->port;
   clientSettings.recvTimeoutSeconds = (settings->timeoutSeconds > 0) ? settings->timeoutSeconds : 10;
 
-  Json *jwkJson = doRequest(slh, &clientSettings, settings->tlsEnv, settings->path, &status);
-  if (status) {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to obtain JWK, status = %d\n", status);
-  } else {
+  Json *jwkJson = doRequest(slh, &clientSettings, settings->tlsEnv, settings->path, rc, rsn);
+  if (*rc == 0) {
     x509_public_key_info publicKey;
-    getPublicKey(jwkJson, &publicKey, &status);
-    if (status == 0) {
+    getPublicKey(jwkJson, &publicKey, rc);
+    if (*rc == 0) {
       context->publicKey = publicKey;
     }
   }
   SLHFree(slh);
-  return status; 
 }
 
-static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, TlsEnvironment *tlsEnv, char *path, int *statusOut) {
-  int status = 0;
+static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, TlsEnvironment *tlsEnv, char *path, int *rc, int *rsn) {
+  *rsn = 0;
   HttpClientContext *httpClientContext = NULL;
   HttpClientSession *session = NULL;
   LoggingContext *loggingContext = makeLoggingContext();
@@ -151,40 +154,35 @@ static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, 
   do {
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JWK request to https://%s:%d%s\n",
             clientSettings->host, clientSettings->port, path);
-    status = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error in httpcb ctx init: %d\n", status);
-      *statusOut = JWK_STATUS_HTTP_CONTEXT_ERROR;
+    *rsn = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
+    if (*rsn) {
+      *rc = JWK_STATUS_HTTP_CONTEXT_ERROR;
       break;
     }
-    status = httpClientSessionInit(httpClientContext, &session);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error initing session: %d\n", status);
-      *statusOut = JWK_STATUS_HTTP_REQUEST_ERROR;
+    *rsn = httpClientSessionInit(httpClientContext, &session);
+    if (*rsn) {
+      *rc = JWK_STATUS_HTTP_REQ_INIT_ERROR;
       break;
     }
-    status = httpClientSessionStageRequest(httpClientContext, session, "GET", path, NULL, NULL, NULL, 0);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error staging request: %d\n", status);
-      *statusOut = JWK_STATUS_HTTP_REQUEST_ERROR;
+    *rsn = httpClientSessionStageRequest(httpClientContext, session, "GET", path, NULL, NULL, NULL, 0);
+    if (*rsn) {
+      *rc = JWK_STATUS_HTTP_REQ_STAGING_ERROR;
       break;
     }
     requestStringHeader(session->request, TRUE, "accept", "application/json");
-    status = httpClientSessionSend(httpClientContext, session);
-    if (status) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error sending request: %d\n", status);
-      *statusOut = JWK_STATUS_HTTP_REQUEST_ERROR;
+    *rsn = httpClientSessionSend(httpClientContext, session);
+    if (*rsn) {
+      *rc = JWK_STATUS_HTTP_REQ_SEND_ERROR;
       break;
     }
-    jsonBody = receiveResponse(slh, httpClientContext, session, &status);
-    if (status) {
-      *statusOut = status;
+    jsonBody = receiveResponse(slh, httpClientContext, session, rc);
+    if (*rc) {
+      *rsn = *rc;
       break;
     }
     int statusCode = session->response->statusCode;
     if (statusCode != 200) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "HTTP status %d\n", statusCode);
-      *statusOut = JWK_STATUS_RESPONSE_ERROR;
+      *rc = JWK_STATUS_RESPONSE_ERROR;
       break;
     }
   } while (0);
@@ -372,18 +370,53 @@ static const char *MESSAGES[] = {
   [JWK_STATUS_UNRECOGNIZED_FMT_ERROR] = "JWK is in unrecognized format",
   [JWK_STATUS_PUBLIC_KEY_ERROR] = "failed to create public key",
   [JWK_STATUS_HTTP_CONTEXT_ERROR] = "failed to init HTTP context",
-  [JWK_STATUS_HTTP_REQUEST_ERROR] = "failed to send HTTP request"
+  [JWK_STATUS_HTTP_REQ_INIT_ERROR] = "failed to init HTTP request",
+  [JWK_STATUS_HTTP_REQ_STAGING_ERROR] = "failed on staging HTTP request",
+  [JWK_STATUS_HTTP_REQ_SEND_ERROR] = "failed to send HTTP request"
 };
+
+static const char *HTTP_CLIENT_MESSAGES[] = {
+  [HTTP_CLIENT_INVALID_ARGUMENT] = "Invalid argument to client",
+  [HTTP_CLIENT_OUTPUT_WOULD_OVERFLOW] = "Output would overflow",
+  [HTTP_CLIENT_INVALID_PORT] = "Invalid port",
+  [HTTP_CLIENT_REQDSETTING_MISSING] = "Required setting missing",
+  [HTTP_CLIENT_LOOKUP_FAILED] = "Lookup failed",
+  [HTTP_CLIENT_CONNECT_FAILED] = "Connect failed",
+  [HTTP_CLIENT_SESSION_ERR] = "Client session error",
+  [HTTP_CLIENT_ADDRBYNAME_ERR] = "Hostname to IP error",
+  [HTTP_CLIENT_SEND_ERROR] = "Failed to send",
+  [HTTP_CLIENT_SOCK_UNREGISTERED] = "Socket unregistered",
+  [HTTP_CLIENT_SXREAD_ERROR] = "SelectX Read Error",
+  [HTTP_CLIENT_NO_REQUEST] = "No request",
+  [HTTP_CLIENT_NO_SOCKET] = "No Socket", 
+  [HTTP_CLIENT_RESP_PARSE_FAILED] = "Response parsing failed",
+  [HTTP_CLIENT_READ_ERROR] = "Read error",
+  [HTTP_CLIENT_RESPONSE_ZEROLEN] = "Response is zero length",
+  [HTTP_CLIENT_TLS_ERROR] = "TLS error",
+  [HTTP_CLIENT_TLS_NOT_CONFIGURED] = "TLS not configured",
+};
+
 
 #define MESSAGE_COUNT sizeof(MESSAGES)/sizeof(MESSAGES[0])
 
 const char *jwkGetStrStatus(int status) {
   if (status >= MESSAGE_COUNT || status < 0) {
-    return "Unknown status code";
+    return "Unknown rc";
   }
   const char *message = MESSAGES[status];
   if (!message) {
-    return "Unknown status code";
+    return "Unknown rc";
+  }
+  return message;
+}
+
+static const char *jwkHttpClientGetStrStatus(int status) {
+  if (status >= HTTP_CLIENT_TLS_NOT_CONFIGURED || status < 0) {
+    return "Unknown reason";
+  }
+  const char *message = HTTP_CLIENT_MESSAGES[status];
+  if (!message) {
+    return "Unknown reason";
   }
   return message;
 }

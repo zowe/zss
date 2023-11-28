@@ -250,34 +250,34 @@
 #define ZISAUX_LOG_LEGACY_API_MSG_TEXT          "Legacy API has been detected, some functionality may be limited"
 #define ZISAUX_LOG_LEGACY_API_MSG               ZISAUX_LOG_LEGACY_API_MSG_ID" "ZISAUX_LOG_LEGACY_API_MSG_TEXT
 
-/* ZIS dynamic linkage plugin messages */
+/* ZIS dynamic linkage plug-in messages */
 
 #define ZISDYN_LOG_STARTUP_MSG_ID               ZIS_MSG_PRFX"0700I"
-#define ZISDYN_LOG_STARTUP_MSG_TEXT             "ZIS Dynamic Base plugin starting, version %d.%d.%d+%d, stub version %d"
+#define ZISDYN_LOG_STARTUP_MSG_TEXT             "ZIS Dynamic Base plug-in starting, version %d.%d.%d+%d, stub version %d"
 #define ZISDYN_LOG_STARTUP_MSG                  ZISDYN_LOG_STARTUP_MSG_ID" "ZISDYN_LOG_STARTUP_MSG_TEXT
 
 #define ZISDYN_LOG_STARTED_MSG_ID               ZIS_MSG_PRFX"0701I"
-#define ZISDYN_LOG_STARTED_MSG_TEXT             "ZIS Dynamic Base plugin successfully started"
+#define ZISDYN_LOG_STARTED_MSG_TEXT             "ZIS Dynamic Base plug-in successfully started"
 #define ZISDYN_LOG_STARTED_MSG                  ZISDYN_LOG_STARTED_MSG_ID" "ZISDYN_LOG_STARTED_MSG_TEXT
 
 #define ZISDYN_LOG_STARTUP_FAILED_MSG_ID        ZIS_MSG_PRFX"0702E"
-#define ZISDYN_LOG_STARTUP_FAILED_MSG_TEXT      "ZIS Dynamic Base plugin startup failed, status = %d"
+#define ZISDYN_LOG_STARTUP_FAILED_MSG_TEXT      "ZIS Dynamic Base plug-in startup failed, status = %d"
 #define ZISDYN_LOG_STARTUP_FAILED_MSG           ZISDYN_LOG_STARTUP_FAILED_MSG_ID" "ZISDYN_LOG_STARTUP_FAILED_MSG_TEXT
 
 #define ZISDYN_LOG_INIT_ERROR_MSG_ID            ZIS_MSG_PRFX"0703E"
-#define ZISDYN_LOG_INIT_ERROR_MSG_TEXT          "ZIS Dynamic Base plugin init error -"
+#define ZISDYN_LOG_INIT_ERROR_MSG_TEXT          "ZIS Dynamic Base plug-in init error -"
 #define ZISDYN_LOG_INIT_ERROR_MSG               ZISDYN_LOG_INIT_ERROR_MSG_ID" "ZISDYN_LOG_INIT_ERROR_MSG_TEXT
 
 #define ZISDYN_LOG_TERM_MSG_ID                  ZIS_MSG_PRFX"0704I"
-#define ZISDYN_LOG_TERM_MSG_TEXT                "ZIS Dynamic Base plugin terminating"
+#define ZISDYN_LOG_TERM_MSG_TEXT                "ZIS Dynamic Base plug-in terminating"
 #define ZISDYN_LOG_TERM_MSG                     ZISDYN_LOG_TERM_MSG_ID" "ZISDYN_LOG_TERM_MSG_TEXT
 
 #define ZISDYN_LOG_TERMED_MSG_ID                ZIS_MSG_PRFX"0705I"
-#define ZISDYN_LOG_TERMED_MSG_TEXT              "ZIS Dynamic Base plugin successfully terminated"
+#define ZISDYN_LOG_TERMED_MSG_TEXT              "ZIS Dynamic Base plug-in successfully terminated"
 #define ZISDYN_LOG_TERMED_MSG                   ZISDYN_LOG_TERMED_MSG_ID" "ZISDYN_LOG_TERMED_MSG_TEXT
 
 #define ZISDYN_LOG_TERM_FAILED_MSG_ID           ZIS_MSG_PRFX"0706E"
-#define ZISDYN_LOG_TERM_FAILED_MSG_TEXT         "ZIS Dynamic Base plugin terminated with error"
+#define ZISDYN_LOG_TERM_FAILED_MSG_TEXT         "ZIS Dynamic Base plug-in terminated with error"
 #define ZISDYN_LOG_TERM_FAILED_MSG              ZISDYN_LOG_TERM_FAILED_MSG_ID" "ZISDYN_LOG_TERM_FAILED_MSG_TEXT
 
 #define ZISDYN_LOG_CMD_RESP_MSG_ID              ZIS_MSG_PRFX"0707I"
@@ -301,7 +301,7 @@
 #define ZISDYN_LOG_STUB_DISCARDED_MSG           ZISDYN_LOG_STUB_DISCARDED_MSG_ID" "ZISDYN_LOG_STUB_DISCARDED_MSG_TEXT
 
 #define ZISDYN_LOG_DEV_MODE_MSG_ID              ZIS_MSG_PRFX"0713W"
-#define ZISDYN_LOG_DEV_MODE_MSG_TEXT            "ZIS Dynamic base plugin development mode is enabled"
+#define ZISDYN_LOG_DEV_MODE_MSG_TEXT            "ZIS Dynamic base plug-in development mode is enabled"
 #define ZISDYN_LOG_DEV_MODE_MSG                 ZISDYN_LOG_DEV_MODE_MSG_ID" "ZISDYN_LOG_DEV_MODE_MSG_TEXT
 
 #define ZISDYN_LOG_BAD_ZIS_VERSION_MSG_ID       ZIS_MSG_PRFX"0714E"
