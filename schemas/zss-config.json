@@ -349,6 +349,10 @@
           "description": "Controls logging of JWT library functions.",
           "$ref": "#/$defs/logLevel"
         },
+        "_zss.json": {
+          "description": "Controls logging of JSON library functions.",
+          "$ref": "#/$defs/logLevel"
+        },
         "^.*$": {
           "$ref": "#/$defs/logLevel"
         }
