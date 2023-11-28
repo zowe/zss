@@ -1575,7 +1575,7 @@ void updateDataset(HttpResponse* response, char* absolutePath, int jsonMode) {
 
   if(returnCode == 0) {  
     int blockSize = 0x10000;
-    int maxBlockCount = (translationLength*2)/blockSize;
+    int maxBlockCount = (translationLength*4)/blockSize;
     if (!maxBlockCount){
       maxBlockCount = 0x10;
     }
