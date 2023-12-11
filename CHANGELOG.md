@@ -4,6 +4,9 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## Recent Changes
 
+## `2.13.0`
+- Bugfix: ZSS would not use zowe.cookieIdentifier when an HA config was used.
+
 ## `2.10.0`
 - Bugfix: Datasets with VOLSER set to an MVS Symbol would cause dataset read, write, and metadata API calls to fail for those datasets. (#603)
 - Bugfix:  Preventing error code 0C9-09 caused by a block size of zero (#606)
