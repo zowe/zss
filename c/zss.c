@@ -108,13 +108,24 @@ static int traceLevel = 0;
 
 #define JSON_ERROR_BUFFER_SIZE 1024
 
-#define DEFAULT_TLS_CIPHERS               \
+#define DEFAULT_TLS_KEY_SHARES  \
+  TLS_SECP256R1                 \
+  TLS_SECP521R1                 \
+  TLS_X25519
+
+#define DEFAULT_TLS_CIPHERS_V12           \
   TLS_DHE_RSA_WITH_AES_128_GCM_SHA256     \
   TLS_DHE_RSA_WITH_AES_256_GCM_SHA384     \
   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256 \
   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384 \
   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256   \
   TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+
+#define DEFAULT_TLS_CIPHERS_V13           \
+  TLS_AES_256_GCM_SHA384                  \
+  TLS_AES_128_GCM_SHA256                  \
+  TLS_CHACHA20_POLY1305_SHA256            \
+  DEFAULT_TLS_CIPHERS_V12
 
 #define LOGGING_COMPONENT_PREFIX "_zss."
 
@@ -1137,6 +1148,8 @@ static char* generateCookieNameV2(ConfigManager *configmgr, int port) {
 #define AGENT_HTTPS_PREFIX       "ZWED_agent_https_"
 #define ENV_AGENT_HTTPS_KEY(key) AGENT_HTTPS_PREFIX key
 
+TLS_IANA_CIPHER_MAP(ianaCipherMap)
+
 static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
                                      ConfigManager *configmgr,
                                      char **outAddress,
@@ -1150,7 +1163,64 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
   }
   JsonObject *httpsConfigObject = jsonAsObject(httpsConfig);
   TlsSettings *settings = (TlsSettings*)SLHAlloc(slh, sizeof(*settings));
-  settings->ciphers = DEFAULT_TLS_CIPHERS;
+  settings->maxTls = jsonObjectGetString(httpsConfigObject, "maxTls");
+  settings->minTls = jsonObjectGetString(httpsConfigObject, "minTls");
+  
+  Json *cipherJson = jsonObjectGetPropertyValue(httpsConfigObject, "ciphers");
+  char *ciphers = NULL;
+  if (jsonIsString(cipherJson)) {
+  /* 
+   * Takes a string of ciphers.
+   * ciphers: 13021303003500380039002F00320033
+   */
+    ciphers = jsonObjectGetString(httpsConfigObject, "ciphers");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher string override to %s\n", ciphers);
+  } else {
+    JsonArray *cipherArray = jsonObjectGetArray(httpsConfigObject, "ciphers");
+    int count = jsonArrayGetCount(cipherArray);
+
+    int cipherCharLength = 4;
+    ciphers = (char *)safeMalloc((sizeof(char) * cipherCharLength * count)+1, "cipher list");
+
+    for (int i = 0; i < count; i++) {
+      char *ianaName = jsonArrayGetString(cipherArray, i);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher request=%s\n", ianaName);
+      CipherMap *cipher = (CipherMap *)ianaCipherMap;
+      bool found = false;
+      while (cipher->suiteId != NULL) {
+        if (!strcmp(ianaName, cipher->name)) {
+          strcat(ciphers, cipher->suiteId);
+          zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher match=%s\n", cipher->suiteId);
+          found = true;
+          break;
+        }
+        ++cipher;
+      }
+      if (!found) {
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_CIPHER_INVALID_MSG, ianaName);
+      }
+    }
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher array override to %s\n", ciphers);    
+    
+  }
+
+  ECVT *ecvt = getECVT();
+  /*
+     2.3 (1020300) no tls 1.3
+  */
+  if ((ecvt->ecvtpseq > 0x1020300) && (settings->maxTls == NULL || !strcmp(settings->maxTls, "TLSv1.3"))) {
+    settings->ciphers = ciphers ? ciphers : DEFAULT_TLS_CIPHERS_V13;
+  } else {
+    settings->ciphers = ciphers ? ciphers : DEFAULT_TLS_CIPHERS_V12;
+  }
+  /* 
+   * Takes a string of keyshares. This isn't ideal, but any other methods are
+   * going to be fairly complicated.
+   *
+   * keyshares: 002300250029
+   */
+  char *keyshares = jsonObjectGetString(httpsConfigObject, "keyshares");
+  settings->keyshares = keyshares ? keyshares : DEFAULT_TLS_KEY_SHARES;
   settings->keyring = jsonObjectGetString(httpsConfigObject, "keyring");
   settings->label = jsonObjectGetString(httpsConfigObject, "label");
   /*  settings->stash = jsonObjectGetString(httpsConfigObject, "stash"); - this is obsolete */

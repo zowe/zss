@@ -41,7 +41,9 @@ struct JwkContext_tag {
 #define JWK_STATUS_UNRECOGNIZED_FMT_ERROR  4
 #define JWK_STATUS_PUBLIC_KEY_ERROR        7
 #define JWK_STATUS_HTTP_CONTEXT_ERROR      8
-#define JWK_STATUS_HTTP_REQUEST_ERROR      9
+#define JWK_STATUS_HTTP_REQ_INIT_ERROR      9
+#define JWK_STATUS_HTTP_REQ_STAGING_ERROR      10
+#define JWK_STATUS_HTTP_REQ_SEND_ERROR      11
 
 void configureJwt(HttpServer *server, JwkSettings *jwkSettings);
 const char *jwkGetStrStatus(int status);
