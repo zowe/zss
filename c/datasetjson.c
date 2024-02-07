@@ -100,13 +100,13 @@ static int bytesPerCylinder=849960;
 
 const static int DSCB_TRACE = FALSE;
 
-typedef struct DatasetName_tag {
-  char value[44]; /* space-padded */
-} DatasetName;
+// typedef struct DatasetName_tag {
+//   char value[44]; /* space-padded */
+// } DatasetName;
 
-typedef struct DatasetMemberName_tag {
-  char value[8]; /* space-padded */
-} DatasetMemberName;
+// typedef struct DatasetMemberName_tag {
+//   char value[8]; /* space-padded */
+// } DatasetMemberName;
 
 typedef struct DDName_tag {
   char value[8]; /* space-padded */
@@ -894,7 +894,7 @@ void addMemberedDatasetMetadata(char *datasetName, int nameLength,
 #define DSPATH_PREFIX   "//\'"
 #define DSPATH_SUFFIX   "\'"
 
-static bool isDatasetPathValid(const char *path) {
+bool isDatasetPathValid(const char *path) {
 
   /* Basic check. The fopen() dataset path format is //'dsn(member)' */
 
@@ -980,9 +980,7 @@ static bool isDatasetPathValid(const char *path) {
 
 }
 
-static void extractDatasetAndMemberName(const char *datasetPath,
-                                        DatasetName *dsn,
-                                        DatasetMemberName *memberName) {
+void extractDatasetAndMemberName(const char *datasetPath, DatasetName *dsn, DatasetMemberName *memberName) {
 
   memset(&dsn->value, ' ', sizeof(dsn->value));
   memset(&memberName->value, ' ', sizeof(memberName->value));

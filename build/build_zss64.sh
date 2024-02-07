@@ -241,6 +241,8 @@ if ! c89 \
   ${ZSS}/c/unixFileService.c \
   ${ZSS}/c/datasetService.c \
   ${ZSS}/c/datasetjson.c \
+  ${ZSS}/c/crossViewCopyService.c \
+  ${ZSS}/c/crossViewCopy.c \
   ${ZSS}/c/envService.c \
   ${ZSS}/c/zosDiscovery.c \
   ${ZSS}/c/securityService.c \

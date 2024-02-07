@@ -73,6 +73,7 @@
 #include "unixFileService.h"
 #include "omvsService.h"
 #include "datasetService.h"
+#include "crossViewCopyService.h"
 #include "serverStatusService.h"
 #include "rasService.h"
 #include "certificateService.h"
