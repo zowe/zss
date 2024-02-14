@@ -168,7 +168,7 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
   ZSS_SERVER_31="./zssServer"
   ZSS_SERVER_64="./zssServer64"
   
-  if [ "$ZWE_components_zss_agent_64bit" = "true" ] && [ -x "${ZSS_SERVER_64}" ]; then
+  if [ "$ZWE_components_zss_agent_64bit" != "false" ] && [ -x "${ZSS_SERVER_64}" ]; then
     ZSS_SERVER="${ZSS_SERVER_64}"
   else
     ZSS_SERVER="${ZSS_SERVER_31}"
