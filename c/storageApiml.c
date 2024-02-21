@@ -557,7 +557,7 @@ c89 \
   -DAPF_AUTHORIZED=0 \
   -Wc,dll,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
   -Wc,agg,exp,list\(\),so\(\),off,xref \
-  -Wl,ac=1,dll \
+  -Wl,dll \
   -I../h \
   -I../deps/zowe-common-c/h \
   -I/usr/lpp/gskssl/include \
