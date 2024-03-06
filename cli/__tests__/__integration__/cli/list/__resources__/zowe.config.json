@@ -1,0 +1,24 @@
+{
+    "profiles": {
+        "my_sample": {
+            "type": "sample",
+            "properties": {
+                "port": 443
+            },
+            "secure": []
+        },
+        "my_base": {
+            "type": "base",
+            "properties": {
+                "host": "old.host.com",
+                "user": "admin"
+            },
+            "secure": []
+        }
+    },
+    "defaults": {
+        "sample": "my_sample",
+        "base": "my_base"
+    },
+    "autoStore": true
+}

@@ -1,0 +1,46 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`zowe-cli-sample list command should display the help 1`] = `
+"
+ DESCRIPTION
+ -----------
+
+   [actions] in Zowe CLI are groups of commands. [actions] are always verbs. For
+   example, for command \\"zowe zos-files delete data-set\\", the [action] is \\"delete\\".
+
+   For this action (\\"list\\") we will list files, etc.
+
+ USAGE
+ -----
+
+   zowe zowe-cli-sample list <command>
+
+   Where <command> is one of the following:
+
+ COMMANDS
+ --------
+
+   directory-contents | dc Lists directory contents
+   profile-args | pa       Lists profile args      
+
+ GLOBAL OPTIONS
+ --------------
+
+   --help-examples (boolean)
+
+      Display examples for all the commands in a group
+
+   --response-format-json | --rfj (boolean)
+
+      Produce JSON formatted data from a command
+
+   --help | -h (boolean)
+
+      Display help text
+
+   --help-web | --hw (boolean)
+
+      Display HTML help in browser
+
+"
+`;
