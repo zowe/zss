@@ -1108,26 +1108,27 @@ static void readAgentAddressAndPortV2(ConfigManager *configmgr, char **addressHa
 static char* generateCookieNameV2(ConfigManager *configmgr, int port) {
   int cookieLength=256;
   char *cookieName = safeMalloc(cookieLength+1, "CookieName");
-  char *zoweInstanceId = getenv("ZOWE_INSTANCE");
-  char *haInstanceCountStr = getenv("ZWE_HA_INSTANCES_COUNT");
-  int haInstanceCount=0;
-  if (haInstanceCountStr != NULL) {
-    haInstanceCount = atoi(haInstanceCountStr);
-  }
-  if (haInstanceCount > 1 && zoweInstanceId != NULL) {
-    snprintf(cookieName, cookieLength, "%s.%s", SESSION_TOKEN_COOKIE_NAME, zoweInstanceId);
-  } else {
-    snprintf(cookieName, cookieLength, "%s.%d", SESSION_TOKEN_COOKIE_NAME, port);
-  }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cookie name set as %s\n",cookieName);
-  return cookieName;
-}
 
-static char* generateCookieName(JsonObject *envConfig, int port) {
-  int cookieLength=256;
-  char *cookieName = safeMalloc(cookieLength+1, "CookieName");
-  char *zoweInstanceId = getenv("ZWE_zowe_cookieIdentifier");
-  if (zoweInstanceId != NULL) {
+  int haInstanceCount=0;
+  Json *result = NULL;
+  int rc = cfgGetAnyC(configmgr, ZSS_CFGNAME, &result, 1, "haInstances");
+  if (jsonIsObject(result)){
+    JsonObject *resultObj = jsonAsObject(result);
+    JsonProperty *prop = resultObj->firstProperty;
+    while (prop!=NULL){
+      haInstanceCount++;
+      prop = prop->next;
+    }
+  }
+
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "instance count = %d\n", haInstanceCount);
+
+  char *zoweInstanceId = NULL;
+  cfgGetStringC(configmgr, ZSS_CFGNAME, &zoweInstanceId, 2, "zowe", "cookieIdentifier");
+
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "cookieId = %s\n", zoweInstanceId);
+
+  if (haInstanceCount > 1 && zoweInstanceId != NULL) {
     snprintf(cookieName, cookieLength, "%s.%s", SESSION_TOKEN_COOKIE_NAME, zoweInstanceId);
   } else {
     snprintf(cookieName, cookieLength, "%s.%d", SESSION_TOKEN_COOKIE_NAME, port);
