@@ -4,6 +4,7 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## `2.16.0`
 - Bugfix: AUX should take leap seconds into account in their log messages' timestamp (#690, #691)
+- Enhancement: JSON parsing is now debuggable via the logger "_zss.json". (#671)
 
 ## `2.14.0`
 - Bugfix: ZSS would not use zowe.cookieIdentifier when an HA config was used.
@@ -14,9 +15,6 @@ All notable changes to the ZSS package will be documented in this file.
 - Enhancement: Change pattern matching for keyrings to allow more types of keyrings in the future (#581)
 - Enhancement: Consolidate JWK warnings into improved ZWES1606W message (#663)
 - Bugfix:  Corrected build environment file's use of IP address to github.com (#660)
-
-## `2.16.0`
-- Enhancement: JSON parsing is now debuggable via the logger "_zss.json". (#671)
 
 ## `2.10.0`
 - This action making a CHANGELOG note via special syntax from the GitHub PR commit message, like it could automatically update CHANGELOG.md with the message. First job checks if PR body has changelog note or not if it's not there then it asked them to add it and second job is to check if changelog note has been added in changelog.md file or not. (#636)
