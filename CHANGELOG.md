@@ -4,6 +4,7 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## `2.16.0`
 - Bugfix: AUX should take leap seconds into account in their log messages' timestamp (#690, #691)
+- Enhancement: JSON parsing is now debuggable via the logger "_zss.json". (#671)
 
 ## `2.14.0`
 - Bugfix: ZSS would not use zowe.cookieIdentifier when an HA config was used.
