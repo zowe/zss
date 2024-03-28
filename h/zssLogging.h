@@ -297,6 +297,13 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_HTTPS_INVALID_MSG_TEXT        "Failed to configure https server, check agent https settings\n"
 #define ZSS_LOG_HTTPS_INVALID_MSG             ZSS_LOG_HTTPS_INVALID_MSG_ID" "ZSS_LOG_HTTPS_INVALID_MSG_TEXT
 
+#ifndef ZSS_LOG_CIPHER_INVALID_MSG_ID
+#define ZSS_LOG_CIPHER_INVALID_MSG_ID          ZSS_LOG_MSG_PRFX"1066W"
+#endif
+#define ZSS_LOG_CIPHER_INVALID_MSG_TEXT        "Requested cipher '%s' not available.\n"
+#define ZSS_LOG_CIPHER_INVALID_MSG             ZSS_LOG_CIPHER_INVALID_MSG_ID" "ZSS_LOG_CIPHER_INVALID_MSG_TEXT
+
+
 /* registerProduct */
 
 #ifndef ZSS_LOG_PROD_REG_ENABLED_MSG_ID
@@ -515,7 +522,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_JWK_RETRY_MSG_ID
 #define ZSS_LOG_JWK_RETRY_MSG_ID     ZSS_LOG_MSG_PRFX"1606W"
 #endif
-#define ZSS_LOG_JWK_RETRY_MSG_TEXT   "Failed to get JWK - %s, retry in %d seconds\n"
+#define ZSS_LOG_JWK_RETRY_MSG_TEXT   "Failed to get JWK. rc=%s (%d), rsn=%s (%d). Retry in %d seconds\n"
 #define ZSS_LOG_JWK_RETRY_MSG        ZSS_LOG_JWK_RETRY_MSG_ID" "ZSS_LOG_JWK_RETRY_MSG_TEXT
 
 #endif /* MVD_H_ZSSLOGGING_H_ */

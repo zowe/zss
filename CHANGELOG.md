@@ -2,7 +2,17 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
-## Recent Changes
+## `2.16.0`
+- Bugfix: AUX should take leap seconds into account in their log messages' timestamp (#690, #691)
+
+## `2.14.0`
+- Bugfix: ZSS would not use zowe.cookieIdentifier when an HA config was used.
+
+## `2.13.0`
+- Enhancement: Added support for using "zowe.network" and "components.zss.zowe.network" to set listener IP and TLS version properties. (#659)
+- Enhancement: Added support for using "zowe.network" and "components.zss.zowe.network" to set cipher suites.
+- Enhancement: Change pattern matching for keyrings to allow more types of keyrings in the future (#581)
+- Enhancement: Consolidate JWK warnings into improved ZWES1606W message (#663)
 - Bugfix:  Corrected build environment file's use of IP address to github.com (#660)
 
 ## `2.16.0`
