@@ -2,6 +2,9 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `2.17.0`
+- To enable configuring the number of blocks to be allocated to SLH, belonging to the http server.
+
 ## `2.16.0`
 - Bugfix: AUX should take leap seconds into account in their log messages' timestamp (#690, #691)
 
@@ -34,7 +37,7 @@ All notable changes to the ZSS package will be documented in this file.
 ## `2.7.0`
 
 - Enhancement: A new ZIS plugin, "ZISDYNAMIC" is available within the LOADLIB as ZWESISDL. This plugin allows for ZIS plugins to access utility functions of the zowe-common-c libraries without needing to statically build them into the plugin itself.
-- Enhancement: New REST endpoint that maps distributed username to RACF user ID.
+- Enhancemet: New REST endpoint that maps distributed username to RACF user ID.
 - Bugfix: Fixed /unixfile/metadata not working when URL encoded spaces were present in file names
 
 ## `2.5.0`
