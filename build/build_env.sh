@@ -40,7 +40,6 @@ c89 \
   -DHTTPSERVER_BPX_IMPERSONATION=1 \
   -DAPF_AUTHORIZED=0 \
   -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
-  -Wl,ac=1 \
   -I ${COMMON}/h \
   -I ${ZSS}/h \
   -o ${ZSS}/bin/envService \
