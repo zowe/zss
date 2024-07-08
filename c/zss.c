@@ -370,7 +370,7 @@ static void setHttpRequestHeapMaxBlocks(HttpServer *server, ConfigManager *confi
      }
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "httpHeapMaxBlocks should be between %d and %d\n",HTTP_REQUEST_HEAP_MIN_BLOCKS,HTTP_REQUEST_HEAP_MAX_BLOCKS);
   } else{
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "fallback to default server settings\n");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "fallback to default server settings\n");
     maxBlocks = HTTP_REQUEST_HEAP_DEFAULT_BLOCKS;
   }
   server->config->httpRequestHeapMaxBlocks = (unsigned int)maxBlocks;
