@@ -3,7 +3,7 @@
 All notable changes to the ZSS package will be documented in this file.
 
 ## `2.18.0`
-- Change log level for setting default value of 'httpRequestHeapMaxBlocks' to DEFAULT instead of INFO.(#719)
+- Change log level for setting default value of 'httpRequestHeapMaxBlocks' to DEBUG instead of INFO.(#719)
 
 ## `2.17.0`
 - Code to configure the SLH block size of the http server through 'httpRequestHeapMaxBlocks' in the yaml.(#701)
