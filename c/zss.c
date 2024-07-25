@@ -1851,8 +1851,9 @@ int main(int argc, char **argv){
       
       char *cookieName = generateCookieNameV2(configmgr, port);
       if (isHttpsConfigured) {
-        server = makeSecureHttpServer2(base, inetAddress, port, tlsEnv, requiredTLSFlag,
-                                       cookieName, &returnCode, &reasonCode);
+        FILE *file = open("/tmp/zss-memory-log.txt", "wt");
+        server = makeSecureHttpServer3(base, inetAddress, port, tlsEnv, requiredTLSFlag,
+                                       cookieName, &returnCode, &reasonCode, 1, file);
       } else {
         server = makeHttpServer3(base, inetAddress, port, requiredTLSFlag,
                                  cookieName, &returnCode, &reasonCode);
