@@ -303,6 +303,12 @@ bool isLogLevelValid(int level);
 #define ZSS_LOG_CIPHER_INVALID_MSG_TEXT        "Requested cipher '%s' not available.\n"
 #define ZSS_LOG_CIPHER_INVALID_MSG             ZSS_LOG_CIPHER_INVALID_MSG_ID" "ZSS_LOG_CIPHER_INVALID_MSG_TEXT
 
+#ifndef ZSS_LOG_CURVE_INVALID_MSG_ID
+#define ZSS_LOG_CURVE_INVALID_MSG_ID          ZSS_LOG_MSG_PRFX"1067W"
+#endif
+#define ZSS_LOG_CURVE_INVALID_MSG_TEXT        "Requested curve '%s' not supported.\n"
+#define ZSS_LOG_CURVE_INVALID_MSG             ZSS_LOG_CURVE_INVALID_MSG_ID" "ZSS_LOG_CURVE_INVALID_MSG_TEXT
+
 
 /* registerProduct */
 

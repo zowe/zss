@@ -4,6 +4,7 @@ All notable changes to the ZSS package will be documented in this file.
 
 ## `2.18.0`
 - Change log level for setting default value of 'httpRequestHeapMaxBlocks' to DEBUG instead of INFO.(#719)
+- Enhancement: Curve customization support from array 'zowe.network.server.tls.curves' in zowe.yaml, only curves mentioned in https://www.ibm.com/docs/en/zos/3.1.0?topic=programming-cipher-suite-definitions#csdcwh__tttcsd are supported currently (#721).
 
 ## `2.17.0`
 - Code to configure the SLH block size of the http server through 'httpRequestHeapMaxBlocks' in the yaml.(#701)
