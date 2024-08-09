@@ -114,7 +114,7 @@ Refer to that source for the full plugin sample.
 A ZIS plugin is a load module with the following characteristics:
 * AMODE 64
 * Reentrant
-* The result of call a ZIS plugin lod module is a plugin descriptor data 
+* The result of a call to a ZIS plugin load module is a plugin descriptor data 
 structure mapped by the C struct [`ZISPlugin`](https://github.com/zowe/zss/blob/82c6f2d30951d64fb1bb6487c2dde92700b91552/h/zis/plugin.h#L81-L112)
  
 ### Services
