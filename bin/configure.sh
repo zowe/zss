@@ -25,6 +25,6 @@ if [ -n "${ZWE_components_zss_pluginsDir}" ]; then
 fi
 
 if [ "${ZWE_components_app_server_enabled}" != "true" ]; then
-  _CEE_RUNOPTS="XPLINK(ON),HEAPPOOLS(OFF)" ${ZWE_zowe_runtimeDirectory}/bin/utils/configmgr -script "${ZWE_zowe_runtimeDirectory}/components/zss/bin/plugins-init.js"  
+  _CEE_RUNOPTS="XPLINK(ON),HEAPPOOLS(OFF),HEAPPOOLS64(OFF)" ${ZWE_zowe_runtimeDirectory}/bin/utils/configmgr -script "${ZWE_zowe_runtimeDirectory}/components/zss/bin/plugins-init.js"  
 fi
 

@@ -151,7 +151,6 @@ xlc \
   -DNEW_CAA_LOCATIONS=1 \
   -Wc,dll,expo,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
   -Wc,xplink,agg,exp,list,so\(\),off,xref \
-  -Wl,ac=1 \
   -I ${COMMON}/h \
   -I ${COMMON}/platform/posix \
   -I ${COMMON}/jwt/jwt \
