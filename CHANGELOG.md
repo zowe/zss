@@ -3,7 +3,7 @@
 All notable changes to the ZSS package will be documented in this file.
 
 ## `3.0.0`
-
+- Bugfix: ommiting `zowe.logDirectory` forces the zss to log into the `zowe.runtimeDirectory`. (#726)
 
 ## `2.18.0`
 - Change log level for setting default value of 'httpRequestHeapMaxBlocks' to DEBUG instead of INFO.(#719)
