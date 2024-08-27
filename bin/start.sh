@@ -77,7 +77,7 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
         if [ -z "${ZWE_zowe_runtimeDirectory}" ]; then
           ZWES_LOG_DIR="../log"
         else
-          echo "Cannot determine the log directory. Logging disabled."
+          echo "No log directory. Logging disabled."
           ZWES_LOG_DIR=
           ZWES_LOG_FILE=/dev/null
         fi
