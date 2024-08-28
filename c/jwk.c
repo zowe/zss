@@ -159,7 +159,7 @@ static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, 
       *rc = JWK_STATUS_HTTP_CONTEXT_ERROR;
       break;
     }
-    *rsn = httpClientSessionInit(httpClientContext, &session);
+    *rsn = httpClientSessionInit2(httpClientContext, &session, rc);
     if (*rsn) {
       *rc = JWK_STATUS_HTTP_REQ_INIT_ERROR;
       break;

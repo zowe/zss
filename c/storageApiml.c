@@ -258,6 +258,7 @@ static int transformHttpStatus(int httpStatus) {
 static ApimlResponse *apimlDoRequest(ApimlStorage *storage, ApimlRequest *request, int *statusOut) {
   int status = 0;
   int statusCode = 0;
+  int rc = 0;
   TlsEnvironment *tlsEnv = storage->tlsEnv;
   HttpClientSettings *clientSettings = storage->clientSettings;
   HttpClientContext *httpClientContext = NULL;
@@ -277,7 +278,7 @@ static ApimlResponse *apimlDoRequest(ApimlStorage *storage, ApimlRequest *reques
       *statusOut = STORAGE_STATUS_HTTP_ERROR;
       break;
     }
-    status = httpClientSessionInit(httpClientContext, &session);
+    status = httpClientSessionInit2(httpClientContext, &session, &rc);
     if (status) {
       zowelog(NULL, LOG_COMP_ID_APIML_STORAGE, ZOWE_LOG_DEBUG, "error initing session: %d\n", status);
       *statusOut = STORAGE_STATUS_HTTP_ERROR;
