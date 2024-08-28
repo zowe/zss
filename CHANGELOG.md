@@ -3,7 +3,7 @@
 All notable changes to the ZSS package will be documented in this file.
 
 ## `3.0.0`
-
+- Enhancement: if no `zowe.logDirectory` is defined in config, logging is disabled. (#726)
 
 ## `2.18.0`
 - Change log level for setting default value of 'httpRequestHeapMaxBlocks' to DEBUG instead of INFO.(#719)
