@@ -281,6 +281,13 @@ int serveLoginWithSessionToken(HttpService *service, HttpResponse *response) {
   return HTTP_SERVICE_SUCCESS;
 }
 
+int serveStop(HttpService *service, HttpResponse *response) {
+  respondWithMessage(response, 200, "");
+  stcBaseShutdown(service->server->base);
+  return 0;
+}
+
+
 int serveLogoutByRemovingSessionToken(HttpService *service, HttpResponse *response) {
   jsonPrinter *p = respondWithJsonPrinter(response);
 
@@ -762,6 +769,14 @@ static void installLoginService(HttpServer *server) {
   httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
   httpService->serviceFunction = serveLoginWithSessionToken;
   httpService->authExtractionFunction = extractAuthorizationFromJson;
+  registerHttpService(server, httpService);
+}
+
+static void installStopService(HttpServer *server) {
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
+  HttpService *httpService = makeGeneratedService("com.rs.mvd.stop", "/stop/**");
+  httpService->authType = SERVICE_AUTH_NONE;
+  httpService->serviceFunction = serveStop;
   registerHttpService(server, httpService);
 }
 
@@ -1864,6 +1879,10 @@ int main(int argc, char **argv){
     
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "made http(s) server at 0x%p\n",server);
     if (server){
+
+      printf("tls env = %p, handle = %p\n", tlsEnv, tlsEnv->envHandle);
+      fflush(stdout);
+
       httpServerConfigManager(server) = configmgr;
       ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettingsV2(slh, configmgr, tlsEnv);
       JwkSettings *jwkSettings = readJwkSettingsV2(slh, configmgr, tlsEnv);
@@ -1903,8 +1922,16 @@ int main(int argc, char **argv){
 #endif
       installLoginService(server);
       installLogoutService(server);
+      installStopService(server);
       printZISStatus(server);
       mainHttpLoop(server);
+
+      printf("about to tlsDestroy\n");
+      fflush(stdout);
+      tlsDestroy(tlsEnv);
+      printf("sleeping for 60 seconds\n");
+      fflush(stdout);
+      sleep(60);
 
     } else{
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_ZSS_STARTUP_MSG, returnCode, reasonCode);
