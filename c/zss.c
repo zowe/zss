@@ -355,6 +355,27 @@ static void setPrivilegedServerName(HttpServer *server, JsonObject *mvdSettings,
 }
 #endif /* __ZOWE_OS_ZOS */
 
+static void setHttpRequestHeapMaxBlocks(HttpServer *server, ConfigManager *configmgr){
+
+  int maxBlocks = 0;
+  int getStatus = cfgGetIntC(configmgr,ZSS_CFGNAME,&maxBlocks,3,"components","zss","httpHeapMaxBlocks");
+
+  if (getStatus == ZCFG_SUCCESS){
+    if (maxBlocks > HTTP_REQUEST_HEAP_MAX_BLOCKS){
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "httpHeapMaxBlocks out of range, max value is %d\n",HTTP_REQUEST_HEAP_MAX_BLOCKS); 
+      maxBlocks = HTTP_REQUEST_HEAP_MAX_BLOCKS;
+     } else if (maxBlocks < HTTP_REQUEST_HEAP_MIN_BLOCKS){
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "httpHeapMaxBlocks out of range, min value is %d\n",HTTP_REQUEST_HEAP_MIN_BLOCKS); 
+      maxBlocks = HTTP_REQUEST_HEAP_MIN_BLOCKS;
+     }
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "httpHeapMaxBlocks should be between %d and %d\n",HTTP_REQUEST_HEAP_MIN_BLOCKS,HTTP_REQUEST_HEAP_MAX_BLOCKS);
+  } else{
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "fallback to default server settings\n");
+    maxBlocks = HTTP_REQUEST_HEAP_DEFAULT_BLOCKS;
+  }
+  server->config->httpRequestHeapMaxBlocks = (unsigned int)maxBlocks;
+}
+
 static void loadWebServerConfigV2(HttpServer *server, 
                                   ConfigManager *configmgr,
                                   hashtable *htUsers,
@@ -370,6 +391,7 @@ static void loadWebServerConfigV2(HttpServer *server,
   server->config->userTimeouts = htUsers;
   server->config->groupTimeouts = htGroups;
   server->config->defaultTimeout = defaultSessionTimeout;
+  setHttpRequestHeapMaxBlocks(server, configmgr);
   registerHttpServiceOfLastResort(server,NULL);
 #ifdef __ZOWE_OS_ZOS
   setPrivilegedServerNameV2(server, configmgr);
@@ -1108,26 +1130,27 @@ static void readAgentAddressAndPortV2(ConfigManager *configmgr, char **addressHa
 static char* generateCookieNameV2(ConfigManager *configmgr, int port) {
   int cookieLength=256;
   char *cookieName = safeMalloc(cookieLength+1, "CookieName");
-  char *zoweInstanceId = getenv("ZOWE_INSTANCE");
-  char *haInstanceCountStr = getenv("ZWE_HA_INSTANCES_COUNT");
-  int haInstanceCount=0;
-  if (haInstanceCountStr != NULL) {
-    haInstanceCount = atoi(haInstanceCountStr);
-  }
-  if (haInstanceCount > 1 && zoweInstanceId != NULL) {
-    snprintf(cookieName, cookieLength, "%s.%s", SESSION_TOKEN_COOKIE_NAME, zoweInstanceId);
-  } else {
-    snprintf(cookieName, cookieLength, "%s.%d", SESSION_TOKEN_COOKIE_NAME, port);
-  }
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cookie name set as %s\n",cookieName);
-  return cookieName;
-}
 
-static char* generateCookieName(JsonObject *envConfig, int port) {
-  int cookieLength=256;
-  char *cookieName = safeMalloc(cookieLength+1, "CookieName");
-  char *zoweInstanceId = getenv("ZWE_zowe_cookieIdentifier");
-  if (zoweInstanceId != NULL) {
+  int haInstanceCount=0;
+  Json *result = NULL;
+  int rc = cfgGetAnyC(configmgr, ZSS_CFGNAME, &result, 1, "haInstances");
+  if (jsonIsObject(result)){
+    JsonObject *resultObj = jsonAsObject(result);
+    JsonProperty *prop = resultObj->firstProperty;
+    while (prop!=NULL){
+      haInstanceCount++;
+      prop = prop->next;
+    }
+  }
+
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "instance count = %d\n", haInstanceCount);
+
+  char *zoweInstanceId = NULL;
+  cfgGetStringC(configmgr, ZSS_CFGNAME, &zoweInstanceId, 2, "zowe", "cookieIdentifier");
+
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "cookieId = %s\n", zoweInstanceId);
+
+  if (haInstanceCount > 1 && zoweInstanceId != NULL) {
     snprintf(cookieName, cookieLength, "%s.%s", SESSION_TOKEN_COOKIE_NAME, zoweInstanceId);
   } else {
     snprintf(cookieName, cookieLength, "%s.%d", SESSION_TOKEN_COOKIE_NAME, port);
@@ -1147,6 +1170,8 @@ static char* generateCookieName(JsonObject *envConfig, int port) {
 #define AGENT_HTTPS_PREFIX       "ZWED_agent_https_"
 #define ENV_AGENT_HTTPS_KEY(key) AGENT_HTTPS_PREFIX key
 
+TLS_IANA_CIPHER_MAP(ianaCipherMap)
+
 static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
                                      ConfigManager *configmgr,
                                      char **outAddress,
@@ -1161,13 +1186,46 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
   JsonObject *httpsConfigObject = jsonAsObject(httpsConfig);
   TlsSettings *settings = (TlsSettings*)SLHAlloc(slh, sizeof(*settings));
   settings->maxTls = jsonObjectGetString(httpsConfigObject, "maxTls");
-  char *ciphers = jsonObjectGetString(httpsConfigObject, "ciphers");
+  settings->minTls = jsonObjectGetString(httpsConfigObject, "minTls");
+  
+  Json *cipherJson = jsonObjectGetPropertyValue(httpsConfigObject, "ciphers");
+  char *ciphers = NULL;
+  if (jsonIsString(cipherJson)) {
   /* 
-   * Takes a string of ciphers. This isn't ideal, but any other methods are
-   * going to be fairly complicated.
-   *
+   * Takes a string of ciphers.
    * ciphers: 13021303003500380039002F00320033
    */
+    ciphers = jsonObjectGetString(httpsConfigObject, "ciphers");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher string override to %s\n", ciphers);
+  } else {
+    JsonArray *cipherArray = jsonObjectGetArray(httpsConfigObject, "ciphers");
+    int count = jsonArrayGetCount(cipherArray);
+
+    int cipherCharLength = 4;
+    ciphers = (char *)safeMalloc((sizeof(char) * cipherCharLength * count)+1, "cipher list");
+
+    for (int i = 0; i < count; i++) {
+      char *ianaName = jsonArrayGetString(cipherArray, i);
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher request=%s\n", ianaName);
+      CipherMap *cipher = (CipherMap *)ianaCipherMap;
+      bool found = false;
+      while (cipher->suiteId != NULL) {
+        if (!strcmp(ianaName, cipher->name)) {
+          strcat(ciphers, cipher->suiteId);
+          zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher match=%s\n", cipher->suiteId);
+          found = true;
+          break;
+        }
+        ++cipher;
+      }
+      if (!found) {
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_CIPHER_INVALID_MSG, ianaName);
+      }
+    }
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher array override to %s\n", ciphers);    
+    
+  }
+
   ECVT *ecvt = getECVT();
   /*
      2.3 (1020300) no tls 1.3

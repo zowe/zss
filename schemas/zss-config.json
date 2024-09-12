@@ -124,8 +124,17 @@
               "description": "The password to the keyring"
             },
             "ciphers": {
-              "type": [ "string", "null" ],
-              "description": "The list of ciphers in order of priority"
+              "oneOf": [
+                { "type": "string",
+                  "description": "A set of cipher suite IDs as a number string without separators. The numbers are in order of priority."
+                },
+                { "type": "array",
+                  "description": "A set of IANA names for cipher suites, in order of priority",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
             },
             "keyshares": {
               "type": [ "string", "null" ],
@@ -133,10 +142,17 @@
             },
             "maxTls": {
               "type": [ "string", "null" ],
-              "enum": ["TLSv1.0", "TLSv1.1", "TLSv1.2", "TLSv1.3"],
+              "enum": ["TLSv1.2", "TLSv1.3"],
               "default": "TLSv1.3",
               "description": "Maximum tls version allowed."
+            },
+            "minTls": {
+              "type": [ "string", "null" ],
+              "enum": ["TLSv1.2", "TLSv1.3"],
+              "default": "TLSv1.2",
+              "description": "Minimum tls version allowed."
             }
+
           }
         },
         "http": {
