@@ -18,6 +18,7 @@
 
 #pragma map(zisGetServerVersion, "ZISGVRSN")
 #pragma map(zisIsLPADevModeOn, "ZISLPADV")
+#pragma map(zisIsModregOn, "ZISMDREG")
 
 /**
  * Get the version of ZIS. In case of failure, all the results are set to -1.
@@ -35,6 +36,13 @@ struct ZISContext_tag;
  * @return @c true if on, otherwise @c false.
  */
 _Bool zisIsLPADevModeOn(const struct ZISContext_tag *context);
+
+/**
+ * Check if the module registry is enabled for ZIS.
+ * @param[in] context The server context.
+ * @return @c true if on, otherwise @c false.
+ */
+_Bool zisIsModregOn(const struct ZISContext_tag *context);
 
 #endif /* ZIS_SERVER_API_H_ */
 

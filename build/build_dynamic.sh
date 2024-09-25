@@ -50,12 +50,15 @@ xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
   -DZISDYN_REVISION="$micro" \
   -DZISDYN_VERSION_DATE_STAMP="$date_stamp" \
   -DZISDYN_PLUGIN_VERSION=${DYNLINK_PLUGIN_VERSION} \
+  -DLPA_LOG_DEBUG_MSG_ID=\"ZWES0100I\" \
+  -DMODREG_LOG_DEBUG_MSG_ID=\"ZWES0100I\" \
   -qreserved_reg=r12 \
   -DRCVR_CPOOL_STATES \
   -DHAVE_METALIO=1 \
   -Wc,langlvl\(extc99\),arch\(8\),agg,exp,list\(\),so\(\),off,xref,roconst,longname,lp64 \
   -I ${COMMON}/h -I ${ZSS}/h \
   -I ${ZSS}/zis-aux/include -I ${ZSS}/zis-aux/src \
+  -I /usr/include/zos \
   ${ZSS}/c/zis/zisdynamic.c \
   ${ZSS}/c/zis/server-api.c \
   ${ZSS}/c/zis/client.c \
@@ -81,6 +84,7 @@ xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
   ${COMMON}/c/logging.c \
   ${COMMON}/c/lpa.c \
   ${COMMON}/c/metalio.c \
+  ${COMMON}/c/modreg.c \
   ${COMMON}/c/nametoken.c \
   ${COMMON}/c/pause-element.c \
   ${COMMON}/c/pc.c \
@@ -125,6 +129,7 @@ for file in \
     logging \
     lpa \
     metalio \
+    modreg \
     nametoken \
     pause-element \
     pc \
@@ -173,6 +178,7 @@ le.o \
 logging.o \
 lpa.o \
 metalio.o \
+modreg.o \
 nametoken.o \
 pause-element.o \
 pc.o \

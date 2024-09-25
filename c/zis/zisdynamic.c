@@ -31,6 +31,7 @@
 #include "logging.h"
 #include "lpa.h"
 #include "metalio.h"
+#include "modreg.h"
 #include "nametoken.h"
 #include "pause-element.h"
 #include "pc.h"
@@ -422,6 +423,8 @@ static int verifyZISVersion(void) {
 }
 
 ZISPlugin *getPluginDescriptor(void) {
+
+  MODREG_MARK_MODULE();
 
   if (verifyZISVersion() != 0) {
     return NULL;

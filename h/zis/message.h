@@ -116,6 +116,18 @@
 #define ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG_TEXT   "ZSS Cross-Memory server module member name not determined, RC = %d"
 #define ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG        ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG_ID" "ZIS_LOG_CXMS_MOD_NAME_FAILED_MSG_TEXT
 
+#define ZIS_LOG_MODULE_STATUS_MSG_ID            ZIS_MSG_PRFX"0022I"
+#define ZIS_LOG_MODULE_STATUS_MSG_TEXT          "Module %-8.8s status: %s"
+#define ZIS_LOG_MODULE_STATUS_MSG               ZIS_LOG_MODULE_STATUS_MSG_ID" "ZIS_LOG_MODULE_STATUS_MSG_TEXT
+
+#define ZIS_LOG_MODREG_NO_MARK_MSG_ID           ZIS_MSG_PRFX"0023I"
+#define ZIS_LOG_MODREG_NO_MARK_MSG_TEXT         "Module %-8.8s not eligible for registry, proceeding with LPA ADD"
+#define ZIS_LOG_MODREG_NO_MARK_MSG              ZIS_LOG_MODREG_NO_MARK_MSG_ID" "ZIS_LOG_MODREG_NO_MARK_MSG_TEXT
+
+#define ZIS_LOG_MODREG_FAILURE_MSG_ID           ZIS_MSG_PRFX"0024E"
+#define ZIS_LOG_MODREG_FAILURE_MSG_TEXT         "Module %-8.8s not registered, RC = %d, RSN = 0x%016llX"
+#define ZIS_LOG_MODREG_FAILURE_MSG              ZIS_LOG_MODREG_FAILURE_MSG_ID" "ZIS_LOG_MODREG_FAILURE_MSG_TEXT
+
 /* ZIS AUX messages */
 
 #define ZISAUX_LOG_STARTUP_MSG_ID               ZIS_MSG_PRFX"0050I"

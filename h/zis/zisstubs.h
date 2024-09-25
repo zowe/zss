@@ -20,7 +20,7 @@
    FULL BACKWARD COMPATIBILITY MUST BE MAINTAINED
    */
 
-#define ZIS_STUBS_VERSION 4
+#define ZIS_STUBS_VERSION 5
 
 /*
   How does a user check for compatibility?
@@ -48,6 +48,7 @@
 #define ZIS_STUB_ZISDYNPV 2 /* zisdynGetPluginVersion mapped */
 #define ZIS_STUB_ZISGVRSN 3 /* zisGetServerVersion mapped */
 #define ZIS_STUB_ZISLPADV 4 /* zisIsLPADevModeOn mapped */
+#define ZIS_STUB_ZISMDREG 5 /* zisIsModregOn mapped */
 
 /* zis/client, 50-79 */
 #define ZIS_STUB_ZISCSRVC 50 /* zisCallService */
@@ -692,6 +693,9 @@
 #define ZIS_STUB_ZVTFENTR 903 /* zvtFreeEntry mapped */
 #define ZIS_STUB_ZVTGXMLR 904 /* zvtGetCMSLookupRoutineAnchor mapped */
 #define ZIS_STUB_ZVTSXMLR 905 /* zvtSetCMSLookupRoutineAnchor mapped */
+
+/* modreg, 915-920 */
+#define ZIS_STUB_MODRRGST 915 /* modregRegister mapped */
 
 #endif /* ZIS_ZISSTUBS_H_ */
 
