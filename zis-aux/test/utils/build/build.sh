@@ -40,7 +40,7 @@ $COMMON/c/zos.c ; extattr +a ../bin/shrmem64-target-test
 
 xlc "-Wa,goff" -DAS_TEST \
 "-Wc,LANGLVL(EXTC99),FLOAT(HEX),agg,exp,list(),so(),goff,xref,gonum,roconst,gonum,ASM,ASMLIB('SYS1.MACLIB'),LP64,XPLINK" \
-"-Wl,ac=1" -I $COMMON/h -I $ZSSAUX/src -I $ZSSAUX/include \
+-I $COMMON/h -I $ZSSAUX/src -I $ZSSAUX/include \
 -o ../bin/pe-test \
 $ZSSAUX/test/utils/src/pe-test.c \
 $COMMON/c/alloc.c \

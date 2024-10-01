@@ -146,7 +146,7 @@ do
 done
 
 
-ld -V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus -e getPluginDescriptor \
+ld -V -b rent -b case=mixed -b map -b xref -b reus -e getPluginDescriptor \
 -o "//'${USER}.DEV.LOADLIB(ZWESISDL)'" \
 zisdynamic.o \
 server-api.o \
