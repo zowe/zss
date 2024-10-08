@@ -103,14 +103,20 @@ def genVolserId():
 global_directory = {
     "permissions": 777,
     "type": "folder",
+    "createdAt": "1999-06-02T12:35:07",
+    "ccsid": 37,
     "contents": {
         "folder1": {
             "permissions": 777,
             "type": "folder",
+            "createdAt": "1998-08-02T17:49:22",
+            "ccsid": 37,
             "contents": {
                 "file1": {
                     "permissions": 777,
                     "type": "file",
+                    "createdAt": "2021-06-02T12:35:07",
+                    "ccsid": 37,
                     "contents": {
                         "raw": "This is file1",
                         "b64": "VGhpcyBpcyBmaWxlMQ=="
@@ -119,10 +125,14 @@ global_directory = {
                 "folderA": {
                     "permissions": 777,
                     "type": "folder",
+                    "createdAt": "2021-10-03T09:55:24",
+                    "ccsid": 37,
                     "contents": {
                         "fileA": {
                             "permissions": 777,
                             "type": "file",
+                            "createdAt": "2021-10-03T09:55:24",
+                            "ccsid": 37,
                             "contents": {
                                 "raw": "This is fileA",
                                 "b64": "VGhpcyBpcyBmaWxlQQ=="
@@ -135,11 +145,15 @@ global_directory = {
         "folder2": {
             "permissions": 777,
             "type": "folder",
+            "createdAt": "2021-10-03T09:55:24",
+            "ccsid": 37,
             "contents": {}
         },
         "file1": {
             "permissions": 777,
             "type": "file",
+            "createdAt": "2021-10-03T09:55:24",
+            "ccsid": 37,
             "contents": {
                 "raw": "This is file1",
                 "b64": "VGhpcyBpcyBmaWxlMQ=="
@@ -148,6 +162,8 @@ global_directory = {
         "file2": {
             "permissions": 777,
             "type": "file",
+            "createdAt": "2021-10-03T09:55:24",
+            "ccsid": 37,
             "contents": {
                 "raw": "Goodbye",
                 "b64": "VGhpcyBpcyBmaWxlMg=="
@@ -156,6 +172,8 @@ global_directory = {
         "noPermissions": {
             "permissions": 0,
             "type": "file",
+            "createdAt": "2021-10-03T09:55:24",
+            "ccsid": 37,
             "contents": {
                 "raw": "You should not be able to read this",
                 "b64": "WW91IHNob3VsZCBub3QgYmUgYWJsZSB0byByZWFkIHRoaXM="
@@ -206,7 +224,7 @@ def unix_contents(subpath):
                             "directory": True if global_directory['contents'][key]['type'] == "folder" else False,
                             "size": 9,
                             "ccsid": 0,
-                            "createdAt": "2018-11-03T14:18:27",
+                            "createdAt": global_directory['contents'][key]['createdAt'],
                             "mode": 777
                         }
                     )
@@ -230,7 +248,7 @@ def unix_contents(subpath):
                                 "directory": True if directory['contents'][key]['type'] == "folder" else False,
                                 "size": 9,
                                 "ccsid": 0,
-                                "createdAt": "2018-11-03T14:18:27",
+                                "createdAt": directory['contents'][key]['createdAt'],
                                 "mode": 777
                             }
                         )
@@ -534,6 +552,42 @@ def unixfile_copy(subpath):
                 dir['contents'][newNames[i]] = newDirectory
             dir = dir["contents"][newNames[i]]
         return {"msg": "File Successfully Copied"}
+
+@app.route('/unixfile/metaData/<path:subpath>', methods=['GET'])
+def unixfile_metaData(subpath):
+    if request.method == 'GET':
+        directory = global_directory["contents"]
+        metaData = {
+            "path": subpath,
+            "directory": True,
+            "size": 0,
+            "ccsid": 0,
+            "createdAt": "",
+            "mode": 0
+        }
+        if(subpath is None or subpath == ""):
+            return {'error': 'File/Directory could not be opened or does not exist.'}, 404
+        subpath = subpath.split("/")
+        currPath = directory
+        #Go to the folder above the final dest and return if the path DNE
+        for x in range(0, len(subpath)-1):
+            if (subpath[x] not in currPath):
+                return {'error': 'File/Directory could not be opened or does not exist.'}, 404
+            currPath = currPath[subpath[x]]["contents"]
+        dest = subpath[len(subpath)-1]
+        #Check if the dest is in the final path and return if the path DNE
+        if (dest not in currPath):
+            return {'error': 'File/Directory could not be opened or does not exist.'}, 404
+        currPath = currPath[dest]
+        metaData["size"] = len(currPath["contents"])
+        #Set the file specific metadata
+        if(currPath["type"] == "file"):
+            metaData["directory"] = False
+            metaData["size"] = len(currPath["contents"]["raw"])
+        metaData["mode"] = currPath["permissions"]
+        metaData["createdAt"] = currPath["createdAt"]
+        metaData["ccsid"] = currPath["ccsid"]
+        return metaData, 200
 
 if __name__ == '__main__':
     app.run(debug=True)
