@@ -1032,6 +1032,63 @@ static int serveUnixFileChangeTag(HttpService *service, HttpResponse *response) 
   return 0;
 }
 
+static int serveUnixFolderDownloadMode(HttpService *service, HttpResponse *response) {
+  HttpRequest *request = response->request;
+  char *routeFileFrag = stringListPrint(request->parsedFile, 2, 1000, "/", 0);
+
+  if (routeFileFrag == NULL || strlen(routeFileFrag) == 0) {
+    respondWithJsonError(response, "Required absolute path of the resource is not provided", HTTP_STATUS_BAD_REQUEST,
+     "Bad Request");
+    return 0;
+  }
+  char *encodedRouteFolder = stringConcatenate(response->slh, "/", routeFileFrag);
+  char *absolutePath = cleanURLParamValue(response->slh, encodedRouteFolder);
+
+  if (!strcmp(request->method, methodGET)) {
+#ifdef METTLE
+  respondWithJsonError(response, "Create archive from directory unimplemented in metal", HTTP_STATUS_BAD_REQUEST,
+   "Bad Request");
+#else
+    if (isDir(routeFolderName)) {
+      char fileNameBuffer[USS_MAX_PATH_LENGTH + 1] = {0};
+      char commandBuffer[USS_MAX_PATH_LENGTH + 1] = {0};
+
+      int folderNameLen = strlen(absolutePath);
+      if (folderNameLen == 0 || absolutePath == NULL) {
+        respondWithJsonError(response, "Failed to idenity the folder pointed", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+        return;
+      }
+
+      int slashPos = lastIndexOf(absolutePath, folderNameLen, '/');
+      char *tarFileName = (slashPos == -1) ? absolutePath : absolutePath + slashPos + 1;
+      snprintf(fileNameBuffer, sizeof(fileNameBuffer), "%s%s", tarFileName, ".tar");
+
+      char *tarCommand = "/bin/tar -cf ";
+      snprintf(commandBuffer, sizeof(commandBuffer), "%s%s%s%s", tarCommand, fileNameBuffer, " ", absolutePath);
+
+      // system command will create the tar.
+      system(commandBuffer);
+      if(doesFileExist(fileNameBuffer)) {
+        respondWithUnixFileContentsWithAutocvtMode(NULL, response, fileNameBuffer, TRUE, 0);
+        deleteUnixFile(fileNameBuffer);
+      }
+      else {
+        respondWithJsonError(response, "Failed to create tar file", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+        return;
+      }
+    }
+    else {
+      respondWithJsonError(response, "Failed to identify a directory with the given name", HTTP_STATUS_BAD_REQUEST,
+       "Bad Request");
+      return;
+    }
+  }
+  else {
+    respondWithJsonError(response, "Method Not Allowed", HTTP_STATUS_METHOD_NOT_FOUND, "Bad Request");
+    return 0;
+  }
+  return 0;
+}
 
 static int serveTableOfContents(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
@@ -1072,6 +1129,10 @@ static int serveTableOfContents(HttpService *service, HttpResponse *response) {
 
     jsonStartObject(out, NULL);
     jsonAddString(out, "chmod", "/unixfile/chmod/{absPath}");
+    jsonEndObject(out);
+
+    jsonStartObject(out, NULL);
+    jsonAddString(out, "folderdownload", "/unixfile/folderdownload/{absPath}");
     jsonEndObject(out);
 
     jsonEndArray(out);
@@ -1204,6 +1265,17 @@ void installUnixFileTableOfContentsService(HttpServer *server) {
   httpService->serviceFunction = serveTableOfContents;
   registerHttpService(server, httpService);
 }
+
+void installUnixFolderToFileConvertAndDownloadService(HttpServer *server) {
+  HttpService *httpService = makeGeneratedService("UnixFolderDownload",
+      "/unixfile/folderdownload/**");
+  httpService->authType = SERVICE_AUTH_NATIVE_WITH_SESSION_TOKEN;
+  httpService->serviceFunction = serveUnixFolderDownloadMode;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = TRUE;
+  registerHttpService(server, httpService);
+}
+
 
 
 /*
