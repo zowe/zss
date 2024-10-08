@@ -207,7 +207,7 @@ def unix_contents(subpath):
                             "size": 9,
                             "ccsid": 0,
                             "createdAt": "2018-11-03T14:18:27",
-                            "mode": 777
+                            "mode": global_directory['contents'][key]['permissions']
                         }
                     )
         else:
@@ -231,7 +231,7 @@ def unix_contents(subpath):
                                 "size": 9,
                                 "ccsid": 0,
                                 "createdAt": "2018-11-03T14:18:27",
-                                "mode": 777
+                                "mode": directory['contents'][key]['permissions']
                             }
                         )
         return test
@@ -535,6 +535,52 @@ def unixfile_copy(subpath):
             dir = dir["contents"][newNames[i]]
         return {"msg": "File Successfully Copied"}
 
+@app.route('/unixfile/chmod/<path:dir>', methods=['POST'])
+def unixfile_chmod(dir):
+    if request.method == 'POST':
+        try:
+            directory = global_directory["contents"]
+            dirPaths = dir.split("/")
+            mode = request.args.get('mode')
+            recursive = False
+            pattern = request.args.get('pattern')
+            if(request.args.get('recursive') is not None):
+                recursive = request.args.get('recursive').lower() == "true"
+            if(pattern == ""):
+                pattern = None
+            #Check if the input is an octal number
+            try:
+                int(mode, 8)
+                if(mode[:2] == "0o"):
+                    mode = int(mode, 8)
+                else:
+                    mode = int(mode)
+            except:
+                return {"msg": "Failed to change mode, mode not octal"}, 400
+            currPath = directory
+            #Get the contents of the layer above the directory
+            for x in range(0, len(dirPaths) - 1):
+                if(dirPaths[x] not in currPath):
+                    return {"msg": "Directory/File not found."}, 404
+                currPath = currPath[dirPaths[x]]["contents"]
+            #Get the directory of the call
+            if (dirPaths[len(dirPaths) - 1] not in currPath):
+                return {"msg": "Directory/File not found."}, 404
+            #Change mode of the directory provided
+            if(pattern is None or pattern in dirPaths[len(dirPaths)-1]):
+                currPath[dirPaths[len(dirPaths) - 1]]["permissions"] = mode
+            #Make a recursive call to this function if it is recursive
+            if(currPath[dirPaths[len(dirPaths)-1]]["type"] == "folder" and len(currPath[dirPaths[len(dirPaths)-1]]["contents"]) > 0 and recursive):
+                for child, value in currPath[dirPaths[len(dirPaths)-1]]["contents"].items():
+                    if (value["type"] == "folder"):
+                        recursiveResult = unixfile_chmod(dir + "/" + child)
+                        if(recursiveResult[1] != 200):
+                            return recursiveResult
+                    if (pattern is None or pattern in child):
+                        value["permissions"] = mode
+            return {"msg": "Successfully Modified Modes"}, 200
+        except:
+            return {"msg": "Failed to modify file modes"}, 500
+
 if __name__ == '__main__':
     app.run(debug=True)
-
