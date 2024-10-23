@@ -31,6 +31,10 @@ _Bool zisIsLPADevModeOn(const ZISContext *context) {
   return (context->cmsFlags & devFlags) || ZIS_LPA_DEV_MODE;
 }
 
+_Bool zisIsModregOn(const ZISContext *context) {
+  return context->cmsFlags & CMS_SERVER_FLAG_USE_MODREG;
+}
+
 void zisGetServerVersion(int *major, int *minor, int *revision) {
   *major = -1;
   *minor = -1;

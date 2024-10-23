@@ -53,7 +53,13 @@
 //*         AT START UP. THIS MODE MUST NEVER BE USED IN PRODUCTION  */
 //*         AS IT MAY AFFECT THE CALLERS OF THE CROSS-MEMORY SERVER. */
 //*         USE THIS MODE TO DECREASE THE MEMORY FOOTPRINT DURING    */
-//*         DEVELOPMENT.                                             */
+//*         DEVELOPMENT. ADDITIONALLY, THIS MODE WILL DISABLE THE    */
+//*         MODULE REGISTRY FEATURE BECAUSE ZIS CANNOT REMOVE SHARED */
+//*         MODULE FROM LPA.                                         */
+//*     MODULE_REGISTRY - MODULE REGISTRY MODE. DEFAULT IS YES. IF   */
+//*         SET TO NO, DISABLES THE MODULE REGISTRY FEATURE, SO THAT */
+//*         ZIS WILL ALWAYS USE ITS OWN INSTANCES OF LOAD MODULES IN */
+//*         LPA.                                                     */
 //*                                                                  */
 //********************************************************************/
 

@@ -32,6 +32,7 @@
 #include "stcbase.h"
 #include "utils.h"
 #include "recovery.h"
+#include "modreg.h"
 
 #include "zis/message.h"
 #include "zis/parm.h"
@@ -81,6 +82,9 @@ See details in the ZSS Cross Memory Server installation guide
 #define ZIS_PARM_DEV_MODE                     CMS_PROD_ID".DEV_MODE"
 #define ZIS_PARM_DEV_MODE_LPA                 CMS_PROD_ID".DEV_MODE.LPA"
   #define ZIS_PARM_DEV_MODE_ON                  "YES"
+
+#define ZIS_PARM_MODREG                       CMS_PROD_ID".MODULE_REGISTRY"
+  #define ZIS_PARM_MODREG_OFF                   "NO"
 
 #define ZIS_PARMLIB_PARM_SERVER_NAME          CMS_PROD_ID".NAME"
 
@@ -676,18 +680,49 @@ static int relocatePluginToLPAIfNeeded(ZISContext *context,
   /* Check if LPA, and load if needed */
   if (lpaNeeded) {
 
+    const char *status = "n/a";
+
     if (!lpaPresent) {
 
       EightCharString ddname = {"STEPLIB "};
-      int lpaRSN = 0;
-      int lpaRC = lpaAdd(&anchor->moduleInfo, &ddname, &moduleName, &lpaRSN);
-      if (lpaRC != 0) {
-        zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE, ZIS_LOG_LPA_FAILURE_MSG,
-                "ADD", anchor->moduleInfo.inputInfo.name, lpaRC, lpaRSN);
-        return RC_ZIS_ERROR;
+
+      if (zisIsModregOn(context) && !zisIsLPADevModeOn(context)) {
+        uint64_t modregRSN;
+        int modregRC = modregRegister(ddname, moduleName, &anchor->moduleInfo,
+                                      &modregRSN);
+        if (modregRC == RC_MODREG_OK) {
+          status = "new instance added to registry";
+          lpaPresent = true;
+        } else if (modregRC == RC_MODREG_ALREADY_REGISTERED) {
+          status = "existing instance reused from registry";
+          lpaPresent = true;
+        }  else if (modregRC == RC_MODREG_MARK_MISSING) {
+          zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO,
+                  ZIS_LOG_MODREG_NO_MARK_MSG, moduleName.text);
+        } else {
+          zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE,
+                  ZIS_LOG_MODREG_FAILURE_MSG, moduleName.text,
+                  modregRC, modregRSN);
+          return RC_ZIS_ERROR;
+        }
+      }
+
+      if (!lpaPresent) {
+        int lpaRSN = 0;
+        int lpaRC = lpaAdd(&anchor->moduleInfo, &ddname, &moduleName, &lpaRSN);
+        if (lpaRC == 0) {
+          status = "own instance loaded to LPA";
+        } else {
+          zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE,
+                  ZIS_LOG_LPA_FAILURE_MSG,
+                  "ADD", moduleName.text, lpaRC, lpaRSN);
+          return RC_ZIS_ERROR;
+        }
       }
 
       anchor->flags |= ZIS_PLUGIN_ANCHOR_FLAG_LPA;
+    } else {
+      status = "previously added/loaded instance reused";
     }
 
     /* Invoke EP to get relocated services */
@@ -698,6 +733,16 @@ static int relocatePluginToLPAIfNeeded(ZISContext *context,
         (ZISPluginDescriptorFunction *)((int)ep & 0xFFFFFFFE);
 
     *pluginAddr = getPluginDescriptor();
+
+    zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO,
+            ZIS_LOG_MODULE_STATUS_MSG" (%p)", moduleName.text, status,
+            lpaInfo->outputInfo.stuff.successInfo.loadPointAddr);
+
+  } else {
+
+    zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO,
+            ZIS_LOG_MODULE_STATUS_MSG, moduleName.text,
+            "private storage instance used");
 
   }
 
@@ -1443,7 +1488,7 @@ static int loadConfig(ZISContext *context,
 
 static int getCMSConfigFlags(const ZISParmSet *zisParms) {
 
-  int flags = CMS_SERVER_FLAG_NONE;
+  int flags = CMS_SERVER_FLAG_USE_MODREG;
 
   const char *coldStartValue = zisGetParmValue(zisParms, ZIS_PARM_COLD_START);
   if (coldStartValue && strlen(coldStartValue) == 0) {
@@ -1473,6 +1518,11 @@ static int getCMSConfigFlags(const ZISParmSet *zisParms) {
   const char *resetLookup = zisGetParmValue(zisParms, ZIS_PARM_RESET_LOOKUP);
   if (resetLookup && strlen(coldStartValue) == 0) {
     flags |= CMS_SERVER_FLAG_RESET_LOOKUP;
+  }
+
+  const char *modregMode = zisGetParmValue(zisParms, ZIS_PARM_MODREG);
+  if (modregMode && !strcmp(modregMode, ZIS_PARM_MODREG_OFF)) {
+    flags &= ~CMS_SERVER_FLAG_USE_MODREG;
   }
 
   return flags;

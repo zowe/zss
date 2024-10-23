@@ -56,9 +56,12 @@ xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
   -DZIS_VERSION_DATE_STAMP="$date_stamp" \
   -DRADMIN_XMEM_MODE \
   -DRCVR_CPOOL_STATES \
+  -DLPA_LOG_DEBUG_MSG_ID=\"ZWES0100I\" \
+  -DMODREG_LOG_DEBUG_MSG_ID=\"ZWES0100I\" \
   -qreserved_reg=r12 \
   -Wc,arch\(8\),agg,exp,list\(\),so\(\),off,xref,roconst,longname,lp64 \
   -I ${COMMON}/h -I ${ZSS}/h -I ${ZSS}/zis-aux/include -I ${ZSS}/zis-aux/src \
+  -I /usr/include/zos \
    ${COMMON}/c/alloc.c \
    ${COMMON}/c/as.c \
    ${COMMON}/c/cellpool.c \
@@ -70,6 +73,7 @@ xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
    ${COMMON}/c/logging.c \
    ${COMMON}/c/lpa.c \
    ${COMMON}/c/metalio.c \
+   ${COMMON}/c/modreg.c \
    ${COMMON}/c/mtlskt.c \
    ${COMMON}/c/nametoken.c \
    ${COMMON}/c/pause-element.c \
@@ -102,7 +106,7 @@ xlc -S -M -qmetal -q64 -DSUBPOOL=132 -DMETTLE=1 -DMSGPREFIX=\"ZWE\" \
    ${ZSS}/zis-aux/src/aux-host.c
 
 for file in \
-    alloc as cellpool cmutils collections crossmemory isgenq le logging lpa metalio mtlskt nametoken \
+    alloc as cellpool cmutils collections crossmemory isgenq le logging lpa metalio modreg mtlskt nametoken \
     pause-element pc qsam radmin recovery resmgr scheduling shrmem64 stcbase timeutls utils xlate \
     zos zvt \
     parm plugin server server-api service \
@@ -125,6 +129,7 @@ ld -V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus \
   logging.o \
   lpa.o \
   metalio.o \
+  modreg.o \
   mtlskt.o \
   nametoken.o \
   qsam.o \
@@ -165,6 +170,7 @@ ld -V -b ac=1 -b rent -b case=mixed -b map -b xref -b reus \
   logging.o \
   lpa.o \
   metalio.o \
+  modreg.o \
   mtlskt.o \
   nametoken.o \
   pause-element.o \

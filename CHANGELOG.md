@@ -2,6 +2,9 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `3.1.0`
+- Enhancement: module registry (#732)
+
 ## `3.0.0`
 - Enhancement: if no `zowe.logDirectory` is defined in config, logging is disabled. (#726)
 - Bugfix: Support cross-memory server parameters longer than 128 characters (#684)

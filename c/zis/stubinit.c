@@ -12,6 +12,7 @@
     stubVector[ZIS_STUB_ZISDYNPV] = (void*)zisdynGetPluginVersion;
     stubVector[ZIS_STUB_ZISGVRSN] = (void*)zisGetServerVersion;
     stubVector[ZIS_STUB_ZISLPADV] = (void*)zisIsLPADevModeOn;
+    stubVector[ZIS_STUB_ZISMDREG] = (void*)zisIsModregOn;
     stubVector[ZIS_STUB_ZISCSRVC] = (void*)zisCallService;
     stubVector[ZIS_STUB_ZISCUSVC] = (void*)zisCallServiceUnchecked;
     stubVector[ZIS_STUB_ZISCVSVC] = (void*)zisCallVersionedService;
@@ -558,6 +559,7 @@
     stubVector[ZIS_STUB_ZVTFENTR] = (void*)zvtFreeEntry;
     stubVector[ZIS_STUB_ZVTGXMLR] = (void*)zvtGetCMSLookupRoutineAnchor;
     stubVector[ZIS_STUB_ZVTSXMLR] = (void*)zvtSetCMSLookupRoutineAnchor;
+    stubVector[ZIS_STUB_MODRRGST] = (void*)modregRegister;
 /*
   This program and the accompanying materials are
   made available under the terms of the Eclipse Public License v2.0 which accompanies
