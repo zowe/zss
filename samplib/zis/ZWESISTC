@@ -46,6 +46,10 @@
 //********************************************************************/
 //ZWESIS01 EXEC PGM=ZWESIS01,REGION=&RGN,
 //         PARM='NAME=&NAME,MEM=&MEM'
-//STEPLIB  DD   DSNAME=ZWES.SISLOAD,DISP=SHR
-//PARMLIB  DD   DSNAME=ZWES.SISSAMP,DISP=SHR
-//SYSPRINT DD   SYSOUT=*
+//STEPLIB  DD  DSNAME={zowe.setup.dataset.authLoadlib},
+//             DISP=SHR
+//         DD  DSNAME={zowe.setup.dataset.authPluginLib},
+//             DISP=SHR
+//PARMLIB  DD  DSNAME={zowe.setup.dataset.parmlib},
+//             DISP=SHR
+//SYSPRINT DD  SYSOUT=*

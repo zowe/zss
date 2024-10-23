@@ -34,5 +34,8 @@
 //*                                                                  */
 //********************************************************************/
 //ZWESAUX  EXEC PGM=ZWESAUX,REGION=&RGN
-//STEPLIB  DD   DSNAME=zis-loadlib,DISP=SHR
-//SYSPRINT DD   SYSOUT=*
+//STEPLIB  DD  DSNAME={zowe.setup.dataset.authLoadlib},
+//             DISP=SHR
+//         DD  DSNAME={zowe.setup.dataset.authPluginLib},
+//             DISP=SHR
+//SYSPRINT DD  SYSOUT=*
