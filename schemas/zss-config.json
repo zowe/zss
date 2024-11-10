@@ -66,6 +66,11 @@
                 "enabled": {
                   "type": "boolean",
                   "description":  "is Gateway and Discovery service enabled"
+                },
+                "cookieName": {
+                  "type": "string",
+                  "description": "Informs app-server of the gateway's cookie name needed for SSO",
+                  "default": "apimlAuthenticationToken"
                 }
               }
             },

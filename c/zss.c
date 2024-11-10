@@ -376,6 +376,20 @@ static void setHttpRequestHeapMaxBlocks(HttpServer *server, ConfigManager *confi
   server->config->httpRequestHeapMaxBlocks = (unsigned int)maxBlocks;
 }
 
+static void setHttpJwtCookieName(HttpServer *server, ConfigManager *configmgr) {
+  Json *gatewaySettings = NULL;
+  int gatewayGetStatus = cfgGetAnyC(configmgr, ZSS_CFGNAME, &gatewaySettings, 5, "components", "zss", "agent", "mediationLayer", "server");
+  if (gatewayGetStatus == ZCFG_SUCCESS){
+      JsonObject *gatewaySettingsObject = jsonAsObject(gatewaySettings);
+      char *jwtCookieUniqueName = jsonObjectGetString(gatewaySettingsObject, "cookieName");
+      //printf("GKP: jwtCookieUniqueName is %s\n", jwtCookieUniqueName);
+      server->config->jwtCookieUniqueName = jwtCookieUniqueName;
+  } else {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "gateway is NOT configured for this ZSS\n");
+    server->config->jwtCookieUniqueName = NULL; // need to handle this better?
+  }
+}
+
 static void loadWebServerConfigV2(HttpServer *server, 
                                   ConfigManager *configmgr,
                                   hashtable *htUsers,
@@ -392,6 +406,7 @@ static void loadWebServerConfigV2(HttpServer *server,
   server->config->groupTimeouts = htGroups;
   server->config->defaultTimeout = defaultSessionTimeout;
   setHttpRequestHeapMaxBlocks(server, configmgr);
+  setHttpJwtCookieName(server, configmgr);
   registerHttpServiceOfLastResort(server,NULL);
 #ifdef __ZOWE_OS_ZOS
   setPrivilegedServerNameV2(server, configmgr);

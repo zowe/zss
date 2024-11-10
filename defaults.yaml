@@ -33,6 +33,7 @@ components:
           hostname: ${{ std.getenv('ZWE_haInstance_hostname') }}
           gatewayPort: ${{ components.gateway.port }}
           port: ${{ components.discovery.port }}
+           cookieName: "${{ components.gateway?.apiml?.security?.auth?.uniqueCookie && zowe.cookieIdentifier ? 'apimlAuthenticationToken.' + zowe.cookieIdentifier : 'apimlAuthenticationToken' }}"
         cachingService:
           enabled: ${{ components['caching-service'].enabled }}
         enabled: ${{ components.discovery.enabled }}
