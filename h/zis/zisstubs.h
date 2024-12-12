@@ -20,7 +20,7 @@
    FULL BACKWARD COMPATIBILITY MUST BE MAINTAINED
    */
 
-#define ZIS_STUBS_VERSION 5
+#define ZIS_STUBS_VERSION 6
 
 /*
   How does a user check for compatibility?
@@ -232,6 +232,10 @@
 #define ZIS_STUB_CMUMAPGH 278 /* crossMemoryMapGetHandle */
 #define ZIS_STUB_CMUMAPGT 279 /* crossMemoryMapGet */
 #define ZIS_STUB_CMUMAPIT 280 /* crossMemoryMapIterate */
+#define ZIS_STUB_CMALLCX  281 /* cmAllocExec */
+#define ZIS_STUB_CMFREEX  282 /* cmFreeExec */
+#define ZIS_STUB_CMALLC2X 283 /* cmAlloc2Exec */
+#define ZIS_STUB_CMFREE2X 284 /* cmFree2Exec */
 
 /* collections, 290-349 */
 #define ZIS_STUB_FBMGRCRT 290 /* fbMgrCreate */
