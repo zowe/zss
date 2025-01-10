@@ -90,8 +90,11 @@ public class ZISStubGenerator {
         Set<String> symbols = new HashSet<>();
         Set<String> functions = new HashSet<>();
         int maxStubNum = 0;
+        int stubVersion = 0;
+        boolean stubVersionFound = false;
         Pattern stubPattern = Pattern.compile("^#define\\s+ZIS_STUB_(\\S+)\\s+([0-9]{1,8})\\s*/\\*\\s*(\\S+)(\\s+mapped)?\\s*\\*/\\s*");
         Pattern maxStubCountPattern = Pattern.compile("^#define\\s+MAX_ZIS_STUBS\\s+([0-9]+)\\s*");
+        Pattern versionPattern = Pattern.compile("^#define\\s+ZIS_STUBS_VERSION\\s+([0-9]+)$");
 
         String line;
         while ((line = reader.readLine()) != null) {
@@ -155,9 +158,20 @@ public class ZISStubGenerator {
             if (maxStubCountMatcher.matches()) {
                 maxStubNum = Integer.parseInt(maxStubCountMatcher.group(1));
             }
+            if (!stubVersionFound) {
+                Matcher stubVersionMatcher = versionPattern.matcher(line);
+                if (stubVersionMatcher.matches()) {
+                    stubVersion = Integer.parseInt(stubVersionMatcher.group(1));
+                    stubVersionFound = true;
+                }
+            }
 
         }
+        if (!stubVersionFound) {
+            throw new RuntimeException("Error: stub version not found");
+        }
         if (generateASM) {
+            out.printf("ZISSTUBV EQU  %d\n", stubVersion);
             writeLines(out, hlasmEpilog);
         } else {
             writeLines(out, initCopyright);
