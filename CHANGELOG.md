@@ -2,6 +2,9 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `3.2.0`
+- Enhancement: expose new cmutils functions (#740)
+
 ## `3.1.0`
 - Enhancement: module registry (#732)
 
