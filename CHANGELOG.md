@@ -3,6 +3,7 @@
 All notable changes to the ZSS package will be documented in this file.
 
 ## `3.2.0`
+- Enhancement: include the stub version in the generated HLASM stub (#743)
 - Enhancement: expose new cmutils functions (#740)
 
 ## `3.1.0`
