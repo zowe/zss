@@ -2,6 +2,10 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `2.18.1`
+- Bugfix: Support cross-memory server parameters longer than 128 characters (#684)
+- Enhancement: Expose new cross-memory server's functions in dynlink (#684)
+
 ## `2.18.0`
 - Change log level for setting default value of 'httpRequestHeapMaxBlocks' to DEBUG instead of INFO.(#719)
 

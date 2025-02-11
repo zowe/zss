@@ -229,6 +229,8 @@
     stubVector[ZIS_STUB_CMGETLOG] = (void*)cmsGetPCLogLevel;
     stubVector[ZIS_STUB_CMGETSTS] = (void*)cmsGetStatus;
     stubVector[ZIS_STUB_CMMKSNAM] = (void*)cmsMakeServerName;
+    stubVector[ZIS_STUB_CMGETPRX] = (void*)cmsGetConfigParmExt;
+    stubVector[ZIS_STUB_CMGETPUX] = (void*)cmsGetConfigParmExtUnchecked;
     stubVector[ZIS_STUB_DYNASTXU] = (void*)createSimpleTextUnit;
     stubVector[ZIS_STUB_DYNASTX2] = (void*)createSimpleTextUnit2;
     stubVector[ZIS_STUB_DYNACTXU] = (void*)createCharTextUnit;
