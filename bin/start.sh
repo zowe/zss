@@ -74,7 +74,13 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
       then
         ZWES_LOG_DIR=${ZWE_zowe_logDirectory}
       else
-        ZWES_LOG_DIR="../log"
+        if [ -z "${ZWE_zowe_runtimeDirectory}" ]; then
+          ZWES_LOG_DIR="../log"
+        else
+          echo "No log directory. Logging disabled."
+          ZWES_LOG_DIR=
+          ZWES_LOG_FILE=/dev/null
+        fi
       fi
     fi
     if [ -f "$ZWES_LOG_DIR" ]
@@ -82,12 +88,13 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
       ZWES_LOG_FILE=$ZWES_LOG_DIR
     elif [ ! -d "$ZWES_LOG_DIR" ]
     then
-      echo "Will make log directory $ZWES_LOG_DIR"
-      mkdir -p $ZWES_LOG_DIR
-      if [ $? -ne 0 ]
-      then
-        echo "Cannot make log directory.  Logging disabled."
-        ZWES_LOG_FILE=/dev/null
+      if [ -n "${ZWES_LOG_DIR}" ]; then
+        echo "Will make log directory $ZWES_LOG_DIR"
+        mkdir -p $ZWES_LOG_DIR
+        if [ $? -ne 0 ]; then
+          echo "Cannot make log directory.  Logging disabled."
+          ZWES_LOG_FILE=/dev/null
+        fi
       fi
     fi
     ZWES_ROTATE_LOGS=0
@@ -168,7 +175,7 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
   ZSS_SERVER_31="./zssServer"
   ZSS_SERVER_64="./zssServer64"
   
-  if [ "$ZWE_components_zss_agent_64bit" = "true" ] && [ -x "${ZSS_SERVER_64}" ]; then
+  if [ "$ZWE_components_zss_agent_64bit" != "false" ] && [ -x "${ZSS_SERVER_64}" ]; then
     ZSS_SERVER="${ZSS_SERVER_64}"
   else
     ZSS_SERVER="${ZSS_SERVER_31}"

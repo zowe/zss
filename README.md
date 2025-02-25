@@ -35,7 +35,7 @@ export ZWE_zowe_runtimeDirectory=/path/to/zowe-install-packaging
 ZWE_CLI_PARAMETER_CONFIG="FILE(/my/zowe.yaml)" ./zssServer.sh
 ```
 
-Note: ZSS defaults are in [defaults.yaml](https://github.com/zowe/zss/blob/v2.x/staging/defaults.yaml) so you only need to provide customizations in your own zowe.yaml.
+Note: ZSS defaults are in [defaults.yaml](https://github.com/zowe/zss/blob/v3.x/staging/defaults.yaml) so you only need to provide customizations in your own zowe.yaml.
 
 ## How to submit a pull request
 
@@ -57,7 +57,7 @@ git add deps/zowe-common-c/
 When using ZSS as the agent to host files and folders, for example: for the Zowe Editor Desktop app by the App server, may lead to '401 Impersonator Error'
 Fix: Make sure the program-controlled bit is set for your ZSS binary `extattr +p zssServer`
 
-ZSS in V2 takes advantage of V2 by using schemas and the Zowe configuration YAML. If you're running `zssServer` accidentally, instead of `zssServer.sh` or your `zssServer.sh` is out of date, you may see an error on start like `ZSS 2.x requires schemas and config`
+ZSS in V3 takes advantage of V3 by using schemas and the Zowe configuration YAML. If you're running `zssServer` accidentally, instead of `zssServer.sh` or your `zssServer.sh` is out of date, you may see an error on start like `ZSS 2.x requires schemas and config`
 
 When starting ZSS, you may encounter a schema validation issue i.e. `Configuration has validity exceptions: Schema at '' invalid [...]`. 
 Fix: To read these errors, consult: https://docs.zowe.org/stable/user-guide/configmgr-using/#validation-error-reporting
@@ -65,7 +65,7 @@ Note: ZSS has a default schema in `$ZWES_COMPONENT_HOME/schemas` and default con
 
 ## Mock server
 
-If you don't have access to z/OS, or want to help expand the Mock server, find it at: https://github.com/zowe/zss/tree/v2.x/staging/mock
+If you don't have access to z/OS, or want to help expand the Mock server, find it at: https://github.com/zowe/zss/tree/v3.x/staging/mock
 
 This program and the accompanying materials are
 made available under the terms of the Eclipse Public License v2.0 which accompanies
