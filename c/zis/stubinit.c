@@ -169,6 +169,10 @@
     stubVector[ZIS_STUB_CMUMAPGH] = (void*)crossMemoryMapGetHandle;
     stubVector[ZIS_STUB_CMUMAPGT] = (void*)crossMemoryMapGet;
     stubVector[ZIS_STUB_CMUMAPIT] = (void*)crossMemoryMapIterate;
+    stubVector[ZIS_STUB_CMALLCX ] = (void*)cmAllocExec;
+    stubVector[ZIS_STUB_CMFREEX ] = (void*)cmFreeExec;
+    stubVector[ZIS_STUB_CMALLC2X] = (void*)cmAlloc2Exec;
+    stubVector[ZIS_STUB_CMFREE2X] = (void*)cmFree2Exec;
     stubVector[ZIS_STUB_FBMGRCRT] = (void*)fbMgrCreate;
     stubVector[ZIS_STUB_FBMGRALC] = (void*)fbMgrAlloc;
     stubVector[ZIS_STUB_FBMGRFRE] = (void*)fbMgrFree;
