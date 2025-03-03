@@ -1174,6 +1174,12 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
                                      int *outPort,
                                      TlsEnvironment **outTlsEnv){  
   Json *httpsConfig = NULL;
+  int httpsGetStatus = cfgGetAnyC(configmgr,ZSS_CFGNAME,&httpsConfig,4,"components","zss","agent","https");
+  if (httpsGetStatus){
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "https is NOT configured for this ZSS\n");
+    return false;
+  }
+
   JsonObject *httpsConfigObject = jsonAsObject(httpsConfig);
   TlsSettings *settings = (TlsSettings*)SLHAlloc(slh, sizeof(*settings));
   settings->maxTls = jsonObjectGetString(httpsConfigObject, "maxTls");
@@ -1262,11 +1268,6 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
     }
   }
 
-  int httpsGetStatus = cfgGetAnyC(configmgr,ZSS_CFGNAME,&httpsConfig,4,"components","zss","agent","https");
-  if (httpsGetStatus){
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "https is NOT configured for this ZSS\n");
-    return false;
-  }
   return isHttpsConfigured;
 }
 
