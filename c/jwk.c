@@ -211,7 +211,7 @@ static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientC
   int currentLoop = 0;
   while (!done) {
     int status = httpClientSessionReceiveNativeLoop(httpClientContext, session);
-    if (status == 15){
+    if (status == HTTP_CLIENT_EWOULDBLOCK){
       currentLoop++;
       usleep(1000);
     }
