@@ -61,6 +61,7 @@ struct ZISPluginAnchor_tag {
   unsigned short size;
   int flags;
 #define ZIS_PLUGIN_ANCHOR_FLAG_LPA 0x00000001
+#define ZIS_PLUGIN_ANCHOR_FLAG_PRIVATE_MODULE 0x00000002
   int state;
 
   ZISPluginName name;
