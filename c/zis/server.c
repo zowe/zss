@@ -665,6 +665,11 @@ static int relocatePluginToLPAIfNeeded(ZISContext *context,
                   "DELETE", anchor->moduleInfo.inputInfo.name, lpaRC, lpaRSN);
           return RC_ZIS_ERROR;
         }
+      } else {
+        zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
+                " Plugin LPA dev mode enabled, skipping CSVDYLPA DELETE of "
+                "\'%8.8s\' because it is not private\n",
+                anchor->moduleInfo.inputInfo.name);
       }
       lpaDiscarded = true;
     }
@@ -771,6 +776,11 @@ static int removePluginFromLPAIfNeeded(ZISContext *context,
                   "DELETE", anchor->moduleInfo.inputInfo.name, lpaRC, lpaRSN);
           return RC_ZIS_ERROR;
         }
+      } else {
+        zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
+                " Plugin LPA dev mode enabled, skipping CSVDYLPA DELETE of "
+                "\'%8.8s\' because it is not private\n",
+                anchor->moduleInfo.inputInfo.name);
       }
       memset(&anchor->moduleInfo, 0, sizeof(anchor->moduleInfo));
       anchor->flags &= ~ZIS_PLUGIN_ANCHOR_FLAG_LPA;
