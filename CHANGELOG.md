@@ -5,6 +5,7 @@ All notable changes to the ZSS package will be documented in this file.
 ## `3.2.0`
 - Enhancement: include the stub version in the generated HLASM stub (#743)
 - Enhancement: expose new cmutils functions (#740)
+- Bugfix: make sure modreg-based modules are never deleted (#752, zowe/zss#749)
 
 ## `3.1.0`
 - Enhancement: module registry (#732)
