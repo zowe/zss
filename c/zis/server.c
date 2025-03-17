@@ -70,6 +70,7 @@ See details in the ZSS Cross Memory Server installation guide
 #define ZIS_PARM_COLD_START                   "COLD"
 #define ZIS_PARM_DEBUG_MODE                   "DEBUG"
 #define ZIS_PARM_RESET_LOOKUP                 "RESET(LOOKUP)"
+#define ZIS_PARM_RESET_MODREG                 "RESET(MODREG)"
 
 #define ZIS_PARM_PCSS_STACK_POOL_SIZE         CMS_PROD_ID".PCSS_STACK_POOL_SIZE"
 #define ZIS_PCSS_STACK_POOL_DEFAULT_SIZSE     1024
@@ -1536,6 +1537,11 @@ static int getCMSConfigFlags(const ZISParmSet *zisParms) {
   const char *modregMode = zisGetParmValue(zisParms, ZIS_PARM_MODREG);
   if (modregMode && !strcmp(modregMode, ZIS_PARM_MODREG_OFF)) {
     flags &= ~CMS_SERVER_FLAG_USE_MODREG;
+  }
+
+  const char *resetModreg = zisGetParmValue(zisParms, ZIS_PARM_RESET_MODREG);
+  if (resetModreg && strlen(resetModreg) == 0) {
+    flags |= CMS_SERVER_FLAG_RESET_MODREG;
   }
 
   return flags;

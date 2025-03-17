@@ -8,7 +8,8 @@ All notable changes to the ZSS package will be documented in this file.
 - Bugfix: make sure modreg-based modules are never deleted (#752, zowe/zss#749)
 - Bugfix: Update schema entry for JWT tracing from incorrect name "_zss.jwt" to correct name "_zss.jwtTrace", to help people identify which log level can enable JWT tracing (#757)
 - Enhancement: add support for passing multiple parameters to ZIS via the START command (#753, #755)
-
+- Enhancement: add a parameter for resetting the module registry at ZIS
+  start-up (#754)
 
 ## `3.1.0`
 - Enhancement: module registry (#732)
