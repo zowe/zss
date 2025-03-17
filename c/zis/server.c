@@ -1530,7 +1530,7 @@ static int getCMSConfigFlags(const ZISParmSet *zisParms) {
   }
 
   const char *resetLookup = zisGetParmValue(zisParms, ZIS_PARM_RESET_LOOKUP);
-  if (resetLookup && strlen(coldStartValue) == 0) {
+  if (resetLookup && strlen(resetLookup) == 0) {
     flags |= CMS_SERVER_FLAG_RESET_LOOKUP;
   }
 

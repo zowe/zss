@@ -12,6 +12,7 @@ All notable changes to the ZSS package will be documented in this file.
   start-up (#754)
 - Enhancement: expose the modregReset function via dynlink (#754)
 - Bugfix: correct the modregRegister entry in the dynlink stub (#754)
+- Bugfix: fix the incorrect check of the look-up anchor reset parameter (#754)
 
 ## `3.1.0`
 - Enhancement: module registry (#732)
