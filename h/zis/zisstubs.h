@@ -699,7 +699,7 @@
 #define ZIS_STUB_ZVTSXMLR 905 /* zvtSetCMSLookupRoutineAnchor mapped */
 
 /* modreg, 915-920 */
-#define ZIS_STUB_MODRRGST 915 /* modregRegister mapped */
+#define ZIS_STUB_MODRRGST 915 /* modregRegister */
 #define ZIS_STUB_MODRRSET 916 /* modregReset */
 
 #endif /* ZIS_ZISSTUBS_H_ */
