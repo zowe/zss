@@ -564,6 +564,7 @@
     stubVector[ZIS_STUB_ZVTGXMLR] = (void*)zvtGetCMSLookupRoutineAnchor;
     stubVector[ZIS_STUB_ZVTSXMLR] = (void*)zvtSetCMSLookupRoutineAnchor;
     stubVector[ZIS_STUB_MODRRGST] = (void*)modregRegister;
+    stubVector[ZIS_STUB_MODRRSET] = (void*)modregReset;
 /*
   This program and the accompanying materials are
   made available under the terms of the Eclipse Public License v2.0 which accompanies

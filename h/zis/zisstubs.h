@@ -20,7 +20,7 @@
    FULL BACKWARD COMPATIBILITY MUST BE MAINTAINED
    */
 
-#define ZIS_STUBS_VERSION 6
+#define ZIS_STUBS_VERSION 7
 
 /*
   How does a user check for compatibility?
@@ -700,6 +700,7 @@
 
 /* modreg, 915-920 */
 #define ZIS_STUB_MODRRGST 915 /* modregRegister mapped */
+#define ZIS_STUB_MODRRSET 916 /* modregReset */
 
 #endif /* ZIS_ZISSTUBS_H_ */
 
