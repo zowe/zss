@@ -38,5 +38,3 @@ components:
         enabled: ${{ components.discovery.enabled }}
         serviceName: "zss"
       handshakeTimeout: 30000
-
-        
