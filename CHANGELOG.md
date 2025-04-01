@@ -5,6 +5,10 @@ All notable changes to the ZSS package will be documented in this file.
 ## `3.2.0`
 - Enhancement: include the stub version in the generated HLASM stub (#743)
 - Enhancement: expose new cmutils functions (#740)
+- Bugfix: make sure modreg-based modules are never deleted (#752, zowe/zss#749)
+- Bugfix: Update schema entry for JWT tracing from incorrect name "_zss.jwt" to correct name "_zss.jwtTrace", to help people identify which log level can enable JWT tracing (#757)
+- Enhancement: add support for passing multiple parameters to ZIS via the START command (#753, #755)
+
 
 ## `3.1.0`
 - Enhancement: module registry (#732)
