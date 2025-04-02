@@ -10,7 +10,7 @@
 //*                                                                  */
 //* Copyright Contributors to the Zowe Project.                      */
 //********************************************************************/
-//* A SAMPLE STC JCL FOR THE ZSS CROSS-MEMORY SERVER                 */
+//* A SAMPLE STC JCL FOR THE ZIS CROSS-MEMORY SERVER                 */
 //*                                                                  */
 //* 1. RUN-TIME PARAMETERS                                           */
 //*                                                                  */
@@ -44,7 +44,7 @@
 //* VERIFY AND/OR CHANGE THE NAME OF THE STEPLIB DATASET             */
 //*                                                                  */
 //* THE STARTED TASK MUST USE A STEPLIB DD STATEMENT TO DECLARE      */
-//* THE ZSS CROSS MEMORY SERVER LOAD LIBRARY NAME. THIS IS REQUIRED  */
+//* THE ZIS CROSS MEMORY SERVER LOAD LIBRARY NAME. THIS IS REQUIRED  */
 //* SO THAT THE APPROPRIATE VERSION OF THE SOFTWARE IS LOADED        */
 //* CORRECTLY. DO NOT ADD THE LOAD LIBRARY DATA SET TO THE SYSTEM    */
 //* LNKLST OR LPALST CONCATENATIONS.                                 */

@@ -9,7 +9,7 @@
 //*                                                                  */
 //* Copyright Contributors to the Zowe Project.                      */
 //********************************************************************/
-//* THE PPT ENTRIES REQUIRED BY THE ZSS CROSS-MEMORY SERVER AND ITS  */
+//* THE PPT ENTRIES REQUIRED BY THE ZIS CROSS-MEMORY SERVER AND ITS  */
 //* AUXILIARY ADDRESS SPACES.                                        */
 //*                                                                  */
 //* A SERVER INSTANCE MUST RUN IN KEY 4 NON-SWAPPABLE.               */

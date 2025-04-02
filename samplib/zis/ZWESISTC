@@ -10,7 +10,7 @@
 //*                                                                  */
 //* Copyright Contributors to the Zowe Project.                      */
 //********************************************************************/
-//* A SAMPLE STC JCL FOR THE ZSS CROSS-MEMORY SERVER                 */
+//* A SAMPLE STC JCL FOR THE ZIS CROSS-MEMORY SERVER                 */
 //*                                                                  */
 //* 1. RUN-TIME PARAMETERS                                           */
 //*                                                                  */
