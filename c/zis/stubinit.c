@@ -169,6 +169,10 @@
     stubVector[ZIS_STUB_CMUMAPGH] = (void*)crossMemoryMapGetHandle;
     stubVector[ZIS_STUB_CMUMAPGT] = (void*)crossMemoryMapGet;
     stubVector[ZIS_STUB_CMUMAPIT] = (void*)crossMemoryMapIterate;
+    stubVector[ZIS_STUB_CMALLCX ] = (void*)cmAllocExec;
+    stubVector[ZIS_STUB_CMFREEX ] = (void*)cmFreeExec;
+    stubVector[ZIS_STUB_CMALLC2X] = (void*)cmAlloc2Exec;
+    stubVector[ZIS_STUB_CMFREE2X] = (void*)cmFree2Exec;
     stubVector[ZIS_STUB_FBMGRCRT] = (void*)fbMgrCreate;
     stubVector[ZIS_STUB_FBMGRALC] = (void*)fbMgrAlloc;
     stubVector[ZIS_STUB_FBMGRFRE] = (void*)fbMgrFree;
@@ -560,6 +564,7 @@
     stubVector[ZIS_STUB_ZVTGXMLR] = (void*)zvtGetCMSLookupRoutineAnchor;
     stubVector[ZIS_STUB_ZVTSXMLR] = (void*)zvtSetCMSLookupRoutineAnchor;
     stubVector[ZIS_STUB_MODRRGST] = (void*)modregRegister;
+    stubVector[ZIS_STUB_MODRRSET] = (void*)modregReset;
 /*
   This program and the accompanying materials are
   made available under the terms of the Eclipse Public License v2.0 which accompanies

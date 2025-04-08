@@ -380,7 +380,7 @@
           "description": "Controls logging of http client calls.",
           "$ref": "#/$defs/logLevel"
         },
-        "_zss.jwt": {
+        "_zss.jwtTrace": {
           "description": "Controls logging of JWT library functions.",
           "$ref": "#/$defs/logLevel"
         },
