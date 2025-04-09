@@ -41,13 +41,8 @@
 #include "httpserver.h"
 #include "charsets.h"
 #ifdef __ZOWE_OS_ZOS
-#include "authService.h"
-#include "securityService.h"
 #include "zis/client.h"
 #endif
-
-#include "serviceUtils.h"
-#include "storage.h"
 
 static void setPrivilegedServerNameV2(HttpServer *server, char *serverNameParm){
 
@@ -72,8 +67,7 @@ static void printZISStatus(HttpServer *server) {
     shortDescription = "Failure";
   }
 
-  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_ALWAYS,
-          ZSS_LOG_ZIS_STATUS_MSG,
+  printf("ZIS status - '%s' (name='%.16s', cmsRC='%d', description='%s', clientVersion='%d')\n", 
           shortDescription,
           zisName ? zisName->nameSpacePadded : "name not set",
           status.cmsRC,
@@ -83,7 +77,7 @@ static void printZISStatus(HttpServer *server) {
 }
 
 /* returns valid */
-static int validateAddress(char *address, InetAddr **inetAddress, int *requiredTLSFlag) {
+static int validateAddress(char *address, InetAddr **inetAddress) {
   *inetAddress = getAddressByName(address);
   if (!strcmp(address,"0.0.0.0")) {
     return TRUE;      
@@ -147,16 +141,16 @@ int main(int argc, char **argv){
   server->slh = slh;
    
   if (server){
-    printf(`Bind succeeded, server at 0x%p\n",server);
+    printf("Bind succeeded, server at 0x%p\n",server);
 
     if (zisName) {
       setPrivilegedServerNameV2(server, zisName);
       printZISStatus(server);
     }
   } else{
-    printf(`Server could not start, rc=0x%x, rsn=0x%x\n", returnCode, reasonCode);
+    printf("Server could not start, rc=0x%x, rsn=0x%x\n", returnCode, reasonCode);
     if (returnCode==EADDRINUSE) {
-      printf(`Server could not start because the port %d was occupied\n", port);
+      printf("Server could not start because the port %d was occupied\n", port);
     }
   }
 
