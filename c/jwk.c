@@ -38,6 +38,7 @@
 #include "zssLogging.h"
 #include "jwt.h"
 #include "jwk.h"
+#include <unistd.h>
 
 static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut);
 static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, TlsEnvironment *tlsEnv, char *path, int *rc, int *rsn);
@@ -154,10 +155,18 @@ static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, 
   do {
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "JWK request to https://%s:%d%s\n",
             clientSettings->host, clientSettings->port, path);
-    *rsn = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
-    if (*rsn) {
-      *rc = JWK_STATUS_HTTP_CONTEXT_ERROR;
-      break;
+    if (tlsEnv){ // This is used when Zowe is using builtin TLS.
+      *rsn = httpClientContextInitSecure(clientSettings, loggingContext, tlsEnv, &httpClientContext);
+      if (*rsn) {
+        *rc = JWK_STATUS_HTTP_CONTEXT_ERROR;
+        break;
+      }
+    } else { // This is used when Zowe is configured for AT-TLS.
+      *rsn = httpClientContextInit(clientSettings, loggingContext, &httpClientContext);
+      if (*rsn) {
+        *rc = JWK_STATUS_HTTP_CONTEXT_ERROR;
+        break;
+      }
     }
     *rsn = httpClientSessionInit(httpClientContext, &session);
     if (*rsn) {
@@ -198,9 +207,19 @@ static Json *doRequest(ShortLivedHeap *slh, HttpClientSettings *clientSettings, 
 static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientContext, HttpClientSession *session, int *statusOut) {
   bool done = false;
   Json *jsonBody = NULL;
+  int loopLimit = 9;
+  int currentLoop = 0;
   while (!done) {
-    int status = httpClientSessionReceiveNative(httpClientContext, session, 1024);
-    if (status != 0) {
+    int status = httpClientSessionReceiveNativeLoop(httpClientContext, session);
+    if (status == HTTP_CLIENT_EWOULDBLOCK){
+      currentLoop++;
+      usleep(1000);
+    }
+    if (currentLoop > loopLimit){
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "JWT timeout reached\n");
+      break;
+    }
+    if (status != 0 && status != 15) {
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error receiving response: %d\n", status);
       break;
     }
