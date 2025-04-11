@@ -10,6 +10,8 @@ build/tmp*/
 build/build.log
 bin/zssServer
 bin/zssServer64
+bin/bind-test
+bin/zis-test
 build/*.u
 build/*.o
 build/*.s
@@ -23,6 +25,8 @@ build/*.s
 !.pax/pre-packaging.sh
 !.pax/post-packaging.sh
 !.pax/prepare-workspace.sh
+!.pax/bind-test
+!.pax/zis-test
 
 # emacs
 *~

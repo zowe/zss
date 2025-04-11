@@ -28,11 +28,11 @@ GSKINC="${GSKDIR}/include"
 GSKLIB="${GSKDIR}/lib/GSKSSL64.x ${GSKDIR}/lib/GSKCMS64.x"
 
 echo "********************************************************************************"
-echo "Building simple server ..."
+echo "Building bind test ..."
 
 
 
-mkdir -p "${WORKING_DIR}/tmp-zss" && cd "$_"
+mkdir -p "${WORKING_DIR}/tmp-bind-test" && cd "$_"
 
 date_stamp=$(date +%Y%m%d)
 echo "Date stamp: $date_stamp"
@@ -54,7 +54,7 @@ if ! c89 \
   -I ${COMMON}/jwt/jwt \
   -I ${COMMON}/jwt/rscrypto \
   -I ${ZSS}/h \
-  -o ${ZSS}/bin/simpleServer \
+  -o ${ZSS}/bin/bind-test \
   ${COMMON}/c/alloc.c \
   ${COMMON}/c/bpxskt.c \
   ${COMMON}/c/charsets.c \
@@ -75,18 +75,14 @@ if ! c89 \
   ${COMMON}/c/nametoken.c \
   ${COMMON}/c/zos.c \
   ${COMMON}/c/parsetools.c \
-  ${COMMON}/c/pause-element.c \
   ${COMMON}/c/rawfd.c \
   ${COMMON}/c/recovery.c \
   ${COMMON}/c/rusermap.c \
   ${COMMON}/jwt/rscrypto/rs_icsfp11.c \
   ${COMMON}/jwt/rscrypto/rs_rsclibc.c \
   ${COMMON}/c/scheduling.c \
-  ${COMMON}/c/signalcontrol.c \
   ${COMMON}/c/socketmgmt.c \
   ${COMMON}/c/stcbase.c \
-  ${COMMON}/c/storage.c \
-  ${COMMON}/c/storage_mem.c \
   ${COMMON}/c/timeutls.c \
   ${COMMON}/c/tls.c \
   ${COMMON}/c/utils.c \
@@ -96,17 +92,15 @@ if ! c89 \
   ${COMMON}/c/zosfile.c \
   ${COMMON}/c/zvt.c \
   ${COMMON}/c/shrmem64.c \
-  ${COMMON}/platform/posix/psxregex.c \
-  ${ZSS}/c/simpleServer.c \
+  ${ZSS}/c/bindTest.c \
   ${ZSS}/c/zis/client.c \
   ${GSKLIB} ;
 then
-  extattr +p ${ZSS}/bin/simpleServer
-  echo "Build simpleServer successfully"
+  echo "Build bind-test successfully"
   exit 0
 else
-  # remove simpleServer in case the linker had RC=4 and produced the binary
-  rm -f ${ZSS}/bin/simpleServer
-  echo "Build simpleServer failed"
+  # remove bindTest in case the linker had RC=4 and produced the binary
+  rm -f ${ZSS}/bin/bind-test
+  echo "Build bind-test failed"
   exit 8
 fi
