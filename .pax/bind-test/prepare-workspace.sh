@@ -18,10 +18,10 @@ set -xe
 # contants
 SCRIPT_NAME=$(basename "$0")
 SCRIPT_DIR=$(dirname "$0")
-PAX_WORKSPACE_DIR=.pax
+PAX_WORKSPACE_DIR=.pax/bind-test
 
 # make sure in project root folder
-cd $SCRIPT_DIR/..
+cd $SCRIPT_DIR/../..
 
 # prepare pax workspace
 echo "[${SCRIPT_NAME}] preparing folders ..."
