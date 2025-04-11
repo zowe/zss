@@ -46,8 +46,14 @@ static int validateAddress(char *address, InetAddr **inetAddress) {
     return TRUE;      
   }
   if (!(*inetAddress && (*inetAddress)->data.data4.addrBytes)) {
-    printf("address resolution problems\n");
+    printf("Error: Could not resolve hostname from DNS. Is this a valid hostname for this system?\n");
     return FALSE;
+  } else {
+    int part4 = 0xff & (*inetAddress)->data.data4.addrBytes;
+    int part3 = (0xff00 & (*inetAddress)->data.data4.addrBytes) >> 8;
+    int part2 = (0xff0000 & (*inetAddress)->data.data4.addrBytes) >> 16;
+    int part1 = (0xff000000 & (*inetAddress)->data.data4.addrBytes) >> 24;
+    printf("Resolved IP address as %d.%d.%d.%d\n", part1, part2, part3, part4);
   }
 
   /* TODO: No ipv6 resolution in getAddressByName yet, so nothing here either */
