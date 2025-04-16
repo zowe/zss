@@ -31,24 +31,23 @@
 #include "le.h"
 #include "logging.h"
 #include "scheduling.h"
-#include "json.h"
 #include "zis/client.h"
 #include "charsets.h"
 
-static int printZISStatus(CrossMemoryServerName *privilegedServerName) {
-  CrossMemoryServerStatus status = cmsGetStatus(privilegedServerName);
+static int printZISStatus(char *zisName) {
+  CrossMemoryServerName privilegedServerName = cmsMakeServerName(zisName);
+  CrossMemoryServerStatus status = cmsGetStatus(&privilegedServerName);
 
   const char *shortDescription = NULL;
 
   if (status.cmsRC == RC_CMS_OK) {
     shortDescription = "Ok";
   } else {
-    shortDescription = "Failure";
+    shortDescription = "Error";
   }
 
-  printf("ZIS status - '%s' (name='%.16s', cmsRC='%d', description='%s', clientVersion='%d')\n", 
+  printf("ZIS %s (rc='%d', description='%s', clientVersion='%d')\n", 
           shortDescription,
-          privilegedServerName ? privilegedServerName->nameSpacePadded : "name not set",
           status.cmsRC,
           status.descriptionNullTerm,
           CROSS_MEMORY_SERVER_VERSION);
@@ -63,7 +62,6 @@ static char *getKeywordArg(char *key, int argc, char **argv){
     }
   }
   return NULL;
-
 }
 
 #define VERIFY_STATUS_OK     0
@@ -74,8 +72,6 @@ int main(int argc, char **argv){
 
   char *zisName = getKeywordArg("--zis",argc,argv);
 
-  ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
-   
   if (!zisName) {
     printf("Error: --zis specifying ZIS server name to check is required\n");
     status = VERIFY_STATUS_ERROR;
@@ -83,9 +79,7 @@ int main(int argc, char **argv){
     printf("Error: ZIS server name must be maximum 16 characters.\n");
     status = VERIFY_STATUS_ERROR;
   } else {
-    CrossMemoryServerName *privilegedServerName = (CrossMemoryServerName *)SLHAlloc(slh, sizeof(CrossMemoryServerName));
-    *privilegedServerName = cmsMakeServerName(zisName);
-    int rc = printZISStatus(privilegedServerName);
+    int rc = printZISStatus(zisName);
     if (rc != 0) {
       status = VERIFY_STATUS_ERROR;
       if (rc == RC_CMS_PERMISSION_DENIED) {
@@ -96,7 +90,7 @@ int main(int argc, char **argv){
         } else {
           printf("Ensure the Zowe STC id has READ access to ZWES.IS in the FACILITY class\n");
         } 
-      } else if (rc == RC_CMS_ZVT_NULL || rc == RC_CMS_ZERO_PC_NUMBER || rc == RC_CMS_SERVER_ABENDED || rc == RC_CMS_GLOBAL_AREA_NULL){
+      } else if (rc == RC_CMS_ZVT_NULL || rc == RC_CMS_ZERO_PC_NUMBER || rc == RC_CMS_GLOBAL_AREA_NULL){
         printf("The ZIS STC does not appear to be running. Start the job (Default: ZWESISTC) before starting the rest of Zowe\n");
       }
     }

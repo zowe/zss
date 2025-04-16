@@ -27,11 +27,7 @@ echo "**************************************************************************
 echo "Building zis check ..."
 
 
-
 mkdir -p "${WORKING_DIR}/tmp-zis-test" && cd "$_"
-
-date_stamp=$(date +%Y%m%d)
-echo "Date stamp: $date_stamp"
 
 export _C89_ACCEPTABLE_RC=0
 
@@ -44,31 +40,20 @@ if ! c89 \
   -Wc,agg,exp,list,so\(\),off,xref \
   -Wl,lp64 \
   -I ${COMMON}/h \
-  -I ${COMMON}/platform/posix \
   -I ${ZSS}/h \
   -o ${ZSS}/bin/zis-test \
   ${COMMON}/c/alloc.c \
-  ${COMMON}/c/bpxskt.c \
-  ${COMMON}/c/charsets.c \
-  ${COMMON}/c/cmutils.c \
   ${COMMON}/c/collections.c \
   ${COMMON}/c/crossmemory.c \
-  ${COMMON}/c/dynalloc.c \
-  ${COMMON}/c/json.c \
   ${COMMON}/c/le.c \
   ${COMMON}/c/logging.c \
   ${COMMON}/c/zos.c \
-  ${COMMON}/c/rawfd.c \
   ${COMMON}/c/recovery.c \
   ${COMMON}/c/scheduling.c \
-  ${COMMON}/c/socketmgmt.c \
   ${COMMON}/c/timeutls.c \
   ${COMMON}/c/utils.c \
-  ${COMMON}/c/zosfile.c \
   ${COMMON}/c/zvt.c \
-  ${COMMON}/c/shrmem64.c \
-  ${ZSS}/c/zisTest.c \
-  ${ZSS}/c/zis/client.c ;
+  ${ZSS}/c/zisTest.c ;
 then
   echo "Build zis-test successfully"
   exit 0
