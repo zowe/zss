@@ -8,12 +8,10 @@
   Copyright Contributors to the Zowe Project.
 */
 
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <errno.h>
 
 #include "utils.h"
 #include "bpxnet.h"
@@ -40,10 +38,10 @@ static int validateAddress(char *address, InetAddr **inetAddress) {
   return TRUE;
 }
 
-static char *getKeywordArg(char *key, int argc, char **argv){
-  for (int aa=1; aa<argc; aa++){
+static char *getKeywordArg(char *key, int argc, char **argv) {
+  for (int aa=1; aa<argc; aa++) {
     if (!strcmp(argv[aa],key) &&
-        (aa+1 < argc)){
+        (aa+1 < argc)) {
       return argv[aa+1];
     }
   }
@@ -53,8 +51,15 @@ static char *getKeywordArg(char *key, int argc, char **argv){
 #define BIND_STATUS_OK     0
 #define BIND_STATUS_ERROR  8
 
-int main(int argc, char **argv){
+int main(int argc, char **argv) {
   int status = BIND_STATUS_OK;
+
+  if (argc == 1 || (argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0))) {
+    printf("bind-test - Tests if the user and jobname has the permission to bind to a TCP port, and detects if it is already occupied.\n");
+    printf("  Format: [_BPX_JOBNAME=jobname] bindTest --host hostname_or_ipv4 --port tcp_port\n");
+    printf("  Exit values: 0 if the user has ability to bind to the destination, and the destination was not already occupied, 8 otherwise\n");
+    return BIND_STATUS_OK;
+  }
 
   int returnCode = 0;
   int reasonCode = 0;
@@ -75,7 +80,7 @@ int main(int argc, char **argv){
   int tlsFlags = 0;
   Socket *serverSocket = tcpServer2(inetAddress, port, tlsFlags, &returnCode, &reasonCode);
    
-  if (serverSocket){
+  if (serverSocket) {
     printf("Bind succeeded (pointer=0x%p, rc=0x%x, rsn=0x%x)\n", serverSocket, returnCode, reasonCode);
   } else{
     status = BIND_STATUS_ERROR;
