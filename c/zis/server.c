@@ -70,6 +70,7 @@ See details in the ZSS Cross Memory Server installation guide
 #define ZIS_PARM_COLD_START                   "COLD"
 #define ZIS_PARM_DEBUG_MODE                   "DEBUG"
 #define ZIS_PARM_RESET_LOOKUP                 "RESET(LOOKUP)"
+#define ZIS_PARM_RESET_MODREG                 "RESET(MODREG)"
 
 #define ZIS_PARM_PCSS_STACK_POOL_SIZE         CMS_PROD_ID".PCSS_STACK_POOL_SIZE"
 #define ZIS_PCSS_STACK_POOL_DEFAULT_SIZSE     1024
@@ -653,25 +654,31 @@ static int relocatePluginToLPAIfNeeded(ZISContext *context,
     }
 
     if (zisIsLPADevModeOn(context)) {
+      if (anchor->flags & ZIS_PLUGIN_ANCHOR_FLAG_PRIVATE_MODULE) {
+        zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
+                " Plugin LPA dev mode enabled, issuing CSVDYLPA DELETE of "
+                "\'%8.8s\'\n", anchor->moduleInfo.inputInfo.name);
 
-      zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
-              " Plugin LPA dev mode enabled, issuing CSVDYLPA DELETE of "
-              "\'%8.8s\'\n", anchor->moduleInfo.inputInfo.name);
-
-      int lpaRSN = 0;
-      int lpaRC = lpaDelete(&anchor->moduleInfo, &lpaRSN);
-      if (lpaRC != 0) {
-        zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE, ZIS_LOG_LPA_FAILURE_MSG,
-                "DELETE", anchor->moduleInfo.inputInfo.name, lpaRC, lpaRSN);
-        return RC_ZIS_ERROR;
+        int lpaRSN = 0;
+        int lpaRC = lpaDelete(&anchor->moduleInfo, &lpaRSN);
+        if (lpaRC != 0) {
+          zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE, ZIS_LOG_LPA_FAILURE_MSG,
+                  "DELETE", anchor->moduleInfo.inputInfo.name, lpaRC, lpaRSN);
+          return RC_ZIS_ERROR;
+        }
+      } else {
+        zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
+                " Plugin LPA dev mode enabled, skipping CSVDYLPA DELETE of "
+                "\'%8.8s\' because it is not private\n",
+                anchor->moduleInfo.inputInfo.name);
       }
-
       lpaDiscarded = true;
     }
 
     if (lpaDiscarded) {
       memset(&anchor->moduleInfo, 0, sizeof(anchor->moduleInfo));
       anchor->flags &= ~ZIS_PLUGIN_ANCHOR_FLAG_LPA;
+      anchor->flags &= ~ZIS_PLUGIN_ANCHOR_FLAG_PRIVATE_MODULE;
       lpaPresent = false;
     }
 
@@ -718,6 +725,7 @@ static int relocatePluginToLPAIfNeeded(ZISContext *context,
                   "ADD", moduleName.text, lpaRC, lpaRSN);
           return RC_ZIS_ERROR;
         }
+        anchor->flags |= ZIS_PLUGIN_ANCHOR_FLAG_PRIVATE_MODULE;
       }
 
       anchor->flags |= ZIS_PLUGIN_ANCHOR_FLAG_LPA;
@@ -757,21 +765,27 @@ static int removePluginFromLPAIfNeeded(ZISContext *context,
   if (lpaPresent) {
 
     if (zisIsLPADevModeOn(context)) {
+      if (anchor->flags & ZIS_PLUGIN_ANCHOR_FLAG_PRIVATE_MODULE) {
+        zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
+                " Plugin LPA dev mode enabled, issuing CSVDYLPA DELETE of "
+                "\'%8.8s\'\n", anchor->moduleInfo.inputInfo.name);
 
-      zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
-              " Plugin LPA dev mode enabled, issuing CSVDYLPA DELETE of "
-              "\'%8.8s\'\n", anchor->moduleInfo.inputInfo.name);
-
-      int lpaRSN = 0;
-      int lpaRC = lpaDelete(&anchor->moduleInfo, &lpaRSN);
-      if (lpaRC != 0) {
-        zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE, ZIS_LOG_LPA_FAILURE_MSG,
-                "DELETE", anchor->moduleInfo.inputInfo.name, lpaRC, lpaRSN);
-        return RC_ZIS_ERROR;
+        int lpaRSN = 0;
+        int lpaRC = lpaDelete(&anchor->moduleInfo, &lpaRSN);
+        if (lpaRC != 0) {
+          zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_SEVERE, ZIS_LOG_LPA_FAILURE_MSG,
+                  "DELETE", anchor->moduleInfo.inputInfo.name, lpaRC, lpaRSN);
+          return RC_ZIS_ERROR;
+        }
+      } else {
+        zowelog(NULL, LOG_COMP_ID_CMS, ZOWE_LOG_INFO, ZIS_LOG_DEBUG_MSG_ID
+                " Plugin LPA dev mode enabled, skipping CSVDYLPA DELETE of "
+                "\'%8.8s\' because it is not private\n",
+                anchor->moduleInfo.inputInfo.name);
       }
-
       memset(&anchor->moduleInfo, 0, sizeof(anchor->moduleInfo));
       anchor->flags &= ~ZIS_PLUGIN_ANCHOR_FLAG_LPA;
+      anchor->flags &= ~ZIS_PLUGIN_ANCHOR_FLAG_PRIVATE_MODULE;
       lpaPresent = false;
     }
 
@@ -1516,13 +1530,18 @@ static int getCMSConfigFlags(const ZISParmSet *zisParms) {
   }
 
   const char *resetLookup = zisGetParmValue(zisParms, ZIS_PARM_RESET_LOOKUP);
-  if (resetLookup && strlen(coldStartValue) == 0) {
+  if (resetLookup && strlen(resetLookup) == 0) {
     flags |= CMS_SERVER_FLAG_RESET_LOOKUP;
   }
 
   const char *modregMode = zisGetParmValue(zisParms, ZIS_PARM_MODREG);
   if (modregMode && !strcmp(modregMode, ZIS_PARM_MODREG_OFF)) {
     flags &= ~CMS_SERVER_FLAG_USE_MODREG;
+  }
+
+  const char *resetModreg = zisGetParmValue(zisParms, ZIS_PARM_RESET_MODREG);
+  if (resetModreg && strlen(resetModreg) == 0) {
+    flags |= CMS_SERVER_FLAG_RESET_MODREG;
   }
 
   return flags;
