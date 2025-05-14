@@ -8,7 +8,12 @@ All notable changes to the ZSS package will be documented in this file.
 - Bugfix: make sure modreg-based modules are never deleted (#752, zowe/zss#749)
 - Bugfix: Update schema entry for JWT tracing from incorrect name "_zss.jwt" to correct name "_zss.jwtTrace", to help people identify which log level can enable JWT tracing (#757)
 - Enhancement: add support for passing multiple parameters to ZIS via the START command (#753, #755)
-
+- Enhancement: add a parameter for resetting the module registry at ZIS
+  start-up (#754)
+- Enhancement: expose the modregReset function via dynlink (#754)
+- Bugfix: correct the modregRegister entry in the dynlink stub (#754)
+- Bugfix: fix the incorrect check of the look-up anchor reset parameter (#754)
+- Bugfix: ZSS was not accessible from the Gateway when using AT-TLS (#???)
 
 ## `3.1.0`
 - Enhancement: module registry (#732)
