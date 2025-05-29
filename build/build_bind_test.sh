@@ -11,10 +11,6 @@ set -e
 #  Copyright Contributors to the Zowe Project.
 ################################################################################
 
-
-export _C89_LSYSLIB="CEE.SCEELKED:SYS1.CSSLIB:CSF.SCSFMOD0"
-export _C89_L6SYSLIB="CEE.SCEEBND2:SYS1.CSSLIB:CSF.SCSFMOD0"
-
 WORKING_DIR=$(cd $(dirname "$0") && pwd)
 ZSS="../.."
 COMMON="../../deps/zowe-common-c"
@@ -24,26 +20,17 @@ echo "Building bind test ..."
 
 mkdir -p "${WORKING_DIR}/tmp-bind-test" && cd "$_"
 
-export _C89_ACCEPTABLE_RC=0
-
-c89 \
+xlclang \
+  -q64 \
+  -v \
+  -qascii \
   -D_XOPEN_SOURCE=600 \
-  -D_OPEN_THREADS=1 \
-  -DAPF_AUTHORIZED=0 \
   -DNEW_CAA_LOCATIONS=1 \
-  -Wc,lp64,langlvl\(extc99\),gonum,goff,hgpr,roconst,ASM,asmlib\('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN'\) \
-  -Wc,agg,exp,list,so\(\),off,xref \
-  -Wl,lp64 \
+  "-Wc,langlvl(extc11),gonum,goff,hgpr,roconst,ASM,asmlib('SYS1.MACLIB')" \
   -I ${COMMON}/h \
   -o ${ZSS}/bin/bind-test \
   ${COMMON}/c/alloc.c \
   ${COMMON}/c/bpxskt.c \
-  ${COMMON}/c/collections.c \
-  ${COMMON}/c/le.c \
-  ${COMMON}/c/logging.c \
-  ${COMMON}/c/zos.c \
-  ${COMMON}/c/recovery.c \
-  ${COMMON}/c/scheduling.c \
   ${COMMON}/c/timeutls.c \
   ${COMMON}/c/utils.c \
   ${ZSS}/c/bindTest.c ;
