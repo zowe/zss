@@ -1,6 +1,6 @@
 //ZWESAUX  PROC RGN=0M
 //* DO NOT LAUNCH THIS PROC MANUALLY OR IT WILL FAIL.                */
-//* THE ZSS CROSS MEMORY SERVER WILL LAUNCH IT IF REQUIRED.          */
+//* THE ZIS CROSS MEMORY SERVER WILL LAUNCH IT IF REQUIRED.          */
 //********************************************************************/
 //* This program and the accompanying materials are                  */
 //* made available under the terms of the                            */
@@ -12,7 +12,7 @@
 //*                                                                  */
 //* Copyright Contributors to the Zowe Project.                      */
 //********************************************************************/
-//* A SAMPLE STC JCL FOR THE ZSS CROSS-MEMORY AUX SERVER             */
+//* A SAMPLE STC JCL FOR THE ZIS CROSS-MEMORY AUX SERVER             */
 //*                                                                  */
 //* 1. RUN-TIME PARAMETERS                                           */
 //*                                                                  */
@@ -27,12 +27,15 @@
 //* VERIFY AND/OR CHANGE THE NAME OF THE STEPLIB DATASET             */
 //*                                                                  */
 //* THE STARTED TASK MUST USE A STEPLIB DD STATEMENT TO DECLARE      */
-//* THE ZSS CROSS MEMORY SERVER AUX LOAD LIBRARY NAME. THIS IS       */
+//* THE ZIS CROSS MEMORY SERVER AUX LOAD LIBRARY NAME. THIS IS       */
 //* REQUIRED SO THAT THE APPROPRIATE VERSION OF THE SOFTWARE IS      */
 //* LOADED CORRECTLY. DO NOT ADD THE LOAD LIBRARY DATA SET TO        */
 //* THE SYSTEM LNKLST OR LPALST CONCATENATIONS.                      */
 //*                                                                  */
 //********************************************************************/
 //ZWESAUX  EXEC PGM=ZWESAUX,REGION=&RGN
-//STEPLIB  DD   DSNAME=zis-loadlib,DISP=SHR
-//SYSPRINT DD   SYSOUT=*
+//STEPLIB  DD  DSNAME={zowe.setup.dataset.authLoadlib},
+//             DISP=SHR
+//         DD  DSNAME={zowe.setup.dataset.authPluginLib},
+//             DISP=SHR
+//SYSPRINT DD  SYSOUT=*
