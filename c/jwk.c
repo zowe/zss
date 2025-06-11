@@ -211,15 +211,16 @@ static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientC
   int currentLoop = 0;
   while (!done) {
     int status = httpClientSessionReceiveNativeLoop(httpClientContext, session);
-    if (status == HTTP_CLIENT_EWOULDBLOCK){
-      currentLoop++;
-      usleep(1000);
-    }
     if (currentLoop > loopLimit){
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "JWT timeout reached\n");
       break;
     }
-    if (status != 0 && status != 15) {
+    if (status == HTTP_CLIENT_SOCKET_TIMEOUT) {
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "socket timeout reached\n");
+      break;
+    } else if (status != 0 &&
+               status != HTTP_CLIENT_READ_ERROR &&
+               status != HTTP_CLIENT_UNBLOCKED_TRY_AGAIN) {
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error receiving response: %d\n", status);
       break;
     }
@@ -227,6 +228,8 @@ static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientC
       done = true;
       break;
     }
+    currentLoop++;
+    sleep(1);
   }
   if (done) {
     int contentLength = session->response->contentLength;
