@@ -214,15 +214,14 @@ static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientC
     if (currentLoop > loopLimit){
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "JWT timeout reached\n");
       break;
-    }
-    if (status == HTTP_CLIENT_SOCKET_TIMEOUT) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "socket timeout reached\n");
-      break;
-    } else if (status != 0 &&
-               status != HTTP_CLIENT_READ_ERROR &&
-               status != HTTP_CLIENT_UNBLOCKED_TRY_AGAIN) {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error receiving response: %d\n", status);
-      break;
+    } else if (status != 0) {
+      if (status != HTTP_CLIENT_SOCKET_TIMEOUT ||
+          status != HTTP_CLIENT_UNBLOCKED_TRY_AGAIN) {
+        zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "status=%d, trying again. loop count=%d\n", status, currentLoop);
+      } else{
+        zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error receiving response: %d\n", status);
+        break;
+      }
     }
     if (session->response) {
       done = true;
