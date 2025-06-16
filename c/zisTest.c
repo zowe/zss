@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
         } else {
           printf("Ensure the Zowe STC id has READ access to ZWES.IS in the FACILITY class\n");
         } 
-      } else if (rc == RC_CMS_ZVT_NULL || rc == RC_CMS_ZERO_PC_NUMBER || rc == RC_CMS_GLOBAL_AREA_NULL) {
+      } else if (rc == RC_CMS_ZVT_NULL || rc == RC_CMS_ZERO_PC_NUMBER || rc == RC_CMS_GLOBAL_AREA_NULL || rc == RC_CMS_SERVER_NOT_READY) {
         printf("The ZIS STC does not appear to be running. Start the job (Default: ZWESISTC) before starting the rest of Zowe\n");
       }
     }
