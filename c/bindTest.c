@@ -98,6 +98,7 @@ int main(int argc, char **argv) {
     } else {
       printf("Ensure the Zowe STC job and STC id has permission to make TCPIP binds to %s:%d\n", address, port);
     }
+    socketClose(serverSocket, returnCode, reasonCode);
   }
   return status;
 }
