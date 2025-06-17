@@ -2,6 +2,9 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `3.3.0`
+- Bugfix: JWK logic for single-sign-on to the APIML Gateway had the potential for a high-cpu loop when AT-TLS was enabled and the destination had read errors ([#772](https://github.com/zowe/zss/pull/772))
+
 ## `3.2.0`
 - Enhancement: include the stub version in the generated HLASM stub (#743)
 - Enhancement: expose new cmutils functions (#740)
