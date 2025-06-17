@@ -996,10 +996,6 @@ static JwkSettings *readJwkSettingsV2(ShortLivedHeap *slh, ConfigManager *config
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Gateway settings not found\n");
       break;
     }
-    if (!tlsEnv) {
-      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "TLS settings not found\n");
-      break;
-    }
     fallback = isJwtFallbackEnabledV2(configmgr);
     configured = true;
   } while(0);
@@ -1183,6 +1179,7 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "https is NOT configured for this ZSS\n");
     return false;
   }
+
   JsonObject *httpsConfigObject = jsonAsObject(httpsConfig);
   TlsSettings *settings = (TlsSettings*)SLHAlloc(slh, sizeof(*settings));
   settings->maxTls = jsonObjectGetString(httpsConfigObject, "maxTls");
@@ -1270,6 +1267,7 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
       *outTlsEnv = tlsEnv;
     }
   }
+
   return isHttpsConfigured;
 }
 
@@ -1853,16 +1851,18 @@ int main(int argc, char **argv){
       if (isHttpsConfigured) {
         server = makeSecureHttpServer2(base, inetAddress, port, tlsEnv, requiredTLSFlag,
                                        cookieName, &returnCode, &reasonCode);
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "made https server at 0x%p\n",server);
       } else {
         server = makeHttpServer3(base, inetAddress, port, requiredTLSFlag,
                                  cookieName, &returnCode, &reasonCode);
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "made http server at 0x%p\n",server);
       }
     }
     if (hasProductReg){ 
       registerProduct(productReg, productPID, productVer, productOwner, productName);
     }
     
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "made http(s) server at 0x%p\n",server);
+
     if (server){
       httpServerConfigManager(server) = configmgr;
       ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettingsV2(slh, configmgr, tlsEnv);
