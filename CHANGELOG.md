@@ -2,6 +2,9 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `2.18.2`
+- Bugfix: JWK logic for single-sign-on to the APIML Gateway had the potential for a high-cpu loop when AT-TLS was enabled and the destination had read errors ([#773](https://github.com/zowe/zss/pull/773))
+
 ## `2.18.1`
 - Bugfix: Support cross-memory server parameters longer than 128 characters (#684)
 - Enhancement: Expose new cross-memory server's functions in dynlink ([#714](https://github.com/zowe/zss/pull/714))
