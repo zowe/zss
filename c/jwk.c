@@ -215,8 +215,8 @@ static Json *receiveResponse(ShortLivedHeap *slh, HttpClientContext *httpClientC
       zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "JWT timeout reached\n");
       break;
     } else if (status != 0) {
-      if (status != HTTP_CLIENT_SOCKET_TIMEOUT ||
-          status != HTTP_CLIENT_UNBLOCKED_TRY_AGAIN) {
+      if (status == HTTP_CLIENT_SOCKET_TIMEOUT ||
+          status == HTTP_CLIENT_UNBLOCKED_TRY_AGAIN) {
         zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_DEBUG, "status=%d, trying again. loop count=%d\n", status, currentLoop);
       } else{
         zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "error receiving response: %d\n", status);
