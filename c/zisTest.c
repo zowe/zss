@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     printf("Error: --zis specifying ZIS server name to check is required\n");
     status = VERIFY_STATUS_ERROR;
   } else if (strlen(zisName) > sizeof(CrossMemoryServerName)) {
-    printf("Error: ZIS server name must be maximum 16 characters.\n");
+    printf("Error: ZIS server name must be maximum %zu characters.\n", sizeof(CrossMemoryServerName));
     status = VERIFY_STATUS_ERROR;
   } else {
     int rc = printZISStatus(zisName);
