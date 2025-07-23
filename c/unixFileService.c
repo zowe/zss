@@ -34,6 +34,7 @@
  * inactivity.
  */
 #define TIMEOUT_TIME 600
+#define TRIAL_AVOID_WRITE
 
 /* An enumeration of the possible
  * file transfer types supported
@@ -629,9 +630,14 @@ static void doChunking(UploadSessionTracker *tracker, HttpResponse *response, ch
       status = 0;
       //Only write to file if string isn't empty. If string is empty, case is handled by creation of new file.
       if (response->request->contentLength > 0) {
+#ifdef TRIAL_AVOID_WRITE
+        printf("***GKP:doChunking avoiding write!");
+        status = 0; // avoid write to check memory leak in it
+#else
         status = writeAsciiDataFromBase64(currentSession->file, response->request->contentBody,
                                         response->request->contentLength, currentSession->sourceCCSID,
                                         currentSession->targetCCSID);
+#endif
       }
     }
 
