@@ -5,6 +5,7 @@ All notable changes to the ZSS package will be documented in this file.
 ## `3.3.0`
 - Enhancement: Utility "zis-test" is now used to ensure that ZIS is running and accessible by Zowe before starting ZSS. (zowe/zss#764)
 - Enhancement: Utility "bind-test" is now available in Zowe and used to validate if each Zowe server can succeed in binding to the user requested TCPIP port at each Zowe startup. (zowe/zss#764)
+- Enhancement: zss handles the setting "components.apiml.enabled: true" as an alternative to enabling "gateway", "discovery", and "caching-service" components.
 - Bugfix: JWK logic for single-sign-on to the APIML Gateway had the potential for a high-cpu loop when AT-TLS was enabled and the destination had read errors ([#772](https://github.com/zowe/zss/pull/772))
 - Bugfix: Stop aborting when Zowe starts on new zOS version([#781](https://github.com/zowe/zss/pull/781))
 
