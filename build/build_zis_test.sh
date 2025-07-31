@@ -32,6 +32,7 @@ c89 \
   -o ${ZSS}/bin/zis-test \
   ${COMMON}/c/alloc.c \
   ${COMMON}/c/crossmemory.c \
+  ${COMMON}/c/pdsutils.c \
   ${COMMON}/c/zos.c \
   ${COMMON}/c/timeutls.c \
   ${COMMON}/c/utils.c \

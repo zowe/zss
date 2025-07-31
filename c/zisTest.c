@@ -13,6 +13,7 @@
 #include <stdlib.h>
 
 #include "zis/client.h"
+#include "pdsutil.h"
 
 static int printZISStatus(char *zisName) {
   CrossMemoryServerName privilegedServerName = cmsMakeServerName(zisName);
@@ -58,6 +59,10 @@ int main(int argc, char **argv) {
   }
 
   char *zisName = getKeywordArg("--zis",argc,argv);
+  char *stcName = getKeywordArg("--stc",argc,argv);
+  char *proclibName = getKeywordArg("--proclib",argc,argv);
+  bool stcFound = false;
+
 
   if (!zisName) {
     printf("Error: --zis specifying ZIS server name to check is required\n");
@@ -78,7 +83,28 @@ int main(int argc, char **argv) {
           printf("Ensure the Zowe STC id has READ access to ZWES.IS in the FACILITY class\n");
         } 
       } else if (rc == RC_CMS_ZVT_NULL || rc == RC_CMS_ZERO_PC_NUMBER || rc == RC_CMS_GLOBAL_AREA_NULL || rc == RC_CMS_SERVER_NOT_READY) {
-        printf("The ZIS STC does not appear to be running. Start the job (Default: ZWESISTC) before starting the rest of Zowe\n");
+        if (!stcName) {
+          stcName = "ZWESISTC";
+        }
+        if (problibName) {
+          StringList *memberList = getPDSMembers(proclibName);
+          int memberCount = stringListLength(memberList);
+
+          for (int i = 0; i < memberCount; i++) {
+            char *memberName = stringElement->string;
+            if (!strcmp(memberName, stcName)) {
+              stcFound = true;
+              break;
+            }
+          }
+        }
+
+        if (stcFound) {
+          printf("The ZIS STC does not appear to be running. Start the job %s to run ZIS\n", stcName);
+        } else {
+          printf("The ZIS STC does not appear to be running. Locate the ZIS job (default: ZWESISTC) and run ZIS\n");
+        }
+        
       }
     }
   }
