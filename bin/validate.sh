@@ -12,7 +12,18 @@ if [ ! "${RUN_ON_ZOS}" = "true" ]; then
   echo "Error: ZSS can only be run on z/OS, but validation detected a different OS from uname."
   exit 1
 else
-  "${ZWE_zowe_runtimeDirectory}/bin/utils/zis-test" --zis "${ZWE_components_zss_crossMemoryServerName}"
+  check_proclib=false
+  if [ -n "${ZWE_zowe_setup_dataset_proclib}" ]; then
+    if [ -n "${ZWE_zowe_setup_security_stcs_zis}" ]; then
+      check_proclib=true
+    fi
+  fi
+
+  if [ "${check_proclib}" = "true" ]; then
+    "${ZWE_zowe_runtimeDirectory}/bin/utils/zis-test" --zis "${ZWE_components_zss_crossMemoryServerName}" --proclib "${ZWE_zowe_setup_dataset_proclib}" --stc "${ZWE_zowe_setup_security_stcs_zis}"
+  else            
+    "${ZWE_zowe_runtimeDirectory}/bin/utils/zis-test" --zis "${ZWE_components_zss_crossMemoryServerName}"
+  fi
   rc=$?
   exit $rc
 fi
