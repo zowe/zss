@@ -1,0 +1,77 @@
+name: Build bind-test
+on:
+  push:
+    branches:
+      - v3.x/staging 
+      - v3.x/master
+      - v3.x/rc 
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+    inputs:
+      PERFORM_RELEASE:
+        description: '[Release] perform release'
+        required: false
+        default: 'false'  
+
+jobs:
+  check-permission:
+    runs-on: ubuntu-latest
+    steps:
+      # this action will fail the whole workflow if permission check fails
+      - name: check permission
+        uses: zowe-actions/shared-actions/permission-check@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  build-test:
+    runs-on: ubuntu-latest
+    needs: check-permission
+    steps: 
+      - name: '[Prep 1] Checkout'
+        uses: actions/checkout@v2
+        with: 
+            submodules: true
+
+      - name: '[Prep 2] Setup jFrog CLI'
+        uses: jfrog/setup-jfrog-cli@v2
+        env:
+          JF_ARTIFACTORY_1: ${{ secrets.JF_ARTIFACTORY_TOKEN }}
+
+      - name: '[Prep 3] Set date'
+        id: date
+        run: echo "date=$(date +'%Y%m%d%S')" >> $GITHUB_OUTPUT
+
+      - name: '[Prep 4] Set version'
+        id: version
+        run: echo "version=$(cat build/bind-test.proj.env | grep VERSION | cut -f 2 -d=)" >> $GITHUB_OUTPUT
+
+      - name: '[Prep 5] Set branchname'
+        id: branch
+        run: echo "branch=$(if [ -n '${{ github.head_ref }}' ]; then echo '${{ github.head_ref }}' | tr '[:lower:]' '[:upper:]'; else echo '${{ github.ref_name }}' | tr '[:lower:]' '[:upper:]'; fi | sed 's@/@-@g')" >> $GITHUB_OUTPUT
+
+
+      - name: '[Prep 6] Prepare workflow'
+        uses: zowe-actions/shared-actions/prepare-workflow@main
+      
+
+      - name: '[Packaging] Make pax'
+        uses: zowe-actions/shared-actions/make-pax@main
+        with:
+          pax-name: 'bind-test'
+          pax-options: '-x os390 -pp'
+          pax-local-workspace: './.pax/bind-test'
+          pax-ssh-username: ${{ secrets.SSH_MARIST_USERNAME }}
+          pax-ssh-password: ${{ secrets.SSH_MARIST_RACF_PASSWORD }}
+
+      - name: '[Publish] Publish'
+        uses: zowe-actions/shared-actions/publish@main
+        if: success()
+        with:
+          artifacts: |
+            .pax/bind-test/bind-test.pax
+          publish-target-path-pattern: libs-snapshot-local/org/zowe/bind-test/${{ steps.version.outputs.version }}-${{ steps.branch.outputs.branch }}
+          publish-target-file-pattern: bind-test-${{ steps.version.outputs.version }}-${{ steps.date.outputs.date }}.pax
+          perform-release: ${{ github.event.inputs.PERFORM_RELEASE }}
+
+
