@@ -48,6 +48,16 @@ static char *getKeywordArg(char *key, int argc, char **argv) {
   return NULL;
 }
 
+static bool getBoolArg(char *key, int argc, char **argv) {
+  for (int aa=1; aa<argc; aa++) {
+    if (!strcmp(argv[aa],key)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
 #define BIND_STATUS_OK     0
 #define BIND_STATUS_ERROR  8
 
@@ -65,6 +75,15 @@ int main(int argc, char **argv) {
   int reasonCode = 0;
   int port = atoi(getKeywordArg("--port",argc,argv));
   char *address = getKeywordArg("--host",argc,argv);
+  bool debug = getBoolArg("-v", argc, argv);
+  bool trace = getBoolArg("-vv", argc, argv);
+  if (trace) {
+    //bpxskt.c shows several " > 2" conditionals
+    setSocketTrace(3);
+  } else if (debug) {
+    //bpxskt.c shows several "if (socketTrace)" conditionals
+    setSocketTrace(1);
+  }
 
   InetAddr *inetAddress = NULL;
 
