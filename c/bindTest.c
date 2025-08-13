@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
    
   if (serverSocket) {
     printf("Bind succeeded (pointer=0x%p, rc=0x%x, rsn=0x%x)\n", serverSocket, returnCode, reasonCode);
-    socketClose(serverSocket, returnCode, reasonCode);
+    socketClose(serverSocket, &returnCode, &reasonCode);
   } else{
     status = BIND_STATUS_ERROR;
     char *jobname = getenv("_BPX_JOBNAME");
