@@ -2,6 +2,13 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `3.3.0`
+- Enhancement: Utility "zis-test" is now used to ensure that ZIS is running and accessible by Zowe before starting ZSS. (zowe/zss#764)
+- Enhancement: Utility "bind-test" is now available in Zowe and used to validate if each Zowe server can succeed in binding to the user requested TCPIP port at each Zowe startup. (zowe/zss#764)
+- Enhancement: zss handles the setting "components.apiml.enabled: true" as an alternative to enabling "gateway", "discovery", and "caching-service" components. [(#787)](https://github.com/zowe/zss/pull/787)
+- Bugfix: JWK logic for single-sign-on to the APIML Gateway had the potential for a high-cpu loop when AT-TLS was enabled and the destination had read errors ([#772](https://github.com/zowe/zss/pull/772))
+- Bugfix: Stop aborting when Zowe starts on new zOS version([#781](https://github.com/zowe/zss/pull/781))
+
 ## `3.2.0`
 - Enhancement: include the stub version in the generated HLASM stub (#743)
 - Enhancement: expose new cmutils functions (#740)
@@ -13,7 +20,7 @@ All notable changes to the ZSS package will be documented in this file.
 - Enhancement: expose the modregReset function via dynlink (#754)
 - Bugfix: correct the modregRegister entry in the dynlink stub (#754)
 - Bugfix: fix the incorrect check of the look-up anchor reset parameter (#754)
-- Bugfix: ZSS was not accessible from the Gateway when using AT-TLS (#???)
+- Bugfix: ZSS was not accessible from the Gateway when using AT-TLS (zowe/zss#748)
 
 ## `3.1.0`
 - Enhancement: module registry (#732)
