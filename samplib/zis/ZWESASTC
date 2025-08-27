@@ -34,6 +34,6 @@
 //*                                                                  */
 //********************************************************************/
 //ZWESAUX  EXEC PGM=ZWESAUX,REGION=&RGN
-//STEPLIB  DD  DSNAME={zowe.setup.dataset.authLoadlib},DISP=SHR
-//         DD  DSNAME={zowe.setup.dataset.authPluginLib},DISP=SHR
+//STEPLIB  DD DSN={zowe.setup.dataset.authLoadlib},DISP=SHR
+//         DD DSN={zowe.setup.dataset.authPluginLib},DISP=SHR
 //SYSPRINT DD  SYSOUT=*
