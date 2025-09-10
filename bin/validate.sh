@@ -11,4 +11,8 @@ RUN_ON_ZOS=$(test `uname` = "OS/390" && echo "true")
 if [ ! "${RUN_ON_ZOS}" = "true" ]; then
   echo "Error: ZSS can only be run on z/OS, but validation detected a different OS from uname."
   exit 1
+else
+  "${ZWE_zowe_runtimeDirectory}/bin/utils/zis-test" --zis "${ZWE_components_zss_crossMemoryServerName}"
+  rc=$?
+  exit $rc
 fi
