@@ -472,7 +472,7 @@ ZSS_LOGGING_COMPONENTS_MAP(zssLogComponents)
                          \"pluginsDir\": \"../defaults/plugins\",      \
                          \"agent\": {                                  \
                            \"http\": {                                 \
-                             \"ipAddresses\": [\"127.0.0.1\"],         \
+                             \"ipAddresses\": [\"0.0.0.0\"],           \
                              \"port\": 7557                            \
                             }                                          \
                          },                                            \
