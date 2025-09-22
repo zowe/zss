@@ -1167,6 +1167,7 @@ static char* generateCookieNameV2(ConfigManager *configmgr, int port) {
 #define ENV_AGENT_HTTPS_KEY(key) AGENT_HTTPS_PREFIX key
 
 TLS_IANA_CIPHER_MAP(ianaCipherMap)
+TLS_IANA_CURVE_MAP(ianaCurveMap)
 
 static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
                                      ConfigManager *configmgr,
@@ -1220,6 +1221,50 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
     }
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Cipher array override to %s\n", ciphers);    
     
+  }
+
+  Json *tlsConfig = NULL;
+  int tlsGetStatus = cfgGetAnyC(configmgr, ZSS_CFGNAME, &tlsConfig, 4, "zowe", "network", "server", "tls");
+  if (tlsGetStatus) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "TLS is NOT configured for this ZSS\n");
+  } else {
+    JsonObject *tlsConfigObject = jsonAsObject(tlsConfig);
+    Json *curveJson = jsonObjectGetPropertyValue(tlsConfigObject, "curves");
+    char *curves = NULL;
+    if (curveJson && jsonIsArray(curveJson)) {
+      JsonArray *curveArray = jsonObjectGetArray(tlsConfigObject, "curves");
+      if (curveArray) {
+        int count = jsonArrayGetCount(curveArray);
+        const int curveCharLength = 4;
+        curves = safeMalloc((sizeof(char) * curveCharLength * count)+1, "curve list");
+        if (curves == NULL) {
+          zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "Failure to allocate memory for Curves\n");
+          return false;
+        }
+        for (int i = 0; i < count; i++) {
+          char *ianaName = jsonArrayGetString(curveArray, i);
+          if (ianaName) {
+            zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "curve request=%s\n", ianaName);
+            CurveMap *curve = (CurveMap *)ianaCurveMap;
+            bool found = false;
+            while (curve->groupId != NULL) {
+              if (!strcmp(ianaName, curve->name)) {
+                strcat(curves, curve->groupId);
+                zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Curve match=%s\n", curve->groupId);
+                found = true;
+                break;
+              }
+              ++curve;
+            }
+            if (!found) {
+              zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ZSS_LOG_CURVE_INVALID_MSG, ianaName);
+            }
+          }
+        }
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "Curve array is %s\n", curves);
+        settings->curves = curves;
+      }
+    }
   }
 
   ECVT *ecvt = getECVT();

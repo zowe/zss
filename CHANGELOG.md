@@ -2,6 +2,9 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `3.4.0`
+- Enhancement: Curve customization support from array 'zowe.network.server.tls.curves' in zowe.yaml, only curves mentioned in https://www.ibm.com/docs/en/zos/3.1.0?topic=programming-cipher-suite-definitions#csdcwh__tttcsd are supported currently (#721).
+
 ## `3.3.0`
 - Enhancement: Utility "zis-test" is now used to ensure that ZIS is running and accessible by Zowe before starting ZSS. (zowe/zss#764)
 - Enhancement: Utility "bind-test" is now available in Zowe and used to validate if each Zowe server can succeed in binding to the user requested TCPIP port at each Zowe startup. (zowe/zss#764)
