@@ -329,7 +329,7 @@
           "$ref": "#/$defs/logLevel"
         },
         "_zss.serialization": {
-          "description": "Controls logging of serialiation library functions.",
+          "description": "Controls logging of serialization library functions.",
           "$ref": "#/$defs/logLevel"
         },
         "_zss.zlparser": {
