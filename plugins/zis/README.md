@@ -97,7 +97,7 @@ applications on z/OS in a secure manner.
 ### When do I need ZIS?
 * Your service code requires a system key, supervisor state and/or 
 APF-authorization
-* You want to provide services to applications that can’t use HTTP or the
+* You want to provide services to applications that can't use HTTP or the
 standard IPC mechanisms
 
 ### Extending ZIS

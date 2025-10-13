@@ -470,7 +470,7 @@ def VSAMdataset_contents(dataset):
                 data['records'] = request.get_json()['records']
 
 
-@app.route('/​datasetMetadata​/hlq', methods=['GET'])
+@app.route('/datasetMetadata/hlq', methods=['GET'])
 def dataset_metadata_hlq():
     global global_datasets
     types = None
