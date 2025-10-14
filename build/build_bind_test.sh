@@ -23,7 +23,6 @@ mkdir -p "${WORKING_DIR}/tmp-bind-test" && cd "$_"
 xlclang \
   -q64 \
   -v \
-  -qascii \
   -D_XOPEN_SOURCE=600 \
   -DNEW_CAA_LOCATIONS=1 \
   "-Wc,langlvl(extc11),gonum,goff,hgpr,roconst,ASM,asmlib('SYS1.MACLIB')" \
