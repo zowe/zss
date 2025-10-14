@@ -488,6 +488,8 @@ bool isLogLevelValid(int level);
 #endif
 #define ZSS_LOG_JWK_URL_MSG_TEXT        "JWT will be configured using JWK URL https://%s:%d%s\n"
 #define ZSS_LOG_JWK_URL_MSG             ZSS_LOG_JWK_URL_MSG_ID" "ZSS_LOG_JWK_URL_MSG_TEXT
+#define ZSS_LOG_JWK_URL_IPV6_MSG_TEXT        "JWT will be configured using JWK URL https://[%s]:%d%s\n"
+#define ZSS_LOG_JWK_URL_IPV6_MSG             ZSS_LOG_JWK_URL_MSG_ID" "ZSS_LOG_JWK_URL_IPV6_MSG_TEXT
 
 #ifndef ZSS_LOG_JWK_READY_MSG_ID
 #define ZSS_LOG_JWK_READY_MSG_ID          ZSS_LOG_MSG_PRFX"1601I"
