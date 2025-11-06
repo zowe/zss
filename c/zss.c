@@ -1379,7 +1379,7 @@ static bool isCachingServiceEnabledV2(ConfigManager *configmgr){
 
 /* returns valid */
 static int validateAddress(char *address, InetAddr **inetAddress, int *requiredTLSFlag) {
-  *inetAddress = getAddressByName(address);
+  *inetAddress = getAddressByName2(address, false);
   if (strcmp(address,"127.0.0.1") && strcmp(address,"localhost")) {
 #ifndef USE_ZOWE_TLS
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, 
@@ -1391,13 +1391,16 @@ static int validateAddress(char *address, InetAddr **inetAddress, int *requiredT
   if (!strcmp(address,"0.0.0.0")) {
     return TRUE;      
   }
-  if (!(*inetAddress && (*inetAddress)->data.data4.addrBytes)) {
-    printf("address resolution problems\n");
-    return FALSE;
+  int success = FALSE;
+  if (*inetAddress && (*inetAddress)->type == AF_INET && (*inetAddress)->data.data4.addrBytes) {
+    success = TRUE;
+  } else if (*inetAddress && (*inetAddress)->type == AF_INET6) {
+    success = TRUE;
   }
-
-  /* TODO: No ipv6 resolution in getAddressByName yet, so nothing here either */
-  return TRUE;
+  if (success == FALSE) {
+    printf("address resolution problems\n");
+  }
+  return success;
 }
 
 static const int FORBIDDEN_GROUP_FILE_PERMISSION = 0x18;

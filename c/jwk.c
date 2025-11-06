@@ -79,7 +79,12 @@ void configureJwt(HttpServer *server, JwkSettings *settings) {
   task->userPointer = context;
   startRLETask(task, NULL);
 
-  zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_INFO, ZSS_LOG_JWK_URL_MSG, settings->host, settings->port, settings->path);
+  if (indexOf(settings->host, strlen(settings->host), ':', 0) != -1) {
+    //wraps ipv6 address in []
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_INFO, ZSS_LOG_JWK_URL_IPV6_MSG, settings->host, settings->port, settings->path);
+  } else {
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_INFO, ZSS_LOG_JWK_URL_MSG, settings->host, settings->port, settings->path);
+  }
 }
 
 static int jwkTaskMain(RLETask *task) {
