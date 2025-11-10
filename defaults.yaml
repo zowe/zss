@@ -29,7 +29,7 @@ components:
         server:
           isHttps: true
           enabled: ${{ components.gateway?.enabled || components.apiml?.enabled }}
-          gatewayHostname: ${{ std.getenv('ZWE_haInstance_hostname') }}
+          gatewayHostname: ${{ std.getenv('ZWE_zowe_externalDomains_0') }}
           hostname: ${{ std.getenv('ZWE_haInstance_hostname') }}
           gatewayPort: ${{ components.gateway.port }}
           port: ${{ components.discovery.port }}
