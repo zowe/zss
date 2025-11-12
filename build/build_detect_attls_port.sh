@@ -23,7 +23,6 @@ mkdir -p "${WORKING_DIR}/tmp-detect-attls-port" && cd "$_"
 xlclang \
   -q64 \
   -v \
-  -qascii \
   -D_XOPEN_SOURCE=600 \
   -DNEW_CAA_LOCATIONS=1 \
   "-Wc,langlvl(extc11),gonum,goff,hgpr,roconst,ASM,asmlib('SYS1.MACLIB')" \
@@ -31,6 +30,7 @@ xlclang \
   -o ${ZSS}/bin/detect-attls-port \
   ${COMMON}/c/alloc.c \
   ${COMMON}/c/bpxskt.c \
+  ${COMMON}/c/timeutls.c \
   ${COMMON}/c/utils.c \
   ${ZSS}/c/detectAttlsPort.c ;
 
