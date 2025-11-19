@@ -118,6 +118,9 @@ static int jwkTaskMain(RLETask *task) {
       if ((i+1) % warnInterval == 0) {
         zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_RETRY_MSG,
                 jwkGetStrStatus(rc), rc, jwkHttpClientGetStrStatus(rsn), rsn, retryIntervalSeconds);
+        if (rc == HTTP_CLIENT_TLS_ERROR) {
+          zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "If TLS error persists, trace GSK for more detail using YAML property 'components.zss.agent.https.trace: true'\n");
+        }
       }
       sleep(retryIntervalSeconds);
     }
@@ -125,7 +128,12 @@ static int jwkTaskMain(RLETask *task) {
   if (success) {
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_INFO, ZSS_LOG_JWK_READY_MSG, settings->fallback ? "with" : "without");
   } else {
-    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_FAILED_MSG);
+    if (indexOf(settings->host, strlen(settings->host), ':', 0) != -1) {
+      //wraps ipv6 address in []
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_FAILED_IPV6_MSG, settings->host, settings->port, settings->path);
+    } else {
+      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_FAILED_MSG, settings->host, settings->port, settings->path);
+    }
   }
   fflush(stdout);
 }
@@ -280,6 +288,12 @@ static void getPublicKey(Json *jwk, x509_public_key_info *publicKeyOut, int *sta
   if (!keyObject) {
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "JWK doesn't contain key\n");
     *statusOut = JWK_STATUS_UNRECOGNIZED_FMT_ERROR;
+
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "JWK response:\n");
+    //Often enough, the destination has some error message that can be printed
+    jsonPrinter *jp = makeJsonPrinter(STDOUT_FILENO);
+    jsonPrintObject(jp, jwkObject);
+    freeJsonPrinter(jp);
     return;
   }
 
