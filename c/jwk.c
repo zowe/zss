@@ -118,7 +118,7 @@ static int jwkTaskMain(RLETask *task) {
       if ((i+1) % warnInterval == 0) {
         zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_RETRY_MSG,
                 jwkGetStrStatus(rc), rc, jwkHttpClientGetStrStatus(rsn), rsn, retryIntervalSeconds);
-        if (rc == HTTP_CLIENT_TLS_ERROR) {
+        if (rsn == HTTP_CLIENT_TLS_ERROR) {
           zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "If TLS error persists, trace GSK for more detail using YAML property 'components.zss.agent.https.trace: true'\n");
         }
       }
