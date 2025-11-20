@@ -87,6 +87,22 @@ void configureJwt(HttpServer *server, JwkSettings *settings) {
   }
 }
 
+static char *printJWKURL(const JwkSettings *settings, char *buffer,
+                         size_t bufferLen) {
+  int charsPrinted;
+  if (indexOf(settings->host, strlen(settings->host), ':', 0) != -1) {
+    charsPrinted = snprintf(buffer, bufferLen, "https://[%s]:%d%s",
+                            settings->host, settings->port, settings->path);
+  } else {
+    charsPrinted = snprintf(buffer, bufferLen, "https://%s:%d%s",
+                            settings->host, settings->port, settings->path);
+  }
+  if (charsPrinted < 0) {
+    memset(buffer, 0, bufferLen);
+  }
+  return buffer;
+}
+
 static int jwkTaskMain(RLETask *task) {
   JwkContext *context = (JwkContext*)task->userPointer;
   JwkSettings *settings = context->settings;
@@ -128,12 +144,9 @@ static int jwkTaskMain(RLETask *task) {
   if (success) {
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_INFO, ZSS_LOG_JWK_READY_MSG, settings->fallback ? "with" : "without");
   } else {
-    if (indexOf(settings->host, strlen(settings->host), ':', 0) != -1) {
-      //wraps ipv6 address in []
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_FAILED_IPV6_MSG, settings->host, settings->port, settings->path);
-    } else {
-      zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_FAILED_MSG, settings->host, settings->port, settings->path);
-    }
+    char url[256];
+    zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, ZSS_LOG_JWK_FAILED_MSG,
+            printJWKURL(settings, url, sizeof(url)));
   }
   fflush(stdout);
 }
