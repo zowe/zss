@@ -48,29 +48,29 @@
 typedef struct EurekaClientSettings_tag {
 
   /* ---- Discovery server (API ML Discovery) coordinates ---- */
-  char           *discoveryHost;         /* hostname / IP of the discovery service     */
-  int             discoveryPort;         /* TCP port of the discovery service          */
+  char                 *discoveryHost;         /* hostname / IP of the discovery service     */
+  int                   discoveryPort;         /* TCP port of the discovery service          */
 
   /* ---- This service's Eureka identity ---- */
-  char           *serviceId;            /* Eureka appId  (upper-case), e.g. "ZSS"     */
-  char           *instanceId;           /* <host>:<serviceId>:<port>                  */
-  char           *hostName;             /* hostname this service is reachable at       */
-  char           *ipAddr;               /* IP address this service is reachable at    */
-  int             port;                 /* TCP port this service listens on           */
-  bool            securePortEnabled;    /* true when TLS is in use for this service   */
+  char                 *serviceId;            /* Eureka appId  (upper-case), e.g. "ZSS"     */
+  char                 *instanceId;           /* <host>:<serviceId>:<port>                  */
+  char                 *hostName;             /* hostname this service is reachable at       */
+  const char           *ipAddr;               /* IP address this service is reachable at    */
+  int                   port;                 /* TCP port this service listens on           */
+  bool                  securePortEnabled;    /* true when TLS is in use for this service   */
 
   /* ---- Well-known URL suffixes for Eureka metadata ---- */
-  char           *homePageUrl;          /* e.g. "https://<host>:<port>/"             */
-  char           *statusPageUrl;        /* e.g. "https://<host>:<port>/info"         */
-  char           *healthCheckUrl;       /* e.g. "https://<host>:<port>/health"       */
+  char                 *homePageUrl;          /* e.g. "https://<host>:<port>/"             */
+  char                 *statusPageUrl;        /* e.g. "https://<host>:<port>/info"         */
+  char                 *healthCheckUrl;       /* e.g. "https://<host>:<port>/health"       */
 
   /* ---- Service version reported in Eureka metadata ---- */
-  char           *version;             /* e.g. "2.17.0+20260101"                    */
+  const char           *version;             /* e.g. "2.17.0+20260101"                    */
 
   /* ---- Timing ---- */
-  int             heartbeatIntervalSeconds; /* PUT heartbeat interval   (default: 30 s)  */
-  int             retryIntervalSeconds;     /* retry after failed req   (default: 30 s)  */
-  int             maxRetries;            /* 0 means retry indefinitely                */
+  int                   heartbeatIntervalSeconds; /* PUT heartbeat interval   (default: 30 s)  */
+  int                   retryIntervalSeconds;     /* retry after failed req   (default: 30 s)  */
+  int                   maxRetries;            /* 0 means retry indefinitely                */
 
 #ifdef USE_ZOWE_TLS
   /* TLS environment used to connect to the discovery server */
