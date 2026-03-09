@@ -28,3 +28,23 @@ if [ "${ZWE_components_app_server_enabled}" != "true" ]; then
   _CEE_RUNOPTS="XPLINK(ON),HEAPPOOLS(OFF),HEAPPOOLS64(OFF)" ${ZWE_zowe_runtimeDirectory}/bin/utils/configmgr -script "${ZWE_zowe_runtimeDirectory}/components/zss/bin/plugins-init.js"  
 fi
 
+# Register ZSS as a static APIML service when components.zss.agent.mediationLayer.static is enabled.
+# ZWE_components_zss_agent_mediationLayer_static defaults to false; only
+# proceed when it is explicitly set to true.
+if [ "${ZWE_components_zss_agent_mediationLayer_static}" = "true" ]; then
+  if [ -n "${ZWE_STATIC_DEFINITIONS_DIR}" ]; then
+    apiml_static_def="${ZWE_STATIC_DEFINITIONS_DIR}/zss.apiml_static_reg_yaml_template.${ZWE_CLI_PARAMETER_HA_INSTANCE}.yml"
+    apiml_static_src="${COMPONENT_HOME}/apiml-static-reg.yaml.template"
+    parsed_def=$( ( echo "cat <<EOF" ; cat "${apiml_static_src}" ; echo ; echo EOF ) | sh 2>&1)
+    echo "${parsed_def}" > "${apiml_static_def}"
+    chmod 770 "${apiml_static_def}"
+  fi
+else
+  if [ -n "${ZWE_STATIC_DEFINITIONS_DIR}" ]; then
+    apiml_static_def="${ZWE_STATIC_DEFINITIONS_DIR}/zss.apiml_static_reg_yaml_template.${ZWE_CLI_PARAMETER_HA_INSTANCE}.yml"
+    if [ -f "${apiml_static_def}" ]; then
+      rm -f "${apiml_static_def}"
+    fi
+  fi
+fi
+

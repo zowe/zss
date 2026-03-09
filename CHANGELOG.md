@@ -2,6 +2,9 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `3.5.0`
+- Enhancement: ZSS can now use eureka registration to APIML, providing improved high availability over prior static registration. Static registration is still available via new property `components.zss.agent.mediationLayer.static: true` ([#???]())
+
 ## `3.4.0`
 - Bugfix: Fixed hostname to IP address lookup for "bind-test" program. [(#801)](https://github.com/zowe/zss/pull/801)
 

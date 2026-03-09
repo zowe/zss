@@ -253,6 +253,7 @@ xlc \
   ${ZSS}/c/passTicketService.c \
   ${ZSS}/c/jwk.c \
   ${ZSS}/c/safIdtService.c \
+  ${ZSS}/c/eurekaClient.c \
   ${GSKLIB} 
 
 #then
