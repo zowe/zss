@@ -228,7 +228,7 @@ EurekaClientSettings *makeEurekaClientSettings(ShortLivedHeap  *slh,
   eurekaSettings->discoveryPort = discoveryPort;
 
   /* service identity */
-  eurekaSettings->serviceId  = "ZSS";
+  eurekaSettings->serviceId  = "zss";
   eurekaSettings->hostName   = externalDomain;
   eurekaSettings->ipAddr     = zssAddress;
   eurekaSettings->port       = zssPort;
@@ -435,6 +435,9 @@ static int doRegistration(EurekaClientSettings *settings, int *httpStatusOut) {
             ZSS_LOG_EUREKA_BODY_OVERFLOW_MSG);
     return EUREKA_RC_STAGE_ERROR;
   }
+
+  zowelog(NULL, LOG_COMP_ID_EUREKA, ZOWE_LOG_DEBUG,
+          "Eureka registration body: %s\n", body);
 
   return sendEurekaRequest(settings, "POST", urlPath, body, bodyLen,
                            httpStatusOut);
