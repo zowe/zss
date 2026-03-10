@@ -252,6 +252,7 @@ if ! c89 \
   ${ZSS}/c/passTicketService.c \
   ${ZSS}/c/jwk.c \
   ${ZSS}/c/safIdtService.c \
+  ${ZSS}/c/eurekaClient.c \
   ${GSKLIB} ;
 then
   extattr +p ${ZSS}/bin/zssServer64
