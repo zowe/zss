@@ -27,7 +27,8 @@
     3. Read server responses and record which options the server accepts
        (WILL) or rejects (WONT / DONT).
     4. A server is considered a TN3270 server when:
-         - RFC 2355 mode : server sends IAC WILL TN3270E (then proceeds
+         - RFC 2355 mode : server sends IAC WILL TN3270E *or* IAC DO TN3270E
+                           (either signals TN3270E agreement, then proceeds
                            with DEVICE-TYPE and FUNCTIONS sub-negotiation)
          - RFC 1041 mode : server sends IAC WILL 3270-REGIME
          - Classic  mode : server sends WILL BINARY *and* WILL EOR
@@ -202,8 +203,8 @@ static int send_all(Connection *connection, const unsigned char *buf, int len) {
  * ---------------------------------------------------------------------- */
 static int send_tn3270_probe(Connection *connection) {
     unsigned char probe[] = {
-        /* RFC 2355 – TN3270E (advertise first; a server preferring TN3270E
-           responds WILL TN3270E and then initiates DEVICE-TYPE negotiation) */
+        /* RFC 2355 – TN3270E (advertise both sides; a server may confirm
+           with WILL TN3270E *or* DO TN3270E before DEVICE-TYPE negotiation) */
         TELNET_IAC, TELNET_WILL, OPT_TN3270E,
         TELNET_IAC, TELNET_DO,   OPT_TN3270E,
         /* RFC 1041 – 3270 Regime */
@@ -422,9 +423,34 @@ static unsigned int parse_telnet_data(Connection *connection,
                 }
             }
 
-            /* If the server asks us to DO an option we already announced
-               WILL for, acknowledge silently (no duplicate needed).
-               If the server sends DONT for something, we reply WONT. */
+            /* IAC DO TN3270E from the server means it accepted our
+               IAC WILL TN3270E offer (RFC 2355 §6) – treat as TN3270E
+               confirmation.  For any other DO, we either already sent
+               WILL in the probe (acknowledged implicitly) or we re-send
+               WILL now so the server knows we agree. */
+            if (cmd == TELNET_DO) {
+                switch (opt) {
+                case OPT_TN3270E:
+                    flags |= DETECT_TN3270E;
+                    /* FALLTHROUGH */
+                case OPT_3270_REGIME:
+                    if (opt == OPT_3270_REGIME) flags |= DETECT_3270_REGIME;
+                    /* FALLTHROUGH */
+                default: {
+                    /* Echo WILL back for options we support so the server
+                       can proceed (covers the case where the server sends
+                       DO before our probe arrives, or initiates DO itself). */
+                    if (opt == OPT_TN3270E || opt == OPT_3270_REGIME ||
+                        opt == OPT_BINARY   || opt == OPT_EOR) {
+                        unsigned char will_reply[] = { TELNET_IAC, TELNET_WILL, opt };
+                        send_all(connection, will_reply, 3);
+                    }
+                    break;
+                }
+                }
+            }
+
+            /* If the server sends DONT for something, we reply WONT. */
             if (cmd == TELNET_DONT) {
                 unsigned char wont[] = { TELNET_IAC, TELNET_WONT, opt };
                 send_all(connection, wont, 3);
