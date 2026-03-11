@@ -238,7 +238,7 @@ EurekaClientSettings *makeEurekaClientSettings(ShortLivedHeap  *slh,
   {
     int idLen = strlen(hostForInstanceId) + 1 /* : */ + 3 /* ZSS */ + 1 + 10 + 1;
     char *iid = (char *)safeMalloc(idLen, "EurekaInstanceId");
-    snprintf(iid, idLen, "%s:ZSS:%d", hostForInstanceId, zssPort);
+    snprintf(iid, idLen, "%s:zss:%d", hostForInstanceId, zssPort);
     eurekaSettings->instanceId = iid;
   }
 
@@ -644,8 +644,8 @@ static int buildInstancePath(EurekaClientSettings *settings,
  *
  *   {
  *     "instance": {
- *       "instanceId":      "myhost:ZSS:7557",
- *       "app":             "ZSS",
+ *       "instanceId":      "myhost:zss:7557",
+ *       "app":             "zss",
  *       "hostName":        "myhost",
  *       "ipAddr":          "1.2.3.4",
  *       "vipAddress":      "zss",
@@ -688,6 +688,7 @@ static int buildRegistrationBody(EurekaClientSettings *settings,
         "\"hostName\":\"%s\","
         "\"ipAddr\":\"%s\","
         "\"vipAddress\":\"zss\","
+        "\"secureVipAddress\":\"zss\","
         "\"status\":\"UP\","
         "\"port\":{\"$\":%d,\"@enabled\":\"%s\"},"
         "\"securePort\":{\"$\":%d,\"@enabled\":\"%s\"},"
@@ -703,24 +704,22 @@ static int buildRegistrationBody(EurekaClientSettings *settings,
           "\"durationInSecs\":%d"
         "},"
         "\"metadata\":{"
-          "\"apiml.routes.api__v1.gatewayUrl\": \"/api/v1\","
-          "\"apiml.routes.api__v1.serviceUrl\": \"\","
-          "\"apiml.routes.ui__v1.gatewayUrl\": \"/ui/v1\","
-          "\"apiml.routes.ui__v1.serviceUrl\": \"\","
-          "\"apiml.routes.ws__v1.gatewayUrl\": \"/ws/v1\","
-          "\"apiml.routes.ws__v1.serviceUrl\": \"\","
+          "\"apiml.routes.api_v1.gatewayUrl\": \"/api/v1\","
+          "\"apiml.routes.api_v1.serviceUrl\": \"/\","
+          "\"apiml.routes.ws_v1.gatewayUrl\": \"/ws/v1\","
+          "\"apiml.routes.ws_v1.serviceUrl\": \"/\","
           "\"apiml.apiInfo.0.apiId\": \"org.zowe.zss\","
           "\"apiml.apiInfo.0.gatewayUrl\": \"api/v1\","
-          "\"apiml.apiInfo.0.swaggerUrl\": \"https://rs28.rocketsoftware.com:12326/api-docs/agent\","
-          "\"apiml.apiInfo.0.version\": \"1.0.0\","
+          "\"apiml.apiInfo.0.swaggerUrl\": \"https://TODO/api-docs/agent\","
+          "\"apiml.apiInfo.0.version\": \"%s\","
           "\"apiml.catalog.tile.id\": \"zss\","
           "\"apiml.catalog.tile.title\": \"Zowe System Services (ZSS)\","
-          "\"apiml.catalog.tile.description\": \"Zowe System Services is an HTTPS and Websocket server that makes it easy to have secure, powerful web APIs backed by low-level z/OS constructs. It contains services for essential z/OS abilities such as working with files, datasets, and ESMs, but is also extensible by REST and Websocket \\\"Dataservices\\\" which are optionally present in App Framework \\\"Plugins\\\".\","
-          "\"apiml.catalog.tile.version\": \"3.5.0\","
-          "\"apiml.service.description\": \"This list includes core APIs for management of plugins, management of the server itself, and APIs brought by plugins and the app server agent, ZSS. Plugins that do not bring their own API documentation are shown here as stubs.\","
+          "\"apiml.catalog.tile.description\": \"Zowe System Services is an HTTPS and Websocket server that makes it easy to have secure, powerful web APIs backed by low-level z/OS constructs. It contains services for essential z/OS abilities such as working with files, datasets, and ESMs, but is also extensible by REST and Websocket Dataservices which are optionally present in App Framework Plugins.\","
+          "\"apiml.catalog.tile.version\": \"%s\","
           "\"apiml.authentication.sso\": \"true\","
           "\"apiml.authentication.scheme\": \"zoweJwt\","
           "\"apiml.service.description\":\"Zowe System Services (ZSS)\","
+          "\"apiml.service.title\":\"Zowe System Services (ZSS)\","
           "\"apiml.service.version\":\"%s\""
         "}"
       "}"
@@ -736,7 +735,9 @@ static int buildRegistrationBody(EurekaClientSettings *settings,
     settings->healthCheckUrl,
     renewalSecs,
     durationSecs,
-    settings->version ? settings->version : ""
+    settings->version ? settings->version : "1",
+    settings->version ? settings->version : "1",
+    settings->version ? settings->version : "1"
   );
 
   if (n <= 0 || n >= bufLen) {
