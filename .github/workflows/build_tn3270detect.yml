@@ -1,0 +1,114 @@
+################################################################################
+#  This program and the accompanying materials are
+#  made available under the terms of the Eclipse Public License v2.0 which
+#  accompanies this distribution, and is available at
+#  https://www.eclipse.org/legal/epl-v20.html
+#
+#  SPDX-License-Identifier: EPL-2.0
+#
+#  Copyright Contributors to the Zowe Project.
+################################################################################
+#
+# build_tn3270detect.yml
+#
+# GitHub Actions workflow for the tn3270detect utility.
+#
+# One build job is defined:
+#
+#   build-zos
+#     Packages the source into a PAX archive and sends it to the Marist z/OS
+#     build system where it is compiled with IBM xlclang and the resulting
+#     binary is published to JFrog Artifactory.  This mirrors the approach
+#     used by the other ZSS utilities (bind-test, etc.).
+#
+################################################################################
+
+name: Build tn3270detect
+
+on:
+  push:
+    branches:
+      - v3.x/staging
+      - v3.x/master
+      - v3.x/rc
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+    inputs:
+      PERFORM_RELEASE:
+        description: '[Release] perform release'
+        required: false
+        default: 'false'
+
+jobs:
+
+  # --------------------------------------------------------------------------
+  # Permission gate – all other jobs depend on this one.
+  # --------------------------------------------------------------------------
+  check-permission:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check permission
+        uses: zowe-actions/shared-actions/permission-check@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  # --------------------------------------------------------------------------
+  # z/OS build – package source as PAX, build on Marist, publish to Artifactory.
+  # --------------------------------------------------------------------------
+  build-zos:
+    runs-on: ubuntu-latest
+    needs: check-permission
+    steps:
+      - name: '[Prep 1] Checkout'
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: '[Prep 2] Setup jFrog CLI'
+        uses: jfrog/setup-jfrog-cli@v2
+        env:
+          JF_ARTIFACTORY_1: ${{ secrets.JF_ARTIFACTORY_TOKEN }}
+
+      - name: '[Prep 3] Set date'
+        id: date
+        run: echo "date=$(date +'%Y%m%d%S')" >> $GITHUB_OUTPUT
+
+      - name: '[Prep 4] Set version'
+        id: version
+        run: |
+          echo "version=$(grep VERSION zss/build/tn3270detect.proj.env | cut -f2 -d=)" >> $GITHUB_OUTPUT
+
+      - name: '[Prep 5] Set branch name'
+        id: branch
+        run: |
+          if [ -n "${{ github.head_ref }}" ]; then
+            BRANCH="${{ github.head_ref }}"
+          else
+            BRANCH="${{ github.ref_name }}"
+          fi
+          echo "branch=$(echo "$BRANCH" | tr '[:lower:]' '[:upper:]' | sed 's@/@-@g')" >> $GITHUB_OUTPUT
+
+      - name: '[Prep 6] Prepare workflow'
+        uses: zowe-actions/shared-actions/prepare-workflow@main
+
+      - name: '[Packaging] Make PAX'
+        uses: zowe-actions/shared-actions/make-pax@main
+        with:
+          pax-name: 'tn3270detect'
+          pax-options: '-x os390 -pp'
+          pax-local-workspace: './.pax/tn3270detect'
+          pax-ssh-username: ${{ secrets.SSH_MARIST_USERNAME }}
+          pax-ssh-password: ${{ secrets.SSH_MARIST_RACF_PASSWORD }}
+
+      - name: '[Publish] Publish artifact'
+        uses: zowe-actions/shared-actions/publish@main
+        if: success()
+        with:
+          artifacts: |
+            .pax/tn3270detect/tn3270detect.pax
+          publish-target-path-pattern: >-
+            libs-snapshot-local/org/zowe/tn3270detect/${{ steps.version.outputs.version }}-${{ steps.branch.outputs.branch }}
+          publish-target-file-pattern: >-
+            tn3270detect-${{ steps.version.outputs.version }}-${{ steps.date.outputs.date }}.pax
+          perform-release: ${{ github.event.inputs.PERFORM_RELEASE }}
