@@ -260,6 +260,24 @@ EurekaClientSettings *makeEurekaClientSettings(ShortLivedHeap  *slh,
     eurekaSettings->healthCheckUrl = healthUrl;
   }
 
+  /* swagger URL: uses app-server port from components.app-server.port */
+  {
+    int appServerPort = 0;
+    cfgGetIntC(configmgr, ZSS_CFGNAME, &appServerPort,
+               3, "components", "app-server", "port");
+    if (appServerPort > 0) {
+      const char *scheme = zssSecure ? "https" : "http";
+      int swaggerUrlLen = strlen(scheme) + 3 + strlen(hostForUrl) + 1 + 10 +
+                          sizeof("/api-docs/agent");
+      char *swaggerUrl = (char *)safeMalloc(swaggerUrlLen, "EurekaSwaggerUrl");
+      snprintf(swaggerUrl, swaggerUrlLen, "%s://%s:%d/api-docs/agent",
+               scheme, hostForUrl, appServerPort);
+      eurekaSettings->swaggerUrl = swaggerUrl;
+    } else {
+      eurekaSettings->swaggerUrl = NULL;
+    }
+  }
+
   eurekaSettings->version = zssVersion;
 
   /* timing: read heartbeatIntervalSeconds from YAML, fall back to compile-time default */
@@ -675,6 +693,7 @@ static int buildRegistrationBody(EurekaClientSettings *settings,
                                  char *buf, int bufLen) {
   const char *portEnabled       = settings->securePortEnabled ? "false" : "true";
   const char *securePortEnabled = settings->securePortEnabled ? "true"  : "false";
+  const char *version           = (settings->version && settings->version[0]) ? settings->version : "1";
   int renewalSecs = (settings->heartbeatIntervalSeconds > 0)
                     ? settings->heartbeatIntervalSeconds
                     : EUREKA_HEARTBEAT_INTERVAL_SECS;
@@ -710,7 +729,7 @@ static int buildRegistrationBody(EurekaClientSettings *settings,
           "\"apiml.routes.ws_v1.serviceUrl\": \"/\","
           "\"apiml.apiInfo.0.apiId\": \"org.zowe.zss\","
           "\"apiml.apiInfo.0.gatewayUrl\": \"api/v1\","
-          "\"apiml.apiInfo.0.swaggerUrl\": \"https://TODO/api-docs/agent\","
+          "\"apiml.apiInfo.0.swaggerUrl\": \"%s\","
           "\"apiml.apiInfo.0.version\": \"%s\","
           "\"apiml.catalog.tile.id\": \"zss\","
           "\"apiml.catalog.tile.title\": \"Zowe System Services (ZSS)\","
@@ -735,9 +754,10 @@ static int buildRegistrationBody(EurekaClientSettings *settings,
     settings->healthCheckUrl,
     renewalSecs,
     durationSecs,
-    settings->version ? settings->version : "1",
-    settings->version ? settings->version : "1",
-    settings->version ? settings->version : "1"
+    settings->swaggerUrl ? settings->swaggerUrl : "",
+    version,
+    version,
+    version
   );
 
   if (n <= 0 || n >= bufLen) {

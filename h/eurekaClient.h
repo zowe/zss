@@ -63,6 +63,7 @@ typedef struct EurekaClientSettings_tag {
   char                 *homePageUrl;          /* e.g. "https://<host>:<port>/"             */
   char                 *statusPageUrl;        /* e.g. "https://<host>:<port>/info"         */
   char                 *healthCheckUrl;       /* e.g. "https://<host>:<port>/health"       */
+  char                 *swaggerUrl;           /* e.g. "https://<host>:<appServerPort>/api-docs/agent" */
 
   /* ---- Service version reported in Eureka metadata ---- */
   const char           *version;             /* e.g. "2.17.0+20260101"                    */
