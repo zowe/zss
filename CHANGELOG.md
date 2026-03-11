@@ -3,7 +3,7 @@
 All notable changes to the ZSS package will be documented in this file.
 
 ## `3.5.0`
-- Enhancement: ZSS can now use eureka registration to APIML, providing improved high availability over prior static registration. Static registration is still available via new property `components.zss.agent.mediationLayer.static: true` ([#???]())
+- Enhancement: ZSS can now use eureka registration to APIML, providing improved high availability over prior static registration. Static registration is still available via new property `components.zss.agent.mediationLayer.static: true` and remains default for non-HA setups. [(#811)](https://github.com/zowe/zss/pull/811)
 
 ## `3.4.0`
 - Bugfix: Fixed hostname to IP address lookup for "bind-test" program. [(#801)](https://github.com/zowe/zss/pull/801)
@@ -12,8 +12,8 @@ All notable changes to the ZSS package will be documented in this file.
 - Enhancement: Utility "zis-test" is now used to ensure that ZIS is running and accessible by Zowe before starting ZSS. (zowe/zss#764)
 - Enhancement: Utility "bind-test" is now available in Zowe and used to validate if each Zowe server can succeed in binding to the user requested TCPIP port at each Zowe startup. (zowe/zss#764)
 - Enhancement: zss handles the setting "components.apiml.enabled: true" as an alternative to enabling "gateway", "discovery", and "caching-service" components. [(#787)](https://github.com/zowe/zss/pull/787)
-- Bugfix: JWK logic for single-sign-on to the APIML Gateway had the potential for a high-cpu loop when AT-TLS was enabled and the destination had read errors ([#772](https://github.com/zowe/zss/pull/772))
-- Bugfix: Stop aborting when Zowe starts on new zOS version([#781](https://github.com/zowe/zss/pull/781))
+- Bugfix: JWK logic for single-sign-on to the APIML Gateway had the potential for a high-cpu loop when AT-TLS was enabled and the destination had read errors [(#772)](https://github.com/zowe/zss/pull/772)
+- Bugfix: Stop aborting when Zowe starts on new zOS version[(#781)](https://github.com/zowe/zss/pull/781)
 
 ## `3.2.0`
 - Enhancement: include the stub version in the generated HLASM stub (#743)
