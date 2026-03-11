@@ -72,13 +72,18 @@ xlclang \
   -I "${GSKINC}" \
   -o "${ZSS_ROOT}/bin/tn3270detect" \
   "${ZSS_ROOT}/c/tn3270detect.c" \
-  "${COMMON}/c/bpxskt.c" \
   "${COMMON}/c/alloc.c" \
+  "${COMMON}/c/le.c" \
   "${COMMON}/c/utils.c" \
+  "${COMMON}/c/collections.c" \
+  "${COMMON}/c/bpxskt.c" \
   "${COMMON}/c/tls.c" \
   "${COMMON}/c/fdpoll.c" \
   "${COMMON}/c/logging.c" \
+  "${COMMON}/c/recovery.c" \
   "${COMMON}/c/timeutls.c" \
+  "${COMMON}/c/scheduling.c" \
+  "${COMMON}/c/zos.c" \
   ${GSKLIB}
 
 rc=$?

@@ -18,14 +18,17 @@
     - RFC 885  - Telnet End Of Record Option (option 25)
     - RFC 1091 - Telnet Terminal-Type Option (option 24)
     - RFC 1041 - Telnet 3270 Regime Option  (option 29)
+    - RFC 2355 - TN3270 Enhancements        (option 40)
 
   Detection strategy:
     1. Open a TCP connection to the target host:port (IPv4 or IPv6).
     2. Send initial Telnet DO/WILL negotiations for all TN3270 relevant
-       options (BINARY, EOR, TERMINAL-TYPE, 3270-REGIME).
+       options (TN3270E, BINARY, EOR, TERMINAL-TYPE, 3270-REGIME).
     3. Read server responses and record which options the server accepts
        (WILL) or rejects (WONT / DONT).
     4. A server is considered a TN3270 server when:
+         - RFC 2355 mode : server sends IAC WILL TN3270E (then proceeds
+                           with DEVICE-TYPE and FUNCTIONS sub-negotiation)
          - RFC 1041 mode : server sends IAC WILL 3270-REGIME
          - Classic  mode : server sends WILL BINARY *and* WILL EOR
                            (the prerequisite pair for TN3270 data streams)
@@ -72,10 +75,32 @@
 #define OPT_TERMINAL_TYPE 24   /* RFC 1091 – Terminal-Type                  */
 #define OPT_EOR           25   /* RFC 885  – End Of Record                  */
 #define OPT_3270_REGIME   29   /* RFC 1041 – 3270 Regime                    */
+#define OPT_TN3270E       40   /* RFC 2355 – TN3270 Enhancements            */
 
 /* Sub-negotiation IS/ARE codes (RFC 1041) */
 #define SB_IS   0
 #define SB_ARE  1
+
+/* TN3270E sub-negotiation command codes (RFC 2355 §3) */
+#define TN3270E_ASSOCIATE   0x00  /* Printer partner association             */
+#define TN3270E_CONNECT     0x01  /* Request/confirm specific device-name    */
+#define TN3270E_DEVICE_TYPE 0x02  /* Device-type negotiation command         */
+#define TN3270E_FUNCTIONS   0x03  /* Functions negotiation command           */
+#define TN3270E_IS          0x04  /* Positive acceptance                     */
+#define TN3270E_REASON      0x05  /* Reason code follows                     */
+#define TN3270E_REJECT      0x06  /* Rejection command                       */
+#define TN3270E_REQUEST     0x07  /* Request command                         */
+#define TN3270E_SEND        0x08  /* Server requests client information      */
+
+/* TN3270E DEVICE-TYPE REJECT reason codes (RFC 2355 §7.1.5) */
+#define TN3270E_REASON_CONN_PARTNER    0x00
+#define TN3270E_REASON_DEVICE_IN_USE   0x01
+#define TN3270E_REASON_INV_ASSOCIATE   0x02
+#define TN3270E_REASON_INV_NAME        0x03
+#define TN3270E_REASON_INV_DEVICE_TYPE 0x04
+#define TN3270E_REASON_TYPE_NAME_ERR   0x05
+#define TN3270E_REASON_UNKNOWN_ERROR   0x06
+#define TN3270E_REASON_UNSUPPORTED_REQ 0x07
 
 /* -------------------------------------------------------------------------
  * Programme-wide result flags
@@ -85,13 +110,17 @@
 #define DETECT_BINARY       0x02   /* Server sent WILL BINARY                 */
 #define DETECT_EOR          0x04   /* Server sent WILL EOR                    */
 #define DETECT_TERMTYPE     0x08   /* Server sent WILL TERMINAL-TYPE          */
-#define DETECT_SB_REGIME    0x10   /* Server sent SB 3270-REGIME ARE ...      */
+#define DETECT_SB_REGIME         0x10  /* Server sent SB 3270-REGIME ARE ...      */
+#define DETECT_TN3270E           0x20  /* Server sent WILL TN3270E (RFC 2355)     */
+#define DETECT_TN3270E_DEVTYPE   0x40  /* Server confirmed DEVICE-TYPE IS         */
+#define DETECT_TN3270E_FUNCTIONS 0x80  /* Server confirmed FUNCTIONS IS           */
 
 /* A server is a TN3270 server when it presents RFC 1041 *or* the classic
    BINARY+EOR combination (which together enable binary TN3270 data streams). */
 #define IS_TN3270(flags) \
     (((flags) & DETECT_3270_REGIME) || \
-     (((flags) & DETECT_BINARY) && ((flags) & DETECT_EOR)))
+     (((flags) & DETECT_BINARY) && ((flags) & DETECT_EOR)) || \
+     ((flags) & DETECT_TN3270E))
 
 /* -------------------------------------------------------------------------
  * I/O buffer
@@ -101,13 +130,32 @@
 #define MAX_REGIME_LIST 512
 
 /* -------------------------------------------------------------------------
+ * TN3270E device-type fallback list (RFC 2355 §7.1).
+ * Tried in order; on DEVICE-TYPE REJECT INV-DEVICE-TYPE the next entry
+ * is used.  Order: prefer extended ("-E") types first, then plain models,
+ * then the generic DYNAMIC type.
+ * ---------------------------------------------------------------------- */
+static const char *TN3270E_DEVICE_TYPE_LIST[] = {
+    "IBM-3278-2-E",  /* 24x80  extended data stream                       */
+    "IBM-3278-2",    /* 24x80  standard                                    */
+    "IBM-3278-3-E",  /* 32x80  extended data stream                       */
+    "IBM-3278-3",    /* 32x80  standard                                    */
+    "IBM-3278-5-E",  /* 27x132 extended data stream                       */
+    "IBM-3278-5",    /* 27x132 standard                                    */
+    "IBM-DYNAMIC",   /* no pre-defined display size (RFC 2355 §7.1)       */
+    NULL             /* sentinel                                            */
+};
+
+/* -------------------------------------------------------------------------
  * Connection context: plain TCP socket plus optional TLS overlay.
  * Exactly one path is active at runtime: when tlsSock is non-NULL the
  * TLS path is used; otherwise the plain socket path is used.
+ * Also tracks TN3270E device-type negotiation state.
  * ---------------------------------------------------------------------- */
 typedef struct {
-    Socket    *sock;    /* Underlying TCP socket (always valid)  */
-    TlsSocket *tlsSock; /* NULL when the connection is plain TCP */
+    Socket    *sock;                /* Underlying TCP socket (always valid)  */
+    TlsSocket *tlsSock;             /* NULL when the connection is plain TCP */
+    int        deviceTypeIndex;     /* Index into TN3270E_DEVICE_TYPE_LIST   */
 } Connection;
 
 /* -------------------------------------------------------------------------
@@ -150,6 +198,10 @@ static int send_all(Connection *connection, const unsigned char *buf, int len) {
  * ---------------------------------------------------------------------- */
 static int send_tn3270_probe(Connection *connection) {
     unsigned char probe[] = {
+        /* RFC 2355 – TN3270E (advertise first; a server preferring TN3270E
+           responds WILL TN3270E and then initiates DEVICE-TYPE negotiation) */
+        TELNET_IAC, TELNET_WILL, OPT_TN3270E,
+        TELNET_IAC, TELNET_DO,   OPT_TN3270E,
         /* RFC 1041 – 3270 Regime */
         TELNET_IAC, TELNET_WILL, OPT_3270_REGIME,
         TELNET_IAC, TELNET_DO,   OPT_3270_REGIME,
@@ -231,6 +283,53 @@ static int respond_to_termtype_send(Connection *connection) {
 }
 
 /* -------------------------------------------------------------------------
+ * Respond to a server SB TN3270E SEND DEVICE-TYPE with
+ *   IAC SB TN3270E DEVICE-TYPE REQUEST IBM-3278-2-E IAC SE
+ * (RFC 2355 §7.1 – DEVICE-TYPE negotiation)
+ * ---------------------------------------------------------------------- */
+static int respond_to_tn3270e_send_device_type(Connection *connection, int verbose) {
+    const char *device_type = TN3270E_DEVICE_TYPE_LIST[connection->deviceTypeIndex];
+    if (device_type == NULL) {
+        /* All device types exhausted – cannot negotiate TN3270E */
+        if (verbose) {
+            printf("  [tn3270e] All device-type candidates exhausted; giving up.\n");
+        }
+        return -1;
+    }
+    if (verbose) {
+        printf("  [tn3270e] Sending DEVICE-TYPE REQUEST %s\n", device_type);
+    }
+    unsigned char response[64];
+    int position = 0;
+    response[position++] = TELNET_IAC;
+    response[position++] = TELNET_SB;
+    response[position++] = OPT_TN3270E;
+    response[position++] = TN3270E_DEVICE_TYPE;
+    response[position++] = TN3270E_REQUEST;
+    for (int i = 0; device_type[i]; i++) {
+        response[position++] = (unsigned char)device_type[i];
+    }
+    response[position++] = TELNET_IAC;
+    response[position++] = TELNET_SE;
+    return send_all(connection, response, position);
+}
+
+/* -------------------------------------------------------------------------
+ * After receiving SB TN3270E DEVICE-TYPE IS, advance the negotiation by
+ * sending a FUNCTIONS REQUEST with an empty function list, which requests
+ * "basic TN3270E" (RFC 2355 §9 – Basic TN3270E).
+ * ---------------------------------------------------------------------- */
+static int respond_to_tn3270e_device_type_is(Connection *connection) {
+    /* Empty function list = basic TN3270E */
+    unsigned char response[] = {
+        TELNET_IAC, TELNET_SB,  OPT_TN3270E,
+        TN3270E_FUNCTIONS, TN3270E_REQUEST,
+        TELNET_IAC, TELNET_SE,
+    };
+    return send_all(connection, response, (int)sizeof(response));
+}
+
+/* -------------------------------------------------------------------------
  * Parse a block of received Telnet data.
  * Returns a bitmask of DETECT_* flags indicating what was found.
  * Sends appropriate responses back on sock.
@@ -290,10 +389,11 @@ static unsigned int parse_telnet_data(Connection *connection,
 
             if (cmd == TELNET_WILL) {
                 switch (opt) {
-                case OPT_3270_REGIME: flags |= DETECT_3270_REGIME; break;
-                case OPT_BINARY:      flags |= DETECT_BINARY;      break;
-                case OPT_EOR:         flags |= DETECT_EOR;         break;
-                case OPT_TERMINAL_TYPE: flags |= DETECT_TERMTYPE;  break;
+                case OPT_TN3270E:       flags |= DETECT_TN3270E;    break;
+                case OPT_3270_REGIME:   flags |= DETECT_3270_REGIME; break;
+                case OPT_BINARY:        flags |= DETECT_BINARY;      break;
+                case OPT_EOR:           flags |= DETECT_EOR;         break;
+                case OPT_TERMINAL_TYPE: flags |= DETECT_TERMTYPE;    break;
                 default: break;
                 }
             }
@@ -365,6 +465,47 @@ static unsigned int parse_telnet_data(Connection *connection,
                     }
                     respond_to_termtype_send(connection);
                 }
+            } else if (sb_opt == OPT_TN3270E && sb_len >= 2) {
+                /* TN3270E sub-negotiation (RFC 2355 §7) */
+                if (sb_data[0] == TN3270E_SEND &&
+                    sb_data[1] == TN3270E_DEVICE_TYPE) {
+                    /* Server requesting device-type; reply DEVICE-TYPE REQUEST */
+                    respond_to_tn3270e_send_device_type(connection, verbose);
+                } else if (sb_data[0] == TN3270E_DEVICE_TYPE &&
+                           sb_data[1] == TN3270E_IS) {
+                    /* Server confirmed device type; send FUNCTIONS REQUEST */
+                    flags |= DETECT_TN3270E_DEVTYPE;
+                    if (verbose) {
+                        printf("  [telnet] SB TN3270E DEVICE-TYPE IS '%s' – sending FUNCTIONS REQUEST\n",
+                               TN3270E_DEVICE_TYPE_LIST[connection->deviceTypeIndex]);
+                    }
+                    respond_to_tn3270e_device_type_is(connection);
+                } else if (sb_data[0] == TN3270E_DEVICE_TYPE &&
+                           sb_data[1] == TN3270E_REJECT) {
+                    /* Server rejected device type; try the next candidate */
+                    unsigned char reason = (sb_len >= 4) ? sb_data[3] : 0xFF;
+                    if (verbose) {
+                        printf("  [telnet] SB TN3270E DEVICE-TYPE REJECT reason=0x%02X for '%s'\n",
+                               (int)reason,
+                               TN3270E_DEVICE_TYPE_LIST[connection->deviceTypeIndex]
+                                   ? TN3270E_DEVICE_TYPE_LIST[connection->deviceTypeIndex]
+                                   : "(none)");
+                    }
+                    /* Only retry on reasons that may succeed with another type */
+                    if (reason == TN3270E_REASON_INV_DEVICE_TYPE ||
+                        reason == TN3270E_REASON_TYPE_NAME_ERR  ||
+                        reason == TN3270E_REASON_UNSUPPORTED_REQ) {
+                        connection->deviceTypeIndex++;
+                        respond_to_tn3270e_send_device_type(connection, verbose);
+                    }
+                } else if (sb_data[0] == TN3270E_FUNCTIONS &&
+                           sb_data[1] == TN3270E_IS) {
+                    /* Server accepted functions list; TN3270E fully negotiated */
+                    flags |= DETECT_TN3270E_FUNCTIONS;
+                    if (verbose) {
+                        printf("  [telnet] SB TN3270E FUNCTIONS IS – TN3270E fully negotiated\n");
+                    }
+                }
             }
             break;
         }
@@ -402,8 +543,8 @@ static void hex_dump(const unsigned char *buf, int len) {
  * ---------------------------------------------------------------------- */
 static void print_usage(const char *prog) {
     printf(
-        "tn3270detect - Detect whether a TCP endpoint is a TN3270 Telnet server\n"
-        "               as defined by RFC 1041 (Telnet 3270 Regime Option).\n"
+        "tn3270detect - Detect whether a TCP endpoint is a TN3270 or TN3270E server\n"
+        "               (RFC 2355 – TN3270E, RFC 1041 – 3270 Regime Option).\n"
         "\n"
         "Usage:\n"
         "  %s --host <hostname|IPv4|IPv6> --port <port> [options]\n"
@@ -632,8 +773,9 @@ int main(int argc, char **argv) {
 
     /* Combine the plain socket and optional TLS socket into one context. */
     Connection connection;
-    connection.sock    = sock;
-    connection.tlsSock = tlsSock;
+    connection.sock            = sock;
+    connection.tlsSock         = tlsSock;
+    connection.deviceTypeIndex = 0;  /* start with first TN3270E device type */
 
     /* ------------------------------------------------------------------ */
     /* Send TN3270 negotiation probe                                       */
@@ -654,7 +796,7 @@ int main(int argc, char **argv) {
     unsigned char recv_buf[RECV_BUFSIZE];
     int  total_received = 0;
     int  rounds         = 0;
-    int  max_rounds     = 8;   /* guard against servers that keep sending    */
+    int  max_rounds     = 20;  /* enough for full TN3270E device-type retry cycle */
 
     while (rounds < max_rounds) {
         int n = 0;
@@ -713,6 +855,7 @@ int main(int argc, char **argv) {
         rounds++;
 
         /* Once we have enough evidence, stop waiting */
+        if (detect_flags & DETECT_TN3270E_FUNCTIONS) break;
         if (detect_flags & DETECT_3270_REGIME) break;
         if ((detect_flags & DETECT_BINARY) && (detect_flags & DETECT_EOR)) break;
     }
@@ -729,6 +872,12 @@ int main(int argc, char **argv) {
     /* ------------------------------------------------------------------ */
     printf("\n--- TN3270 Detection Results ---\n");
     printf("  Bytes received             : %d\n", total_received);
+    printf("  IAC WILL TN3270E           : %s  (RFC 2355)\n",
+           (detect_flags & DETECT_TN3270E)          ? "YES" : "no");
+    printf("  SB  TN3270E DEVICE-TYPE IS : %s  (RFC 2355 device-type)\n",
+           (detect_flags & DETECT_TN3270E_DEVTYPE)  ? "YES" : "no");
+    printf("  SB  TN3270E FUNCTIONS IS   : %s  (RFC 2355 functions)\n",
+           (detect_flags & DETECT_TN3270E_FUNCTIONS)? "YES" : "no");
     printf("  IAC WILL 3270-REGIME       : %s  (RFC 1041)\n",
            (detect_flags & DETECT_3270_REGIME) ? "YES" : "no");
     printf("  IAC SB  3270-REGIME ARE    : %s  (RFC 1041 subneg)\n",
@@ -743,7 +892,15 @@ int main(int argc, char **argv) {
 
     if (IS_TN3270(detect_flags)) {
         /* Determine flavour */
-        if ((detect_flags & DETECT_3270_REGIME) || (detect_flags & DETECT_SB_REGIME)) {
+        if (detect_flags & DETECT_TN3270E) {
+            if (detect_flags & DETECT_TN3270E_FUNCTIONS) {
+                printf("RESULT: TN3270E server detected (RFC 2355 – full negotiation complete).\n");
+            } else if (detect_flags & DETECT_TN3270E_DEVTYPE) {
+                printf("RESULT: TN3270E server detected (RFC 2355 – device-type negotiated).\n");
+            } else {
+                printf("RESULT: TN3270E server detected (RFC 2355 – WILL TN3270E received).\n");
+            }
+        } else if ((detect_flags & DETECT_3270_REGIME) || (detect_flags & DETECT_SB_REGIME)) {
             printf("RESULT: TN3270 server detected (RFC 1041 – 3270 Regime Option).\n");
         } else {
             printf("RESULT: TN3270 server detected (classic mode – BINARY + EOR negotiated).\n");
