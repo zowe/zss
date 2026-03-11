@@ -44,6 +44,7 @@
 #include "zowetypes.h"
 #include "bpxnet.h"
 #include "tls.h"
+#include "xlate.h"
 
 /* -------------------------------------------------------------------------
  * Telnet protocol constants (RFC 854)
@@ -134,6 +135,9 @@
  * Tried in order; on DEVICE-TYPE REJECT INV-DEVICE-TYPE the next entry
  * is used.  Order: prefer extended ("-E") types first, then plain models,
  * then the generic DYNAMIC type.
+ *
+ * These literals are EBCDIC on z/OS; callers must pass them through e2a()
+ * before placing them in a Telnet frame (NVT ASCII, RFC 2355 §7.1).
  * ---------------------------------------------------------------------- */
 static const char *TN3270E_DEVICE_TYPE_LIST[] = {
     "IBM-3278-2-E",  /* 24x80  extended data stream                       */
@@ -267,15 +271,25 @@ static int respond_to_regime_are(Connection *connection,
  *   IAC SB TERMINAL-TYPE IS "IBM-3279-2-E" IAC SE
  * ---------------------------------------------------------------------- */
 static int respond_to_termtype_send(Connection *connection) {
+    /* Copy to a local buffer and convert EBCDIC→ASCII before sending;
+       the TERMINAL-TYPE IS string must be NVT ASCII (RFC 1091 §2). */
     const char *tname = "IBM-3279-2-E";
+    char tname_ascii[16];
+    int tname_len = 0;
+    while (tname[tname_len] && tname_len < (int)(sizeof(tname_ascii) - 1)) {
+        tname_ascii[tname_len] = tname[tname_len];
+        tname_len++;
+    }
+    tname_ascii[tname_len] = '\0';
+    e2a(tname_ascii, tname_len);
     unsigned char resp[64];
     int pos = 0;
     resp[pos++] = TELNET_IAC;
     resp[pos++] = TELNET_SB;
     resp[pos++] = OPT_TERMINAL_TYPE;
     resp[pos++] = SB_IS;  /* code 0 = IS */
-    for (int i = 0; tname[i]; i++) {
-        resp[pos++] = (unsigned char)tname[i];
+    for (int i = 0; tname_ascii[i]; i++) {
+        resp[pos++] = (unsigned char)tname_ascii[i];
     }
     resp[pos++] = TELNET_IAC;
     resp[pos++] = TELNET_SE;
@@ -299,6 +313,16 @@ static int respond_to_tn3270e_send_device_type(Connection *connection, int verbo
     if (verbose) {
         printf("  [tn3270e] Sending DEVICE-TYPE REQUEST %s\n", device_type);
     }
+    /* Copy to a local buffer and convert EBCDIC→ASCII before sending;
+       device-type names are NVT ASCII on the wire (RFC 2355 §7.1). */
+    char device_type_ascii[32];
+    int dt_len = 0;
+    while (device_type[dt_len] && dt_len < (int)(sizeof(device_type_ascii) - 1)) {
+        device_type_ascii[dt_len] = device_type[dt_len];
+        dt_len++;
+    }
+    device_type_ascii[dt_len] = '\0';
+    e2a(device_type_ascii, dt_len);
     unsigned char response[64];
     int position = 0;
     response[position++] = TELNET_IAC;
@@ -306,8 +330,8 @@ static int respond_to_tn3270e_send_device_type(Connection *connection, int verbo
     response[position++] = OPT_TN3270E;
     response[position++] = TN3270E_DEVICE_TYPE;
     response[position++] = TN3270E_REQUEST;
-    for (int i = 0; device_type[i]; i++) {
-        response[position++] = (unsigned char)device_type[i];
+    for (int i = 0; device_type_ascii[i]; i++) {
+        response[position++] = (unsigned char)device_type_ascii[i];
     }
     response[position++] = TELNET_IAC;
     response[position++] = TELNET_SE;

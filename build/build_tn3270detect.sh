@@ -84,6 +84,7 @@ xlclang \
   "${COMMON}/c/timeutls.c" \
   "${COMMON}/c/scheduling.c" \
   "${COMMON}/c/zos.c" \
+  "${COMMON}/c/xlate.c" \
   ${GSKLIB}
 
 rc=$?
