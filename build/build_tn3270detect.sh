@@ -68,6 +68,7 @@ xlclang \
   -D_XOPEN_SOURCE=600 \
   -D_OPEN_THREADS=1 \
   -DUSE_ZOWE_TLS=1 \
+  -I "${ZSS_ROOT}/h" \
   -I "${COMMON}/h" \
   -I "${GSKINC}" \
   -o "${ZSS_ROOT}/bin/tn3270detect" \
