@@ -45,7 +45,7 @@ mkdir -p "${WORKING_DIR}/tmp-tn3270detect" && cd "$_"
 # z/OS: compile and link in a single xlclang invocation.
 #
 # Flags explained:
-#   ILP32          – 31-bit addressing mode (matches the rest of ZSS)
+#   -q64           – 64-bit addressing mode
 #   float(ieee)    – IEEE floating-point (harmless for this program)
 #   longname       – allow identifiers longer than 8 characters
 #   langlvl(extc99)– C99 with IBM extensions (needed for //comments, VLAs…)
@@ -59,10 +59,11 @@ COMMON="${ZSS_ROOT}/deps/zowe-common-c"
 
 GSKDIR=/usr/lpp/gskssl
 GSKINC="${GSKDIR}/include"
-GSKLIB="${GSKDIR}/lib/GSKSSL.x ${GSKDIR}/lib/GSKCMS31.x"
+GSKLIB="${GSKDIR}/lib/GSKSSL64.x ${GSKDIR}/lib/GSKCMS64.x"
 
 xlclang \
-  "-Wc,ILP32,float(ieee),longname,langlvl(extc99),gonum,goff,ASM,asmlib('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN')" \
+  -q64 \
+  "-Wc,float(ieee),longname,langlvl(extc99),gonum,goff,ASM,asmlib('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN')" \
   -D_OPEN_SYS_FILE_EXT=1 \
   -D_XOPEN_SOURCE=600 \
   -D_OPEN_THREADS=1 \
