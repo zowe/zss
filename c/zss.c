@@ -1870,7 +1870,11 @@ int main(int argc, char **argv){
       server->defaultProductURLPrefix = PRODUCT;
       initializePluginIDHashTable(server);
       loadWebServerConfigV2(server, configmgr, htUsers, htGroups, defaultSeconds);
-      readWebPluginDefinitions(server, slh, pluginsDir, configmgr, apimlStorageSettings);
+      WebPluginListElt *webPlugins = readWebPluginDefinitions(server, slh, pluginsDir, configmgr, apimlStorageSettings);
+      int pluginCount = 0;
+      for (WebPluginListElt *p = webPlugins; p != NULL; p = p->next) {
+        pluginCount++;
+      }
       configureJwt(server, jwkSettings);
       installUserMappingService(server);
       installUnixFileContentsService(server);
@@ -1895,6 +1899,7 @@ int main(int argc, char **argv){
       installSecurityManagementServices(server);
       installOMVSService(server);
       installServerStatusService(server, productVersion);
+      installStatusPageService(server, productVersion, pluginCount);
       installZosPasswordService(server);
       installRASService(server);
       installUserInfoService(server);

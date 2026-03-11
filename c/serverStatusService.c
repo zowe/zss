@@ -45,7 +45,11 @@
 
 #ifdef __ZOWE_OS_ZOS
 
+#include "crossmemory.h"
+#include "jwk.h"
+
 static int serveStatus(HttpService *service, HttpResponse *response);
+static int serveStatusPage(HttpService *service, HttpResponse *response);
 
 static inline bool strne(const char *a, const char *b) { 
   return a != NULL && b != NULL && strcmp(a, b) != 0;
@@ -308,6 +312,173 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
     return -1;
   }
   return 0;
+}
+
+/* --- /status HTML page --------------------------------------------------- */
+
+static void writeStatusItem(ChunkedOutputStream *stream,
+                            const char *color,
+                            const char *label,
+                            const char *value) {
+  char buf[512];
+  snprintf(buf, sizeof(buf),
+           "      <li>"
+           "<div class=\"dot %s\"></div>"
+           "<span class=\"label\">%s</span>"
+           "<span class=\"value\">%s</span>"
+           "</li>\n",
+           color, label, value);
+  writeString(stream, buf);
+}
+
+static int serveStatusPage(HttpService *service, HttpResponse *response) {
+  HttpRequest *request = response->request;
+  HttpServer *server = httpResponseServer(response);
+  ConfigManager *configmgr = httpServerConfigManager(server);
+  ServerAgentContext *context = (ServerAgentContext *)service->userPointer;
+
+  if (strcmp(request->method, methodGET) != 0) {
+    setResponseStatus(response, 405, "Method Not Allowed");
+    addStringHeader(response, "Allow", "GET");
+    writeHeader(response);
+    finishResponse(response);
+    return -1;
+  }
+
+  /* APIML enabled */
+  bool apimlEnabled = false;
+  cfgGetBooleanC(configmgr, ZSS_CFGNAME, &apimlEnabled, 5,
+                 "components", "zss", "agent", "mediationLayer", "enabled");
+  const char *apimlColor = apimlEnabled ? "green" : "red";
+  const char *apimlVal   = apimlEnabled ? "Yes"   : "No";
+
+  /* JWT process complete */
+  bool jwtReady = jwkIsJwtReady(server);
+  const char *jwtColor, *jwtVal;
+  if (!apimlEnabled) {
+    jwtColor = "yellow";
+    jwtVal   = "N/A";
+  } else if (jwtReady) {
+    jwtColor = "green";
+    jwtVal   = "Complete";
+  } else {
+    jwtColor = "yellow";
+    jwtVal   = "Pending";
+  }
+
+  /* Plugin count */
+  char pluginCountBuf[32];
+  snprintf(pluginCountBuf, sizeof(pluginCountBuf), "%d", context->pluginCount);
+
+  /* ZIS connection */
+  CrossMemoryServerName *zisName =
+      getConfiguredProperty(server, HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
+  CrossMemoryServerStatus zisStatus = {0};
+  bool zisOk = false;
+  if (zisName != NULL) {
+    zisStatus = cmsGetStatus(zisName);
+    zisOk = (zisStatus.cmsRC == RC_CMS_OK);
+  }
+  const char *zisColor = zisOk ? "green" : "red";
+  const char *zisVal   = zisOk ? "Connected" : "Unavailable";
+
+  /* Build HTML response */
+  ChunkedOutputStream *stream = respondWithChunkedOutputStream(response);
+  setResponseStatus(response, 200, "OK");
+  setContentType(response, "text/html");
+  addStringHeader(response, "Server", "jdmfws");
+  addStringHeader(response, "Transfer-Encoding", "chunked");
+  writeHeader(response);
+
+  writeString(stream,
+    "<!DOCTYPE html>\n"
+    "<html lang=\"en\">\n"
+    "<head>\n"
+    "  <meta charset=\"UTF-8\">\n"
+    "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+    "  <title>ZSS Status</title>\n"
+    "  <style>\n"
+    "    * { box-sizing: border-box; margin: 0; padding: 0; }\n"
+    "    body {\n"
+    "      font-family: Arial, Helvetica, sans-serif;\n"
+    "      background: #f0f2f5;\n"
+    "      min-height: 100vh;\n"
+    "      display: flex;\n"
+    "      align-items: center;\n"
+    "      justify-content: center;\n"
+    "    }\n"
+    "    .card {\n"
+    "      background: #ffffff;\n"
+    "      border-radius: 10px;\n"
+    "      box-shadow: 0 4px 20px rgba(0,0,0,0.10);\n"
+    "      padding: 40px 56px;\n"
+    "      min-width: 380px;\n"
+    "    }\n"
+    "    h1 {\n"
+    "      text-align: center;\n"
+    "      font-size: 1.5em;\n"
+    "      color: #1a202c;\n"
+    "      margin-bottom: 28px;\n"
+    "    }\n"
+    "    ul { list-style: none; }\n"
+    "    li {\n"
+    "      display: flex;\n"
+    "      align-items: center;\n"
+    "      padding: 12px 0;\n"
+    "      border-bottom: 1px solid #edf2f7;\n"
+    "      font-size: 0.95em;\n"
+    "    }\n"
+    "    li:last-child { border-bottom: none; }\n"
+    "    .dot {\n"
+    "      width: 14px;\n"
+    "      height: 14px;\n"
+    "      border-radius: 50%;\n"
+    "      margin-right: 14px;\n"
+    "      flex-shrink: 0;\n"
+    "    }\n"
+    "    .green  { background: #38a169; }\n"
+    "    .yellow { background: #d69e2e; }\n"
+    "    .red    { background: #e53e3e; }\n"
+    "    .label { flex: 1; color: #4a5568; }\n"
+    "    .value { font-weight: 600; color: #2d3748; }\n"
+    "  </style>\n"
+    "</head>\n"
+    "<body>\n"
+    "  <div class=\"card\">\n"
+    "    <h1>ZSS Status</h1>\n"
+    "    <ul>\n");
+
+  writeStatusItem(stream, apimlColor, "APIML Enabled",  apimlVal);
+  writeStatusItem(stream, jwtColor,   "JWT Process",    jwtVal);
+  writeStatusItem(stream, "green",    "Plugins Loaded", pluginCountBuf);
+  writeStatusItem(stream, "green",    "ZSS Version",    context->productVersion);
+  writeStatusItem(stream, zisColor,   "ZIS Connection", zisVal);
+
+  writeString(stream,
+    "    </ul>\n"
+    "  </div>\n"
+    "</body>\n"
+    "</html>\n");
+
+  finishResponse(response);
+  return 0;
+}
+
+void installStatusPageService(HttpServer *server, char *productVer, int pluginCount) {
+  HttpService *httpService = makeGeneratedService("ZSS_Status_Page", "/status");
+  httpService->authType = SERVICE_AUTH_NONE;
+  httpService->serviceFunction = serveStatusPage;
+  httpService->runInSubtask = TRUE;
+  httpService->doImpersonation = FALSE;
+  ServerAgentContext *context =
+      (ServerAgentContext *)safeMalloc(sizeof(ServerAgentContext), "ServerAgentContext");
+  if (context != NULL) {
+    context->productVersion[sizeof(context->productVersion) - 1] = '\0';
+    strncpy(context->productVersion, productVer, sizeof(context->productVersion) - 1);
+    context->pluginCount = pluginCount;
+  }
+  httpService->userPointer = context;
+  registerHttpService(server, httpService);
 }
 
 #endif /* __ZOWE_OS_ZOS */

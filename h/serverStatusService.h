@@ -15,9 +15,11 @@
 
 typedef struct ServerAgentContext_tag{
   char productVersion[40];
+  int pluginCount;
 } ServerAgentContext;
 
 void installServerStatusService(HttpServer *server, char* productVer);
+void installStatusPageService(HttpServer *server, char *productVer, int pluginCount);
 
 #endif /* __SERVER_STATUS_H__ */
 

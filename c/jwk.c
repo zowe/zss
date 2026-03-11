@@ -70,6 +70,9 @@ void configureJwt(HttpServer *server, JwkSettings *settings) {
     return;
   };
 
+  /* Store context so status queries can check JWT readiness */
+  setConfiguredProperty(server, "jwkContext", context);
+
   RLETask *task = makeRLETask(server->base->rleAnchor, RLE_TASK_TCB_CAPABLE | RLE_TASK_DISPOSABLE, jwkTaskMain);
   if (!task) {
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_WARNING, "failed to create background task for JWK\n");
@@ -85,6 +88,14 @@ void configureJwt(HttpServer *server, JwkSettings *settings) {
   } else {
     zowelog(NULL, LOG_COMP_ID_JWK, ZOWE_LOG_INFO, ZSS_LOG_JWK_URL_MSG, settings->host, settings->port, settings->path);
   }
+}
+
+bool jwkIsJwtReady(HttpServer *server) {
+  JwkContext *context = (JwkContext *)getConfiguredProperty(server, "jwkContext");
+  if (!context) {
+    return false;
+  }
+  return context->isPublicKeyInitialized;
 }
 
 static int jwkTaskMain(RLETask *task) {

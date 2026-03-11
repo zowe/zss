@@ -47,6 +47,7 @@ struct JwkContext_tag {
 
 void configureJwt(HttpServer *server, JwkSettings *jwkSettings);
 const char *jwkGetStrStatus(int status);
+bool jwkIsJwtReady(HttpServer *server);
 
 #endif // JWK_H
 
