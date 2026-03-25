@@ -2,6 +2,9 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `3.5.0`
+- Enhancement: Utility "detect-attls-port" can be used to check if an ATTLS policy exists at a specific connection. (https://github.com/zowe/zss/pull/813)  
+
 ## `3.4.0`
 - Bugfix: Fixed hostname to IP address lookup for "bind-test" program. [(#801)](https://github.com/zowe/zss/pull/801)
 
