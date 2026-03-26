@@ -1612,6 +1612,15 @@ static char *getKeywordArg(char *key, int argc, char **argv){
 
 }
 
+static int hasFlag(const char *key, int argc, char **argv){
+  for (int aa=1; aa<argc; aa++){
+    if (!strcmp(argv[aa],key)){
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static void displayValidityException(FILE *out, int depth, ValidityException *exception){
   for (int i=0; i<depth; i++){
     fprintf(out,"  ");
@@ -1742,6 +1751,14 @@ int main(int argc, char **argv){
     goto out_term_stcbase;
   }
   
+  int singleUserMode = hasFlag("--singleUser",argc,argv);
+  if (singleUserMode && pipeFDArg) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,
+            "--singleUser and -pipes are mutually exclusive\n");
+    zssStatus = ZSS_STATUS_ERROR;
+    goto out_term_stcbase;
+  }
+  
 
   ShortLivedHeap *slh = makeShortLivedHeap(0x40000, 0x40);
 
@@ -1841,6 +1858,11 @@ int main(int argc, char **argv){
       if (!isHttpsConfigured) {
         readAgentAddressAndPortV2(configmgr, &address, &port);
       }
+      if (singleUserMode) {
+        address = "127.0.0.1";
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,
+                "ZSS single-user mode: forcing loopback binding on port %d\n", port);
+      }
       if (!validateAddress(address, &inetAddress, &requiredTLSFlag)) {
         zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, ZSS_LOG_SERVER_STARTUP_MSG, address);
         zssStatus = ZSS_STATUS_ERROR;
@@ -1864,6 +1886,12 @@ int main(int argc, char **argv){
     }
     
     if (server){
+      if (singleUserMode) {
+        server->singleUserMode = true;
+        /* authBlob left NULL; httpserver.c skips blob check when NULL */
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,
+                "ZSS TCP single-user mode active (loopback-only, no pipe tunnel)\n");
+      }
       httpServerConfigManager(server) = configmgr;
       ApimlStorageSettings *apimlStorageSettings = readApimlStorageSettingsV2(slh, configmgr, tlsEnv);
       JwkSettings *jwkSettings = readJwkSettingsV2(slh, configmgr, tlsEnv);
