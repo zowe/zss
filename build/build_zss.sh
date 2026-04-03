@@ -65,6 +65,7 @@ echo "Date stamp: $date_stamp"
 
 xlclang \
   -c \
+  ${ZWE_XLCLANG_FLAGS} \
   -qascii \
   "-Wc,ILP32,float(ieee),longname,langlvl(extc99),gonum,goff,ASM,asmlib('CEE.SCEEMAC','SYS1.MACLIB','SYS1.MODGEN')" \
   -DYAML_VERSION_MAJOR=${YAML_MAJOR} \
