@@ -30,6 +30,7 @@ xlclang \
   -o ${ZSS}/bin/detect-attls-port \
   ${COMMON}/c/alloc.c \
   ${COMMON}/c/bpxskt.c \
+  ${COMMON}/c/fdpoll.c \
   ${COMMON}/c/timeutls.c \
   ${COMMON}/c/utils.c \
   ${ZSS}/c/detectAttlsPort.c ;

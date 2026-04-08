@@ -16,6 +16,7 @@
 #include "utils.h"
 #include "bpxnet.h"
 #include "le.h"
+#include "fdpoll.h"
 
 #include "ezbztlsc.h" /* for TTLS ioctl support */
 
@@ -50,10 +51,11 @@ static char *getKeywordArg(char *key, int argc, char **argv) {
   return NULL;
 }
 
-#define STATUS_OK                             0 // Generic success
-#define DETECT_ATTLS_PORT_STATUS_ENABLED      0
-#define DETECT_ATTLS_PORT_STATUS_DISABLED     4
-#define DETECT_ATTLS_PORT_STATUS_ERROR        8
+#define STATUS_OK                                   0  // Generic success
+#define DETECT_ATTLS_PORT_STATUS_ENABLED            0  // ATTLS enabled
+#define DETECT_ATTLS_PORT_STATUS_DISABLED           4  // ATTLS NOT enabled
+#define DETECT_ATTLS_PORT_TLS_ERROR                 8  // tls errors like 'clientAuth' failure
+#define DETECT_ATTLS_PORT_STATUS_ERROR              12 // generic errors
 
 int querySocketForAttls(Socket *socket, const char *jobname, const char *username, const char *serverAddress, int serverPort) {
   struct TTLS_IOCTL ioc;              /* ioctl data structure          */
@@ -99,7 +101,7 @@ int main(int argc, char **argv) {
   if (argc == 1 || (argc == 2 && (strcmp(argv[1], "-h") == 0 || strcmp(argv[1], "--help") == 0))) {
     printf("detect-attls-port - detects if AT-TLS is enabled in a live port.\n");
     printf("  Format: [_BPX_JOBNAME=jobname] detect-attls-port --serverPort tcp_port --serverHost hostname_or_ipv4"
-           " --type {1=server | 2=client \n");
+           "--direction {1-Inbound | 2-outBound}\n");
     printf("  Exit values: 0 AT-TLS has been enabled, 4 disabled and 8 other errors\n");
     return STATUS_OK;
   }  
@@ -130,50 +132,95 @@ int main(int argc, char **argv) {
   }
 
   // Type of connection this program must become: server or client
-  const char *typeArg = getKeywordArg("--type", argc, argv); 
-  if (!typeArg) {
-    printf("Error: Missing required argument --type\n");
+  const char *directionArg = getKeywordArg("--direction", argc, argv);
+  if (!directionArg) {
+    printf("Error: Missing required argument --directionArg\n");
     return DETECT_ATTLS_PORT_STATUS_ERROR;
   }
-  int connType = atoi(typeArg);
-  if (connType != 1 && connType !=2) {
-    printf("The connection type can either be '1' (server) or '2' (client)\n");
+  int direction = atoi(directionArg);
+  if (direction != 1 && direction != 2) {
+    printf("The direction can either be '1' (Inbound) or '2' (Outbound)\n");
     return DETECT_ATTLS_PORT_STATUS_ERROR;
   }
-  
+
   const char *jobname = getenv("_BPX_JOBNAME");
   jobname = jobname ? jobname : "<unknown>";
 
   const char *username = getenv("USER");
   username = username ? username : "<unknown>";
-  printf("CLI on %s:%d for user %s and jobname %s connection type %d\n",
-             serverAddress, serverPort, jobname, username, connType);
+  printf("CLI on %s:%d for user %s and jobname %s\n",
+             serverAddress, serverPort, jobname, username);
 
-  if(connType == 1) {
-    int tlsFlags = 0;
-    // Create server
-    Socket *serverSocket = tcpServer2(serverInetAddress, serverPort, tlsFlags, &returnCode, &reasonCode);
-    if (serverSocket) {
-      printf("Success: Server is ready\n");
-      // wait for a connection request
-      Socket *peerSocket = socketAccept(serverSocket,&returnCode,&reasonCode);
-      if (peerSocket == NULL) {
-        printf("Server: accept failed ret=%d reason=0x%x\n", returnCode, reasonCode);
-        /* end server socket processing clean up and exit*/
-      } else {
-        printf("Server: accept succeeded now query for ATTLS\n");
-        status = querySocketForAttls(peerSocket, jobname, username, serverAddress, serverPort);
-        socketClose(peerSocket, &returnCode, &reasonCode);
-      }
-      printf("Closing server at %s:%d\n", serverAddress, serverPort);
-      socketClose(serverSocket, &returnCode, &reasonCode);
-      socketFree(serverSocket);
+  int tlsFlags = 0;
+  // Create server
+  Socket *serverSocket = tcpServer2(serverInetAddress, serverPort, tlsFlags, &returnCode, &reasonCode);
+  if (serverSocket) {
+    printf("Success: Server is ready\n");
+    // wait for a connection request
+    SocketAddress *serverSocketAddress = makeSocketAddr(serverInetAddress, serverPort);
+    Socket *clientSocket = tcpClient2(serverSocketAddress, 1000 * 10, &returnCode, &reasonCode);
+    if ((returnCode != 0) || (NULL == clientSocket)) {
+      printf("Failed to connect to server (rc=%d, rsn=0x%x, addr=0x%08x, port=%d)\n", returnCode, reasonCode,
+      serverSocketAddress->v4Address, serverSocketAddress->port);
     } else {
-      status = DETECT_ATTLS_PORT_STATUS_ERROR;
-      printf("Error: Bind failed (rc=0x%x, rsn=0x%x)\n", returnCode, reasonCode);
-      if (returnCode == EADDRINUSE) {
-        printf("Error: Port %d was already occupied\n", serverPort);
-      } else if (jobname) {
+      // Poll on listening socket
+      #define POLL_TIME 200
+      PollItem item = {0};
+      item.fd = serverSocket->sd;
+      item.events = POLLRIN;
+      // Poll only once since this is simple connection test
+      int pollStatus = fdPoll(&item, 0, 1, POLL_TIME, &returnCode, &reasonCode);
+      printf("BPXPOL: returnValue = %d, ret: %d, rsn: %d\n", pollStatus, returnCode, reasonCode);
+      if (pollStatus == -1) {
+        printf("Waited out full duration.\n");
+      } else if (item.revents & POLLRIN) {
+        printf("Listening Socket polled: OK.\n");
+        Socket *peerSocket = socketAccept(serverSocket,&returnCode,&reasonCode);
+        if (peerSocket == NULL) {
+          printf("Server: accept failed ret=%d reason=0x%x\n", returnCode, reasonCode);
+          /* end server socket processing clean up and exit*/
+        } else {
+          printf("Connection succeeded with server addr=0x%08x, port=%d\n", serverSocketAddress->v4Address, serverSocketAddress->port);
+          char writeBuffer[50] = "ATTLS detect binary";
+          char readBuffer[50] = {0};
+          // Write above message into Socket
+          int writeReturn = socketWrite(clientSocket, writeBuffer, strlen(writeBuffer), &returnCode, &reasonCode);
+          if (writeReturn < 0) {
+            printf("write failed ret=%d reason=0x%x\n", returnCode, reasonCode);
+            status = DETECT_ATTLS_PORT_TLS_ERROR;
+          } else {
+            int bytesRead = socketRead(peerSocket, readBuffer, sizeof(readBuffer), &returnCode, &reasonCode);
+            if (bytesRead == -1 || bytesRead == 0) {
+              printf("socket read error or no bytes read, errno = %d\n",returnCode);
+              status = DETECT_ATTLS_PORT_TLS_ERROR;
+            } else {
+              printf("Client sent message: %s\n", readBuffer);
+              if (direction == 1) {
+                printf("...Now query for Inbound ATTLS state\n");
+                status = querySocketForAttls(peerSocket, jobname, username, serverAddress, serverPort);
+              } else {
+                printf("...Now query for Outbound ATTLS state\n");
+                status = querySocketForAttls(clientSocket, jobname, username, serverAddress, serverPort);
+              }
+            }
+          }
+          socketClose(clientSocket, &returnCode, &reasonCode);
+          socketFree(clientSocket);
+          socketClose(peerSocket, &returnCode, &reasonCode);
+        }
+      }
+    }
+    if (serverSocketAddress) {
+      freeSocketAddr(serverSocketAddress);
+    }
+    socketClose(serverSocket, &returnCode, &reasonCode);
+    socketFree(serverSocket);
+  } else {
+    status = DETECT_ATTLS_PORT_STATUS_ERROR;
+    printf("Error: Bind failed (rc=0x%x, rsn=0x%x)\n", returnCode, reasonCode);
+    if (returnCode == EADDRINUSE) {
+      printf("Error: Port %d was already occupied\n", serverPort);
+    } else if (jobname) {
         if (username) {
           printf("Ensure jobname %s for the Zowe STC id (possibly the current user: %s) has permission to make TCPIP binds to %s:%d\n", jobname, username, serverAddress, serverPort);
         } else {
@@ -182,25 +229,7 @@ int main(int argc, char **argv) {
       } else {
         printf("Ensure the Zowe STC job and STC id has permission to make TCPIP binds to %s:%d\n", serverAddress, serverPort);
       }
-    }
-  } else if (connType == 2) {
-      SocketAddress *serverSocketAddress = makeSocketAddr(serverInetAddress, serverPort);
-      Socket *clientSocket = tcpClient2(serverSocketAddress, 1000 * 10, &returnCode, &reasonCode);
-      if ((returnCode != 0) || (NULL == clientSocket)) {
-        printf("Failed to connect to HTTP server (rc=%d, rsn=0x%x, addr=0x%08x, port=%d)\n", returnCode, reasonCode,
-          serverSocketAddress->v4Address, serverSocketAddress->port);
-        if (serverSocketAddress) {
-           freeSocketAddr(serverSocketAddress);
-        }
-      } else {
-        printf("Connection succeeded with server addr=0x%08x, port=%d\n", serverSocketAddress->v4Address, serverSocketAddress->port);
-        status = querySocketForAttls(clientSocket, jobname, username, serverAddress, serverPort);
-        if (serverSocketAddress) {
-           freeSocketAddr(serverSocketAddress);
-        }
-        socketClose(clientSocket, &returnCode, &reasonCode);
-        socketFree(clientSocket); 
-      }
   }
   return status;
 }
+
