@@ -293,7 +293,7 @@ int streamDataset(char *filename, int recordLength, jsonPrinter *jPrinter){
     if (rcEtag) { //if etag generation has an error, just don't send it.
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "ICSF error for SHA etag init, %d\n",rcEtag);
     }
-    while (!feof(in)){
+    while (!feof(in) && !jsonCheckIOErrorFlag(jPrinter)){
       bytesRead = fread(buffer,1,recordLength,in);
       if (bytesRead > 0 && !ferror(in)) {
         if (!rcEtag) { rcEtag = icsfDigestUpdate(&digest, buffer, bytesRead); }
