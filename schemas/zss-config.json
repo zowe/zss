@@ -86,6 +86,21 @@
                     "description": "Controls whether the app-server storage API can store in the caching service"
                 }
               }
+            },
+            "heartbeatIntervalSeconds": {
+              "type": "number",
+              "default": 30,
+              "description": "Interval in seconds between Eureka heartbeat renewal requests sent to the API Mediation Layer Discovery service"
+            },
+            "retryIntervalSeconds": {
+              "type": "number",
+              "default": 10,
+              "description": "Interval in seconds to wait before retrying a failed Eureka registration or heartbeat request"
+            },
+            "static": {
+              "type": "boolean",
+              "default": false,
+              "description": "When true, ZSS uses APIML static registration instead of APIML eureka registration."
             }
           }
         },
@@ -382,6 +397,10 @@
         },
         "_zss.jwtTrace": {
           "description": "Controls logging of JWT library functions.",
+          "$ref": "#/$defs/logLevel"
+        },
+        "_zss.eureka": {
+          "description": "Controls logging of APIML eureka registration.",
           "$ref": "#/$defs/logLevel"
         },
         "^.*$": {

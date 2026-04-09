@@ -31,7 +31,3 @@ commands:
   start: bin/start.sh
   configure: bin/configure.sh
   validate: bin/validate.sh
-# we do not specify encoding here because its already tagged ascii
-apimlServices:
-  static:
-  - file: apiml-static-reg.yaml.template

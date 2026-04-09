@@ -37,4 +37,7 @@ components:
           enabled: ${{ components['caching-service']?.enabled || components.apiml?.enabled }}
         enabled: ${{ components.discovery?.enabled || components.apiml?.enabled }}
         serviceName: "zss"
+        static: ${{ (haInstances && Object.keys(haInstances).length > 1) ? false : true }}
+        heartbeatIntervalSeconds: 30
+        retryIntervalSeconds: 10
       handshakeTimeout: 30000

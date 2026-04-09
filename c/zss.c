@@ -86,6 +86,7 @@
 #include "storageApiml.h"
 #include "passTicketService.h"
 #include "jwk.h"
+#include "eurekaClient.h"
 #include "zss.h"
 
 #define PRODUCT "ZLUX"
@@ -1073,6 +1074,7 @@ static void initLoggingComponents(void) {
   logConfigureComponent(NULL, LOG_COMP_ID_CTDS, "CT/DS", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_APIML_STORAGE, "APIML Storage", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   logConfigureComponent(NULL, LOG_COMP_ID_JWK, "JWK", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
+  logConfigureComponent(NULL, LOG_COMP_ID_EUREKA, "Eureka Client", LOG_DEST_PRINTF_STDOUT, ZOWE_LOG_INFO);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_ZSS_START_VER_MSG, productVersion);
 }
 
@@ -1872,6 +1874,14 @@ int main(int argc, char **argv){
       loadWebServerConfigV2(server, configmgr, htUsers, htGroups, defaultSeconds);
       readWebPluginDefinitions(server, slh, pluginsDir, configmgr, apimlStorageSettings);
       configureJwt(server, jwkSettings);
+      EurekaClientSettings *eurekaSettings =
+          makeEurekaClientSettings(slh, configmgr, address, port, isHttpsConfigured,
+                                    productVersion
+#ifdef USE_ZOWE_TLS
+                                    , tlsEnv
+#endif
+                                    );
+      startEurekaClient(server, eurekaSettings);
       installUserMappingService(server);
       installUnixFileContentsService(server);
       installUnixFileRenameService(server);
