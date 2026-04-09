@@ -51,8 +51,6 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
   
   # this is to resolve ZSS bin path in LIBPATH variable.
   LIBPATH="${LIBPATH}:${ZSS_SCRIPT_DIR}"
-
-  ZWES_LOG_FILE=/dev/null
   
   #### Log file initialization ####
   if [ -n "$ZWES_LOG_FILE" ]
@@ -71,6 +69,7 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
       echo "ZWES_LOG_FILE set (value $ZWES_LOG_FILE).  Ignoring ZWES_LOG_DIR."
     fi
   else
+    ZWES_LOG_FILE=/dev/null
   # _FILE was not specified; default filename, and check and maybe default _DIR
     if [ -f "$ZWES_LOG_DIR" ]
     then
