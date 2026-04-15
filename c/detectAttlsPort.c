@@ -57,6 +57,13 @@ static char *getKeywordArg(const char *key, int argc, char **argv) {
 #define DETECT_ATTLS_PORT_TLS_ERROR                 8  // tls errors like 'clientAuth' failure
 #define DETECT_ATTLS_PORT_STATUS_ERROR              12 // generic errors
 
+typedef struct {
+  const char *jobname;
+  const char *username;
+  const char *serverAddress;
+  int serverPort;
+} AttlsContext;
+
 static void printHelpAndExit() {
   printf("detect-attls-port - detects if AT-TLS is enabled in a live port.\n");
   printf("  Format: [_BPX_JOBNAME=jobname] detect-attls-port --serverPort tcp_port --serverHost hostname_or_ipv4"
@@ -107,28 +114,26 @@ static int validateCLIArguments(int argc, char **argv,
   return 0; // Success
 }
 
-static void handleBindError(int returnCode, const char *jobname, const char *username,
-                           const char *serverAddress, int serverPort) {
+static void handleBindError(int returnCode, AttlsContext *ctx) {
   printf("Error: Bind failed (rc=0x%x, rsn=0x%x)\n", returnCode, returnCode);
   if (returnCode == EADDRINUSE) {
-    printf("Error: Port %d was already occupied\n", serverPort);
-  } else if (jobname && strcmp(jobname, "<unknown>") != 0) {
-    if (username && strcmp(username, "<unknown>") != 0) {
+    printf("Error: Port %d was already occupied\n", ctx->serverPort);
+  } else if (ctx->jobname && strcmp(ctx->jobname, "<unknown>") != 0) {
+    if (ctx->username && strcmp(ctx->username, "<unknown>") != 0) {
       printf("Ensure jobname %s for the Zowe STC id (possibly the current user: %s) has permission to make TCPIP binds to %s:%d\n",
-             jobname, username, serverAddress, serverPort);
+             ctx->jobname, ctx->username, ctx->serverAddress, ctx->serverPort);
     } else {
       printf("Ensure jobname %s for the Zowe STC id has permission to make TCPIP binds to %s:%d\n",
-             jobname, serverAddress, serverPort);
+             ctx->jobname, ctx->serverAddress, ctx->serverPort);
     }
   } else {
     printf("Ensure the Zowe STC job and STC id has permission to make TCPIP binds to %s:%d\n",
-           serverAddress, serverPort);
+           ctx->serverAddress, ctx->serverPort);
   }
 }
 
 static int testConnectionAndQueryAttls(Socket *serverSocket, InetAddr *inetAddr, int serverPort,
-                                       const char *jobname, const char *username,
-                                       const char *serverAddress, int direction,
+                                       AttlsContext *ctx, int direction,
                                        SocketAddress **outSocketAddr) {
   int returnCode = 0;
   int reasonCode = 0;
@@ -194,10 +199,10 @@ static int testConnectionAndQueryAttls(Socket *serverSocket, InetAddr *inetAddr,
       printf("Client sent message: %s\n", readBuffer);
       if (direction == 1) {
         printf("...Now query for Inbound ATTLS state\n");
-        status = querySocketForAttls(peerSocket, jobname, username, serverAddress, serverPort);
+        status = querySocketForAttls(peerSocket, ctx);
       } else {
         printf("...Now query for Outbound ATTLS state\n");
-        status = querySocketForAttls(clientSocket, jobname, username, serverAddress, serverPort);
+        status = querySocketForAttls(clientSocket, ctx);
       }
     }
   }
@@ -208,7 +213,7 @@ static int testConnectionAndQueryAttls(Socket *serverSocket, InetAddr *inetAddr,
   return status;
 }
 
-int querySocketForAttls(Socket *socket, const char *jobname, const char *username, const char *serverAddress, int serverPort) {
+int querySocketForAttls(Socket *socket, AttlsContext *ctx) {
   struct TTLS_IOCTL ioc;              /* ioctl data structure          */
   memset(&ioc,0,sizeof(ioc));         /* set all unused fields to zero */
 
@@ -221,7 +226,7 @@ int querySocketForAttls(Socket *socket, const char *jobname, const char *usernam
   int sts = tcpIOControl(socket, SIOCTTLSCTL, arglen, (char*)&ioc, &bpxrc, &bpxrsn);
   if (sts != 0 || bpxrc != 0) {
     printf("SIOCTTLSCTL failed on %s:%d (bpxrc=%d, bpxrsn=%d)\n",
-           serverAddress, serverPort, bpxrc, bpxrsn);
+           ctx->serverAddress, ctx->serverPort, bpxrc, bpxrsn);
     return DETECT_ATTLS_PORT_STATUS_ERROR;
   }
   
@@ -232,15 +237,15 @@ int querySocketForAttls(Socket *socket, const char *jobname, const char *usernam
    case TTLS_POL_NO_POLICY:
    case TTLS_POL_NOT_ENABLED:
      status = DETECT_ATTLS_PORT_STATUS_DISABLED;
-     printf("No AT-TLS rule identified on %s:%d for user %s and jobname %s\n", serverAddress, serverPort, username, jobname);
+     printf("No AT-TLS rule identified on %s:%d for user %s and jobname %s\n", ctx->serverAddress, ctx->serverPort, ctx->username, ctx->jobname);
      break;
    case TTLS_POL_ENABLED:
    case TTLS_POL_APPLCNTRL:
      status = DETECT_ATTLS_PORT_STATUS_ENABLED;
-     printf("AT-TLS rule identified on %s:%d for user %s and jobname %s\n", serverAddress, serverPort, username, jobname);
+     printf("AT-TLS rule identified on %s:%d for user %s and jobname %s\n", ctx->serverAddress, ctx->serverPort, ctx->username, ctx->jobname);
      break;
    default:
-     printf("Error: Unknown AT-TLS policy identified on %s:%d for user %s and jobname %s\n", serverAddress, serverPort, username, jobname);
+     printf("Error: Unknown AT-TLS policy identified on %s:%d for user %s and jobname %s\n", ctx->serverAddress, ctx->serverPort, ctx->username, ctx->jobname);
      status = DETECT_ATTLS_PORT_STATUS_ERROR;  
   }
   return status;
@@ -249,9 +254,11 @@ int querySocketForAttls(Socket *socket, const char *jobname, const char *usernam
 
 int main(int argc, char **argv) {
   char *serverAddress = NULL;
-  int serverPort = 0, direction = 0;
+  int serverPort = 0;
+  int direction = 0;
   InetAddr *serverInetAddress = NULL;
-  int returnCode = 0, reasonCode = 0;
+  int returnCode = 0;
+  int reasonCode = 0;
   int status = DETECT_ATTLS_PORT_STATUS_ERROR;
 
   // Validate CLI arguments
@@ -263,12 +270,16 @@ int main(int argc, char **argv) {
     return argValidation; // Validation failed
   }
 
-  // Get environment variables
-  const char *jobname = getenv("_BPX_JOBNAME");
-  jobname = jobname ? jobname : "<unknown>";
-  const char *username = getenv("USER");
-  username = username ? username : "<unknown>";
-  printf("CLI on %s:%d for user %s and jobname %s\n", serverAddress, serverPort, jobname, username);
+  // Create AttlsContext
+  AttlsContext ctx = {0};
+  ctx.jobname = getenv("_BPX_JOBNAME");
+  ctx.jobname = ctx.jobname ? ctx.jobname : "<unknown>";
+  ctx.username = getenv("USER");
+  ctx.username = ctx.username ? ctx.username : "<unknown>";
+  ctx.serverAddress = serverAddress;
+  ctx.serverPort = serverPort;
+
+  printf("CLI on %s:%d for user %s and jobname %s\n", ctx.serverAddress, ctx.serverPort, ctx.username, ctx.jobname);
 
   // Create server socket
   int tlsFlags = 0;
@@ -276,14 +287,14 @@ int main(int argc, char **argv) {
 
   if (serverSocket == NULL) {
     status = DETECT_ATTLS_PORT_STATUS_ERROR;
-    handleBindError(returnCode, jobname, username, serverAddress, serverPort);
+    handleBindError(returnCode, &ctx);
     return status;
   }
 
   // Test connection and query ATTLS
   SocketAddress *serverSocketAddress = NULL;
   status = testConnectionAndQueryAttls(serverSocket, serverInetAddress, serverPort,
-                                       jobname, username, serverAddress, direction,
+                                       &ctx, direction,
                                        &serverSocketAddress);
 
   // Cleanup
