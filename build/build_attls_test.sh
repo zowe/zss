@@ -16,9 +16,9 @@ ZSS="../.."
 COMMON="../../deps/zowe-common-c"
 
 echo "********************************************************************************"
-echo "Building detect at-tls port..."
+echo "Building attls-test..."
 
-mkdir -p "${WORKING_DIR}/tmp-detect-attls-port" && cd "$_"
+mkdir -p "${WORKING_DIR}/tmp-attls-test" && cd "$_"
 
 xlclang \
   -q64 \
@@ -27,22 +27,22 @@ xlclang \
   -DNEW_CAA_LOCATIONS=1 \
   "-Wc,langlvl(extc11),gonum,goff,hgpr,roconst,ASM,asmlib('SYS1.MACLIB')" \
   -I ${COMMON}/h \
-  -o ${ZSS}/bin/detect-attls-port \
+  -o ${ZSS}/bin/attls-test \
   ${COMMON}/c/alloc.c \
   ${COMMON}/c/bpxskt.c \
   ${COMMON}/c/fdpoll.c \
   ${COMMON}/c/timeutls.c \
   ${COMMON}/c/utils.c \
-  ${ZSS}/c/detectAttlsPort.c ;
+  ${ZSS}/c/attlsTest.c ;
 
 rc=$?
 if [ $rc -eq 0 ]; then
-  echo "Build detect-attls-port successfully"
+  echo "Build attls-test successfully"
   exit 0
 else
   # remove bindTest in case the linker had RC=4 and produced the binary
-  rm -f ${ZSS}/bin/detect-attls-port
-  echo "Build detect-attls-port failed"
+  rm -f ${ZSS}/bin/attls-test
+  echo "Build attls-test failed"
   exit 8
 fi
 
