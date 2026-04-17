@@ -173,7 +173,7 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
     ZSS_SERVER="${ZSS_SERVER_31}"
   fi
 
-  if [ "$ZWE_components_zss_agent_https_trace" = "true" ] && [ "$ZWES_LOG_FILE" != "/dev/null" ]; then
+  if [ "$ZWE_components_zss_agent_https_trace" = "true" ]; then
     export GSK_TRACE_FILE="${ZWES_LOG_FILE}.tlstrace"
     export GSK_TRACE=0xFF
   fi
