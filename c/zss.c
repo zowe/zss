@@ -1241,6 +1241,7 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
   settings->keyshares = keyshares ? keyshares : DEFAULT_TLS_KEY_SHARES;
   settings->keyring = jsonObjectGetString(httpsConfigObject, "keyring");
   settings->label = jsonObjectGetString(httpsConfigObject, "label");
+  settings->clientLabel = jsonObjectGetString(httpsConfigObject, "clientLabel");
   /*  settings->stash = jsonObjectGetString(httpsConfigObject, "stash"); - this is obsolete */
   settings->password = jsonObjectGetString(httpsConfigObject, "password");
   JsonArray *addressArray = jsonObjectGetArray(httpsConfigObject,"ipAddresses");
@@ -1256,6 +1257,7 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, ZSS_LOG_TLS_SETTINGS_MSG,
             settings->keyring,
             settings->label ? settings->label : "(no label)",
+            settings->clientLabel ? settings->clientLabel : "(no clientLabel)",
             settings->password ? "****" : "(no password)",
             settings->stash ? settings->stash : "(no stash)");
     TlsEnvironment *tlsEnv = NULL;
