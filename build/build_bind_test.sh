@@ -21,6 +21,7 @@ echo "Building bind test ..."
 mkdir -p "${WORKING_DIR}/tmp-bind-test" && cd "$_"
 
 xlclang \
+  ${ZWE_XLCLANG_FLAGS} \
   -q64 \
   -v \
   -D_XOPEN_SOURCE=600 \

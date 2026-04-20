@@ -270,7 +270,7 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_TLS_SETTINGS_MSG_ID
 #define ZSS_LOG_TLS_SETTINGS_MSG_ID          ZSS_LOG_MSG_PRFX"1061I"
 #endif
-#define ZSS_LOG_TLS_SETTINGS_MSG_TEXT        "TLS settings: keyring '%s', label '%s', password '%s', stash '%s'\n"
+#define ZSS_LOG_TLS_SETTINGS_MSG_TEXT        "TLS settings: keyring '%s', label '%s', clientLabel '%s', password '%s', stash '%s'\n"
 #define ZSS_LOG_TLS_SETTINGS_MSG             ZSS_LOG_TLS_SETTINGS_MSG_ID" "ZSS_LOG_TLS_SETTINGS_MSG_TEXT
 
 #ifndef ZSS_LOG_ENV_SETTINGS_MSG_ID
