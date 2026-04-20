@@ -518,8 +518,10 @@ bool isLogLevelValid(int level);
 #ifndef ZSS_LOG_JWK_FAILED_MSG_ID
 #define ZSS_LOG_JWK_FAILED_MSG_ID     ZSS_LOG_MSG_PRFX"1605W"
 #endif
-#define ZSS_LOG_JWK_FAILED_MSG_TEXT   "Server will not accept JWT\n"
+#define ZSS_LOG_JWK_FAILED_MSG_TEXT   "Server will not accept JWT\nCheck URL https://%s:%d%s for errors.\n"
 #define ZSS_LOG_JWK_FAILED_MSG        ZSS_LOG_JWK_FAILED_MSG_ID" "ZSS_LOG_JWK_FAILED_MSG_TEXT
+#define ZSS_LOG_JWK_FAILED_IPV6_MSG_TEXT   "Server will not accept JWT\nCheck URL https://[%s]:%d%s for errors.\n"
+#define ZSS_LOG_JWK_FAILED_IPV6_MSG        ZSS_LOG_JWK_FAILED_MSG_ID" "ZSS_LOG_JWK_FAILED_MSG_TEXT
 
 #ifndef ZSS_LOG_JWK_RETRY_MSG_ID
 #define ZSS_LOG_JWK_RETRY_MSG_ID     ZSS_LOG_MSG_PRFX"1606W"

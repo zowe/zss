@@ -2,6 +2,9 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `3.5.0`
+- Bugfix: Common JWK error messages contain more information about how to further diagnose their cause. [(#807)](https://github.com/zowe/zss/pull/807)
+
 ## `3.4.0`
 - Bugfix: Fixed hostname to IP address lookup for "bind-test" program. [(#801)](https://github.com/zowe/zss/pull/801)
 
