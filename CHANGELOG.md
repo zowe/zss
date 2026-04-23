@@ -2,6 +2,9 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `3.6.0`
+- Enhancement: The `/unixfile/contents` PUT endpoint now accepts `sourceEncoding` and `targetEncoding` as either charset name strings (e.g. `"IBM-1047"`, `"UTF-8"`) or decimal CCSID integer strings (e.g. `"1047"`, `"819"`). Previously only integer strings were accepted. Resolution is handled by `parseEncodingValue()` in zowe-common-c. [(#593)](https://github.com/zowe/zss/issues/593)
+
 ## `3.5.0`
 - Enhancement: Utility "detect-attls-port" can be used to check if an ATTLS policy exists at a specific connection. (https://github.com/zowe/zss/pull/813)  
 - Enhancement: ZSS now supports a dedicated client certificate for outbound TLS connections. When `zowe.certificate.keystore.clientCertificateAlias` is set, that certificate is used for client-side connections (e.g. to the APIML Caching Service and JWK endpoint) while the existing `zowe.certificate.keystore.alias` continues to be used as the server certificate. When `clientCertificateAlias` is absent, the existing single-certificate behaviour is preserved for backward compatibility. [(#820)](https://github.com/zowe/zss/pull/820)

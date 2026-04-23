@@ -218,8 +218,8 @@ static void getEncodingInfoFromQueryParameters(char *inSourceEncoding, char *inT
     *outTransferType = BINARY;
   }
   else {
-    *outSourceCCSID = getCharsetCode(inSourceEncoding);
-    *outTargetCCSID = getCharsetCode(inTargetEncoding);
+    *outSourceCCSID = parseEncodingValue(inSourceEncoding);
+    *outTargetCCSID = parseEncodingValue(inTargetEncoding);
     *outTransferType = TEXT;
   }
 }
