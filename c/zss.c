@@ -74,6 +74,7 @@
 #include "omvsService.h"
 #include "datasetService.h"
 #include "serverStatusService.h"
+#include "checksumService.h"
 #include "rasService.h"
 #include "certificateService.h"
 #include "registerProduct.h"
@@ -1897,6 +1898,7 @@ int main(int argc, char **argv){
       installSecurityManagementServices(server);
       installOMVSService(server);
       installServerStatusService(server, productVersion);
+      installChecksumService(server);
       installZosPasswordService(server);
       installRASService(server);
       installUserInfoService(server);
