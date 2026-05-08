@@ -16,32 +16,33 @@ ZSS="../.."
 COMMON="../../deps/zowe-common-c"
 
 echo "********************************************************************************"
-echo "Building bind test ..."
+echo "Building attls-test..."
 
-mkdir -p "${WORKING_DIR}/tmp-bind-test" && cd "$_"
+mkdir -p "${WORKING_DIR}/tmp-attls-test" && cd "$_"
 
 xlclang \
-  ${ZWE_XLCLANG_FLAGS} \
   -q64 \
   -v \
   -D_XOPEN_SOURCE=600 \
   -DNEW_CAA_LOCATIONS=1 \
   "-Wc,langlvl(extc11),gonum,goff,hgpr,roconst,ASM,asmlib('SYS1.MACLIB')" \
   -I ${COMMON}/h \
-  -o ${ZSS}/bin/bind-test \
+  -o ${ZSS}/bin/attls-test \
   ${COMMON}/c/alloc.c \
   ${COMMON}/c/bpxskt.c \
+  ${COMMON}/c/fdpoll.c \
   ${COMMON}/c/timeutls.c \
   ${COMMON}/c/utils.c \
-  ${ZSS}/c/bindTest.c ;
+  ${ZSS}/c/attlsTest.c ;
 
 rc=$?
 if [ $rc -eq 0 ]; then
-  echo "Build bind-test successfully"
+  echo "Build attls-test successfully"
   exit 0
 else
   # remove bindTest in case the linker had RC=4 and produced the binary
-  rm -f ${ZSS}/bin/bind-test
-  echo "Build bind-test failed"
+  rm -f ${ZSS}/bin/attls-test
+  echo "Build attls-test failed"
   exit 8
 fi
+

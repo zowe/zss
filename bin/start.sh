@@ -57,7 +57,9 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
   then
     if [[ $ZWES_LOG_FILE == /* ]]
     then
-      echo "Absolute log location given."
+      if [ "$ZWES_LOG_FILE" != "/dev/null" ]; then
+        echo "Absolute log location given."
+      fi
     else
       ZWES_LOG_FILE="${ZSS_SCRIPT_DIR}/${ZWES_LOG_FILE}"
       echo "Relative log location given, set to absolute path=$ZWES_LOG_FILE"
@@ -67,22 +69,8 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
       echo "ZWES_LOG_FILE set (value $ZWES_LOG_FILE).  Ignoring ZWES_LOG_DIR."
     fi
   else
+    ZWES_LOG_FILE=/dev/null
   # _FILE was not specified; default filename, and check and maybe default _DIR
-    if [ -z "$ZWES_LOG_DIR" ]
-    then
-      if [ -n "$ZWE_zowe_logDirectory" -a -d "$ZWE_zowe_logDirectory" ]
-      then
-        ZWES_LOG_DIR=${ZWE_zowe_logDirectory}
-      else
-        if [ -z "${ZWE_zowe_runtimeDirectory}" ]; then
-          ZWES_LOG_DIR="../log"
-        else
-          echo "No log directory. Logging disabled."
-          ZWES_LOG_DIR=
-          ZWES_LOG_FILE=/dev/null
-        fi
-      fi
-    fi
     if [ -f "$ZWES_LOG_DIR" ]
     then
       ZWES_LOG_FILE=$ZWES_LOG_DIR
@@ -143,7 +131,11 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
     ZSS_CHECK_DIR=$(cd "$(dirname "$ZWES_LOG_FILE")"; pwd)
     ZWES_LOG_FILE=$ZSS_CHECK_DIR/$(basename "$ZWES_LOG_FILE")
   fi
-  echo ZWES_LOG_FILE=${ZWES_LOG_FILE}
+
+  if [ "$ZWES_LOG_FILE" != "/dev/null" ]; then
+    echo ZWES_LOG_FILE=${ZWES_LOG_FILE}
+  fi
+
   export ZWES_LOG_FILE=$ZWES_LOG_FILE
   if [ ! -e $ZWES_LOG_FILE ]
   then
@@ -181,7 +173,7 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
     ZSS_SERVER="${ZSS_SERVER_31}"
   fi
 
-  if [ "$ZWE_components_zss_agent_https_trace" = "true" ] && [ "$ZWES_LOG_FILE" != "/dev/null" ]; then
+  if [ "$ZWE_components_zss_agent_https_trace" = "true" ]; then
     export GSK_TRACE_FILE="${ZWES_LOG_FILE}.tlstrace"
     export GSK_TRACE=0xFF
   fi

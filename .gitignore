@@ -27,6 +27,7 @@ build/*.s
 !.pax/post-packaging.sh
 !.pax/prepare-workspace.sh
 !.pax/alloc-test
+!.pax/attls-test
 !.pax/bind-test
 !.pax/zis-test
 
