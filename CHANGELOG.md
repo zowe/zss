@@ -2,6 +2,9 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `3.6.0`
+- Enhancement: Utility "alloc-test" is now available for checking if an amount of memory can be allocated. [(#831)](https://github.com/zowe/zss/pull/831)
+
 ## `3.4.0`
 - Bugfix: Fixed hostname to IP address lookup for "bind-test" program. [(#801)](https://github.com/zowe/zss/pull/801)
 
