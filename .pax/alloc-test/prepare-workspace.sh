@@ -15,7 +15,7 @@ set -xe
 # Prepare folders/files will be uploaded to Build/PAX server
 ################################################################################
 
-# contants
+# constants
 SCRIPT_NAME=$(basename "$0")
 SCRIPT_DIR=$(dirname "$0")
 PAX_WORKSPACE_DIR=.pax/alloc-test
