@@ -1176,7 +1176,11 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
           if (jsonString[j] > 0x40){
             zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Invalid record for dataset, recordLength=%d but max for dataset is %d\n", recordLength, maxRecordLength);
             char errorMessage[1024];
-            int errorLength = sprintf(errorMessage,"Record #%d with contents \"%s\" is longer than the max record length of %d",i+1,jsonString,maxRecordLength);
+            if (recordLength > 900) {
+              int errorLength = snprintf(errorMessage, sizeof(errorMessage), "Record #%d with contents \"%.900s..\" is longer than the max record length of %d", i+1, jsonString, maxRecordLength);
+            } else {
+              int errorLength = snprintf(errorMessage, sizeof(errorMessage), "Record #%d with contents \"%s\" is longer than the max record length of %d", i+1, jsonString, maxRecordLength);
+            }
             errorMessage[errorLength] = '\0';
             respondWithError(response, HTTP_STATUS_BAD_REQUEST,errorMessage);
             return;
