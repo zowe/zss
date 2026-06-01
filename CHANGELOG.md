@@ -3,7 +3,7 @@
 All notable changes to the ZSS package will be documented in this file.
 
 ## `3.6.0`
-- Enhancement: When running in HA mode, ZSS now uses the per-HA-instance merged YAML config file(e.g. `.zowe-lpar1-merged.yaml`) exposed via `ZWE_PRIVATE_HA_INSTANCE_CONFIG` (written by `zwe internal start prepare`) instead of the global `ZWE_CLI_PARAMETER_CONFIG`. (https://github.com/zowe/zss/pull/826)
+- Enhancement: When running in HA mode, ZSS now uses the per-HA-instance merged YAML config file(e.g. `.zowe-lpar1-merged.yaml`) exposed via `ZWE_HA_INSTANCE_CONFIG` (written by `zwe internal start prepare`) instead of the global `ZWE_CLI_PARAMETER_CONFIG`. (https://github.com/zowe/zss/pull/826)
 
 ## `3.5.0`
 - Enhancement: Utility "detect-attls-port" can be used to check if an ATTLS policy exists at a specific connection. (https://github.com/zowe/zss/pull/813)  

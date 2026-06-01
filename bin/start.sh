@@ -40,12 +40,12 @@ if [[ "${OSNAME}" == "OS/390" ]]; then
   fi
   
   # Take in our defaults.
-  # When running in HA mode, ZWE_PRIVATE_HA_INSTANCE_CONFIG points to a per-instance
+  # When running in HA mode, ZWE_HA_INSTANCE_CONFIG points to a per-instance
   # merged YAML that already has the haInstances overrides applied.
   # Fall back to ZWE_CLI_PARAMETER_CONFIG (the global merged yaml) for non-HA
   # or when the per-instance file has not been written yet.
-  if [ -n "${ZWE_PRIVATE_HA_INSTANCE_CONFIG}" ]; then
-    ZWES_CONFIG="FILE(${ZWE_PRIVATE_HA_INSTANCE_CONFIG}):FILE(${ZWES_COMPONENT_HOME}/defaults.yaml)"
+  if [ -n "${ZWE_HA_INSTANCE_CONFIG}" ]; then
+    ZWES_CONFIG="FILE(${ZWE_HA_INSTANCE_CONFIG}):FILE(${ZWES_COMPONENT_HOME}/defaults.yaml)"
   else
     ZWES_CONFIG="FILE(${ZWE_CLI_PARAMETER_CONFIG}):FILE(${ZWES_COMPONENT_HOME}/defaults.yaml)"
   fi
