@@ -36,7 +36,9 @@ static void respondWithInvalidMethod(HttpResponse *response) {
 }
 
 Json *parseContentBody(HttpRequest *request) {
-
+  if (request == NULL || request->contentBody == NULL || request->contentLength < 1) {
+    return NULL;
+  }
   char *inPtr = request->contentBody;
   char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
   int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);

@@ -201,8 +201,14 @@ static int resetPassword(HttpService *service, HttpResponse *response) {
   HttpRequest *request = response->request;
   
   if (!strcmp(request->method, methodPOST)) {
-    char *inPtr = request->contentBody;
-    char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
+    char *inPtr = NULL;
+    if (request->contentBody != NULL && request->contentLength > 0) {
+      inPtr = request->contentBody;
+    }
+    char *nativeBody = NULL;
+    if (inPtr != NULL) {
+      nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
+    }
     int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
     char errBuf[JSON_ERROR_BUFFER_SIZE];
     char responseString[RESPONSE_MESSAGE_LENGTH];
