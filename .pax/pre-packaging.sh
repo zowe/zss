@@ -40,6 +40,7 @@ cp -r ../bak/bin .
 cp ../bak/manifest.yaml .
 cp ../bak/defaults.yaml .
 cp -r ../bak/schemas .
+cp -r ../bak/build/tmp-zss .
 cp ../bak/apiml-static-reg.yaml.template .
 extattr +p bin/zssServer
 extattr +p bin/zssServer64
