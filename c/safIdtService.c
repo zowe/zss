@@ -155,11 +155,11 @@ void extractUsernameFromJwt(HttpResponse *response, char *jwt, char *username) {
 
   // count on '=' padding characters that are omitted in JWT
   if (payLoadLength % 4 == 3) {
-    allocateLength = payLoadLength + 1;
+    allocateLength = payLoadLength + 2;  // count on '=' and '\0'
     base64Padding[0] = '=';
   }
   else if (payLoadLength % 4 == 2) {
-    allocateLength = payLoadLength + 2;
+    allocateLength = payLoadLength + 3;    // count on '==' and '\0'
     base64Padding[0] = '=';
     base64Padding[1] = '=';
   }
