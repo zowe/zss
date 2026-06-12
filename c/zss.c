@@ -862,8 +862,8 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
           zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "found JSON file %s\n", name);
           memset(path, 0, sizeof(path));
           Json *json = NULL;
-          int characterWritten = snprintf(path, sizeof(path), "%s%s%s", dirname, needsSlash ? "/" : "", name);
-          if (characterWritten > 0 && characterWritten < sizeof(path)) {
+          int charactersWritten = snprintf(path, sizeof(path), "%s%s%s", dirname, needsSlash ? "/" : "", name);
+          if (charactersWritten > 0 && charactersWritten < sizeof(path)) {
             json = jsonParseFile(slh, path, errorBuffer, sizeof (errorBuffer));
           }
           if (json) {
