@@ -1358,7 +1358,7 @@ static int handleModifyCommands(CrossMemoryServerGlobalArea *globalArea,
   memset(&nickname.text, ' ', sizeof(nickname.text));
 
   size_t targetLength = command->target ? strlen(command->target) : 0;
-  if (targetLength <= 0 && sizeof(nickname.text) < targetLength) {
+  if (targetLength == 0 || targetLength > sizeof(nickname.text)) {
     return RC_CMS_OK;
   }
   memcpy(nickname.text, command->target, targetLength);
