@@ -249,6 +249,7 @@ xlc \
   ${ZSS}/c/registerProduct.c \
   ${ZSS}/c/zis/client.c \
   ${ZSS}/c/serverStatusService.c \
+  ${ZSS}/c/checksumService.c \
   ${ZSS}/c/rasService.c \
   ${ZSS}/c/userInfoService.c \
   ${ZSS}/c/passTicketService.c \

@@ -2,6 +2,9 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `3.6.0`
+- Enhancement: New checksum REST API for computing cryptographic hashes of z/OS UNIX files via ICSF. `GET /checksum/info` lists available algorithms; `GET /checksum/file/{algorithm}/{path}` returns a hex-encoded checksum. Supports MD5, SHA-1, SHA-224/256/384/512, and SHA3-224/256/384/512. Both endpoints run under the caller's identity (impersonation) so file access and ICSF algorithm availability are governed by the caller's permissions.
+
 ## `3.5.0`
 - Enhancement: Utility "detect-attls-port" can be used to check if an ATTLS policy exists at a specific connection. (https://github.com/zowe/zss/pull/813)  
 - Enhancement: ZSS now supports a dedicated client certificate for outbound TLS connections. When `zowe.certificate.keystore.clientCertificateAlias` is set, that certificate is used for client-side connections (e.g. to the APIML Caching Service and JWK endpoint) while the existing `zowe.certificate.keystore.alias` continues to be used as the server certificate. When `clientCertificateAlias` is absent, the existing single-certificate behaviour is preserved for backward compatibility. [(#820)](https://github.com/zowe/zss/pull/820)
