@@ -60,6 +60,13 @@ typedef struct ZISUserID_tag {
 
 #define ZIS_SERVICE_ID_USERPROF_SRV               14
 
+#define ZIS_SERVICE_SAF_PN_USERPROF_SRV CMS_PROD_ID".IS.SRV.SM.USRPROF"
+#define ZIS_SERVICE_SAF_AL_USERPROF_SRV CMS_SAF_ACCESS_LEVEL_READ
+
+#define ZIS_SERVICE_USERPROF_PARM_SAF CMS_PROD_ID".SRV.SM.USRPROF.SAF"
+  #define ZIS_SERVICE_USERPROF_PARM_VALUE_SAF_ON "ON"
+  #define ZIS_SERVICE_USERPROF_PARM_VALUE_SAF_OFF "OFF"
+
 ZOWE_PRAGMA_PACK
 
 typedef struct ZISUserProfileEntry_tag {
@@ -96,7 +103,11 @@ int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                    CrossMemoryService *service, void *parm);
 int validateUserProfileParmList(ZISUserProfileServiceParmList *parm);
 
+#pragma map(zisUserProfilesServiceGetServiceData, "ZISDXUPR")
+void *zisUserProfilesServiceGetServiceData(const struct ZISParmSet_tag *parms);
+
 #define RC_ZIS_UPRFSRV_OK                         0
+#define RC_ZIS_UPRFSRV_NO_ACCESS                  4
 #define RC_ZIS_UPRFSRV_PARMLIST_NULL              8
 #define RC_ZIS_UPRFSRV_BAD_EYECATCHER             9
 #define RC_ZIS_UPRFSRV_USER_ID_TOO_LONG           10
@@ -111,6 +122,13 @@ int validateUserProfileParmList(ZISUserProfileServiceParmList *parm);
 /*** Genres profile service ***/
 
 #define ZIS_SERVICE_ID_GRESPROF_SRV               15
+
+#define ZIS_SERVICE_SAF_PN_GRESPROF_SRV CMS_PROD_ID".IS.SRV.SM.GENPROF"
+#define ZIS_SERVICE_SAF_AL_GRESPROF_SRV CMS_SAF_ACCESS_LEVEL_READ
+
+#define ZIS_SERVICE_GRESPROF_PARM_SAF CMS_PROD_ID".SRV.SM.GENPROF.SAF"
+  #define ZIS_SERVICE_GRESPROF_PARM_VALUE_SAF_ON "ON"
+  #define ZIS_SERVICE_GRESPROF_PARM_VALUE_SAF_OFF "OFF"
 
 ZOWE_PRAGMA_PACK
 
@@ -148,7 +166,11 @@ int zisGenresProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                      CrossMemoryService *service, void *parm);
 int validateGenresProfileParmList(ZISGenresProfileServiceParmList *parm);
 
+#pragma map(zisGenresProfilesServiceGetServiceData, "ZISDXGRP")
+void *zisGenresProfilesServiceGetServiceData(const struct ZISParmSet_tag *parms);
+
 #define RC_ZIS_GRPRFSRV_OK                        0
+#define RC_ZIS_GRPRFSRV_NO_ACCESS                 4
 #define RC_ZIS_GRPRFSRV_PARMLIST_NULL             8
 #define RC_ZIS_GRPRFSRV_BAD_EYECATCHER            9
 #define RC_ZIS_GRPRFSRV_CLASS_TOO_LONG            10
@@ -165,6 +187,13 @@ int validateGenresProfileParmList(ZISGenresProfileServiceParmList *parm);
 /*** General resource access list service ***/
 
 #define ZIS_SERVICE_ID_ACSLIST_SRV                16
+
+#define ZIS_SERVICE_SAF_PN_ACSLIST_SRV CMS_PROD_ID".IS.SRV.SM.GENACL"
+#define ZIS_SERVICE_SAF_AL_ACSLIST_SRV CMS_SAF_ACCESS_LEVEL_READ
+
+#define ZIS_SERVICE_ACSLIST_PARM_SAF CMS_PROD_ID".SRV.SM.GENACL.SAF"
+  #define ZIS_SERVICE_ACSLIST_PARM_VALUE_SAF_ON "ON"
+  #define ZIS_SERVICE_ACSLIST_PARM_VALUE_SAF_OFF "OFF"
 
 ZOWE_PRAGMA_PACK
 
@@ -203,7 +232,11 @@ int zisGenresAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                        CrossMemoryService *service, void *parm);
 int validateGenresAccessListParmList(ZISGenresAccessListServiceParmList *parm);
 
+#pragma map(zisGenresAccessListServiceGetServiceData, "ZISDXGAL")
+void *zisGenresAccessListServiceGetServiceData(const struct ZISParmSet_tag *parms);
+
 #define RC_ZIS_ACSLSRV_OK                         0
+#define RC_ZIS_ACSLSRV_NO_ACCESS                  4
 #define RC_ZIS_ACSLSRV_PARMLIST_NULL              8
 #define RC_ZIS_ACSLSRV_BAD_EYECATCHER             9
 #define RC_ZIS_ACSLSRV_CLASS_TOO_LONG             10
@@ -220,6 +253,13 @@ int validateGenresAccessListParmList(ZISGenresAccessListServiceParmList *parm);
 /*** General resource profile administration service ***/
 
 #define ZIS_SERVICE_ID_GENRES_ADMIN_SRV           17
+
+#define ZIS_SERVICE_SAF_PN_GENRES_ADMIN_SRV CMS_PROD_ID".IS.SRV.SM.GENADM"
+#define ZIS_SERVICE_SAF_AL_GENRES_ADMIN_SRV CMS_SAF_ACCESS_LEVEL_UPDATE
+
+#define ZIS_SERVICE_GENRES_ADMIN_PARM_SAF CMS_PROD_ID".SRV.SM.GENADM.SAF"
+  #define ZIS_SERVICE_GENRES_ADMIN_PARM_VALUE_SAF_ON "ON"
+  #define ZIS_SERVICE_GENRES_ADMIN_PARM_VALUE_SAF_OFF "OFF"
 
 #pragma enum(2)
 
@@ -288,7 +328,11 @@ int zisGenresProfileAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea
                                          CrossMemoryService *service, void *parm);
 int validateGenresParmList(ZISGenresAdminServiceParmList *parmList);
 
+#pragma map(zisGenresProfileAdminServiceGetServiceData, "ZISDXPAA")
+void *zisGenresProfileAdminServiceGetServiceData(const struct ZISParmSet_tag *parms);
+
 #define RC_ZIS_GSADMNSRV_OK                       0
+#define RC_ZIS_GSADMNSRV_NO_ACCESS                4
 #define RC_ZIS_GSADMNSRV_PARMLIST_NULL            8
 #define RC_ZIS_GSADMNSRV_BAD_EYECATCHER           9
 #define RC_ZIS_GSADMNSRV_PROF_TOO_LONG            10
@@ -310,6 +354,13 @@ int validateGenresParmList(ZISGenresAdminServiceParmList *parmList);
 /*** Group profile service ***/
 
 #define ZIS_SERVICE_ID_GRPPROF_SRV                18
+
+#define ZIS_SERVICE_SAF_PN_GRPPROF_SRV CMS_PROD_ID".IS.SRV.SM.GRPPROF"
+#define ZIS_SERVICE_SAF_AL_GRPPROF_SRV CMS_SAF_ACCESS_LEVEL_READ
+
+#define ZIS_SERVICE_GRPPROF_PARM_SAF CMS_PROD_ID".SRV.SM.GRPPROF.SAF"
+  #define ZIS_SERVICE_GRPPROF_PARM_VALUE_SAF_ON "ON"
+  #define ZIS_SERVICE_GRPPROF_PARM_VALUE_SAF_OFF "OFF"
 
 ZOWE_PRAGMA_PACK
 
@@ -347,7 +398,11 @@ int zisGroupProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                     CrossMemoryService *service, void *parm);
 int validateGroupProfileParmList(ZISGroupProfileServiceParmList *parm);
 
+#pragma map(zisGroupProfilesServiceGetServiceData, "ZISDXGPP")
+void *zisGroupProfilesServiceGetServiceData(const struct ZISParmSet_tag *parms);
+
 #define RC_ZIS_GPPRFSRV_OK                        0
+#define RC_ZIS_GPPRFSRV_NO_ACCESS                 4
 #define RC_ZIS_GPPRFSRV_PARMLIST_NULL             8
 #define RC_ZIS_GPPRFSRV_BAD_EYECATCHER            9
 #define RC_ZIS_GPPRFSRV_GROUP_TOO_LONG            10
@@ -362,6 +417,13 @@ int validateGroupProfileParmList(ZISGroupProfileServiceParmList *parm);
 /*** Group access list service ***/
 
 #define ZIS_SERVICE_ID_GRPALIST_SRV               19
+
+#define ZIS_SERVICE_SAF_PN_GRPALIST_SRV CMS_PROD_ID".IS.SRV.SM.GRPACL"
+#define ZIS_SERVICE_SAF_AL_GRPALIST_SRV CMS_SAF_ACCESS_LEVEL_READ
+
+#define ZIS_SERVICE_GRPALIST_PARM_SAF CMS_PROD_ID".SRV.SM.GRPACL.SAF"
+  #define ZIS_SERVICE_GRPALIST_PARM_VALUE_SAF_ON "ON"
+  #define ZIS_SERVICE_GRPALIST_PARM_VALUE_SAF_OFF "OFF"
 
 ZOWE_PRAGMA_PACK
 
@@ -400,7 +462,11 @@ int zisGroupAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                       CrossMemoryService *service, void *parm);
 int validateGroupAccessListParmList(ZISGroupAccessListServiceParmList *parm);
 
+#pragma map(zisGroupAccessListServiceGetServiceData, "ZISDXGPA")
+void *zisGroupAccessListServiceGetServiceData(const struct ZISParmSet_tag *parms);
+
 #define RC_ZIS_GRPALSRV_OK                        0
+#define RC_ZIS_GRPALSRV_NO_ACCESS                 4
 #define RC_ZIS_GRPALSRV_PARMLIST_NULL             8
 #define RC_ZIS_GRPALSRV_BAD_EYECATCHER            9
 #define RC_ZIS_GRPALSRV_GROUP_TOO_LONG            10
@@ -415,6 +481,13 @@ int validateGroupAccessListParmList(ZISGroupAccessListServiceParmList *parm);
 /*** Group administration service ***/
 
 #define ZIS_SERVICE_ID_GROUP_ADMIN_SRV            20
+
+#define ZIS_SERVICE_SAF_PN_GROUP_ADMIN_SRV CMS_PROD_ID".IS.SRV.SM.GRPADM"
+#define ZIS_SERVICE_SAF_AL_GROUP_ADMIN_SRV CMS_SAF_ACCESS_LEVEL_UPDATE
+
+#define ZIS_SERVICE_GROUP_ADMIN_PARM_SAF CMS_PROD_ID".SRV.SM.GRPADM.SAF"
+  #define ZIS_SERVICE_GROUP_ADMIN_PARM_VALUE_SAF_ON "ON"
+  #define ZIS_SERVICE_GROUP_ADMIN_PARM_VALUE_SAF_OFF "OFF"
 
 #pragma enum(2)
 
@@ -485,7 +558,11 @@ int zisGroupAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                  CrossMemoryService *service, void *parm);
 int validateGroupParmList(ZISGroupAdminServiceParmList *parmList);
 
+#pragma map(zisGroupAdminServiceGetServiceData, "ZISDXPGA")
+void *zisGroupAdminServiceGetServiceData(const struct ZISParmSet_tag *parms);
+
 #define RC_ZIS_GRPASRV_OK                         0
+#define RC_ZIS_GRPASRV_NO_ACCESS                  4
 #define RC_ZIS_GRPASRV_PARMLIST_NULL              8
 #define RC_ZIS_GRPASRV_BAD_EYECATCHER             9
 #define RC_ZIS_GRPASRV_GROUP_TOO_LONG             10

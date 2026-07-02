@@ -172,72 +172,81 @@ static int registerCoreServices(ZISContext *context) {
   int regRC = RC_CMS_OK;
 
   regRC = cmsRegisterService(server, ZIS_SERVICE_ID_AUTH_SRV,
-                             zisAuthServiceFunction, NULL,
+                             zisAuthServiceFunction,
+                             zisAuthServiceGetServiceData(context->parms),
                              CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
   if (regRC != RC_CMS_OK) {
     return RC_ZIS_ERROR;
   }
 
-  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_SNARFER_SRV,
-                             zisSnarferServiceFunction, NULL,
-                             CMS_SERVICE_FLAG_SPACE_SWITCH |
-                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  regRC = cmsRegisterService(
+      server, ZIS_SERVICE_ID_SNARFER_SRV, zisSnarferServiceFunction,
+      zisSnarferServiceGetServiceData(context->parms),
+      CMS_SERVICE_FLAG_SPACE_SWITCH | CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
   if (regRC != RC_CMS_OK) {
     return RC_ZIS_ERROR;
   }
 
-  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_NWM_SRV,
-                             zisNWMServiceFunction, NULL,
-                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  regRC =
+      cmsRegisterService(server, ZIS_SERVICE_ID_NWM_SRV, zisNWMServiceFunction,
+                         zisNWMServiceGetServiceData(context->parms),
+                         CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
   if (regRC != RC_CMS_OK) {
     return RC_ZIS_ERROR;
   }
 
-
-  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_USERPROF_SRV,
-                             zisUserProfilesServiceFunction, NULL,
-                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  regRC = cmsRegisterService(
+      server, ZIS_SERVICE_ID_USERPROF_SRV, zisUserProfilesServiceFunction,
+      zisUserProfilesServiceGetServiceData(context->parms),
+      CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
   if (regRC != RC_CMS_OK) {
     return RC_ZIS_ERROR;
   }
 
-  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_GRESPROF_SRV,
-                             zisGenresProfilesServiceFunction, NULL,
-                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  regRC = cmsRegisterService(
+      server, ZIS_SERVICE_ID_GRESPROF_SRV, zisGenresProfilesServiceFunction,
+      zisGenresProfilesServiceGetServiceData(context->parms),
+      CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
   if (regRC != RC_CMS_OK) {
     return RC_ZIS_ERROR;
   }
 
-  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_ACSLIST_SRV,
-                             zisGenresAccessListServiceFunction, NULL,
-                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  regRC = cmsRegisterService(
+      server, ZIS_SERVICE_ID_ACSLIST_SRV, zisGenresAccessListServiceFunction,
+      zisGenresAccessListServiceGetServiceData(context->parms),
+      CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
   if (regRC != RC_CMS_OK) {
     return RC_ZIS_ERROR;
   }
 
-  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_GENRES_ADMIN_SRV,
-                             zisGenresProfileAdminServiceFunction, NULL,
-                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  regRC = cmsRegisterService(
+      server, ZIS_SERVICE_ID_GENRES_ADMIN_SRV,
+      zisGenresProfileAdminServiceFunction,
+      zisGenresProfileAdminServiceGetServiceData(context->parms),
+      CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
   if (regRC != RC_CMS_OK) {
     return RC_ZIS_ERROR;
   }
 
-  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_GRPPROF_SRV,
-                             zisGroupProfilesServiceFunction, NULL,
-                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  regRC = cmsRegisterService(
+      server, ZIS_SERVICE_ID_GRPPROF_SRV, zisGroupProfilesServiceFunction,
+      zisGroupProfilesServiceGetServiceData(context->parms),
+      CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
   if (regRC != RC_CMS_OK) {
     return RC_ZIS_ERROR;
   }
 
-  regRC = cmsRegisterService(server, ZIS_SERVICE_ID_GRPALIST_SRV,
-                             zisGroupAccessListServiceFunction, NULL,
-                             CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
+  regRC = cmsRegisterService(
+      server, ZIS_SERVICE_ID_GRPALIST_SRV, zisGroupAccessListServiceFunction,
+      zisGroupAccessListServiceGetServiceData(context->parms),
+      CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
   if (regRC != RC_CMS_OK) {
     return RC_ZIS_ERROR;
   }
 
   regRC = cmsRegisterService(server, ZIS_SERVICE_ID_GROUP_ADMIN_SRV,
-                             zisGroupAdminServiceFunction, NULL,
+                             zisGroupAdminServiceFunction,
+                             zisGroupAdminServiceGetServiceData(context->parms),
                              CMS_SERVICE_FLAG_RELOCATE_TO_COMMON);
   if (regRC != RC_CMS_OK) {
     return RC_ZIS_ERROR;

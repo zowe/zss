@@ -15,6 +15,13 @@
 
 #define ZIS_SERVICE_ID_SNARFER_SRV                12
 
+#define ZIS_SERVICE_SAF_PN_SNARFER_SRV CMS_PROD_ID".IS.SRV.SNARFER"
+#define ZIS_SERVICE_SAF_AL_SNARFER_SRV CMS_SAF_ACCESS_LEVEL_READ
+
+#define ZIS_SERVICE_SNARFER_PARM_SAF CMS_PROD_ID".SRV.SNARFER.SAF"
+  #define ZIS_SERVICE_SNARFER_PARM_VALUE_SAF_ON "ON"
+  #define ZIS_SERVICE_SNARFER_PARM_VALUE_SAF_OFF "OFF"
+
 ZOWE_PRAGMA_PACK
 typedef struct SnarferServiceParmList_tag {
   char eyecatcher[8];
@@ -31,7 +38,11 @@ ZOWE_PRAGMA_PACK_RESET
 int zisSnarferServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                               CrossMemoryService *service, void *parm);
 
+#pragma map(zisSnarferServiceGetServiceData, "ZISDSNRF")
+void *zisSnarferServiceGetServiceData(const struct ZISParmSet_tag *parms);
+
 #define RC_ZIS_SNRFSRV_OK                         0
+#define RC_ZIS_SNRFSRV_NO_ACCESS                  4
 #define RC_ZIS_SNRFSRV_PARMLIST_NULL              8
 #define RC_ZIS_SNRFSRV_BAD_EYECATCHER             9
 #define RC_ZIS_SNRFSRV_BAD_DEST                   10

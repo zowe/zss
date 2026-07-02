@@ -17,6 +17,13 @@
 
 #define ZIS_SERVICE_ID_NWM_SRV                    13
 
+#define ZIS_SERVICE_SAF_PN_NWM_SRV CMS_PROD_ID".IS.SRV.NWM"
+#define ZIS_SERVICE_SAF_AL_NWM_SRV CMS_SAF_ACCESS_LEVEL_READ
+
+#define ZIS_SERVICE_NWM_PARM_SAF CMS_PROD_ID".SRV.NWM.SAF"
+  #define ZIS_SERVICE_NWM_PARM_VALUE_SAF_ON "ON"
+  #define ZIS_SERVICE_NWM_PARM_VALUE_SAF_OFF "OFF"
+
 ZOWE_PRAGMA_PACK
 typedef struct ZISNWMServiceParmList_tag {
 
@@ -45,7 +52,11 @@ int zisNWMServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                           CrossMemoryService *service,
                           void *parm);
 
+#pragma map(zisNWMServiceGetServiceData, "ZISDNWMS")
+void *zisNWMServiceGetServiceData(const struct ZISParmSet_tag *parms);
+
 #define RC_ZIS_NWMSRV_OK                         0
+#define RC_ZIS_NWMSRV_NO_ACCESS                  4
 #define RC_ZIS_NWMSRV_PARMLIST_NULL              8
 #define RC_ZIS_NWMSRV_BAD_EYECATCHER             9
 #define RC_ZIS_NWMSRV_BUFFER_NULL                10
