@@ -15,6 +15,9 @@
 
 #define ZIS_SERVICE_ID_SNARFER_SRV                12
 
+#define ZIS_SERVICE_SAF_PN_SNARFER_SRV CMS_PROD_ID".IS.SRV.SNARFER"
+#define ZIS_SERVICE_SAF_AL_SNARFER_SRV CMS_SAF_ACCESS_LEVEL_READ
+
 ZOWE_PRAGMA_PACK
 typedef struct SnarferServiceParmList_tag {
   char eyecatcher[8];

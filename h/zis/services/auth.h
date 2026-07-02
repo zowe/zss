@@ -15,6 +15,9 @@
 
 #define ZIS_SERVICE_ID_AUTH_SRV                   11
 
+#define ZIS_SERVICE_SAF_PN_AUTH_SRV CMS_PROD_ID".IS.SRV.AUTH"
+#define ZIS_SERVICE_SAF_AL_AUTH_SRV CMS_SAF_ACCESS_LEVEL_UPDATE
+
 ZOWE_PRAGMA_PACK
 typedef struct SAFAuthStatus_tag {
   int safRC;

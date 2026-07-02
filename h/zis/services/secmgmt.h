@@ -60,6 +60,9 @@ typedef struct ZISUserID_tag {
 
 #define ZIS_SERVICE_ID_USERPROF_SRV               14
 
+#define ZIS_SERVICE_SAF_PN_USERPROF_SRV CMS_PROD_ID".IS.SRV.SM.USRPROF"
+#define ZIS_SERVICE_SAF_AL_USERPROF_SRV CMS_SAF_ACCESS_LEVEL_READ
+
 ZOWE_PRAGMA_PACK
 
 typedef struct ZISUserProfileEntry_tag {
@@ -111,6 +114,9 @@ int validateUserProfileParmList(ZISUserProfileServiceParmList *parm);
 /*** Genres profile service ***/
 
 #define ZIS_SERVICE_ID_GRESPROF_SRV               15
+
+#define ZIS_SERVICE_SAF_PN_GRESPROF_SRV CMS_PROD_ID".IS.SRV.SM.GENPROF"
+#define ZIS_SERVICE_SAF_AL_GRESPROF_SRV CMS_SAF_ACCESS_LEVEL_READ
 
 ZOWE_PRAGMA_PACK
 
@@ -166,6 +172,9 @@ int validateGenresProfileParmList(ZISGenresProfileServiceParmList *parm);
 
 #define ZIS_SERVICE_ID_ACSLIST_SRV                16
 
+#define ZIS_SERVICE_SAF_PN_ACSLIST_SRV CMS_PROD_ID".IS.SRV.SM.GENACL"
+#define ZIS_SERVICE_SAF_AL_ACSLIST_SRV CMS_SAF_ACCESS_LEVEL_READ
+
 ZOWE_PRAGMA_PACK
 
 typedef struct ZISGenresAccessEntry_tag {
@@ -220,6 +229,9 @@ int validateGenresAccessListParmList(ZISGenresAccessListServiceParmList *parm);
 /*** General resource profile administration service ***/
 
 #define ZIS_SERVICE_ID_GENRES_ADMIN_SRV           17
+
+#define ZIS_SERVICE_SAF_PN_GENRES_ADMIN_SRV CMS_PROD_ID".IS.SRV.SM.GENADM"
+#define ZIS_SERVICE_SAF_AL_GENRES_ADMIN_SRV CMS_SAF_ACCESS_LEVEL_UPDATE
 
 #pragma enum(2)
 
@@ -311,6 +323,10 @@ int validateGenresParmList(ZISGenresAdminServiceParmList *parmList);
 
 #define ZIS_SERVICE_ID_GRPPROF_SRV                18
 
+#define ZIS_SERVICE_SAF_PN_GRPPROF_SRV CMS_PROD_ID".IS.SRV.SM.GRPPROF"
+#define ZIS_SERVICE_SAF_AL_GRPPROF_SRV CMS_SAF_ACCESS_LEVEL_READ
+
+#pragma enum(2)
 ZOWE_PRAGMA_PACK
 
 typedef struct ZISGroupProfileEntry_tag {
@@ -362,6 +378,9 @@ int validateGroupProfileParmList(ZISGroupProfileServiceParmList *parm);
 /*** Group access list service ***/
 
 #define ZIS_SERVICE_ID_GRPALIST_SRV               19
+
+#define ZIS_SERVICE_SAF_PN_GRPALIST_SRV CMS_PROD_ID".IS.SRV.SM.GRPACL"
+#define ZIS_SERVICE_SAF_AL_GRPALIST_SRV CMS_SAF_ACCESS_LEVEL_READ
 
 ZOWE_PRAGMA_PACK
 
@@ -415,6 +434,9 @@ int validateGroupAccessListParmList(ZISGroupAccessListServiceParmList *parm);
 /*** Group administration service ***/
 
 #define ZIS_SERVICE_ID_GROUP_ADMIN_SRV            20
+
+#define ZIS_SERVICE_SAF_PN_GROUP_ADMIN_SRV CMS_PROD_ID".IS.SRV.SM.GRPADM"
+#define ZIS_SERVICE_SAF_AL_GROUP_ADMIN_SRV CMS_SAF_ACCESS_LEVEL_UPDATE
 
 #pragma enum(2)
 

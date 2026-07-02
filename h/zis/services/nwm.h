@@ -17,6 +17,9 @@
 
 #define ZIS_SERVICE_ID_NWM_SRV                    13
 
+#define ZIS_SERVICE_SAF_PN_NWM_SRV CMS_PROD_ID".IS.SRV.NWM"
+#define ZIS_SERVICE_SAF_AL_NWM_SRV CMS_SAF_ACCESS_LEVEL_READ
+
 ZOWE_PRAGMA_PACK
 typedef struct ZISNWMServiceParmList_tag {
 
