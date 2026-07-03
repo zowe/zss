@@ -15,9 +15,17 @@
 
 #define ZIS_SERVICES_DEFAULT_SAF_CLASS "FACILITY"
 
+/**
+ * The purpose of this structure is to communicate additional flags to the core
+ * services.
+ *
+ * The struct is passed to the core services within the storage of the "parm"
+ * 8-byte pointer passed to service functions; this is why it must always fit in
+ * 8-bytes. The reason for this hack is to avoid allocating additional common storage.
+ */
 typedef struct ZISCoreServiceParm_tag {
-#define ZIS_CORE_SERVICE_FLAG_NO_SAF_CHECK 0x00000001
-  unsigned flags : 8;
+#define ZIS_CORE_SERVICE_FLAG_NO_SAF_CHECK 0x01
+  unsigned char flags;
   char reserved[7];
 } ZISCoreServiceParm;
 

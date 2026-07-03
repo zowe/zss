@@ -52,6 +52,8 @@ int zisNWMServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                           CrossMemoryService *service,
                           void *parm);
 
+struct ZISParmSet_tag;
+
 #pragma map(zisNWMServiceGetServiceData, "ZISDNWMS")
 void *zisNWMServiceGetServiceData(const struct ZISParmSet_tag *parms);
 

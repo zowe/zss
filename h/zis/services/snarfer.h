@@ -38,6 +38,8 @@ ZOWE_PRAGMA_PACK_RESET
 int zisSnarferServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                               CrossMemoryService *service, void *parm);
 
+struct ZISParmSet_tag;
+
 #pragma map(zisSnarferServiceGetServiceData, "ZISDSNRF")
 void *zisSnarferServiceGetServiceData(const struct ZISParmSet_tag *parms);
 

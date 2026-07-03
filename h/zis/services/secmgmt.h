@@ -98,6 +98,8 @@ typedef struct ZISUserProfileServiceParmList_tag {
 
 ZOWE_PRAGMA_PACK_RESET
 
+struct ZISParmSet_tag;
+
 #pragma map(zisUserProfilesServiceFunction, "ZISSXUPR")
 int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                    CrossMemoryService *service, void *parm);

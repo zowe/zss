@@ -99,6 +99,8 @@ ZOWE_PRAGMA_PACK_RESET
 int zisAuthServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                            CrossMemoryService *service, void *parm);
 
+struct ZISParmSet_tag;
+
 #pragma map(zisAuthServiceGetServiceData, "ZISDAUTH")
 void *zisAuthServiceGetServiceData(const struct ZISParmSet_tag *parms);
 
