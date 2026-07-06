@@ -87,6 +87,7 @@
 #include "passTicketService.h"
 #include "jwk.h"
 #include "zss.h"
+#include "rbacService.h"
 
 #define PRODUCT "ZLUX"
 #ifndef PRODUCT_MAJOR_VERSION
@@ -1911,6 +1912,7 @@ int main(int argc, char **argv){
 #endif
       installLoginService(server);
       installLogoutService(server);
+      installRBACAuthorization(server);
       printZISStatus(server);
       mainHttpLoop(server);
 
