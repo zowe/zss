@@ -250,6 +250,7 @@ if ! c89 \
   ${ZSS}/c/zis/client.c \
   ${ZSS}/c/serverStatusService.c \
   ${ZSS}/c/rasService.c \
+  ${ZSS}/c/rbacService.c \
   ${ZSS}/c/userInfoService.c \
   ${ZSS}/c/passTicketService.c \
   ${ZSS}/c/jwk.c \
