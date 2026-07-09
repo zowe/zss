@@ -192,7 +192,7 @@ static void respondWithSessionID(HttpResponse *response, int sessionID) {
 
 static int parseForceOverwriteParameter(HttpRequest *request) {
   char *forceVal = getQueryParam(request, "forceOverwrite");
-  if (!strcmp(strupcase(forceVal), "TRUE")) {
+  if (forceVal && !strcmp(strupcase(forceVal), "TRUE")) {
     return TRUE;
   }
 
@@ -757,7 +757,7 @@ static int serveUnixFileCopy(HttpService *service, HttpResponse *response) {
   char *forceVal = getQueryParam(response->request, "forceOverwrite");
   int force = FALSE;
 
-  if (!strcmp(strupcase(forceVal), "TRUE")) {
+  if (forceVal && !strcmp(strupcase(forceVal), "TRUE")) {
     force = TRUE;
   }
 
@@ -805,7 +805,7 @@ static int serveUnixFileRename(HttpService *service, HttpResponse *response) {
   char *forceVal = getQueryParam(response->request, "forceOverwrite");
   int force = FALSE;
 
-  if (!strcmp(strupcase(forceVal), "TRUE")) {
+  if (forceVal && !strcmp(strupcase(forceVal), "TRUE")) {
     force = TRUE;
   }
 
@@ -849,10 +849,10 @@ static int serveUnixFileMakeDirectory(HttpService *service, HttpResponse *respon
   char *recursive = getQueryParam(response->request, "recursive");
   int force = FALSE, recurse = FALSE;
 
-  if (!strcmp(strupcase(forceVal), "TRUE")) {
+  if (forceVal && !strcmp(strupcase(forceVal), "TRUE")) {
     force = TRUE;
   }
-  if (!strcmp(strupcase(recursive), "TRUE")) {
+  if (recursive && !strcmp(strupcase(recursive), "TRUE")) {
     recurse = TRUE;
   }
 
@@ -884,7 +884,7 @@ static int serveUnixFileTouch(HttpService *service, HttpResponse *response) {
   char *forceVal = getQueryParam(response->request, "forceOverwrite");
   int force = FALSE;
 
-  if (!strcmp(strupcase(forceVal), "TRUE")) {
+  if (forceVal && !strcmp(strupcase(forceVal), "TRUE")) {
     force = TRUE;
   }
 
