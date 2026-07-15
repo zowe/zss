@@ -223,6 +223,10 @@ static int resetPassword(HttpService *service, HttpResponse *response) {
     }
     
     JsonObject *inputMessage = jsonAsObject(body);
+    if (inputMessage == NULL) {
+      respondWithJsonStatus(response, "No body found", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+      return HTTP_SERVICE_FAILED;
+    }
     Json *username = jsonObjectGetPropertyValue(inputMessage,"username");
     Json *password = jsonObjectGetPropertyValue(inputMessage,"password");
     Json *newPassword = jsonObjectGetPropertyValue(inputMessage,"newPassword");

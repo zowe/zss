@@ -63,6 +63,11 @@ static int authenticate(HttpResponse *response, CrossMemoryServerName *privilege
   }
 
   JsonObject *jsonObject = jsonAsObject(body);
+  if (jsonObject == NULL) {
+    respondWithJsonStatus(response, "No body found", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    return HTTP_SERVICE_FAILED;
+  }
+
   char *username = jsonObjectGetString(jsonObject, "username");
   char *pass = jsonObjectGetString(jsonObject, "pass");
   char *appl = jsonObjectGetString(jsonObject, "appl");
@@ -223,6 +228,11 @@ static int verify(HttpResponse *response, CrossMemoryServerName *privilegedServe
   }
 
   JsonObject *jsonObject = jsonAsObject(body);
+  if (jsonObject == NULL) {
+    respondWithJsonStatus(response, "No body found", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    return HTTP_SERVICE_FAILED;
+  }
+
   char *jwt = jsonObjectGetString(jsonObject, "jwt");
   char *appl = jsonObjectGetString(jsonObject, "appl");
 
