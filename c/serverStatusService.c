@@ -282,6 +282,8 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
         respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Set dataserviceAuthentication.rbac to true in server configuration");
         return -1;
       }
+      respondWithError(response, HTTP_STATUS_FORBIDDEN, "Forbidden - insufficient RBAC authorization");
+      return -1;
     }
     if (!strcmp(l1, "")) {
       return respondWithServerRoutes(response, allowFullAccess);
