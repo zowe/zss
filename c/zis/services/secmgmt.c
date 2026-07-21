@@ -26,7 +26,9 @@
 #include "recovery.h"
 #include "zos.h"
 
+#include "zis/parm.h"
 #include "zis/utils.h"
+#include "zis/services/common.h"
 #include "zis/services/secmgmt.h"
 #include "zis/services/secmgmtUtils.h"
 
@@ -201,6 +203,12 @@ static int zisUserProfilesServiceFunctionRACF(CrossMemoryServerGlobalArea *globa
 
 int zisUserProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                    CrossMemoryService *service, void *parm) {
+  if (IS_ZIS_CORE_SERVICE_SAF_ON(service->serviceData) &&
+      !cmsTestAuth2(globalArea, ZIS_SERVICES_DEFAULT_SAF_CLASS,
+                    ZIS_SERVICE_SAF_PN_USERPROF_SRV,
+                    ZIS_SERVICE_SAF_AL_USERPROF_SRV)) {
+    return RC_ZIS_UPRFSRV_NO_ACCESS;
+  }
   ExternalSecurityManager esm = getExternalSecurityManager();
   switch (esm) {
     case ZOS_ESM_RACF: return zisUserProfilesServiceFunctionRACF(globalArea, service, parm);
@@ -403,6 +411,12 @@ int zisGenresProfilesServiceFunctionRACF(CrossMemoryServerGlobalArea *globalArea
 
 int zisGenresProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                    CrossMemoryService *service, void *parm) {
+  if (IS_ZIS_CORE_SERVICE_SAF_ON(service->serviceData) &&
+      !cmsTestAuth2(globalArea, ZIS_SERVICES_DEFAULT_SAF_CLASS,
+                    ZIS_SERVICE_SAF_PN_GRESPROF_SRV,
+                    ZIS_SERVICE_SAF_AL_GRESPROF_SRV)) {
+    return RC_ZIS_GRPRFSRV_NO_ACCESS;
+  }
   ExternalSecurityManager esm = getExternalSecurityManager();
   switch (esm) {
     case ZOS_ESM_RACF: return zisGenresProfilesServiceFunctionRACF(globalArea, service, parm);
@@ -599,6 +613,12 @@ int zisGenresAccessListServiceFunctionRACF(CrossMemoryServerGlobalArea *globalAr
 
 int zisGenresAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                        CrossMemoryService *service, void *parm) {
+  if (IS_ZIS_CORE_SERVICE_SAF_ON(service->serviceData) &&
+      !cmsTestAuth2(globalArea, ZIS_SERVICES_DEFAULT_SAF_CLASS,
+                    ZIS_SERVICE_SAF_PN_ACSLIST_SRV,
+                    ZIS_SERVICE_SAF_AL_ACSLIST_SRV)) {
+    return RC_ZIS_ACSLSRV_NO_ACCESS;
+  }
   ExternalSecurityManager esm = getExternalSecurityManager();
   switch (esm) {
     case ZOS_ESM_RACF: return zisGenresAccessListServiceFunctionRACF(globalArea, service, parm);
@@ -1098,6 +1118,12 @@ int zisGenresProfileAdminServiceFunctionRACF(CrossMemoryServerGlobalArea *global
 
 int zisGenresProfileAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                    CrossMemoryService *service, void *parm) {
+  if (IS_ZIS_CORE_SERVICE_SAF_ON(service->serviceData) &&
+      !cmsTestAuth2(globalArea, ZIS_SERVICES_DEFAULT_SAF_CLASS,
+                    ZIS_SERVICE_SAF_PN_GENRES_ADMIN_SRV,
+                    ZIS_SERVICE_SAF_AL_GENRES_ADMIN_SRV)) {
+    return RC_ZIS_GSADMNSRV_NO_ACCESS;
+  }
   ExternalSecurityManager esm = getExternalSecurityManager();
   switch (esm) {
     case ZOS_ESM_RACF: return zisGenresProfileAdminServiceFunctionRACF(globalArea, service, parm);
@@ -1278,6 +1304,12 @@ int zisGroupProfilesServiceFunctionRACF(CrossMemoryServerGlobalArea *globalArea,
 
 int zisGroupProfilesServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                    CrossMemoryService *service, void *parm) {
+  if (IS_ZIS_CORE_SERVICE_SAF_ON(service->serviceData) &&
+      !cmsTestAuth2(globalArea, ZIS_SERVICES_DEFAULT_SAF_CLASS,
+                    ZIS_SERVICE_SAF_PN_GRPPROF_SRV,
+                    ZIS_SERVICE_SAF_AL_GRPPROF_SRV)) {
+    return RC_ZIS_GPPRFSRV_NO_ACCESS;
+  }
   ExternalSecurityManager esm = getExternalSecurityManager();
   switch (esm) {
     case ZOS_ESM_RACF: return zisGroupProfilesServiceFunctionRACF(globalArea, service, parm);
@@ -1453,6 +1485,12 @@ int zisGroupAccessListServiceFunctionRACF(CrossMemoryServerGlobalArea *globalAre
 
 int zisGroupAccessListServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                       CrossMemoryService *service, void *parm) {
+  if (IS_ZIS_CORE_SERVICE_SAF_ON(service->serviceData) &&
+      !cmsTestAuth2(globalArea, ZIS_SERVICES_DEFAULT_SAF_CLASS,
+                    ZIS_SERVICE_SAF_PN_GRPALIST_SRV,
+                    ZIS_SERVICE_SAF_AL_GRPALIST_SRV)) {
+    return RC_ZIS_GRPALSRV_NO_ACCESS;
+  }
   ExternalSecurityManager esm = getExternalSecurityManager();
   switch (esm) {
     case ZOS_ESM_RACF: return zisGroupAccessListServiceFunctionRACF(globalArea, service, parm);
@@ -1902,12 +1940,102 @@ int zisGroupAdminServiceFunctionRACF(CrossMemoryServerGlobalArea *globalArea,
 
 int zisGroupAdminServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                                  CrossMemoryService *service, void *parm) {
+  if (IS_ZIS_CORE_SERVICE_SAF_ON(service->serviceData) &&
+      !cmsTestAuth2(globalArea, ZIS_SERVICES_DEFAULT_SAF_CLASS,
+                    ZIS_SERVICE_SAF_PN_GROUP_ADMIN_SRV,
+                    ZIS_SERVICE_SAF_AL_GROUP_ADMIN_SRV)) {
+    return RC_ZIS_GRPASRV_NO_ACCESS;
+  }
   ExternalSecurityManager esm = getExternalSecurityManager();
   switch (esm) {
     case ZOS_ESM_RACF: return zisGroupAdminServiceFunctionRACF(globalArea, service, parm);
     case ZOS_ESM_RTSS: return zisGroupAdminServiceFunctionTSS(globalArea, service, parm);
     default: return RC_ZIS_GRPASRV_UNSUPPORTED_ESM;
   }
+}
+
+void *zisUserProfilesServiceGetServiceData(const struct ZISParmSet_tag *parms) {
+  union {
+    ZISCoreServiceParm aStr;
+    void *asPtr;
+  } parm = {0};
+  const char *value = zisGetParmValue(parms, ZIS_SERVICE_USERPROF_PARM_SAF);
+  if (value && !strcmp(value, ZIS_SERVICE_USERPROF_PARM_VALUE_SAF_OFF)) {
+    parm.aStr.flags |= ZIS_CORE_SERVICE_FLAG_NO_SAF_CHECK;
+  }
+  return parm.asPtr;
+}
+
+void *zisGenresProfilesServiceGetServiceData(const struct ZISParmSet_tag *parms) {
+  union {
+    ZISCoreServiceParm aStr;
+    void *asPtr;
+  } parm = {0};
+  const char *value = zisGetParmValue(parms, ZIS_SERVICE_GRESPROF_PARM_SAF);
+  if (value && !strcmp(value, ZIS_SERVICE_GRESPROF_PARM_VALUE_SAF_OFF)) {
+    parm.aStr.flags |= ZIS_CORE_SERVICE_FLAG_NO_SAF_CHECK;
+  }
+  return parm.asPtr;
+}
+
+void *zisGenresAccessListServiceGetServiceData(const struct ZISParmSet_tag *parms) {
+  union {
+    ZISCoreServiceParm aStr;
+    void *asPtr;
+  } parm = {0};
+  const char *value = zisGetParmValue(parms, ZIS_SERVICE_ACSLIST_PARM_SAF);
+  if (value && !strcmp(value, ZIS_SERVICE_ACSLIST_PARM_VALUE_SAF_OFF)) {
+    parm.aStr.flags |= ZIS_CORE_SERVICE_FLAG_NO_SAF_CHECK;
+  }
+  return parm.asPtr;
+}
+
+void *zisGenresProfileAdminServiceGetServiceData(const struct ZISParmSet_tag *parms) {
+  union {
+    ZISCoreServiceParm aStr;
+    void *asPtr;
+  } parm = {0};
+  const char *value = zisGetParmValue(parms, ZIS_SERVICE_GENRES_ADMIN_PARM_SAF);
+  if (value && !strcmp(value, ZIS_SERVICE_GENRES_ADMIN_PARM_VALUE_SAF_OFF)) {
+    parm.aStr.flags |= ZIS_CORE_SERVICE_FLAG_NO_SAF_CHECK;
+  }
+  return parm.asPtr;
+}
+
+void *zisGroupProfilesServiceGetServiceData(const struct ZISParmSet_tag *parms) {
+  union {
+    ZISCoreServiceParm aStr;
+    void *asPtr;
+  } parm = {0};
+  const char *value = zisGetParmValue(parms, ZIS_SERVICE_GRPPROF_PARM_SAF);
+  if (value && !strcmp(value, ZIS_SERVICE_GRPPROF_PARM_VALUE_SAF_OFF)) {
+    parm.aStr.flags |= ZIS_CORE_SERVICE_FLAG_NO_SAF_CHECK;
+  }
+  return parm.asPtr;
+}
+
+void *zisGroupAccessListServiceGetServiceData(const struct ZISParmSet_tag *parms) {
+  union {
+    ZISCoreServiceParm aStr;
+    void *asPtr;
+  } parm = {0};
+  const char *value = zisGetParmValue(parms, ZIS_SERVICE_GRPALIST_PARM_SAF);
+  if (value && !strcmp(value, ZIS_SERVICE_GRPALIST_PARM_VALUE_SAF_OFF)) {
+    parm.aStr.flags |= ZIS_CORE_SERVICE_FLAG_NO_SAF_CHECK;
+  }
+  return parm.asPtr;
+}
+
+void *zisGroupAdminServiceGetServiceData(const struct ZISParmSet_tag *parms) {
+  union {
+    ZISCoreServiceParm aStr;
+    void *asPtr;
+  } parm = {0};
+  const char *value = zisGetParmValue(parms, ZIS_SERVICE_GROUP_ADMIN_PARM_SAF);
+  if (value && !strcmp(value, ZIS_SERVICE_GROUP_ADMIN_PARM_VALUE_SAF_OFF)) {
+    parm.aStr.flags |= ZIS_CORE_SERVICE_FLAG_NO_SAF_CHECK;
+  }
+  return parm.asPtr;
 }
 
 /*
