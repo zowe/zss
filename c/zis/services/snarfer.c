@@ -24,7 +24,9 @@
 #include "recovery.h"
 #include "zos.h"
 
+#include "zis/parm.h"
 #include "zis/utils.h"
+#include "zis/services/common.h"
 #include "zis/services/snarfer.h"
 
 typedef struct SToken_tag {
@@ -261,6 +263,13 @@ int zisSnarferServiceFunction(CrossMemoryServerGlobalArea *globalArea,
 
   int logLevel = globalArea->pcLogLevel;
 
+  if (IS_ZIS_CORE_SERVICE_SAF_ON(service->serviceData) &&
+      !cmsTestAuth2(globalArea, ZIS_SERVICES_DEFAULT_SAF_CLASS,
+                    ZIS_SERVICE_SAF_PN_SNARFER_SRV,
+                    ZIS_SERVICE_SAF_AL_SNARFER_SRV)) {
+    return RC_ZIS_SNRFSRV_NO_ACCESS;
+  }
+
   void *clientParmAddr = parm;
   if (clientParmAddr == NULL) {
     return RC_ZIS_SNRFSRV_PARMLIST_NULL;
@@ -429,6 +438,17 @@ void snarferDSECTs() {
 
 }
 
+void *zisSnarferServiceGetServiceData(const struct ZISParmSet_tag *parms) {
+  union {
+    ZISCoreServiceParm aStr;
+    void *asPtr;
+  } parm = {0};
+  const char *value = zisGetParmValue(parms, ZIS_SERVICE_SNARFER_PARM_SAF);
+  if (value && !strcmp(value, ZIS_SERVICE_SNARFER_PARM_VALUE_SAF_OFF)) {
+    parm.aStr.flags |= ZIS_CORE_SERVICE_FLAG_NO_SAF_CHECK;
+  }
+  return parm.asPtr;
+}
 
 /*
   This program and the accompanying materials are
