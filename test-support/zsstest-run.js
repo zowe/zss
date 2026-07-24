@@ -91,6 +91,18 @@ function check(caze, res) {
     problems.push('status ' + res.status + ' != ' + e.status);
   }
   if (e.nonEmpty && body.length === 0) problems.push('decoded body is empty');
+  if (e.b64Strict) {
+    // strict base64: '=' only in the final two positions, length % 4 == 0.
+    // Lenient decoders (Node's Buffer.from) hide mid-stream padding; this does not.
+    const s2 = res.raw.toString('ascii').replace(/\s+$/, '');
+    const firstEq = s2.indexOf('=');
+    const ok = /^[A-Za-z0-9+/]+={0,2}$/.test(s2) && s2.length % 4 === 0 &&
+               (firstEq === -1 || firstEq >= s2.length - 2);
+    if (!ok) problems.push('body is not strictly valid base64 (mid-stream padding? first "=" at ' + firstEq + ' of ' + s2.length + ')');
+  }
+  if (e.decodedLength !== undefined && body.length !== e.decodedLength) {
+    problems.push('decoded length ' + body.length + ' != ' + e.decodedLength);
+  }
   if (e.decodedHex !== undefined && hex !== e.decodedHex) {
     problems.push('decoded hex mismatch: got ' + hex);
   }

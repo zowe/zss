@@ -42,6 +42,11 @@ module.exports = {
                 hexIncludes: ['636166e9'],   /* "caf" + e-acute as real 819 0xE9 */
                 hexExcludes: ['c3a9'] } },   /* no un-converted UTF-8 leaks through */
 
+    { name: 'base64 stays strictly valid across multi-read conversion (alignment carry)',
+      path: '/unixfile/contents${DIR}/b64-align.txt',
+      query: 'source=819&target=1208',
+      expect: { status: 200, b64Strict: true, decodedLength: 1224002 } },
+
     /* Forced-encoding error contract: a request that forces a source/target
        CCSID the server cannot stream-convert (e.g. target=37) must be REJECTED
        up front (400), never answered with a silent empty 200. That contract

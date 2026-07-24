@@ -43,6 +43,10 @@ mkdir -p "$INST/logs" "$INST/plugins" "$INST/product" "$SERVEDIR"
 # on Linux there are no tags, so charset behavior is driven by the request.
 printf 'caf\303\251\342\200\224au\342\230\225 \346\227\245\346\234\254\350\252\236 ok\n' > "$SERVEDIR/utf8-multibyte.txt"
 printf 'plain ascii line\n' > "$SERVEDIR/ascii.txt"
+# Base64-alignment trigger: 1,224,000 bytes with one 2-byte expansion placed so
+# the FIRST read's converted (819->UTF-8) output is not a multiple of 3. Guards
+# the emit-side 3-alignment carry in streamTextForFile2 (mid-stream '=' bug).
+{ head -c 1023998 /dev/zero | tr '\0' 'A'; printf '\303\251'; head -c 200000 /dev/zero | tr '\0' 'B'; } > "$SERVEDIR/b64-align.txt"
 
 # ---- generated plaintext dev config (source of truth = this heredoc) -------
 cat > "$CFG" <<YAML
