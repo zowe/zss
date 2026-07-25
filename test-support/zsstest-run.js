@@ -20,6 +20,7 @@
  *   { name, path,            // request path; ${DIR} expands to ZSS_TEST_DIR
  *     query,                 // optional query string
  *     auth,                  // default true; false = send no Authorization
+ *     headers,               // object: override/add request headers (null value deletes)
  *     expect: {
  *       status,              // exact HTTP status
  *       nonEmpty,            // decoded body length > 0
@@ -55,6 +56,15 @@ function request(caze) {
   const headers = {};
   if (caze.auth !== false && (user || pass)) {
     headers.Authorization = 'Basic ' + Buffer.from(user + ':' + pass).toString('base64');
+  }
+  // Per-case header override (rung 1): send arbitrary/adversarial request headers,
+  // e.g. a hand-built Authorization to exercise the parser rather than pass auth.
+  // A null value removes the header.
+  if (caze.headers) {
+    for (const k of Object.keys(caze.headers)) {
+      if (caze.headers[k] === null) { delete headers[k]; }
+      else { headers[k] = caze.headers[k]; }
+    }
   }
   const opts = {
     method: 'GET', hostname: u.hostname, port: u.port,
