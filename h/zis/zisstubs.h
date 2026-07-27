@@ -20,7 +20,7 @@
    FULL BACKWARD COMPATIBILITY MUST BE MAINTAINED
    */
 
-#define ZIS_STUBS_VERSION 7
+#define ZIS_STUBS_VERSION 8
 
 /*
   How does a user check for compatibility?
@@ -317,6 +317,7 @@
 /* #define ZIS_STUB_CMECSAF2 384 cmsFreeECSAStorage2 - not in CMS_CLIENT */
 #define ZIS_STUB_CMGETPRX 385 /* cmsGetConfigParmExt */
 #define ZIS_STUB_CMGETPUX 386 /* cmsGetConfigParmExtUnchecked */
+#define ZIS_STUB_CMTSAUT2 387 /* cmsTestAuth2 */
 
 /* dynalloc, 400-429 */
 #define ZIS_STUB_DYNASTXU 400 /* createSimpleTextUnit mapped */
