@@ -37,7 +37,9 @@ DEFS="-D__ZOWE_OS_LINUX=1 -D_GNU_SOURCE=1 -DNOIBMHTTP=1"
 # -fms-extensions: anonymous member of a named union/struct (HttpConversation
 #   uses it; z/OS xlclang enables this by default, clang needs the flag).
 CFLAGS="$DEFS -std=gnu99 -fms-extensions -O0 -g -fno-omit-frame-pointer -Wno-implicit-function-declaration"
-INC="-I $ZSS/h -I $CC_COMMON/h -I $CC_COMMON/platform/posix -I $CC_COMMON/jwt/jwt \
+# wsl-include holds in-repo stubs for z/OS-only system headers (e.g. gskcms.h)
+# so zss.c and friends parse under clang without the real GSK tree.
+INC="-I $HERE/wsl-include -I $ZSS/h -I $CC_COMMON/h -I $CC_COMMON/platform/posix -I $CC_COMMON/jwt/jwt \
      -I $DEPS/libyaml/include -I $DEPS/quickjs"
 LDLIBS="-lpthread -lm -ldl -lcrypto"  # -lcrypto: OpenSSL MD5_*/SHA1_* (crypto.c non-z/OS path); also HS256 later
 

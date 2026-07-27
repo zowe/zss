@@ -59,9 +59,14 @@
 #include "bpxnet.h"
 #include "httpserver.h"   /* HttpServer (for configureJwt) + pulls utils/json/collections */
 #include "jwt.h"          /* Jwt, JwtContext, JwtCheckSignature, jwt entry points */
-#include "jwk.h"          /* JwkSettings, configureJwt */
-#include "tls.h"          /* TlsEnvironment, TlsSettings, tlsInit, tlsStrError */
-#include "storageApiml.h" /* ApimlStorageSettings, makeApimlStorage, Storage */
+/* WSL: jwk.h/tls.h/storageApiml.h pull z/OS GSK (gskcms.h/gskssl.h), absent
+   here. The functions below are link-time no-op stubs, so opaque types are
+   enough -- the linker resolves by symbol name. storage.h gives real Storage. */
+#include "storage.h"
+typedef struct JwkSettings JwkSettings;
+typedef struct TlsEnvironment TlsEnvironment;
+typedef struct TlsSettings TlsSettings;
+typedef struct ApimlStorageSettings ApimlStorageSettings;
 #include "registerProduct.h"
 #include "jcsi.h"         /* csi_parmblock, EntryDataSet, loadCsi, returnEntries */
 #include "rusermap.h"     /* getUseridByCertificate, getUseridByDN */
@@ -469,7 +474,7 @@ Storage *makeApimlStorage(ApimlStorageSettings *settings, const char *pluginId) 
 int tlsInit(TlsEnvironment **outEnv, TlsSettings *settings) {
   (void)settings;
   if (outEnv) *outEnv = NULL;
-  return TLS_ALLOC_ERROR; /* nonzero -> caller does not enable TLS */
+  return -1; /* nonzero -> caller does not enable TLS (was TLS_ALLOC_ERROR) */
 }
 
 const char *tlsStrError(int rc) {
