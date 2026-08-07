@@ -255,8 +255,9 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
   ConfigManager *configmgr = httpServerConfigManager(server);
 
   ServerAgentContext *context = service->userPointer;
-  //This service is conditional on RBAC being enabled because it is a 
-  //sensitive URL that only RBAC authorized users should be able to get full access
+  //Registered unconditionally. RBAC governs FULL access only: without an
+  //authorized SAF check, sensitive endpoints are refused and the ones that
+  //have a limited representation return that instead.
   Json *dataserviceAuthJson = NULL;
   int cfgGetStatus = cfgGetAnyC(configmgr,ZSS_CFGNAME,&dataserviceAuthJson,3,"components", "app-server", "dataserviceAuthentication");
   JsonObject *dataserviceAuth = (cfgGetStatus == ZCFG_SUCCESS ? jsonAsObject(dataserviceAuthJson) : NULL);
@@ -282,8 +283,14 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
         respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Set dataserviceAuthentication.rbac to true in server configuration");
         return -1;
       }
-      respondWithError(response, HTTP_STATUS_FORBIDDEN, "Forbidden - insufficient RBAC authorization");
-      return -1;
+      /* Authenticated, RBAC on, but the SAF check for SERVER_AGENT_PROFILE
+         failed. "environment" has a limited representation it can safely
+         return without full access; the rest have none, so refuse them here
+         rather than letting them fall through to their full response. */
+      if (strcmp(l1, "environment") != 0) {
+        respondWithError(response, HTTP_STATUS_FORBIDDEN, "Forbidden - insufficient RBAC authorization");
+        return -1;
+      }
     }
     if (!strcmp(l1, "")) {
       return respondWithServerRoutes(response, allowFullAccess);
