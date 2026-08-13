@@ -214,6 +214,9 @@ static int serveLibraryContent(HttpService *service, HttpResponse *response){
 static int extractAuthorizationFromJson(HttpService *service, HttpRequest *request){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   /* should check content type */
+  if (request->contentBody == NULL || request->contentLength < 1) {
+    return -1;
+  }
   char *inPtr = request->contentBody;
   char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
   int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
@@ -666,8 +669,11 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
   char errorBuffer[512];
   
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s begin identifier %s location %s\n", __FUNCTION__, pluginIdentifier, resolvedPluginLocation);
-  sprintf(path, "%s/%s", resolvedPluginLocation, "pluginDefinition.json");
-  Json *pluginDefinitionJson = jsonParseFile(slh, path, errorBuffer, sizeof (errorBuffer));
+  Json *pluginDefinitionJson = NULL;
+  int charactersWritten = snprintf(path, sizeof(path), "%s/%s", resolvedPluginLocation, "pluginDefinition.json");
+  if (charactersWritten > 0 && charactersWritten < sizeof(path)) {
+    pluginDefinitionJson = jsonParseFile(slh, path, errorBuffer, sizeof (errorBuffer));
+  }
   if (pluginDefinitionJson) {
     dumpJson(pluginDefinitionJson);
     JsonObject *pluginDefinitionJsonObject = jsonAsObject(pluginDefinitionJson);
@@ -858,8 +864,11 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
         if (isJsonFile) {
           zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "found JSON file %s\n", name);
           memset(path, 0, sizeof(path));
-          sprintf(path, "%s%s%s", dirname, needsSlash ? "/" : "", name);
-          Json *json = jsonParseFile(slh, path, errorBuffer, sizeof (errorBuffer));
+          Json *json = NULL;
+          int charactersWritten = snprintf(path, sizeof(path), "%s%s%s", dirname, needsSlash ? "/" : "", name);
+          if (charactersWritten > 0 && charactersWritten < sizeof(path)) {
+            json = jsonParseFile(slh, path, errorBuffer, sizeof (errorBuffer));
+          }
           if (json) {
             dumpJson(json);
             JsonObject *jsonObject = jsonAsObject(json);
