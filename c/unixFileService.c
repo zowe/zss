@@ -213,13 +213,16 @@ static void getEncodingInfoFromQueryParameters(char *inSourceEncoding, char *inT
                                        int *outTargetCCSID, enum TransferType *outTransferType) {
 
   if (!strcmp(strupcase(inSourceEncoding), "BINARY") && !strcmp(strupcase(inTargetEncoding), "BINARY")) {
-    *outSourceCCSID = CCSID_BINARY;
-    *outTargetCCSID = CCSID_BINARY;
+    /* Cast as parseEncodingValue() does: CCSID_BINARY is (short)0xFFFF, which
+       sign-extends to -1 in an int and would be indistinguishable from the
+       "unparseable" return the caller checks for. */
+    *outSourceCCSID = (unsigned short)CCSID_BINARY;
+    *outTargetCCSID = (unsigned short)CCSID_BINARY;
     *outTransferType = BINARY;
   }
   else {
-    *outSourceCCSID = getCharsetCode(inSourceEncoding);
-    *outTargetCCSID = getCharsetCode(inTargetEncoding);
+    *outSourceCCSID = parseEncodingValue(inSourceEncoding);
+    *outTargetCCSID = parseEncodingValue(inTargetEncoding);
     *outTransferType = TEXT;
   }
 }
