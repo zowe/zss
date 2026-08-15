@@ -1,0 +1,966 @@
+diff --git a/c/charsets.c b/c/charsets.c
+index 6af26e8..3d19929 100644
+--- a/c/charsets.c
++++ b/c/charsets.c
+@@ -35,6 +35,17 @@
+ 
+ #define CHARSETNAME_SIZE 15
+ 
++/*
++ * getCharsetCode() maps charset name strings to CCSID integers.
++ *
++ * Name registry reference:
++ *   https://www.iana.org/assignments/character-sets/character-sets.xhtml
++ *
++ * IBM codepages from that registry use the naming convention "IBM-NNNN"
++ * where NNNN is the codepage number with no leading zeros (e.g. the IANA
++ * name "IBM01140" is represented here as "IBM-1140", and "IBM037" as
++ * "IBM-37").  Matching is case-insensitive (strupcase is applied first).
++ */
+ int getCharsetCode(const char *charsetName) {
+   char localArray[CHARSETNAME_SIZE + 1] = {0};
+ 
+@@ -51,29 +62,136 @@ int getCharsetCode(const char *charsetName) {
+   strupcase (localArray);
+ 
+   if ((!strcmp(localArray, "ISO-8859-1"))  ||
+-      (!strcmp(localArray, "ISO8859-1"))) {
++      (!strcmp(localArray, "ISO8859-1"))   ||
++      (!strcmp(localArray, "IBM-819"))) {    /* IBM819 is an alias for ISO-8859-1 */
+     return CCSID_ISO_8859_1;
+   }
+-  else if (!strcmp(localArray, "IBM-1047")) {
+-    return CCSID_IBM1047;
++  else if (!strcmp(localArray, "UTF-8"))    { return CCSID_UTF_8;    }
++  else if (!strcmp(localArray, "UTF-16"))   { return CCSID_UTF_16;   }
++  else if (!strcmp(localArray, "UTF-16BE")) { return CCSID_UTF_16_BE; }
++  else if (!strcmp(localArray, "UTF-16LE")) { return CCSID_UTF_16_LE; }
++  /* IBM codepages from IANA character-sets registry (IBM-NNNN, no leading zeros) */
++  else if (!strcmp(localArray, "IBM-37"))   { return 37;   }  /* IBM037  EBCDIC US/Canada */
++  else if (!strcmp(localArray, "IBM-38"))   { return 38;   }  /* IBM038  EBCDIC INT */
++  else if (!strcmp(localArray, "IBM-259"))  { return 259;  }  /* IBM-Symbols presentation set */
++  else if (!strcmp(localArray, "IBM-273"))  { return 273;  }  /* IBM273  EBCDIC German */
++  else if (!strcmp(localArray, "IBM-274"))  { return 274;  }  /* IBM274  EBCDIC Belgian */
++  else if (!strcmp(localArray, "IBM-275"))  { return 275;  }  /* IBM275  EBCDIC Brazilian */
++  else if (!strcmp(localArray, "IBM-277"))  { return 277;  }  /* IBM277  EBCDIC Danish/Norwegian */
++  else if (!strcmp(localArray, "IBM-278"))  { return 278;  }  /* IBM278  EBCDIC Finnish/Swedish */
++  else if (!strcmp(localArray, "IBM-280"))  { return 280;  }  /* IBM280  EBCDIC Italian */
++  else if (!strcmp(localArray, "IBM-281"))  { return 281;  }  /* IBM281  EBCDIC Japanese-E */
++  else if (!strcmp(localArray, "IBM-284"))  { return 284;  }  /* IBM284  EBCDIC Spanish */
++  else if (!strcmp(localArray, "IBM-285"))  { return 285;  }  /* IBM285  EBCDIC UK */
++  else if (!strcmp(localArray, "IBM-290"))  { return 290;  }  /* IBM290  EBCDIC Japanese Katakana */
++  else if (!strcmp(localArray, "IBM-297"))  { return 297;  }  /* IBM297  EBCDIC French */
++  else if (!strcmp(localArray, "IBM-367"))  { return 367;  }  /* IBM367  US-ASCII (alias) */
++  else if (!strcmp(localArray, "IBM-420"))  { return 420;  }  /* IBM420  EBCDIC Arabic */
++  else if (!strcmp(localArray, "IBM-423"))  { return 423;  }  /* IBM423  EBCDIC Greek */
++  else if (!strcmp(localArray, "IBM-424"))  { return 424;  }  /* IBM424  EBCDIC Hebrew */
++  else if (!strcmp(localArray, "IBM-437"))  { return 437;  }  /* IBM437  PC US */
++  else if (!strcmp(localArray, "IBM-500"))  { return 500;  }  /* IBM500  EBCDIC International */
++  else if (!strcmp(localArray, "IBM-775"))  { return 775;  }  /* IBM775  PC Baltic */
++  else if (!strcmp(localArray, "IBM-838"))  { return 838;  }  /* IBM-Thai presentation set */
++  else if (!strcmp(localArray, "IBM-850"))  { return 850;  }  /* IBM850  PC Multilingual */
++  else if (!strcmp(localArray, "IBM-851"))  { return 851;  }  /* IBM851 */
++  else if (!strcmp(localArray, "IBM-852"))  { return 852;  }  /* IBM852  PC Latin-2 */
++  else if (!strcmp(localArray, "IBM-855"))  { return 855;  }  /* IBM855  PC Cyrillic */
++  else if (!strcmp(localArray, "IBM-857"))  { return 857;  }  /* IBM857  PC Turkish */
++  else if (!strcmp(localArray, "IBM-858"))  { return 858;  }  /* IBM00858 PC Multilingual+euro */
++  else if (!strcmp(localArray, "IBM-860"))  { return 860;  }  /* IBM860  PC Portuguese */
++  else if (!strcmp(localArray, "IBM-861"))  { return 861;  }  /* IBM861  PC Icelandic */
++  else if (!strcmp(localArray, "IBM-862"))  { return 862;  }  /* IBM862  PC Hebrew */
++  else if (!strcmp(localArray, "IBM-863"))  { return 863;  }  /* IBM863  PC Canadian French */
++  else if (!strcmp(localArray, "IBM-864"))  { return 864;  }  /* IBM864  PC Arabic */
++  else if (!strcmp(localArray, "IBM-865"))  { return 865;  }  /* IBM865  PC Nordic */
++  else if (!strcmp(localArray, "IBM-866"))  { return 866;  }  /* IBM866  PC Russian */
++  else if (!strcmp(localArray, "IBM-868"))  { return 868;  }  /* IBM868  PC Urdu */
++  else if (!strcmp(localArray, "IBM-869"))  { return 869;  }  /* IBM869  PC Greek */
++  else if (!strcmp(localArray, "IBM-870"))  { return 870;  }  /* IBM870  EBCDIC Latin-2 */
++  else if (!strcmp(localArray, "IBM-871"))  { return 871;  }  /* IBM871  EBCDIC Icelandic */
++  else if (!strcmp(localArray, "IBM-880"))  { return 880;  }  /* IBM880  EBCDIC Cyrillic */
++  else if (!strcmp(localArray, "IBM-891"))  { return 891;  }  /* IBM891 */
++  else if (!strcmp(localArray, "IBM-903"))  { return 903;  }  /* IBM903 */
++  else if (!strcmp(localArray, "IBM-904"))  { return 904;  }  /* IBM904 */
++  else if (!strcmp(localArray, "IBM-905"))  { return 905;  }  /* IBM905  EBCDIC Turkish */
++  else if (!strcmp(localArray, "IBM-918"))  { return 918;  }  /* IBM918  EBCDIC Arabic-2 */
++  else if (!strcmp(localArray, "IBM-924"))  { return 924;  }  /* IBM00924 EBCDIC Latin-9+euro */
++  else if (!strcmp(localArray, "IBM-1026")) { return 1026; }  /* IBM1026 EBCDIC Turkish */
++  else if ((!strcmp(localArray, "IBM-1047")) ||
++           (!strcmp(localArray, "IBM1047"))) { return CCSID_IBM1047; } /* EBCDIC Latin-1/Open Sys */
++  else if (!strcmp(localArray, "IBM-1140")) { return 1140; }  /* IBM01140 EBCDIC US+euro */
++  else if (!strcmp(localArray, "IBM-1141")) { return 1141; }  /* IBM01141 EBCDIC German+euro */
++  else if (!strcmp(localArray, "IBM-1142")) { return 1142; }  /* IBM01142 EBCDIC Danish/Norwegian+euro */
++  else if (!strcmp(localArray, "IBM-1143")) { return 1143; }  /* IBM01143 EBCDIC Finnish/Swedish+euro */
++  else if (!strcmp(localArray, "IBM-1144")) { return 1144; }  /* IBM01144 EBCDIC Italian+euro */
++  else if (!strcmp(localArray, "IBM-1145")) { return 1145; }  /* IBM01145 EBCDIC Spanish+euro */
++  else if (!strcmp(localArray, "IBM-1146")) { return 1146; }  /* IBM01146 EBCDIC UK+euro */
++  else if (!strcmp(localArray, "IBM-1147")) { return 1147; }  /* IBM01147 EBCDIC French+euro */
++  else if (!strcmp(localArray, "IBM-1148")) { return 1148; }  /* IBM01148 EBCDIC International+euro */
++  else if (!strcmp(localArray, "IBM-1149")) { return 1149; }  /* IBM01149 EBCDIC Icelandic+euro */
++  else {
++    return -1;
+   }
+-  else if (!strcmp(localArray, "UTF-8")) {
+-    return CCSID_UTF_8;
++}
++
++#if defined(__ZOWE_OS_ZOS) || defined(__ZOWE_OS_LINUX) || defined(__ZOWE_OS_AIX)
++
++bool isMultiByteCCSID(int ccsid) {
++  switch (ccsid) {
++    /* Unicode multi-byte encodings */
++    case CCSID_UTF_8:      /* 1208 */
++    case CCSID_UTF_16:     /* 1200 */
++    case CCSID_UTF_16_BE:  /* 1201 */
++    case CCSID_UTF_16_LE:  /* 1202 */
++    /* EBCDIC MIX (SBCS+DBCS) code pages */
++    case 930:   /* IBM930  - EBCDIC MIX Japanese */
++    case 933:   /* IBM933  - EBCDIC MIX Korean */
++    case 935:   /* IBM935  - EBCDIC MIX Simplified Chinese */
++    case 937:   /* IBM937  - EBCDIC MIX Traditional Chinese */
++    case 939:   /* IBM939  - EBCDIC MIX Japanese (Latin extension) */
++    case 1364:  /* IBM1364 - EBCDIC MIX Korean */
++    case 1388:  /* IBM1388 - EBCDIC MIX Simplified Chinese */
++    case 1390:  /* IBM1390 - EBCDIC MIX Japanese */
++    case 1399:  /* IBM1399 - EBCDIC MIX Japanese */
++      return TRUE;
++    default:
++      return FALSE;
+   }
+-  else if (!strcmp(localArray, "UTF-16")) {
+-    return CCSID_UTF_16;
++}
++
++int parseEncodingValue(const char *value) {
++  char localArray[CHARSETNAME_SIZE + 1] = {0};
++
++  if (value == NULL) {
++    return -1;
+   }
+-  else if (!strcmp(localArray, "UTF-16BE")) {
+-    return CCSID_UTF_16_BE;
++
++  /* "binary" is a special sentinel meaning CCSID_BINARY (0xFFFF) */
++  if (strlen(value) <= CHARSETNAME_SIZE) {
++    strcpy(localArray, value);
++    strupcase(localArray);
++    if (!strcmp(localArray, "BINARY")) {
++      return (unsigned short)CCSID_BINARY;
++    }
+   }
+-  else if (!strcmp(localArray, "UTF-16LE")) {
+-    return CCSID_UTF_16_LE;
++
++  /* Try named charset first (e.g. "IBM-1047", "UTF-8") */
++  int code = getCharsetCode(value);
++  if (code != -1) {
++    return code;
+   }
+-  else {
+-    return -1;
++
++  /* Fall back to decimal integer string (e.g. "1047", "819") */
++  int n = 0;
++  if (sscanf(value, "%d", &n) == 1 && n >= 1 && n <= 65535) {
++    return n;
+   }
++
++  return -1;
+ }
+ 
++#endif /* z/OS, Linux, AIX */
+ 
+ #ifdef __ZOWE_OS_WINDOWS
+ 
+@@ -406,7 +524,7 @@ int convertCharset(char *input,
+ static const char *getCharsetName(int ibmCode){
+   switch (ibmCode){
+   case CCSID_ISO_8859_1:
+-    return "ISO-8859-1";
++    return "ISO8859-1"; /* NO dash after ISO: z/OS iconv rejects "ISO-8859-1" (errno 121); glibc accepts both */
+   case CCSID_IBM1047:
+     return "IBM-1047";
+   case CCSID_UTF_8:
+@@ -524,10 +642,119 @@ int convertCharset(char *input,
+   }
+   return result;
+ }
+-#else  
++
++/* Streaming charset conversion for the file-content path (USE_BUFFER only).
++ * Converts as much of [input, inputLength] as forms COMPLETE characters into
++ * the caller's output buffer, and reports BOTH how much output was produced
++ * (*conversionOutputLength) and how much input was consumed (*inputBytesConsumed).
++ *
++ * A trailing incomplete multibyte sequence (iconv EINVAL) is intentionally left
++ * unconsumed and is NOT an error: the caller carries those leftover bytes
++ * (inputLength - *inputBytesConsumed) forward and prepends them to the next read,
++ * which is what fixes multi-byte characters split across a read-buffer boundary.
++ *
++ * Characters the target cannot represent are substituted rather than aborting
++ * the whole response (the #828 silent empty body): //TRANSLIT handles
++ * unmappable-in-target, and an explicit '?' is emitted for bytes that are
++ * invalid in the source encoding, so one bad byte can't stall the stream. */
++int convertCharsetStreaming(char *input, int inputLength, int inputCCSID,
++                            char *output, int outputLength, int outputCCSID,
++                            int *conversionOutputLength, int *inputBytesConsumed,
++                            int *reasonCode){
++  *reasonCode = 0;
++  *conversionOutputLength = 0;
++  *inputBytesConsumed = 0;
++
++  const char *inputCharset = getCharsetName(inputCCSID);
++  const char *outputCharset = getCharsetName(outputCCSID);
++  if ((inputCharset == NULL) || (outputCharset == NULL)){
++    return CHARSET_UNKNOWN_CCSID;
++  }
++
++  char translitCharset[64];
++  snprintf(translitCharset, sizeof(translitCharset), "%s//TRANSLIT", outputCharset);
++  iconv_t converter = iconv_open (translitCharset, inputCharset);
++  if (converter == (iconv_t) -1){
++    converter = iconv_open (outputCharset, inputCharset); /* platform without //TRANSLIT */
++  }
++  if (converter == (iconv_t) -1){
++    *reasonCode = errno;
++    return CHARSET_CONVERSION_UNIMPLEMENTED;
++  }
++
++  char  *inPtr  = input;
++  size_t inLeft = (size_t) inputLength;
++  char  *outPtr = output;
++  size_t outLeft = (size_t) outputLength;
++  int result = CHARSET_CONVERSION_SUCCESS;
++
++  while (inLeft > 0){
++    size_t status = iconv(converter, &inPtr, &inLeft, &outPtr, &outLeft);
++    if (status != (size_t) -1){
++      break; /* all remaining input consumed */
++    }
++    if (errno == EINVAL){
++      break; /* incomplete trailing sequence -> caller carries it forward */
++    } else if (errno == E2BIG){
++      result = CHARSET_SHORT_BUFFER; /* output full; caller has what fit */
++      break;
++    } else if (errno == EILSEQ){
++      /* byte not valid in the source encoding: substitute and skip it so a
++         single bad byte cannot stall the whole stream. */
++      if (outLeft == 0){ result = CHARSET_SHORT_BUFFER; break; }
++      *outPtr++ = '?';
++      outLeft--;
++      inPtr++;
++      inLeft--;
++      continue;
++    } else {
++      result = CHARSET_INTERNAL_ERROR;
++      break;
++    }
++  }
++
++  iconv_close(converter);
++  *conversionOutputLength = (int) ((size_t) outputLength - outLeft);
++  *inputBytesConsumed     = (int) ((size_t) inputLength  - inLeft);
++  return result;
++}
++
++/* This build has a native streaming converter (iconv); suppress the portable
++ * fallback defined after the OS switch below. */
++#define ZOWE_HAVE_CONVERT_CHARSET_STREAMING 1
++
++#else
+ #error Unknown OS
+ #endif
+ 
++#ifndef ZOWE_HAVE_CONVERT_CHARSET_STREAMING
++/* Portable convertCharsetStreaming for platforms whose branch above provides no
++ * native streaming converter (Windows, z/OS metal-C). There is no carry-forward
++ * here: this platform's convertCharset processes the whole input buffer in one
++ * shot, so we report the input fully consumed and leave nothing pending. This
++ * exists so httpserver.c's streamTextForFile2 can call one API on every
++ * platform; pre-#828 behavior on these platforms is unchanged. */
++int convertCharsetStreaming(char *input, int inputLength, int inputCCSID,
++                            char *output, int outputLength, int outputCCSID,
++                            int *conversionOutputLength, int *inputBytesConsumed,
++                            int *reasonCode){
++  *reasonCode = 0;
++  *conversionOutputLength = 0;
++  *inputBytesConsumed = 0;
++  char *outputArg = output;
++  int rc = convertCharset(input, inputLength, inputCCSID,
++                          CHARSET_OUTPUT_USE_BUFFER, &outputArg,
++                          outputLength, outputCCSID,
++                          NULL, conversionOutputLength, reasonCode);
++  if ((outputArg != output) && (*conversionOutputLength > 0) &&
++      (*conversionOutputLength <= outputLength)){
++    memcpy(output, outputArg, (size_t) *conversionOutputLength);
++  }
++  *inputBytesConsumed = inputLength;
++  return rc;
++}
++#endif
++
+ 
+ 
+ 
+diff --git a/c/dataservice.c b/c/dataservice.c
+index 05842f7..0de4bdd 100644
+--- a/c/dataservice.c
++++ b/c/dataservice.c
+@@ -114,7 +114,11 @@ static void *lookupDLLEntryPoint(char *libraryName, char *functionName){
+   int reasonCode = 0;
+   status = fileInfo(libraryName, &info, &returnCode, &reasonCode);
+   if (status == 0) {
++#ifdef __ZOWE_OS_ZOS
+     if (!(info.attributeFlags & BPXYSTAT_ATTR_PROGCTL)) {
++#else
++    if (0) { /* Program Control is a z/OS attribute; no equivalent off-platform, always load */
++#endif
+       zowelog(NULL, LOG_COMP_DATASERVICE, ZOWE_LOG_WARNING,
+               "FAILURE: Dataservice: %s does not have the Program Control attribute this may cause unexpected errors therefore will not be loaded\n",
+               libraryName);
+diff --git a/c/httpfileservice.c b/c/httpfileservice.c
+index 45d35ba..9f43e8b 100644
+--- a/c/httpfileservice.c
++++ b/c/httpfileservice.c
+@@ -649,7 +649,12 @@ int directoryChangeDeleteTagAndRespond(HttpResponse *response, char *file,
+             char *type, char *codepage, char *Recursive, char *pattern) {
+ 
+   int ccsid;
++#ifdef __ZOWE_OS_ZOS
+   ccsid =  findCcsidId(codepage);
++#else
++  /* z/OS-only USS CCSID lookup; not supported on this platform */
++  ccsid = 0;
++#endif
+   if (codepage != NULL){
+     respondWithJsonError(response, "DELETE request with codeset", 400, "Bad Request");
+     return 0;
+@@ -671,11 +676,17 @@ int directoryChangeTagAndRespond(HttpResponse *response, char *file,
+     recursive = 1;
+   }
+ 
++#ifdef __ZOWE_OS_ZOS
+   if (-1 ==  patternChangeTagTest(message, sizeof (message),
+                      type, codepage, &pure, &ccsid)){
+     respondWithJsonError(response, message, 400, "Bad Request");
+     return 0;
+   }
++#else
++  /* z/OS-only USS file-tag operation; not supported on this platform */
++  respondWithJsonError(response, "File tagging not supported on this platform", 400, "Bad Request");
++  return 0;
++#endif
+ 
+   /* Call recursive change mode */
+   if (!directoryChangeTagRecursive(file, type, codepage, recursive, pattern,
+@@ -726,22 +737,22 @@ void respondWithUnixFileMetadata(HttpResponse *response, char *absolutePath) {
+     convertUnixToISO(unixTime, &timeStamp);
+ 
+     char owner[USER_NAME_LEN+1] = {0};
+-    status = userGetName(info.ownerUID, owner, &returnCode, &reasonCode);
++    status = userGetName(fileInfoOwnerUID(&info), owner, &returnCode, &reasonCode);
+     if (status != 0) {
+       zowelog(NULL, LOG_COMP_HTTPSERVER, ZOWE_LOG_DEBUG, 
+              "failed to obtain user name for uid=%d, returnCode: %d, reasonCode: 0x%08x\n",
+-             info.ownerUID, returnCode, reasonCode);
+-      snprintf(owner, USER_NAME_LEN+1, "%d", info.ownerUID);
++             fileInfoOwnerUID(&info), returnCode, reasonCode);
++      snprintf(owner, USER_NAME_LEN+1, "%d", fileInfoOwnerUID(&info));
+     }
+     trimRight(owner, USER_NAME_LEN);
+ 
+     char group[GROUP_NAME_LEN+1] = {0};
+-    status = groupGetName(info.ownerGID, group, &returnCode, &reasonCode);
++    status = groupGetName(fileInfoOwnerGID(&info), group, &returnCode, &reasonCode);
+     if (status != 0) {
+       zowelog(NULL, LOG_COMP_HTTPSERVER, ZOWE_LOG_DEBUG, 
+              "failed to obtain group name for gid=%d, returnCode: %d, reasonCode: 0x%08x\n",
+-             info.ownerGID, returnCode, reasonCode);
+-      snprintf(owner, GROUP_NAME_LEN+1, "%d", info.ownerGID);
++             fileInfoOwnerGID(&info), returnCode, reasonCode);
++      snprintf(owner, GROUP_NAME_LEN+1, "%d", fileInfoOwnerGID(&info));
+     }
+     trimRight(group, GROUP_NAME_LEN);
+ 
+@@ -798,6 +809,7 @@ void directoryChangeOwnerAndRespond(HttpResponse *response, char *path,
+   }
+ 
+   /* Call recursive change mode */
++#ifdef __ZOWE_OS_ZOS
+   if (!directoryChangeOwnerRecursive( message, sizeof(message),
+       path, userId, groupId, recursive, pattern,
+       &returnCode, &reasonCode )) {
+@@ -808,9 +820,14 @@ void directoryChangeOwnerAndRespond(HttpResponse *response, char *path,
+     zowelog(NULL, LOG_COMP_RESTFILE, ZOWE_LOG_DEBUG,
+             "Failed to change file owner %s, (returnCode = 0x%x, reasonCode = 0x% x)\n",
+             path, returnCode, reasonCode);
+-    respondWithJsonError(response, "Failed to Change Owner", 500, 
++    respondWithJsonError(response, "Failed to Change Owner", 500,
+                "Internal Server Error");
+   }
++#else
++  /* z/OS-only recursive USS chown; not supported on this platform */
++  respondWithJsonError(response, "Change owner not supported on this platform", 500,
++               "Internal Server Error");
++#endif
+ }
+ 
+ 
+@@ -919,10 +936,15 @@ int writeAsciiDataFromBase64(UnixFile *file, char *fileContents, int contentLeng
+      /* Disable automatic conversion to prevent any wacky
+       * problems that may arise from auto convert.
+       */
++#ifdef __ZOWE_OS_ZOS
+      status = fileDisableConversion(file, &returnCode, &reasonCode);
+      if (status != 0) {
+        zowelog(NULL, LOG_COMP_RESTFILE, ZOWE_LOG_DEBUG, "Failed to disable automatic conversion. Unexpected results may occur.\n");
+      }
++#else
++     /* z/OS-only USS auto-conversion disable; no-op on this platform */
++     status = 0;
++#endif
+      status = convertCharset(resultBuffer,
+                              decodedLength,
+                              sourceEncoding,
+diff --git a/c/httpserver.c b/c/httpserver.c
+index dbad250..a49938f 100644
+--- a/c/httpserver.c
++++ b/c/httpserver.c
+@@ -1452,7 +1452,12 @@ static int encodeSessionToken(ShortLivedHeap *slh,
+   
+ #else
+ 
+-#error Session token encoding has been implemented for z/OS only
++  /* No native session-token crypto off-platform yet; M2 adds HS256 via the JWT
++     mint seam. Fail closed -- refuse rather than emit a forgeable token. Not
++     reached on the SERVICE_AUTH_NONE paths used to exercise #828. */
++  zowelog(NULL, LOG_COMP_HTTPSERVER, ZOWE_LOG_WARNING,
++          "session token encoding not implemented off-platform; refusing\n");
++  return -1;
+ 
+ #endif /* __ZOWE_OS_ZOS */
+ 
+@@ -1505,7 +1510,10 @@ static int decodeSessionToken(ShortLivedHeap *slh,
+ 
+ #else
+ 
+-#error Session token decoding has been implemented for z/OS only
++  /* See encodeSessionToken -- fail closed until M2's HS256 path lands. */
++  zowelog(NULL, LOG_COMP_HTTPSERVER, ZOWE_LOG_WARNING,
++          "session token decoding not implemented off-platform; refusing\n");
++  return -1;
+ 
+ #endif /* __ZOWE_OS_ZOS */
+ 
+@@ -2545,6 +2553,11 @@ int isLowerCasePasswordAllowed(){
+ }
+ #endif
+ 
++/* Relocated out of the __ZOWE_OS_ZOS block below so it is visible on all
++   platforms: singleUserTrace is used both by the z/OS-only single-user auth
++   code and by the cross-platform startImpersonating(). */
++static int singleUserTrace = 1;
++
+ #ifdef __ZOWE_OS_ZOS
+ 
+ /*
+@@ -2581,8 +2594,6 @@ static ACEE *getACEE(){
+   return acee;
+ }
+ 
+-static int singleUserTrace = 1;
+-
+ #define MAX_USERID_LENGTH 32 /* very generous to be forward compatible */
+ #define MAX_PASSWORD_LENGTH 64 /* very generous to be forward compatible */
+ #define AUTH_BUFFER_LENGTH (MAX_USERID_LENGTH + MAX_PASSWORD_LENGTH + 32)
+@@ -2779,7 +2790,10 @@ static int startImpersonating(HttpService *service, HttpRequest *request) {
+ #ifdef DEBUG_AUTH
+       printf("*** ERROR *** impersonation not implemented for this platform\n");
+ #endif
+-      impersonating = FALSE;
++      /* No OS-level impersonation off-platform; treat as a successful no-op so
++         services flagged doImpersonation still run under the server identity
++         (dev/sandbox). Mirrors endImpersonating(), which already returns TRUE. */
++      impersonating = TRUE;
+ #endif /*__ZOWE_OS_ZOS */
+     } else {
+ #ifdef DEBUG_AUTH
+@@ -3013,6 +3027,7 @@ static int getUserSessionValidity(char *username, const HttpServerConfig *config
+        return 0;
+     }
+   }
++#ifdef __ZOWE_OS_ZOS
+   if (!*validitySec) {
+     int groupCount = 0;
+     int retVal = getGroupList(username, NULL, &groupCount, returnCode, reasonCode);
+@@ -3043,6 +3058,14 @@ static int getUserSessionValidity(char *username, const HttpServerConfig *config
+   } else {
+     return 0;
+   }
++#else
++  /* No SAF group-based session-timeout lookup off-platform; use the configured
++     default so authentication doesn't hinge on a RACF group query. */
++  if (!*validitySec) {
++    *validitySec = config->defaultTimeout ? config->defaultTimeout : SESSION_VALIDITY_IN_SECONDS;
++  }
++  return 0;
++#endif
+ }
+ 
+ static int sessionTokenStillValid(HttpService *service, HttpRequest *request, char *sessionTokenText, int *sessionValiditySec, uint64 *sessionTimeRemaining){
+@@ -3196,6 +3219,11 @@ static int serviceAuthNativeWithSessionToken(HttpService *service, HttpRequest *
+     } 
+   }
+ 
++  /* Client-certificate acquisition and SAF certificate-to-userid mapping are
++     z/OS-only (System SSL getClientCertificate + RACF getUseridByCertificate,
++     and socket_tag has no tlsSocket off-platform). On other platforms there is
++     no client certificate; skip and leave authDataFound unchanged. */
++#ifdef __ZOWE_OS_ZOS
+ #define TLS_CLIENT_CERTIFICATE_MAX_LENGTH 65536
+ 
+   char *userid = NULL; /* allocate on slh so we have for duration of request and response. */
+@@ -3241,6 +3269,7 @@ static int serviceAuthNativeWithSessionToken(HttpService *service, HttpRequest *
+     safeFree(clientCertificate, TLS_CLIENT_CERTIFICATE_MAX_LENGTH);
+     clientCertificate = NULL;
+   }
++#endif /* __ZOWE_OS_ZOS - client certificate mapping */
+ 
+   response->sessionCookie = NULL;
+ 
+@@ -4490,7 +4519,7 @@ void respondWithUnixFile2(HttpService* service, HttpResponse* response, char* ab
+ #endif
+         ;
+     char *forceEnabled = getQueryParam(response->request, "force");
+-    if (ccsid == 0 && !strcmp(forceEnabled, "enable")) {
++    if (ccsid == 0 && forceEnabled != NULL && !strcmp(forceEnabled, "enable")) {
+         char *sourceEncoding = getQueryParam(response->request, "source");
+         char *targetEncoding = getQueryParam(response->request, "target");
+         int sEncoding;
+@@ -4737,64 +4766,62 @@ static int streamTextForFile2(HttpResponse *response, Socket *socket, UnixFile *
+     char *translation = safeMalloc((2*bufferSize)+4, "streamTextConvertBuffer"); /* UTF inflation tolerance */
+     int encodedLength;
+ 
++    /* Carry-forward: bytes of an incomplete multibyte character left over from
++       the previous read. They are prepended to the next read so a character is
++       never split across a buffer boundary. Max multibyte length is small. */
++    char pending[8];
++    int pendingLen = 0;
++
+     while (!fileEOF(in)){
+-      zowelog(NULL, LOG_COMP_HTTPSERVER, ZOWE_LOG_DEBUG, "WARNING: UTF8 might not be aligned properly: preserve 3 bytes for the next read cycle to fix UTF boundaries\n");
+-      int bytesRead = fileRead(in,buffer,bufferSize,&returnCode,&reasonCode);
++      if (pendingLen > 0) {
++        memcpy(buffer, pending, pendingLen);
++      }
++      int bytesRead = fileRead(in, buffer + pendingLen, bufferSize - pendingLen, &returnCode, &reasonCode);
+       if (bytesRead <= 0) {
+         zowelog(NULL, LOG_COMP_HTTPSERVER, ZOWE_LOG_DEBUG,
+                 "Text streaming has ended. (return = 0x%x, reason = 0x%x)\n",
+                 returnCode, reasonCode);
+         break;
+       }
+-      unsigned int inLen, outLen;
+-      int rc;
+-      char *inPtr, *outPtr;
++      int inTotal = pendingLen + bytesRead;   /* carried-over partial seq + this read */
++      pendingLen = 0;
++      unsigned int outLen;
++      char *outPtr;
+ 
+       if (sourceCCSID == targetCCSID) {
+         outPtr = buffer;
+-        outLen = (unsigned int)bytesRead;
++        outLen = (unsigned int) inTotal;
+       } else {
+-        inPtr = buffer;
+-        outPtr = translation;
+-        inLen = (unsigned int)bytesRead;
+-        outLen = (unsigned int) 2 * bytesRead;
+-
+-        /* TBD: I don't like this scheme.
+-         * As mentioned in the warning above, if the encodings are not single-byte encodings, either 
+-           the input or output buffers could break in the middle of a multi-byte character. The current
+-           API for convertCharset doesn't let you restart in such cases.
+-         * Every call to convertCharset will (in the current implementation) use iconv_open to get
+-           a converter. That's expensive.
+-         * If no conversion is necessary, Linuxland could use the sendfile(2) system call.
+-        */
+-
+-        /* dumpbuffer(buffer,bytesRead); */
+         int translationLength = 0;
+-        int reasonCode = 0;
+-        rc = convertCharset(inPtr,
+-                            inLen,
+-                            sourceCCSID,
+-                            CHARSET_OUTPUT_USE_BUFFER,
+-                            &outPtr,
+-                            outLen,
+-                            targetCCSID,
+-                            NULL,
+-                            &translationLength,
+-                            &reasonCode);
+-
+-        if (inLen != translationLength) {
+-          zowelog(NULL, LOG_COMP_HTTPSERVER, ZOWE_LOG_DEBUG, "streamTextForFile(%d (%s), %d (%s), %d, %d, %d, %d): "
+-                 "after sending %d bytes got translation length error; expected %d, got %d\n",
+-                 getSocketDebugID(socket), socket->debugName, 
+-                 in->fd, in->pathname,
+-                 encoding, sourceCCSID, targetCCSID, asB64, bytesSent, inLen, translationLength);
++        int inputConsumed = 0;
++        int convReason = 0;
++        int rc = convertCharsetStreaming(buffer,
++                                         inTotal,
++                                         sourceCCSID,
++                                         translation,
++                                         2*bufferSize,
++                                         targetCCSID,
++                                         &translationLength,
++                                         &inputConsumed,
++                                         &convReason);
++
++        /* Bytes not consumed are an incomplete trailing multibyte character;
++           carry them forward to be completed by the next read. */
++        int leftover = inTotal - inputConsumed;
++        if (leftover > 0 && leftover <= (int) sizeof(pending)) {
++          memcpy(pending, buffer + inputConsumed, leftover);
++          pendingLen = leftover;
+         }
+-        if (TRACE_CHARSET_CONVERSION){
+-          printf("convertCharset transLen=%d\n",translationLength);
+-          dumpbuffer(translation,translationLength);
++
++        if (rc != 0) {
++          zowelog(NULL, LOG_COMP_HTTPSERVER, ZOWE_LOG_DEBUG,
++                  "convertCharsetStreaming rc=%d in=%d consumed=%d out=%d reason=%d\n",
++                  rc, inTotal, inputConsumed, translationLength, convReason);
+         }
+-        if (rc != 0){
+-          zowelog(NULL, LOG_COMP_HTTPSERVER, ZOWE_LOG_DEBUG, "iconv rc = %d, bytesRead=%d xlateLength=%d\n",rc,bytesRead,translationLength);
++        if (TRACE_CHARSET_CONVERSION){
++          printf("convertCharsetStreaming out=%d consumed=%d leftover=%d\n",
++                 translationLength, inputConsumed, leftover);
++          dumpbuffer(translation, translationLength);
+         }
+ 
+         outPtr = translation;
+@@ -4819,6 +4846,25 @@ static int streamTextForFile2(HttpResponse *response, Socket *socket, UnixFile *
+       if (NULL != encodedBuffer) safeFree31(encodedBuffer, allocSize);
+       bytesSent += encodedLength;
+     }
++    /* At true EOF a leftover 'pending' means the file ended mid-character
++       (truncated or mistagged source). Emit one substitution so the loss is
++       visible rather than silently dropped. */
++    if (pendingLen > 0 && sourceCCSID != targetCCSID) {
++      char sub = '?';
++      if (asB64) {
++        int subEnc = 0;
++        char *subB64 = encodeBase64(NULL, &sub, 1, &subEnc, FALSE);
++        if (subB64) {
++          if (encoding == ENCODING_CHUNKED) { writeBytes(stream, subB64, subEnc, NO_TRANSLATE); }
++          else { writeFully(socket, subB64, subEnc); }
++          safeFree31(subB64, ENCODE64_SIZE(1)+1);
++        }
++      } else if (encoding == ENCODING_CHUNKED) {
++        writeBytes(stream, &sub, 1, NO_TRANSLATE);
++      } else {
++        writeFully(socket, &sub, 1);
++      }
++    }
+     if (encoding == ENCODING_CHUNKED) {
+       /* finish the chunked output here because finishResponse will not flush this stream's data */
+       finishChunkedOutput(stream, NO_TRANSLATE);
+@@ -4998,7 +5044,7 @@ int makeJSONForDirectory(HttpResponse *response, char *dirname, int includeDotte
+             zowelog(NULL, LOG_COMP_HTTPSERVER, ZOWE_LOG_DEBUG, 
+                     "failed to obtain user name for uid=%d, returnCode: %d, reasonCode: 0x%08x\n",
+                     fileInfoOwnerUID(&info), returnCode, reasonCode);
+-            snprintf(owner, USER_NAME_LEN+1, "%d", info.ownerUID);
++            snprintf(owner, USER_NAME_LEN+1, "%d", fileInfoOwnerUID(&info)); /* accessor: st_uid on Linux, ownerUID on z/OS */
+           }
+           trimRight(owner, USER_NAME_LEN);
+           
+@@ -5008,12 +5054,18 @@ int makeJSONForDirectory(HttpResponse *response, char *dirname, int includeDotte
+             zowelog(NULL, LOG_COMP_HTTPSERVER, ZOWE_LOG_DEBUG, 
+                     "failed to obtain group name for gid=%d, returnCode: %d, reasonCode: 0x%08x\n",
+                     fileInfoOwnerGID(&info), returnCode, reasonCode);
+-            snprintf(owner, GROUP_NAME_LEN+1, "%d", info.ownerGID);
++            snprintf(owner, GROUP_NAME_LEN+1, "%d", fileInfoOwnerGID(&info)); /* accessor: st_gid on Linux, ownerGID on z/OS */
+           }
+           trimRight(group, GROUP_NAME_LEN);
+           
+           /*          if(status == 0) { */
++            /* fileInfoIsSymbolicLink is implemented only on z/OS (zosfile.c);
++               no off-platform version exists, so treat as non-symlink there. */
++#ifdef __ZOWE_OS_ZOS
+             int isSymlink = fileInfoIsSymbolicLink(&info);
++#else
++            int isSymlink = 0;
++#endif
+             char symlinkTarget[USS_MAX_PATH_LENGTH + 1] = {0};
+             int isDirectory = FALSE;
+             if (isSymlink) {
+@@ -5642,6 +5694,7 @@ static void doHttpResponseWork(HttpConversation *conversation)
+           // Response is finished on return
+           break;
+         }
++#ifdef __ZOWE_OS_ZOS /* subtasks exist for per-request impersonation; off-platform run inline (single-threaded) */
+         if (service->runInSubtask){
+           /* response->runningInSubtask = TRUE; */
+           conversation->task = makeRLETask(conversation->server->base->rleAnchor,
+@@ -5663,6 +5716,7 @@ static void doHttpResponseWork(HttpConversation *conversation)
+           startHttpTask(conversation->task);
+           break;
+         }
++#endif /* __ZOWE_OS_ZOS */
+         handleHttpService(conversation->server,service,firstRequest,response);
+         break;
+       }
+diff --git a/c/le.c b/c/le.c
+index 1d47e8d..fee26f8 100644
+--- a/c/le.c
++++ b/c/le.c
+@@ -93,7 +93,15 @@ LibraryFunction libraryFunctionTable[LIBRARY_FUNCTION_COUNT]
+ char *getCAA(void){
+   char *realCAA = NULL;
+ 
+-#if !defined(METTLE) && defined(_LP64)
++#ifndef __ZOWE_OS_ZOS
++  /* No Language Environment / CAA off-platform. The z/OS branch below walks
++     LAA->LCA->CAA through low storage (abs 0x04B8), which would segfault here.
++     Nothing on the non-z/OS path dereferences CAA fields (logging's CAA use is
++     z/OS-guarded), but getCAA must return a valid, non-crashing pointer, so
++     give each thread its own zeroed block. */
++  static __thread char threadCAA[0x400]; /* > z/OS CAA_SIZE (0x318) */
++  realCAA = threadCAA;
++#elif !defined(METTLE) && defined(_LP64)
+   char *laa = *(char * __ptr32 * __ptr32)0x04B8;
+   char *lca = *(char **)(laa + 88);
+   realCAA = *(char **)(lca + 8);
+@@ -262,6 +270,8 @@ RLETask *makeRLETask(RLEAnchor *anchor,
+   memcpy(task->eyecatcher,RLE_TASK_EYECATCHER,4);
+   task->flags = taskFlags;
+   task->anchor = anchor;
++  task->userFunction = functionPointer; /* z/OS stashes this via its trampoline;
++                                           off-platform we keep it in the task */
+   return task;
+ }
+ 
+@@ -269,6 +279,35 @@ void deleteRLETask(RLETask *task) {
+   safeFree31((char *)task, sizeof(RLETask));
+   task = NULL;
+ }
++
++/* pthread trampoline mirroring scheduling.c's executeRLETask contract:
++   run the user function, then self-delete if the task is DISPOSABLE. */
++static void *rleTaskTrampoline(void *arg) {
++  RLETask *task = (RLETask *)arg;
++  if (task->userFunction != NULL) {
++    task->userFunction(task);
++  }
++  if (task->flags & RLE_TASK_DISPOSABLE) {
++    deleteRLETask(task);
++  }
++  return NULL;
++}
++
++/* Off-platform startRLETask. The z/OS version (scheduling.c) can attach a TCB
++   and post completionECB; here we run the task on a detached pthread. The ECB
++   layer is z/OS-only (stcbase uses eventSockets off-platform), so a non-NULL
++   completionECB is accepted for signature compatibility but not posted. */
++int startRLETask(RLETask *task, int *completionECB) {
++  OSThread *osThread = &task->threadData; /* threadCreate/Detach want a pointer var */
++  int createStatus = threadCreate(osThread, rleTaskTrampoline, task);
++  if (createStatus != 0) {
++    perror("pthread_create() error");
++    return createStatus;
++  }
++  task->statusIndicator |= RLE_TASK_STATUS_THREAD_CREATED;
++  threadDetach(osThread); /* fire-and-forget; nothing joins these */
++  return createStatus;
++}
+ #endif
+ 
+ #ifdef __ZOWE_OS_ZOS
+diff --git a/c/logging.c b/c/logging.c
+index b43f503..842e35b 100644
+--- a/c/logging.c
++++ b/c/logging.c
+@@ -499,7 +499,7 @@ void logConfigureComponent(LoggingContext *context, uint64 compID, char *compNam
+     LoggingComponentTable **componentTableHandle = (LoggingComponentTable **)&component->subcomponents;
+     LoggingComponentTable *componentTable = component->subcomponents;
+ 
+-    for (int i = 1; id[i] != 0 && i < 4; i++) {
++    for (int i = 1; i < 4 && id[i] != 0; i++) {
+       if (componentTable == NULL || componentTable->componentCount <= id[i]) {
+         componentTable = reallocComponentTable(componentTable, min(id[i] * 2 + 1, 0xFFFF));
+         *componentTableHandle = componentTable;
+@@ -526,7 +526,7 @@ void logConfigureComponent(LoggingContext *context, uint64 compID, char *compNam
+     LoggingHashTable **componentTableHandle = (LoggingHashTable **)&component->subcomponents;
+     LoggingHashTable *componentTable = component->subcomponents;
+ 
+-    for (int i = 1; id[i] != 0 && i < 4; i++) {
++    for (int i = 1; i < 4 && id[i] != 0; i++) {
+       LoggingComponent localLoggingComponent;
+       memset(&localLoggingComponent, 0, sizeof(LoggingComponent));
+       if (componentTable == NULL) {
+@@ -580,7 +580,7 @@ static LoggingComponent *getComponent(LoggingContext *context, uint64 compID, in
+     maxLevel = component->currentDetailLevel > maxLevel ? component->currentDetailLevel : maxLevel;
+ 
+     unsigned short *id = (unsigned short *)&compID;
+-    for (int i = 1; id[i] != 0 && i < 4; i++) {
++    for (int i = 1; i < 4 && id[i] != 0; i++) {
+       if (componentTable != NULL && id[i] < componentTable->componentCount) {
+         component = &componentTable->components[id[i]];
+         maxLevel = component->currentDetailLevel > maxLevel ? component->currentDetailLevel : maxLevel;
+@@ -603,7 +603,7 @@ static LoggingComponent *getComponent(LoggingContext *context, uint64 compID, in
+     maxLevel = component->currentDetailLevel > maxLevel ? component->currentDetailLevel : maxLevel;
+ 
+     unsigned short *id = (unsigned short *)&compID;
+-    for (int i = 1; id[i] != 0 && i < 4; i++) {
++    for (int i = 1; i < 4 && id[i] != 0; i++) {
+       component = componentTable != NULL ? logHTGet(componentTable, id[i]) : NULL;
+       if (component != NULL) {
+         maxLevel = component->currentDetailLevel > maxLevel ? component->currentDetailLevel : maxLevel;
+diff --git a/c/storage_mem.c b/c/storage_mem.c
+index 989f39c..29c04af 100644
+--- a/c/storage_mem.c
++++ b/c/storage_mem.c
+@@ -17,6 +17,7 @@
+ #include <stdlib.h>
+ #include <stdarg.h>
+ #include <stdio.h>
++#include <string.h>
+ #include <limits.h>
+ #include <pthread.h>
+ #include "zowetypes.h"
+diff --git a/h/charsets.h b/h/charsets.h
+index 32c132b..8213761 100644
+--- a/h/charsets.h
++++ b/h/charsets.h
+@@ -50,6 +50,23 @@
+ #define CCSID_UNTAGGED        (short)0x0000
+ #define CCSID_BINARY          (short)0xFFFF
+ 
++/**
++ * Returns TRUE if the given CCSID uses a multi-byte encoding (e.g. UTF-8,
++ * UTF-16, or EBCDIC MIX), and FALSE if it is single-byte.
++ * Returns FALSE for unrecognised or special values (0, -1, 0xFFFF).
++ */
++bool isMultiByteCCSID(int ccsid);
++
++/**
++ * Parses an encoding value that may be either a charset name string
++ * (e.g. "IBM-1047", "UTF-8", "binary") or a decimal CCSID integer
++ * string (e.g. "1047", "819", "65535").
++ * Returns the CCSID on success, or -1 if the value cannot be parsed
++ * or is not in the valid range 1-65535.
++ * Note: "binary" / "BINARY" returns CCSID_BINARY (0xFFFF).
++ */
++int parseEncodingValue(const char *value);
++
+ #elif defined(__ZOWE_OS_WINDOWS)
+ #include <Windows.h>
+ /* WINDOWS CCSID's that are not common 
+@@ -93,9 +110,18 @@ int convertCharset(char *input,
+                    int outputLength, 
+                    int outputCCSID,
+                    ShortLivedHeap *slh, // optional
+-                   int *conversionOutputLength, 
++                   int *conversionOutputLength,
+                    int *reasonCode);
+ 
++/* Streaming variant used by the file-content path: converts only COMPLETE
++ * characters, reports input bytes consumed so the caller can carry a partial
++ * multibyte sequence forward across read buffers, and substitutes unmappable
++ * characters instead of failing. See convertCharsetStreaming in charsets.c. */
++int convertCharsetStreaming(char *input, int inputLength, int inputCCSID,
++                            char *output, int outputLength, int outputCCSID,
++                            int *conversionOutputLength, int *inputBytesConsumed,
++                            int *reasonCode);
++
+ /**
+    Returns -1 if charsetName is not known.
+    
+diff --git a/h/httpfileservice.h b/h/httpfileservice.h
+index 70cce9d..53c64ac 100644
+--- a/h/httpfileservice.h
++++ b/h/httpfileservice.h
+@@ -56,6 +56,7 @@ static int copyUnixFile(char *oldAbsolutePath, char *newAbsolutePath, int forceC
+ void copyUnixFileAndRespond(HttpResponse *response, char *oldAbsolutePath, char *newAbsolutePath, int forceCopy);
+ 
+ void respondWithUnixFileMetadata(HttpResponse *response, char *absolutePath);
++void respondWithUnixFileNotFound(HttpResponse* response, int jsonMode);
+ 
+ static int writeEmptyUnixFile(char *absolutePath, int forceWrite);
+ void writeEmptyUnixFileAndRespond(HttpResponse *response, char *absolutePath, int forceWrite);
+diff --git a/h/httpserver.h b/h/httpserver.h
+index 2cbbd66..9948e1c 100644
+--- a/h/httpserver.h
++++ b/h/httpserver.h
+@@ -582,6 +582,7 @@ void setConfiguredProperty(HttpServer *server, char *key, void *value);
+  */
+ 
+ void respondWithError(HttpResponse *response, int code, char *message);
++void respondWithJsonError(HttpResponse *response, char *error, int statusCode, char *statusMessage);
+ void respondWithMessage(HttpResponse *response, int status,
+                         const char *messageFormatString, ...);
+ void setResponseStatus(HttpResponse *response, int status, char *message);
+diff --git a/h/le.h b/h/le.h
+index a42efd4..dc50f8c 100644
+--- a/h/le.h
++++ b/h/le.h
+@@ -282,8 +282,21 @@ void showRTL(void);
+ #define RLE_TASK_RECOVERABLE 0x0010
+ #define RLE_TASK_DISPOSABLE  0x0020
+ 
++/* Off-platform equivalents of the z/OS-block definitions above, so common code
++   (le.c makeRLEAnchor/makeRLETask) and the pthread task shim in le.c compile. */
++#define RLE_ANCHOR_EYECATCHER "RLEANCHR"
++#define RLE_TASK_EYECATCHER   "RTSK"
++#define RLE_TASK_STATUS_THREAD_CREATED 0x00000001
++#define RLE_FLAGS_VERSIONED 0x0004
++#define RLE_ANCHOR_VERSION 2
++#define RLE_ANCHOR_VERSION_USER_APPL_ANCHOR_SUPPORT 2
++
+ typedef struct RLEAnchor_tag{
+-  char   eyecatcher[8]; /* RLEANCHR */
++  char      eyecatcher[8]; /* RLEANCHR */
++  int64     flags;
++  int32_t   version;
++  uint32_t  size;
++  void     *userApplicationAnchor; /* used by set/getRLEApplicationAnchor */
+ } RLEAnchor;
+ 
+ typedef struct RLETask_tag{
+@@ -296,6 +309,11 @@ typedef struct RLETask_tag{
+   RLEAnchor    * anchor;
+   int           flags;
+ 
++  /* non-z/OS (pthread) execution state; see startRLETask in le.c */
++  int           statusIndicator;
++  int         (*userFunction)(struct RLETask_tag *task);
++  OSThread      threadData;
++
+ #if 0
+   char         *__ptr32 stack;               /* PTR 31 make it big, so never gets extended  */
+   int         (*__ptr32 epa)(struct RLETask_tag *);   /* PTR 31 this is the routine that gets things going in a new DU */
+diff --git a/h/openprims.h b/h/openprims.h
+index 3a8665f..98561b1 100644
+--- a/h/openprims.h
++++ b/h/openprims.h
+@@ -69,7 +69,7 @@ typedef pthread_mutex_t Mutex;
+ #define mutexCreate(x) pthread_mutex_init(&(x), NULL);
+ 
+ #define threadCreate(osThread,mainFunction,data) pthread_create(&(osThread->threadID), NULL, mainFunction, data)
+-#define threadDetach(osThread) pthread_detach(&((osThread)->threadID))
++#define threadDetach(osThread) pthread_detach((osThread)->threadID)
+ 
+ #elif defined(__ZOWE_OS_ZOS) && !defined(METTLE)  /* the mainframe POSIX stuff is weird */
+ 
+@@ -87,7 +87,7 @@ typedef pthread_mutex_t Mutex;
+ #define mutexCreate(x) pthread_mutex_init(&(x), NULL);
+ 
+ #define threadCreate(osThread,mainFunction,data) pthread_create(&(osThread->threadID), NULL, mainFunction, data)
+-#define threadDetach(osThread) pthread_detach(&((osThread)->threadID))
++#define threadDetach(osThread) pthread_detach((osThread)->threadID)
+ 
+ #elif defined(__ZOWE_OS_ZOS) && defined(METTLE)
+ /* needed for taskAnchor struct */

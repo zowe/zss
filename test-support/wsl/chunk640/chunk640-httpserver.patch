@@ -1,0 +1,35 @@
+diff --git a/c/httpserver.c b/c/httpserver.c
+index f3da254de..d39960a42 100644
+--- a/c/httpserver.c
++++ b/c/httpserver.c
+@@ -16,6 +16,7 @@
+ #include <metal/stddef.h>
+ #include <metal/stdio.h>
+ #include <metal/stdlib.h>
++#include <metal/limits.h>
+ #include <metal/string.h>
+ #include <metal/stdarg.h>
+ #include <metal/ctype.h>
+@@ -23,6 +24,7 @@
+ 
+ #else
+ #include <stdio.h>
++#include <limits.h>
+ #include <string.h>
+ #include <stdlib.h>
+ #include <stdarg.h>
+@@ -2408,7 +2410,13 @@ int processHttpFragment(HttpRequestParser *parser, char *data, int len){
+           parser->state = HTTP_STATE_READING_CHUNK_TRAILER;
+         } else {
+           parser->contentTmp = parser->content;
+-          parser->content = SLHAlloc(parser->slh, parser->specifiedContentLength + parser->chunkSize);
++          int64 newContentLength = (int64) parser->specifiedContentLength + (int64) parser->chunkSize;
++          if (newContentLength > INT_MAX) {
++            zowelog(NULL, LOG_COMP_HTTPSERVER, ZOWE_LOG_DEBUG3, "request body is too large: %lld exceeds limit (%d)\n", (long long) newContentLength, INT_MAX);
++            parser->httpReasonCode = HTTP_STATUS_BAD_REQUEST;
++            return 0;
++          }
++          parser->content = SLHAlloc(parser->slh, (int) newContentLength);
+           if (parser->content == NULL) {
+             /* allocation failure */
+             parser->httpReasonCode = 500;
