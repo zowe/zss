@@ -281,8 +281,8 @@ static int handleNewFileCase(HttpResponse *response, char *encodedFileName, int 
     return -1;
   }
 
-  *iNode = info.inode;
-  *deviceID = info.deviceID;
+  *iNode = fileGetINode(&info);
+  *deviceID = fileGetDeviceID(&info);
 
   return 0;
 }
@@ -475,8 +475,8 @@ static void assignSessionIDToCaller(UploadSessionTracker *tracker, HttpResponse 
     }
   }
   else {
-    fileID.iNode = info.inode;
-    fileID.deviceID = info.deviceID;
+    fileID.iNode = fileGetINode(&info);
+    fileID.deviceID = fileGetDeviceID(&info);
   }
 
   /* Because the server does work on behalf of the caller,
