@@ -39,3 +39,7 @@ build/*.s
 # SPDX-License-Identifier: EPL-2.0
 # 
 # Copyright Contributors to the Zowe Project.
+
+# Output of the WSL/clang sandbox build (test-support/wsl/build.sh). Objects,
+# per-TU .err logs and the linked binary.
+test-support/wsl/build/
