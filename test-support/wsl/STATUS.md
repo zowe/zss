@@ -1,6 +1,7 @@
 # WSL zssServer build -- where it stands
 
-Reproduced 2026-08-15 against `zowe-common-c` `dev/wsl-build` and this branch.
+Reproduced 2026-08-17 against `zowe-common-c` `dev/wsl-build` (rebased onto
+staging after #666 merged) and this branch.
 
 ```
 compiled: 46 TUs   excluded: 54 TUs
@@ -15,7 +16,7 @@ binary on Linux/WSL.
 ## How to reproduce
 
 ```sh
-# 1. zowe-common-c on dev/wsl-build (= v3.x/staging + PR #666 + the port guards)
+# 1. zowe-common-c on dev/wsl-build (= v3.x/staging + the port guards)
 git clone git@github.com:zowe/zowe-common-c.git && cd zowe-common-c
 git checkout dev/wsl-build
 
@@ -93,7 +94,9 @@ but stops testing startup.
   portion was dropped entirely because it was our own streaming work and merged
   upstream as #630.
 - `unixFileService.c` now reaches file identity through `fileGetINode()` /
-  `fileGetDeviceID()` (zowe-common-c#666) instead of BPXYSTAT field names.
+  `fileGetDeviceID()` instead of BPXYSTAT field names. Those accessors merged
+  as zowe-common-c#666 on 2026-08-17 and are now in staging, so this branch no
+  longer carries them.
 
 ## The part that needs eyes
 
