@@ -1702,7 +1702,7 @@ int main(int argc, char **argv){
   char *configs = getKeywordArg("--configs",argc,argv);
   char *configmgrTraceLevelString = getKeywordArg("--configTrace",argc,argv);
   if (schemas == NULL || configs == NULL){
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS 2.x requires schemas and config\n");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS 3.x requires schemas and config\n");
     zssStatus = ZSS_STATUS_ERROR;
     goto out_term_stcbase;
   }
