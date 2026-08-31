@@ -8,6 +8,7 @@ All notable changes to the ZSS package will be documented in this file.
 - Enhancement: take into account active PC callers during termination [(#569)](https://github.com/zowe/zowe-common-c/pull/569)
 - Enhancement: add more granular SAF checks for the built-in ZIS services [(#852)](https://github.com/zowe/zss/pull/852)
 - Enhancement: The `/unixfile/contents` PUT endpoint now accepts `sourceEncoding` and `targetEncoding` as either charset name strings (e.g. `"IBM-1047"`, `"UTF-8"`) or decimal CCSID integer strings (e.g. `"1047"`, `"819"`). Previously only integer strings were accepted. Resolution is handled by `parseEncodingValue()` in zowe-common-c. [(#593)](https://github.com/zowe/zss/issues/593)
+- Bugfix: A single unmappable character in a dataset record no longer truncates the whole response; bad records are blanked and streaming continues, with a hard cap that stops a dataset failing every record from looping on the CPU. [(#675)](https://github.com/zowe/zowe-common-c/pull/675)
 
 ## `3.5.0`
 - Enhancement: Utility "detect-attls-port" can be used to check if an ATTLS policy exists at a specific connection. (https://github.com/zowe/zss/pull/813)  
@@ -170,4 +171,3 @@ All notable changes to the ZSS package will be documented in this file.
 
 ### New features and enhancements
 - Added scripts to allow ZSS to be its own component in the zowe install packaging
-
