@@ -1716,6 +1716,12 @@ int main(int argc, char **argv){
   ConfigManager *configmgr
     /* HERE set up a directory from things from Sean */
     = makeConfigManager(); /* configs,schemas,1,stderr); */
+  if (configmgr == NULL) {
+    /* Stop here rather than dereference NULL, like the neighbouring checks */
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, "ZSS could not create the configuration manager\n");
+    zssStatus = ZSS_STATUS_ERROR;
+    goto out_term_stcbase;
+  }
   CFGConfig *theConfig = addConfig(configmgr,ZSS_CFGNAME);
   cfgSetTraceStream(configmgr,stderr);
   cfgSetTraceLevel(configmgr, configmgrTraceLevel);
