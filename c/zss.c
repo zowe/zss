@@ -1728,13 +1728,13 @@ int main(int argc, char **argv){
   cfgSetConfigPath(configmgr,ZSS_CFGNAME,configs);
   int schemaLoadStatus = cfgLoadSchemas(configmgr,ZSS_CFGNAME,schemas);
   if (schemaLoadStatus){
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS Could not load schemas, status=%d\n", schemaLoadStatus);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS could not load schemas, status=%d\n", schemaLoadStatus);
     zssStatus = ZSS_STATUS_ERROR;
     goto out_term_stcbase;
   }
 
   if (cfgLoadConfiguration(configmgr,ZSS_CFGNAME) != 0){
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS Could not load configurations\n");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS could not load configurations\n");
     zssStatus = ZSS_STATUS_ERROR;
     goto out_term_stcbase;
   }
