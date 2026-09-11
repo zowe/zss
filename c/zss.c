@@ -214,6 +214,9 @@ static int serveLibraryContent(HttpService *service, HttpResponse *response){
 static int extractAuthorizationFromJson(HttpService *service, HttpRequest *request){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   /* should check content type */
+  if (request->contentBody == NULL || request->contentLength < 1) {
+    return -1;
+  }
   char *inPtr = request->contentBody;
   char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
   int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
@@ -1932,5 +1935,4 @@ out_term_stcbase:
   
   Copyright Contributors to the Zowe Project.
 */
-
 
