@@ -127,9 +127,9 @@ jobs:
       - name: '[Dep 2] Quickjs'
         uses: actions/checkout@v3
         with:
-          repository: joenemo/quickjs-portable
+          repository: zowe/quickjs-portable
           path: deps/zss/quickjs
-          ref: 'main'
+          ref: 'staging'
 
       - name: '[Prep 2] Setup jFrog CLI'
         uses: jfrog/setup-jfrog-cli@v2
