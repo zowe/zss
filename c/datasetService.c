@@ -154,6 +154,10 @@ static int serveDatasetCopy(HttpService *service, HttpResponse *response){
     char *datasetNameP1 = stringConcatenate(response->slh, "//'", percentDecoded);
     char *datasetName = stringConcatenate(response->slh, datasetNameP1, "'");
     char *newDataset = getQueryParam(response->request, "newDataset");
+    if (newDataset == NULL) {
+      respondWithJsonError(response, "newDataset query parameter is missing", 400, "Bad Request");
+      return 0;
+    }
     char *newDatasetNameP1 = stringConcatenate(response->slh, "//'", newDataset);
     char *newDatasetName = stringConcatenate(response->slh, newDatasetNameP1, "'");
     copyDatasetAndRespond(response, datasetName, newDatasetName);
