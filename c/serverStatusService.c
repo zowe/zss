@@ -42,6 +42,11 @@
 #include "configmgr.h"
 #include "serverStatusService.h"
 #include "zss.h"
+#include "zis/client.h"
+#include "zos.h"
+
+#define SAF_CLASS "ZOWE"
+#define SERVER_AGENT_PROFILE "ZLUX.0.COR.GET.SERVER.AGENT"
 
 #ifdef __ZOWE_OS_ZOS
 
@@ -240,7 +245,8 @@ static int respondWithServices(HttpResponse *response, HttpServer *server) {
 static bool statusEndPointRequireAuthAndRBAC(const char *endpoint) {
   return !strcmp(endpoint, "config") ||
          !strcmp(endpoint, "log") ||
-         !strcmp(endpoint, "logLevels");
+         !strcmp(endpoint, "logLevels") ||
+         !strcmp(endpoint, "environment");
 }
 
 static int serveStatus(HttpService *service, HttpResponse *response) {
@@ -249,14 +255,23 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
   ConfigManager *configmgr = httpServerConfigManager(server);
 
   ServerAgentContext *context = service->userPointer;
-  //This service is conditional on RBAC being enabled because it is a 
-  //sensitive URL that only RBAC authorized users should be able to get full access
+  //Registered unconditionally. RBAC governs FULL access only: without an
+  //authorized SAF check, sensitive endpoints are refused and the ones that
+  //have a limited representation return that instead.
   Json *dataserviceAuthJson = NULL;
   int cfgGetStatus = cfgGetAnyC(configmgr,ZSS_CFGNAME,&dataserviceAuthJson,3,"components", "app-server", "dataserviceAuthentication");
   JsonObject *dataserviceAuth = (cfgGetStatus == ZCFG_SUCCESS ? jsonAsObject(dataserviceAuthJson) : NULL);
   int rbacParm = dataserviceAuth ? jsonObjectGetBoolean(dataserviceAuth, "rbac") : 0;
   int isAuthenticated = response->request->authenticated;
-  bool allowFullAccess = isAuthenticated && rbacParm;
+  bool allowFullAccess = false;
+  if (isAuthenticated && rbacParm) {
+    CrossMemoryServerName *privilegedServerName = getConfiguredProperty(server,
+        HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
+    ZISAuthServiceStatus reqStatus = {0};
+    int rc = zisCheckEntity(privilegedServerName, request->username, SAF_CLASS,
+        SERVER_AGENT_PROFILE, SAF_AUTH_ATTR_READ, &reqStatus);
+    allowFullAccess = (rc == RC_ZIS_SRVC_OK);
+  }
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
     if (!allowFullAccess && statusEndPointRequireAuthAndRBAC(l1)) {
@@ -266,6 +281,14 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
       }
       if (!rbacParm) {
         respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Set dataserviceAuthentication.rbac to true in server configuration");
+        return -1;
+      }
+      /* Authenticated, RBAC on, but the SAF check for SERVER_AGENT_PROFILE
+         failed. "environment" has a limited representation it can safely
+         return without full access; the rest have none, so refuse them here
+         rather than letting them fall through to their full response. */
+      if (strcmp(l1, "environment") != 0) {
+        respondWithError(response, HTTP_STATUS_FORBIDDEN, "Forbidden - insufficient RBAC authorization");
         return -1;
       }
     }

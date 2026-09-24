@@ -36,7 +36,9 @@ static void respondWithInvalidMethod(HttpResponse *response) {
 }
 
 Json *parseContentBody(HttpRequest *request) {
-
+  if (request == NULL || request->contentBody == NULL || request->contentLength < 1) {
+    return NULL;
+  }
   char *inPtr = request->contentBody;
   char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
   int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
@@ -61,6 +63,11 @@ static int authenticate(HttpResponse *response, CrossMemoryServerName *privilege
   }
 
   JsonObject *jsonObject = jsonAsObject(body);
+  if (jsonObject == NULL) {
+    respondWithJsonStatus(response, "No body found", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    return HTTP_SERVICE_FAILED;
+  }
+
   char *username = jsonObjectGetString(jsonObject, "username");
   char *pass = jsonObjectGetString(jsonObject, "pass");
   char *appl = jsonObjectGetString(jsonObject, "appl");
@@ -155,11 +162,11 @@ void extractUsernameFromJwt(HttpResponse *response, char *jwt, char *username) {
 
   // count on '=' padding characters that are omitted in JWT
   if (payLoadLength % 4 == 3) {
-    allocateLength = payLoadLength + 1;
+    allocateLength += 1;  // count on '='
     base64Padding[0] = '=';
   }
   else if (payLoadLength % 4 == 2) {
-    allocateLength = payLoadLength + 2;
+    allocateLength += 2;    // count on '=='
     base64Padding[0] = '=';
     base64Padding[1] = '=';
   }
@@ -221,6 +228,11 @@ static int verify(HttpResponse *response, CrossMemoryServerName *privilegedServe
   }
 
   JsonObject *jsonObject = jsonAsObject(body);
+  if (jsonObject == NULL) {
+    respondWithJsonStatus(response, "No body found", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    return HTTP_SERVICE_FAILED;
+  }
+
   char *jwt = jsonObjectGetString(jsonObject, "jwt");
   char *appl = jsonObjectGetString(jsonObject, "appl");
 

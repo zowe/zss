@@ -24,7 +24,9 @@
 #include "recovery.h"
 #include "zos.h"
 
+#include "zis/parm.h"
 #include "zis/utils.h"
+#include "zis/services/common.h"
 #include "zis/services/auth.h"
 
 #define ZIS_PARMLIB_PARM_AUTH_USER_CLASS    CMS_PROD_ID".AUTH.CLASS"
@@ -408,6 +410,12 @@ int zisAuthServiceFunction(CrossMemoryServerGlobalArea *globalArea,
 
   int logLevel = globalArea->pcLogLevel;
 
+  if (IS_ZIS_CORE_SERVICE_SAF_ON(service->serviceData) &&
+      !cmsTestAuth2(globalArea, ZIS_SERVICES_DEFAULT_SAF_CLASS,
+                    ZIS_SERVICE_SAF_PN_AUTH_SRV, ZIS_SERVICE_SAF_AL_AUTH_SRV)) {
+    return RC_ZIS_AUTHSRV_NO_ACCESS;
+  }
+
   if (logLevel >= ZOWE_LOG_DEBUG) {
     cmsPrintf(&globalArea->serverName, CMS_LOG_DEBUG_MSG_ID
               " in authServiceFunction, parm = 0x%p\n", parm);
@@ -449,6 +457,21 @@ int zisAuthServiceFunction(CrossMemoryServerGlobalArea *globalArea,
   cmCopyToPrimaryWithCallerKey(clientParmAddr, &localParmList,
                                sizeof(AuthServiceParmList));
   return handlerRC;
+}
+
+void *zisAuthServiceGetServiceData(const struct ZISParmSet_tag *parms) {
+  union {
+    ZISCoreServiceParm aStr;
+    void *asPtr;
+  } parm = {0};
+  // as opposed to the rest of the built-in services, the SAF check is off by
+  // default in the auth service
+  parm.aStr.flags |= ZIS_CORE_SERVICE_FLAG_NO_SAF_CHECK;
+  const char *value = zisGetParmValue(parms, ZIS_SERVICE_AUTH_PARM_SAF);
+  if (value && !strcmp(value, ZIS_SERVICE_AUTH_PARM_VALUE_SAF_ON)) {
+    parm.aStr.flags &= ~ZIS_CORE_SERVICE_FLAG_NO_SAF_CHECK;
+  }
+  return parm.asPtr;
 }
 
 

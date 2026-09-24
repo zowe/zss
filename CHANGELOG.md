@@ -2,6 +2,19 @@
 
 All notable changes to the ZSS package will be documented in this file.
 
+## `3.6.0`
+- Enhancement: ZSS is built with the same QuickJS engine as configmgr, from `zowe/quickjs-portable` `staging` (the 2024-01-13 port), instead of the 2021-03-27 engine from `joenemo/quickjs-portable`; `build_zss.sh` and `build_zss64.sh` add the `libbf` big-number sources that engine needs.
+- Bugfix: ZSS stops at startup with a SEVERE message when the configuration manager cannot be created, instead of dereferencing NULL. [(#868)](https://github.com/zowe/zss/issues/868)
+- Bugfix: Verify fields in several services for null values. [(#836)](https://github.com/zowe/zss/pull/836)
+- Enhancement: When running in HA mode, ZSS now uses the per-HA-instance merged YAML config file(e.g. `.zowe-lpar1-merged.yaml`) exposed via `ZWE_HA_INSTANCE_CONFIG` (written by `zwe internal start prepare`) instead of the global `ZWE_CLI_PARAMETER_CONFIG`. (https://github.com/zowe/zss/pull/826)
+- Enhancement: take into account active PC callers during termination [(#569)](https://github.com/zowe/zowe-common-c/pull/569)
+- Enhancement: add more granular SAF checks for the built-in ZIS services [(#852)](https://github.com/zowe/zss/pull/852)
+- Enhancement: The `/unixfile/contents` PUT endpoint now accepts `sourceEncoding` and `targetEncoding` as either charset name strings (e.g. `"IBM-1047"`, `"UTF-8"`) or decimal CCSID integer strings (e.g. `"1047"`, `"819"`). Previously only integer strings were accepted. Resolution is handled by `parseEncodingValue()` in zowe-common-c. [(#593)](https://github.com/zowe/zss/issues/593)
+
+## `3.5.0`
+- Enhancement: Utility "detect-attls-port" can be used to check if an ATTLS policy exists at a specific connection. (https://github.com/zowe/zss/pull/813)  
+- Enhancement: ZSS now supports a dedicated client certificate for outbound TLS connections. When `zowe.certificate.keystore.clientCertificateAlias` is set, that certificate is used for client-side connections (e.g. to the APIML Caching Service and JWK endpoint) while the existing `zowe.certificate.keystore.alias` continues to be used as the server certificate. When `clientCertificateAlias` is absent, the existing single-certificate behaviour is preserved for backward compatibility. [(#820)](https://github.com/zowe/zss/pull/820)
+
 ## `3.4.0`
 - Bugfix: Fixed hostname to IP address lookup for "bind-test" program. [(#801)](https://github.com/zowe/zss/pull/801)
 

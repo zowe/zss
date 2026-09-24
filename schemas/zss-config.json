@@ -115,6 +115,10 @@
               "type": [ "string", "null" ],
               "description": "The label (aka alias), identifying the server's certificate in the key store"
             },
+            "clientLabel": {
+              "type": [ "string", "null" ],
+              "description": "The label (aka alias) identifying the client certificate in the key store. When set, this certificate is used for outbound connections instead of the server certificate identified by 'label'. When omitted, 'label' is used for both server and client purposes."
+            },
             "keyring": {
               "type": [ "string", "null" ],
               "description": "This misnamed property is ICSF key ring identifier as '<user>/<ringName>' or USS file path to a .p12 format cert file"
