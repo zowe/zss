@@ -124,6 +124,7 @@ static bool memberExists(char* dsName, DynallocMemberName daMemberName);
 static int getDSCB(DatasetName *dsName, char* dscb, int bufferSize);
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit);
 int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode);
+void getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, char *unprintableArg, char *resumeCatalogNameArg, jsonPrinter *jPrinter);
 
 static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
   int lrecl = 0;
@@ -1516,7 +1517,7 @@ static int getVolserForDataset(const DatasetName *dataset, Volser *volser) {
     safeFree((char*)(entrySet->entries),sizeof(EntryData*)*entrySet->size);
     entrySet->entries = NULL;
   }
-  safeFree((char*)entrySet,sizeof(EntryDataSet));    
+  freeEntryDataSet(entrySet);
   safeFree31((char*)returnParms,sizeof(csi_parmblock));
   return rc;
 }
@@ -1848,19 +1849,18 @@ char getCSIType(char* absolutePath) {
                                          workAreaSizeArg, csiFields, fieldCount, 
                                          NULL, NULL, returnParms);
 
-  EntryData *entry = entrySet->entries[0];
-
+  char type = '';
   if (entrySet->length == 1) {
-    if (entry) {
-        return entry->type;
-    }
+    type = entrySet->entries[0]->type;
   } else if (entrySet->length == 0) {
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "No entries for the dataset name found");
   } else {
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "More than one entry found for dataset name");
   }
 
-  return '';
+  freeEntryDataSet(entrySet);
+  safeFree31((char*)returnParms, sizeof(csi_parmblock));
+  return type;
 }
 
 void deleteVSAMDataset(HttpResponse* response, char* absolutePath) {
@@ -2131,8 +2131,8 @@ void respondWithVSAMDataset(HttpResponse* response, char* absolutePath, hashtabl
   /* TODO: How to access the CSI in cases where the entry is archived? Is this possible? */
   csi_parmblock * __ptr32 returnParms = (csi_parmblock* __ptr32)safeMalloc31(sizeof(csi_parmblock),"CSI ParmBlock");
   EntryDataSet *entrySet = returnEntries(dsn, clusterTypesAllowed, clusterTypesCount, 0, defaultVSAMCSIFields, defaultVSAMCSIFieldCount, NULL, NULL, returnParms);
-  EntryData *entry = entrySet->entries[0];
-  if (entry){
+  if (entrySet->length > 0){
+    EntryData *entry = entrySet->entries[0];
     if (entry->type == 'I') { /* TODO: how do we want to handle INDEX datasets?  Some editors use */
       /* TODO: free the entire entrySet, then call CSI again */
     }
@@ -2149,31 +2149,13 @@ void respondWithVSAMDataset(HttpResponse* response, char* absolutePath, hashtabl
         }
         fieldValueStart += fieldLengthArray[j];
       }
-      for (int i = 0; i < entrySet->length; i++){
-        EntryData *currentEntry = entrySet->entries[i];
-        int fieldDataLength = currentEntry->data.fieldInfoHeader.totalLength;
-        int entrySize = sizeof(EntryData)+fieldDataLength-4;
-        memset((char*)(currentEntry),0,entrySize);
-        safeFree((char*)(currentEntry),entrySize);
-      }
-      memset((char*)(entrySet->entries),0,sizeof(EntryData*)*entrySet->length);
-      safeFree((char*)(entrySet->entries),sizeof(EntryData*)*entrySet->size);
-      memset((char*)entrySet,0,sizeof(EntryDataSet));
-      safeFree((char*)entrySet,sizeof(EntryDataSet));
+      freeEntryDataSet(entrySet);
 
       EntryDataSet *entrySet = returnEntries(dsnData, clusterTypesAllowed, clusterTypesCount, 0, defaultVSAMCSIFields, defaultVSAMCSIFieldCount, NULL, NULL, returnParms);
       entry = entrySet->entries[0];
     } else if (entry->type != 'D') {
+      freeEntryDataSet(entrySet);
       safeFree31((char*)returnParms,sizeof(csi_parmblock));
-      for (int i = 0; i < entrySet->length; i++){
-        EntryData *currentEntry = entrySet->entries[i];
-        if (!(entrySet->entries)) break;
-        int fieldDataLength = currentEntry->data.fieldInfoHeader.totalLength;
-        int entrySize = sizeof(EntryData)+fieldDataLength-4;
-        safeFree((char*)(currentEntry),entrySize);
-      }
-      safeFree((char*)(entrySet->entries),sizeof(EntryData*)*entrySet->length);
-      safeFree((char*)entrySet,sizeof(EntryDataSet));
       respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Not Found in Catalog");
       return;
     }
@@ -2208,26 +2190,16 @@ void respondWithVSAMDataset(HttpResponse* response, char* absolutePath, hashtabl
       }
     }
   } else {
+    freeEntryDataSet(entrySet);
+    safeFree31((char*)returnParms,sizeof(csi_parmblock));
     zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Catalog Entry not found for \"%s\"\n", dsn);
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Not Found in Catalog");
     return;
   } /* end Catalog Search */
   zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "vsamType = 0x%0x, ciSize = %d, maxlrecl = %d, keyLoc = %d, keyLen = %d\n", vsamType, ciSize, maxlrecl, keyLoc, keyLen);
 
+  freeEntryDataSet(entrySet);
   safeFree31((char*)returnParms,sizeof(csi_parmblock));
-  for (int i = 0; i < entrySet->length; i++){
-    EntryData *currentEntry = entrySet->entries[i];
-    if (!(entrySet->entries)) break;
-    if (currentEntry == (EntryData *)0x000a0000) {
-      zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "... how did this happen:\n");
-      dumpbuffer((char *)entrySet, 1000);
-    }
-    int fieldDataLength = currentEntry->data.fieldInfoHeader.totalLength;
-    int entrySize = sizeof(EntryData)+fieldDataLength-4;
-    safeFree((char*)(currentEntry),entrySize);
-  }
-  safeFree((char*)(entrySet->entries),sizeof(EntryData*)*entrySet->size);
-  safeFree((char*)entrySet,sizeof(EntryDataSet));
 
   char *dsnUidPair = safeMalloc(44+8+1, "DSN,UID Pair Entry");  /* TODO: plug this leak for each time it is htPut below. */
   memset(dsnUidPair, ' ', 44+8);                                /* TODO:  we will want to free it when the ACB closes.   */
@@ -3038,7 +3010,7 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   #endif /* __ZOWE_OS_ZOS */
 }
 
-getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, char *unprintableArg, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
+void getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, char *unprintableArg, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
 #ifdef __ZOWE_OS_ZOS
   int dsnLen = strlen(datasetOrMember);
   int lParenIndex = indexOf(datasetOrMember, dsnLen, '(', 0);
@@ -3144,9 +3116,8 @@ getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char*
     }
     jsonEndArray(jPrinter);
   }
+  freeEntryDataSet(entrySet);
   safeFree31((char*)returnParms,sizeof(csi_parmblock));
-  safeFree((char*)(entrySet->entries),sizeof(EntryData*)*entrySet->size);
-  safeFree((char*)entrySet,sizeof(EntryDataSet));
 
 #endif /* __ZOWE_OS_ZOS */
 }
