@@ -82,6 +82,10 @@
 #define ERROR_MESSAGE_BUFFER_SIZE 1024
 #define ERROR_MESSAGE_PRINT_SIZE ERROR_MESSAGE_BUFFER_SIZE - 128
 
+#define DSN_MIN_LENGTH      1
+#define DSN_MAX_LENGTH      44
+#define MEMBER_MIN_LENGTH   1
+#define MEMBER_MAX_LENGTH   8
 
 static char defaultDatasetTypesAllowed[3] = {'A','D','X'};
 static char clusterTypesAllowed[3] = {'C','D','I'}; /* TODO: support 'I' type DSNs */
@@ -119,12 +123,28 @@ typedef struct Volser_tag {
   char value[6]; /* space-padded */
 } Volser;
 
+typedef struct DatasetMetadataQueryParms_tag {
+#define DSMETA_FLAGS_ADD_QUALIFIERS 0x01
+#define DSMETA_FLAGS_DETAIL         0x02
+#define DSMETA_FLAGS_LIST_MEMBERS   0x04
+#define DSMETA_FLAGS_MIGRATE        0x08
+#define DSMETA_FLAGS_UNPRINTABLE    0x10
+  unsigned char flags;
+  int workAreaSize;
+  char *types;
+  char *resumeName;
+  char *resumeCatalogName;
+} DatasetMetadataQueryParms;
+
 static int getVolserForDataset(const DatasetName *dataset, Volser *volser);
 static bool memberExists(char* dsName, DynallocMemberName daMemberName);
 static int getDSCB(DatasetName *dsName, char* dscb, int bufferSize);
 static int setDatasetAttributesForCreation(JsonObject *object, int *configsCount, TextUnit **inputTextUnit);
 int createDataset(HttpResponse* response, char* absolutePath, char* datasetAttributes, int translationLength, int* reasonCode);
-void getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, char *unprintableArg, char *resumeCatalogNameArg, jsonPrinter *jPrinter);
+static void getDatasetMetadata(const char* datasetPath, const DatasetMetadataQueryParms *queryParams, jsonPrinter *jPrinter);
+static int dsnLen(const char *dsnOrMember);
+static int dsnEndsWith(const char *dsn, const char *suffix, int suffixLen);
+static int dsnCat(char *dsn, const char *suffix, int suffixLen);
 
 static int getLreclOrRespondError(HttpResponse *response, const DatasetName *dsn, const char *ddPath) {
   int lrecl = 0;
@@ -919,11 +939,6 @@ static bool isDatasetPathValid(const char *path) {
    */
 #define PATH_MAX_LENGTH 58
 
-#define DSN_MIN_LENGTH      1
-#define DSN_MAX_LENGTH      44
-#define MEMBER_MIN_LENGTH   1
-#define MEMBER_MAX_LENGTH   8
-
   size_t pathLength = strlen(path);
 
   if (pathLength < PATH_MIN_LENGTH || PATH_MAX_LENGTH < pathLength) {
@@ -974,11 +989,6 @@ static bool isDatasetPathValid(const char *path) {
 
 #undef PATH_MIN_LENGTH
 #undef PATH_MAX_LENGTH
-
-#undef DSN_MIN_LENGTH
-#undef DSN_MAX_LENGTH
-#undef MEMBER_MIN_LENGTH
-#undef MEMBER_MAX_LENGTH
 
   return true;
 
@@ -2459,18 +2469,16 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
 }
 
 void getTargetDsnRecordInfo(char* targetDataset, char** recordFormat, int* recordLength) {
-
-  DatasetName targetDsnName;
-  DatasetMemberName targetMemName;
-  extractDatasetAndMemberName(targetDataset, &targetDsnName, &targetMemName);
-
   // Buffer to save attributes for target dataset
   JsonBuffer *datasetAttrBuffer = makeJsonBuffer();
   jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, datasetAttrBuffer);
   jsonStart(jPrinter);
 
   // To get the attributes for target dataset
-  getDatasetMetadata(&targetDsnName, &targetMemName, targetDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
+  DatasetMetadataQueryParms metaParams = {0};
+  metaParams.flags = DSMETA_FLAGS_ADD_QUALIFIERS | DSMETA_FLAGS_DETAIL | DSMETA_FLAGS_LIST_MEMBERS;
+  metaParams.types = defaultDatasetTypesAllowed;
+  getDatasetMetadata(targetDataset, &metaParams, jPrinter);
   jsonEnd(jPrinter);
 
   int targetRecLen = 0;
@@ -2708,10 +2716,6 @@ int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool i
     return 0;
   }
 
-  DatasetName dsnName;
-  DatasetMemberName memName;
-  extractDatasetAndMemberName(dataset, &dsnName, &memName);
-
   int datasetCount = 0;
 
   // Buffer to save attributes for target dataset
@@ -2719,8 +2723,11 @@ int checkIfDatasetExistsAndRespond(HttpResponse* response, char* dataset, bool i
   jsonPrinter *jPrinter = makeBufferNativeJsonPrinter(CCSID_UTF_8, datasetAttrBuffer);
   jsonStart(jPrinter);
 
-   // To get the attributes for target dataset
-  getDatasetMetadata(&dsnName, &memName, dataset, "true", NULL, defaultDatasetTypesAllowed, NULL, 0, NULL, NULL, "", NULL, jPrinter);
+  // To get the attributes for target dataset
+  DatasetMetadataQueryParms metaParams = {0};
+  metaParams.flags = DSMETA_FLAGS_ADD_QUALIFIERS;
+  metaParams.types = defaultDatasetTypesAllowed;
+  getDatasetMetadata(dataset, &metaParams, jPrinter);
   jsonEnd(jPrinter);
 
   ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
@@ -2938,7 +2945,10 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   jsonStart(jPrinter);
 
   // To get the attributes for source dataset
-  getDatasetMetadata(&sourceDsnName, &sourceMemName, sourceDataset, "true", "true", defaultDatasetTypesAllowed, "true", 0, NULL, NULL, "", NULL, jPrinter);
+  DatasetMetadataQueryParms metaParams = {0};
+  metaParams.flags = DSMETA_FLAGS_ADD_QUALIFIERS | DSMETA_FLAGS_DETAIL | DSMETA_FLAGS_LIST_MEMBERS;
+  metaParams.types = defaultDatasetTypesAllowed;
+  getDatasetMetadata(sourceDataset, &metaParams, jPrinter);
   jsonEnd(jPrinter);
 
   // To set attributes for target dataset
@@ -3010,41 +3020,54 @@ void copyDatasetAndRespond(HttpResponse *response, char* sourceDataset, char* ta
   #endif /* __ZOWE_OS_ZOS */
 }
 
-void getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, char* datasetOrMember, char* addQualifiersArg, char* detailArg, char* typesArg, char* listMembersArg, int workAreaSizeArg, char* migratedArg, char *resumeNameArg, char *unprintableArg, char *resumeCatalogNameArg, jsonPrinter *jPrinter) {
-#ifdef __ZOWE_OS_ZOS
-  int dsnLen = strlen(datasetOrMember);
-  int lParenIndex = indexOf(datasetOrMember, dsnLen, '(', 0);
-  int rParenIndex = indexOf(datasetOrMember, dsnLen, ')', 0);
-  int memberNameLength = (unsigned int)rParenIndex  - (unsigned int)lParenIndex -1;
-  int datasetTypeCount = (typesArg == NULL) ? 3 : strlen(typesArg);
-  int includeUnprintable = !strcmp(unprintableArg, "true") ? TRUE : FALSE;
+static int dsnLen(const char *dsnOrMember) {
+  int len = 0;
+  while (dsnOrMember[len] != ' ') len++;
+  return len;
+}
 
-  if(addQualifiersArg != NULL) {
-    int addQualifiers = !strcmp(addQualifiersArg, "true");
-    #define DSN_MAX_LEN 44
-    char dsnNameNullTerm[DSN_MAX_LEN + 1] = {0}; //+1 for null term
-    memcpy(dsnNameNullTerm, dsnName->value, sizeof(dsnName->value));
-    nullTerminate(dsnNameNullTerm, sizeof(dsnNameNullTerm) - 1);
-    if (addQualifiers && dsnLen <= DSN_MAX_LEN) {
-      int dblAsteriskPos = indexOfString(dsnNameNullTerm, dsnLen, "**", 0);
-      int periodPos = lastIndexOf(dsnNameNullTerm, dsnLen, '.');
-      if (!(dblAsteriskPos == dsnLen - 2 && periodPos == dblAsteriskPos - 1)) {
-        if (dsnLen <= DSN_MAX_LEN - 3) {
-          snprintf(dsnNameNullTerm, DSN_MAX_LEN + 1, "%s.**", dsnNameNullTerm);
-        }
-      }
+static int dsnEndsWith(const char *dsn, const char *suffix, int suffixLen) {
+  int len = dsnLen(dsn);
+  int chk = len - suffixLen;
+  if (chk < 0 || (len - chk) < 3) {
+    return 0;
+  }
+  return memcmp(dsn + chk, suffix, suffixLen) ? 0 : 1;
+}
+
+static int dsnCat(char *dsn, const char *suffix, int suffixLen) {
+  int len = dsnLen(dsn);
+  if (len + suffixLen > DSN_MAX_LENGTH) {
+    return 1;
+  }
+  memcpy(dsn + len, suffix, suffixLen);
+  return 0;
+}
+
+static void getDatasetMetadata(const char* datasetPath, const DatasetMetadataQueryParms *queryParams, jsonPrinter *jPrinter) {
+#ifdef __ZOWE_OS_ZOS
+  DatasetName dsnName;
+  DatasetMemberName memName;
+  extractDatasetAndMemberName(datasetPath, &dsnName, &memName);
+
+  int datasetTypeCount = (queryParams->types == NULL) ? 3 : strlen(queryParams->types);
+  int includeUnprintable = (queryParams->flags & DSMETA_FLAGS_UNPRINTABLE) ? TRUE : FALSE;
+
+  if(queryParams->flags & DSMETA_FLAGS_ADD_QUALIFIERS) {
+    #define DSN_QUALIFIER ".**"
+    #define DSN_QUALIFIER_LEN (sizeof(DSN_QUALIFIER) - 1)
+    if (!dsnEndsWith(dsnName.value, DSN_QUALIFIER, DSN_QUALIFIER_LEN)) {
+        dsnCat(dsnName.value, DSN_QUALIFIER, DSN_QUALIFIER_LEN);
     }
-    memcpy(&dsnName->value, dsnNameNullTerm, strlen(dsnNameNullTerm));
-    #undef DSN_MAX_LEN
   }
 
   int fieldCount = defaultCSIFieldCount;
   char **csiFields = defaultCSIFields;
   char dsnNameNullTerm[45] = {0};
-  memcpy(dsnNameNullTerm, dsnName->value, sizeof(dsnName->value));
+  memcpy(dsnNameNullTerm, dsnName.value, sizeof(dsnName.value));
   nullTerminate(dsnNameNullTerm, sizeof(dsnNameNullTerm) - 1);
   csi_parmblock * __ptr32 returnParms = (csi_parmblock* __ptr32)safeMalloc31(sizeof(csi_parmblock),"CSI ParmBlock");
-  EntryDataSet *entrySet = returnEntries(dsnNameNullTerm, typesArg, datasetTypeCount, workAreaSizeArg, csiFields, fieldCount, resumeNameArg, resumeCatalogNameArg, returnParms);
+  EntryDataSet *entrySet = returnEntries(dsnNameNullTerm, queryParams->types, datasetTypeCount, queryParams->workAreaSize, csiFields, fieldCount, queryParams->resumeName, queryParams->resumeCatalogName, returnParms);
   char *resumeName = returnParms->resume_name;
   char *catalogName = returnParms->catalog_name;
   int isResume = (returnParms->is_resume == 'Y');
@@ -3067,9 +3090,8 @@ void getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, 
         int entrySize = sizeof(EntryData)+fieldDataLength-4; /* -4 for the fact that the length is 4 from end of EntryData */
         int isMigrated = FALSE;
         jsonStartObject(jPrinter, NULL);
-        int datasetNameLength = sizeof(entry->name);
         char *datasetName = entry->name;
-        jsonAddUnterminatedString(jPrinter, "name", datasetName, datasetNameLength);
+        jsonAddUnterminatedString(jPrinter, "name", datasetName, sizeof(entry->name));
         jsonAddUnterminatedString(jPrinter, "csiEntryType", &entry->type, 1);
         int volserLength = 0;
         memset(volser, 0, sizeof(volser));
@@ -3092,24 +3114,19 @@ void getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, 
           }
         }
 
-        int shouldListMembers = !strcmp(listMembersArg,"true") || (lParenIndex > 0);
-        int detail = !strcmp(detailArg, "true");
+        int notMigratedOrWantMigrate = !isMigrated || (queryParams->flags & DSMETA_FLAGS_MIGRATE);
 
-        if (detail){
-          if (!isMigrated || !strcmp(migratedArg, "true")){
-            addDetailedDatasetMetadata(datasetName, datasetNameLength,
-                                       volser, volserLength,
-                                       jPrinter);
-          }
+        if ((queryParams->flags & DSMETA_FLAGS_DETAIL) && notMigratedOrWantMigrate){
+          addDetailedDatasetMetadata(datasetName, sizeof(entry->name), volser, volserLength, jPrinter);
         }
-        if (shouldListMembers) {
-          if (!isMigrated || !strcmp(migratedArg, "true")){
-            addMemberedDatasetMetadata(datasetName, datasetNameLength,
-                                       volser, volserLength,
-                                       memName->value, memberNameLength,
-                                       jPrinter, includeUnprintable);
-          }
+        
+        if (((queryParams->flags & DSMETA_FLAGS_LIST_MEMBERS) || (memName.value[0] != ' ')) && notMigratedOrWantMigrate) {
+          addMemberedDatasetMetadata(datasetName, sizeof(entry->name),
+                                     volser, volserLength,
+                                     memName.value, dsnLen(memName.value),
+                                     jPrinter, includeUnprintable);
         }
+
         jsonEndObject(jPrinter);
         safeFree((char*)(entry),entrySize);
       }
@@ -3119,6 +3136,10 @@ void getDatasetMetadata(const DatasetName *dsnName, DatasetMemberName *memName, 
   freeEntryDataSet(entrySet);
   safeFree31((char*)returnParms,sizeof(csi_parmblock));
 
+#else
+  (void)datasetPath;
+  (void)queryParams;
+  (void)jPrinter;
 #endif /* __ZOWE_OS_ZOS */
 }
 
@@ -3143,31 +3164,39 @@ void respondWithDatasetMetadata(HttpResponse *response) {
   }
 
   /* From here on, we know we have a valid data path */
-  DatasetName dsnName;
-  DatasetMemberName memName;
 
-  extractDatasetAndMemberName(absDsPath, &dsnName, &memName);
+  DatasetMetadataQueryParms metaParams = {0};
 
   HttpRequestParam *addQualifiersParam = getCheckedParam(request,"addQualifiers");
-  char *addQualifiersArg = (addQualifiersParam ? addQualifiersParam->stringValue : NULL);
+  if (addQualifiersParam && !strcmp(addQualifiersParam->stringValue, "true")) {
+    metaParams.flags |= DSMETA_FLAGS_ADD_QUALIFIERS;
+  }
 
   HttpRequestParam *detailParam = getCheckedParam(request,"detail");
-  char *detailArg = (detailParam ? detailParam->stringValue : NULL);
+  if (detailParam && !strcmp(detailParam->stringValue, "true")) {
+    metaParams.flags |= DSMETA_FLAGS_DETAIL;
+  }
 
   HttpRequestParam *typesParam = getCheckedParam(request,"types");
-  char *typesArg = (typesParam ? typesParam->stringValue : defaultDatasetTypesAllowed);
+  metaParams.types = (typesParam ? typesParam->stringValue : defaultDatasetTypesAllowed);
 
   HttpRequestParam *listMembersParam = getCheckedParam(request,"listMembers");
-  char *listMembersArg = (listMembersParam ? listMembersParam->stringValue : NULL);
+  if (listMembersParam && !strcmp(listMembersParam->stringValue, "true")) {
+    metaParams.flags |= DSMETA_FLAGS_LIST_MEMBERS;
+  }
 
   HttpRequestParam *workAreaSizeParam = getCheckedParam(request,"workAreaSize");
-  int workAreaSizeArg = (workAreaSizeParam ? workAreaSizeParam->intValue : 0);
+  metaParams.workAreaSize = (workAreaSizeParam ? workAreaSizeParam->intValue : 0);
 
   HttpRequestParam *migratedParam = getCheckedParam(request,"includeMigrated");
-  char *migratedArg = (migratedParam ? migratedParam->stringValue : NULL);
+  if (migratedParam && !strcmp(migratedParam->stringValue, "true")) {
+    metaParams.flags |= DSMETA_FLAGS_MIGRATE;
+  }
 
   HttpRequestParam *unprintableParam = getCheckedParam(request,"includeUnprintable");
-  char *unprintableArg = (unprintableParam ? unprintableParam->stringValue : "");
+  if (unprintableParam && !strcmp(unprintableParam->stringValue, "true")) {
+    metaParams.flags |= DSMETA_FLAGS_UNPRINTABLE;
+  }
 
   HttpRequestParam *resumeNameParam = getCheckedParam(request,"resumeName");
   char *resumeNameArg = (resumeNameParam ? resumeNameParam->stringValue : NULL);
@@ -3175,27 +3204,22 @@ void respondWithDatasetMetadata(HttpResponse *response) {
   HttpRequestParam *resumeCatalogNameParam = getCheckedParam(request,"resumeCatalogName");
   char *resumeCatalogNameArg = (resumeCatalogNameParam ? resumeCatalogNameParam->stringValue : NULL);
 
-  if (resumeNameArg != NULL) {
-    if (strlen(resumeNameArg) > 44) {
-      respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Malformed resume dataset name");
-    }
-    if (resumeCatalogNameArg == NULL) {
-      respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Missing resume catalog name");
-    }
-    else if (strlen(resumeCatalogNameArg) > 44) {
-      respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Malformed resume catalog name");
-    }
-  }
-  else if (resumeCatalogNameArg != NULL) {
-    if (strlen(resumeCatalogNameArg) > 44) {
-      respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Malformed resume catalog name");
-    }
-    if (resumeNameArg == NULL) {
-      respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Missing resume dataset name");
-    }
-    else if (strlen(resumeNameArg) > 44) {
-      respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Malformed resume dataset name");
-    }
+  if (!resumeNameArg && !resumeCatalogNameArg) {
+  } else if (resumeNameArg && !resumeCatalogNameArg) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Missing resume catalog name");
+    return;
+  } else if (!resumeNameArg && resumeCatalogNameArg) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Missing resume dataset name");
+    return;
+  } else if (strlen(resumeCatalogNameArg) > 44) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Malformed resume catalog name");
+    return;
+  } else if (strlen(resumeNameArg) > 44) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Malformed resume dataset name");
+    return;
+  } else {
+    metaParams.resumeName = resumeNameArg;
+    metaParams.resumeCatalogName = resumeCatalogNameArg;
   }
 
   jsonPrinter *jPrinter = respondWithJsonPrinter(response);
@@ -3207,7 +3231,7 @@ void respondWithDatasetMetadata(HttpResponse *response) {
   jsonAddString(jPrinter,"_objectType","com.rs.mvd.base.dataset.metadata");
   jsonAddString(jPrinter,"_metadataVersion","1.1");
 
-  getDatasetMetadata(&dsnName, &memName, datasetOrMember, addQualifiersArg, detailArg, typesArg, listMembersArg, workAreaSizeArg, migratedArg, resumeNameArg, unprintableArg, resumeCatalogNameArg, jPrinter);
+  getDatasetMetadata(absDsPath, &metaParams, jPrinter);
 
   jsonEnd(jPrinter);
   finishResponse(response);
