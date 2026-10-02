@@ -1,0 +1,4 @@
+wsl/build/
+**/instance/
+zowe.yaml
+test-env.local.sh
