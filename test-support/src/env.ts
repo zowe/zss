@@ -24,6 +24,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { iconvBuffer } from './zos';
 
 export interface TestEnv {
   /** Uppercased: MVS wants it that way, and dataset and job names derive from it. */
@@ -75,6 +76,33 @@ function envStr(name: string, fallback: string): string {
   return v !== undefined && v !== '' ? v : fallback;
 }
 
+/**
+ * Read the site pins, accepting either encoding.
+ *
+ * On z/OS a developer who edits this file in ISPF, or writes it from an EBCDIC
+ * shell, produces EBCDIC bytes; one who uploads it from a workstation produces
+ * ASCII. Both are reasonable and neither is detectable from the name, so try
+ * UTF-8 first and fall back to converting from IBM-1047. Failing on this would
+ * be a confusing first experience for exactly the file a new site must edit.
+ */
+function readLocalPins(file: string): Partial<TestEnv> {
+  const raw = fs.readFileSync(file);
+  const attempts: { text: string; how: string }[] = [{ text: raw.toString('utf8'), how: 'as UTF-8/ASCII' }];
+  try {
+    attempts.push({ text: iconvBuffer(raw, 'IBM-1047', 'ISO8859-1').toString('utf8'), how: 'converted from IBM-1047' });
+  } catch { /* iconv absent off-platform; the first attempt is all there is */ }
+
+  for (const a of attempts) {
+    try {
+      const parsed = JSON.parse(a.text) as Partial<TestEnv>;
+      if (parsed && typeof parsed === 'object') return parsed;
+    } catch { /* try the next encoding */ }
+  }
+  throw new Error(
+    `${file} is not valid JSON, read either as UTF-8 or converted from IBM-1047. ` +
+    'It should look like: { "instance": "/path/to/zsstest", "port": 17600 }');
+}
+
 export function loadEnv(supportDir?: string): TestEnv {
   const support = supportDir ?? path.resolve(__dirname, '..');
   const zssRoot = path.resolve(support, '..');
@@ -120,12 +148,7 @@ export function loadEnv(supportDir?: string): TestEnv {
   /* Site pins, applied last so they beat the derived defaults. Git-ignored. */
   const localFile = path.join(support, 'test-env.local.json');
   if (fs.existsSync(localFile)) {
-    try {
-      const pins = JSON.parse(fs.readFileSync(localFile, 'utf8')) as Partial<TestEnv>;
-      Object.assign(env, pins);
-    } catch (e: any) {
-      throw new Error(`${localFile} is not valid JSON: ${e?.message ?? e}`);
-    }
+    Object.assign(env, readLocalPins(localFile));
   }
 
   /* Names that MUST satisfy the userid-plus-one rule, checked here rather than
