@@ -1,0 +1,42 @@
+# TEMPLATE for the standalone multi-user test ZSS config.
+# Generated into zowe.yaml by configure-test-env.sh, which substitutes the
+# @TOKEN@ placeholders from test-env.sh. Edit THIS file, not zowe.yaml:
+# zowe.yaml is site-generated and git-ignored.
+#
+# Runtime config for the standalone multi-user test ZSS.
+# TLS via SAF key ring; native SAF auth; NO APIML/ZLUX/launcher.
+# mediationLayer.enabled:false => readJwkSettingsV2() returns NULL => the JWK fetch
+# task (jwk.c / #843) never starts. Auth is native: HTTP Basic or /login -> SAF
+# verify -> ZSS's own session token. No outbound TLS => no truststore needed.
+zowe:
+  logDirectory: @INST@/logs
+  # DISABLED for the first bring-up (one less variable); tighten to NONSTRICT/STRICT later.
+  verifyCertificates: DISABLED
+
+components:
+  zss:
+    tls: true
+    port: @PORT@                           # OUR test port. 7557 = the PRODUCTION ZSS (ZWE1SZ) on this shared box - do NOT share it. (binds components.zss.port, zss.c:1249, not agent.https.port)
+    crossMemoryServerName: @ZISNAME@     # OUR ZIS (distinct from the shared system's ZWESIS_STD); ZIS bring-up in progress
+    agent:
+      "64bit": true
+      https:
+        ipAddresses: ["@ADDR@"]        # address read from agent.https.ipAddresses[0] (zss.c:1247)
+        keyring: "@KEYRING@"       # SAF ring <owner>/<ring> (from provision-keyring-cert.sh)
+        label: @LABEL@                   # the server cert label
+        # BORING explicit ciphers. The V13 default crams TLS1.3 IDs (1301-1303) + 1.2 IDs into
+        # one GSK_V3_CIPHER_SPECS_EXPANDED string, which System SSL V5R1 rejects wholesale ->
+        # empty list -> "No intersection with client cipher suites" (rejects EVERY client cipher,
+        # even ALL@SECLEVEL=0). Force TLS 1.2 + RSA-cert AES-GCM, DHE first (pure software):
+        minTls: "TLSv1.2"
+        maxTls: "TLSv1.2"
+        ciphers: "009E009FC02FC030"        # DHE-RSA-AES128/256-GCM, ECDHE-RSA-AES128/256-GCM
+      jwt:
+        fallback: true                    # native session tokens, not APIML JWT
+      mediationLayer:
+        enabled: false                    # <-- kills JWK/#843 entirely
+    dataserviceAuthentication:
+      defaultAuthentication: fallback
+    pluginsDir:  @INST@/plugins
+    productDir:  @INST@/product
+    instanceDir: @INST@/instance
