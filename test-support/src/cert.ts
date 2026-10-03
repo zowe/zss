@@ -92,13 +92,22 @@ export function provision(env: TestEnv, opts: CertOptions = {}): CertStep[] {
   const listing = z.tso(`RACDCERT LISTRING(${env.ring}) ID(${id})`);
   const hasServer = listing.out.includes(env.label);
   const hasCa = listing.out.includes(caLabel);
-  steps.push({
-    what: 'verify the ring holds both certificates',
-    ok: hasServer && hasCa,
-    out: hasServer && hasCa
-      ? `${env.label} and ${caLabel} are both connected to ${env.ring}`
-      : `ring listing does not show ${!hasServer ? env.label : ''}${!hasServer && !hasCa ? ' and ' : ''}${!hasCa ? caLabel : ''}\n${listing.out.trim()}`,
-  });
+  if (hasServer && hasCa) {
+    steps.push({
+      what: 'verify the ring holds both certificates',
+      ok: true,
+      out: `${env.label} and ${caLabel} are both connected to ${env.ring}`,
+    });
+  } else {
+    const missing: string[] = [];
+    if (!hasServer) missing.push(env.label);
+    if (!hasCa) missing.push(caLabel);
+    steps.push({
+      what: 'verify the ring holds both certificates',
+      ok: false,
+      out: `ring listing does not show ${missing.join(' and ')}\n${listing.out.trim()}`,
+    });
+  }
 
   return steps;
 }

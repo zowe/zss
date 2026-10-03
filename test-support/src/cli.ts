@@ -12,22 +12,19 @@
 /**
  * cli.ts - the single entry point.
  *
- *   zss-test env                      show the resolved configuration
- *   zss-test configure                generate zowe.yaml, make the instance tree, fetch schemas
- *   zss-test fetch-schemas [--ref R]  get the Zowe base schemas
- *   zss-test cert [--host H]          SAF key ring and server certificate
- *   zss-test zis configure|apf|start|stop|status
- *   zss-test server start|stop|status
- *   zss-test compare --before A --after B -- <test command>
+ * Commands are a table of small handlers rather than one nested switch, so each
+ * is readable on its own and adding one does not grow anything else. The usage
+ * text is generated from the table, so it cannot drift out of date.
  *
- * Exit codes are meant for a pipeline: 0 success, 1 the thing under test
- * failed, 2 the harness could not run or could not trust its own result.
+ * Exit codes are meant for a pipeline:
+ *   0  success
+ *   1  the thing under test failed
+ *   2  the harness could not run, or could not trust its own result
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { loadEnv, describe, TestEnv } from './env';
-import * as z from './zos';
 import * as zis from './zis';
 import * as zss from './zss';
 import { compare, report } from './abCompare';
@@ -35,15 +32,22 @@ import { fetchSchemas } from './schemas';
 import { generateConfig } from './configure';
 import { provision, trustAnchorHint } from './cert';
 
-function usage(): void {
-  const lines = (fs.readFileSync(__filename.replace(/\.js$/, '.js'), 'utf8').match(/\*\s{3}zss-test[^\n]*/g) ?? [])
-    .map((l) => l.replace(/^\*\s{3}/, '  '));
-  console.log('zss-test - harness for a standalone ZSS (and ZIS)\n');
-  if (lines.length) console.log(lines.join('\n'));
-  else console.log('  env | configure | fetch-schemas | zis <cmd> | server <cmd> | compare');
+type Handler = (env: TestEnv, argv: string[]) => number | Promise<number>;
+
+interface Command {
+  usage: string;
+  summary: string;
+  run: Handler;
 }
 
-function printSteps(steps: zis.Step[]): boolean {
+interface Step { name: string; ok: boolean; detail: string }
+
+function argValue(argv: string[], name: string): string | undefined {
+  const i = argv.indexOf(name);
+  return i >= 0 ? argv[i + 1] : undefined;
+}
+
+function printSteps(steps: Step[]): boolean {
   let allOk = true;
   for (const s of steps) {
     console.log(`  ${s.ok ? 'ok  ' : 'FAIL'} ${s.name}`);
@@ -53,184 +57,264 @@ function printSteps(steps: zis.Step[]): boolean {
   return allOk;
 }
 
-function argValue(args: string[], name: string): string | undefined {
-  const i = args.indexOf(name);
-  return i >= 0 ? args[i + 1] : undefined;
+const INSTANCE_DIRS = ['logs', 'plugins', 'product', 'instance', 'schemas'];
+
+async function getSchemas(env: TestEnv, argv: string[]): Promise<boolean> {
+  const r = await fetchSchemas({
+    into: path.join(env.instance, 'schemas'),
+    ref: argValue(argv, '--ref') ?? env.schemaRef,
+    fromInstall: argv.includes('--from-install'),
+    runtime: env.zoweRuntime,
+    log: (s) => console.log(s),
+  });
+  if (!r.ok) {
+    console.log('  If this system has no outbound network:');
+    console.log('    zss-test fetch-schemas --from-install');
+  }
+  return r.ok;
 }
 
-async function main(): Promise<number> {
-  const argv = process.argv.slice(2);
-  const cmd = argv[0];
-  if (!cmd || cmd === '-h' || cmd === '--help') { usage(); return 0; }
+/* ---- ZIS subcommands ---- */
 
-  let env: TestEnv;
-  try {
-    env = loadEnv();
-  } catch (e: any) {
-    console.error('configuration error: ' + (e?.message ?? e));
+const zisCommands: Record<string, (env: TestEnv) => number> = {
+  configure: (env) => {
+    const groups: [string, Step[]][] = [
+      ['1. datasets', zis.provisionDatasets(env)],
+      ['2. build', [zis.buildZis(env)]],
+      ['3. parmlib', [zis.writeParmlib(env)]],
+      ['4. server job', [zis.writeServerJob(env)]],
+      ['5. APF', [zis.apfAuthorize(env)]],
+      ['6. ZWES.IS', [zis.checkZwesIs(env)]],
+    ];
+    let ok = true;
+    for (const [title, steps] of groups) {
+      console.log(`=== ${title} ===`);
+      if (!printSteps(steps)) ok = false;
+    }
+    console.log('');
+    console.log('APF added with SETPROG is lost at the next IPL. For something durable, ask');
+    console.log(`a systems programmer to add ${env.zisLoadlib} to a PROGxx PARMLIB member.`);
+    return ok ? 0 : 1;
+  },
+
+  apf: (env) => {
+    const r = zis.apfAuthorize(env);
+    printSteps([r]);
+    if (!r.issued && r.reply) {
+      console.log(r.reply.split('\n').map((l) => '       ' + l).join('\n'));
+    }
+    return r.ok ? 0 : 1;
+  },
+
+  start: (env) => {
+    const r = zis.start(env);
+    console.log(`  ${r.ok ? 'ok  ' : 'FAIL'} ZIS ${r.state}${r.jobid ? ' (' + r.jobid + ')' : ''}`);
+    for (const d of r.diagnosis) console.log('       ' + d);
+    if (!r.ok && r.diagnosis.some((d) => /Not APF-authorized/i.test(d))) {
+      console.log('       -> run: zss-test zis apf    (and see the PROGxx note)');
+    }
+    return r.ok ? 0 : 1;
+  },
+
+  stop: (env) => {
+    const r = zis.stop(env);
+    console.log(`  ${r.stopped ? 'ok  ' : 'FAIL'} ${r.how}`);
+    return r.stopped ? 0 : 1;
+  },
+
+  status: (env) => {
+    const st = zis.status(env);
+    console.log(`  ${st.found ? st.text : 'not running'}`);
+    return st.executing ? 0 : 1;
+  },
+};
+
+/* ---- server subcommands ---- */
+
+const serverCommands: Record<string, (env: TestEnv) => number> = {
+  start: (env) => {
+    const r = zss.start(env);
+    if (!r.ok) { console.log('  FAIL ' + r.why); return 1; }
+    console.log('  ok   ' + r.version);
+    if (r.zis) console.log('  ' + (r.zisOk ? 'ok   ' : 'WARN ') + r.zis);
+    if (!r.zisOk) {
+      console.log('       Without ZIS, ZSS cannot authenticate anyone and every request is 401.');
+    }
+    return 0;
+  },
+
+  stop: (env) => {
+    const r = zss.stop(env);
+    const what = r.killed.length ? 'stopped pid ' + r.killed.join(', ') : 'was not running';
+    console.log(`  ${r.stopped ? 'ok  ' : 'FAIL'} ${what}`);
+    return r.stopped ? 0 : 1;
+  },
+
+  status: (env) => {
+    const pids = zss.running(env);
+    console.log(pids.length ? `  running, pid ${pids.join(', ')}` : '  not running');
+    const log = zss.logFile(env);
+    if (fs.existsSync(log)) {
+      const text = fs.readFileSync(log, 'utf8').split('\n');
+      for (const key of ['ZWES1013I', 'ZWES1014I']) {
+        const line = text.find((l) => l.includes(key));
+        if (line) console.log('  ' + line.trim());
+      }
+    }
+    return pids.length ? 0 : 1;
+  },
+};
+
+function dispatchSub(group: string, table: Record<string, (env: TestEnv) => number>,
+                     env: TestEnv, sub: string | undefined): number {
+  const handler = sub ? table[sub] : undefined;
+  if (!handler) {
+    console.error(`usage: zss-test ${group} ${Object.keys(table).join('|')}`);
     return 2;
   }
+  return handler(env);
+}
 
-  switch (cmd) {
-    case 'env':
-      console.log(describe(env));
-      return 0;
+/* ---- top-level commands ---- */
 
-    case 'fetch-schemas': {
-      const ref = argValue(argv, '--ref') ?? env.schemaRef;
-      const fromInstall = argv.includes('--from-install');
-      const r = await fetchSchemas({
-        into: path.join(env.instance, 'schemas'),
-        ref,
-        fromInstall,
-        runtime: env.zoweRuntime,
-        log: (s) => console.log(s),
-      });
-      return r.ok ? 0 : 1;
-    }
+const COMPARE_USAGE = 'compare --before IMAGE --after IMAGE -- TEST COMMAND';
 
-    case 'configure': {
+const commands: Record<string, Command> = {
+  env: {
+    usage: 'env',
+    summary: 'show the resolved configuration',
+    run: (env) => { console.log(describe(env)); return 0; },
+  },
+
+  'fetch-schemas': {
+    usage: 'fetch-schemas [--ref REF] [--from-install]',
+    summary: 'get the Zowe base schemas the config refers to',
+    run: async (env, argv) => (await getSchemas(env, argv) ? 0 : 1),
+  },
+
+  configure: {
+    usage: 'configure [--force]',
+    summary: 'generate zowe.yaml, make the instance tree, fetch schemas',
+    run: async (env, argv) => {
       console.log('=== configuration ===');
       console.log(describe(env));
       console.log('');
+
       const g = generateConfig(env, argv.includes('--force'));
       console.log(`  ${g.ok ? 'ok  ' : 'FAIL'} ${g.detail}`);
-      for (const d of ['logs', 'plugins', 'product', 'instance', 'schemas']) {
+
+      for (const d of INSTANCE_DIRS) {
         const p = path.join(env.instance, d);
         const existed = fs.existsSync(p);
         if (!existed) fs.mkdirSync(p, { recursive: true });
-        console.log(`  ${existed ? 'ok   exists' : 'ok   created'} ${p}`);
+        console.log(`  ok   ${existed ? 'exists ' : 'created'} ${p}`);
       }
+
       console.log('');
       console.log('=== Zowe base schemas ===');
-      const s = await fetchSchemas({
-        into: path.join(env.instance, 'schemas'),
-        ref: env.schemaRef,
-        fromInstall: false,
-        runtime: env.zoweRuntime,
-        log: (m) => console.log(m),
-      });
-      if (!s.ok) {
-        console.log('  If this system has no outbound network:');
-        console.log('    zss-test fetch-schemas --from-install');
-      }
+      const schemasOk = await getSchemas(env, argv);
+
       console.log('');
       console.log('=== next ===');
-      console.log('  provision the TLS identity (once):  zss-test cert');
-      console.log('  bring up ZIS:                       zss-test zis configure && zss-test zis apf && zss-test zis start');
-      console.log('  start the server:                   zss-test server start');
-      return g.ok && s.ok ? 0 : 1;
-    }
+      console.log('  TLS identity (once):  zss-test cert');
+      console.log('  bring up ZIS:         zss-test zis configure && zss-test zis apf && zss-test zis start');
+      console.log('  start the server:     zss-test server start');
+      return g.ok && schemasOk ? 0 : 1;
+    },
+  },
 
-    case 'cert': {
+  cert: {
+    usage: 'cert [--host HOST]',
+    summary: 'SAF key ring and server certificate',
+    run: (env, argv) => {
       const steps = provision(env, { host: argValue(argv, '--host') });
       let ok = true;
       for (const st of steps) {
-        console.log(`  ${st.ok ? 'ok  ' : 'FAIL'} ${st.what}${st.tolerated && st.out ? '  (non-zero tolerated)' : ''}`);
-        if (!st.ok && st.out) console.log(st.out.split('\n').map((l) => '       ' + l).join('\n'));
+        const note = st.tolerated && !st.ok ? '  (tolerated)' : '';
+        console.log(`  ${st.ok ? 'ok  ' : 'FAIL'} ${st.what}${note}`);
+        if (!st.ok && st.out) {
+          console.log(st.out.split('\n').map((l) => '       ' + l).join('\n'));
+        }
         if (!st.ok) ok = false;
       }
       console.log('');
       console.log('To let a client trust this authority, export it:');
       console.log('  ' + trustAnchorHint(env));
       return ok ? 0 : 1;
-    }
+    },
+  },
 
-    case 'zis': {
-      const sub = argv[1];
-      switch (sub) {
-        case 'configure': {
-          console.log('=== 1. datasets ==='); const a = printSteps(zis.provisionDatasets(env));
-          console.log('=== 2. build ===');    const b = printSteps([zis.buildZis(env)]);
-          console.log('=== 3. parmlib ===');  const c = printSteps([zis.writeParmlib(env)]);
-          console.log('=== 4. server job ==='); const d = printSteps([zis.writeServerJob(env)]);
-          console.log('=== 5. APF ===');      const e = printSteps([zis.apfAuthorize(env)]);
-          console.log('=== 6. ZWES.IS ===');  const f = printSteps([zis.checkZwesIs(env)]);
-          console.log('');
-          console.log('APF added with SETPROG is lost at the next IPL. For something durable, ask a');
-          console.log(`systems programmer to add ${env.zisLoadlib} to a PROGxx PARMLIB member.`);
-          return a && b && c && d && e && f ? 0 : 1;
-        }
-        case 'apf': {
-          const r = zis.apfAuthorize(env);
-          printSteps([r]);
-          if (!r.issued && r.reply) console.log(r.reply.split('\n').map((l) => '       ' + l).join('\n'));
-          return r.ok ? 0 : 1;
-        }
-        case 'start': {
-          const r = zis.start(env);
-          console.log(`  ${r.ok ? 'ok  ' : 'FAIL'} ZIS ${r.state}${r.jobid ? ' (' + r.jobid + ')' : ''}`);
-          for (const d of r.diagnosis) console.log('       ' + d);
-          if (!r.ok && r.diagnosis.some((d) => /Not APF-authorized/i.test(d))) {
-            console.log('       -> run: zss-test zis apf    (and see the PROGxx note)');
-          }
-          return r.ok ? 0 : 1;
-        }
-        case 'stop': {
-          const r = zis.stop(env);
-          console.log(`  ${r.stopped ? 'ok  ' : 'FAIL'} ${r.how}`);
-          return r.stopped ? 0 : 1;
-        }
-        case 'status': {
-          const st = zis.status(env);
-          console.log(`  ${st.found ? st.text : 'not running'}`);
-          return st.executing ? 0 : 1;
-        }
-        default: usage(); return 2;
-      }
-    }
+  zis: {
+    usage: 'zis configure|apf|start|stop|status',
+    summary: 'the private test ZIS',
+    run: (env, argv) => dispatchSub('zis', zisCommands, env, argv[1]),
+  },
 
-    case 'server': {
-      const sub = argv[1];
-      switch (sub) {
-        case 'start': {
-          const r = zss.start(env);
-          if (!r.ok) { console.log('  FAIL ' + r.why); return 1; }
-          console.log('  ok   ' + r.version);
-          if (r.zis) console.log('  ' + (r.zisOk ? 'ok   ' : 'WARN ') + r.zis);
-          if (!r.zisOk) console.log('       ZSS cannot authenticate anyone without ZIS; every request will be 401.');
-          return 0;
-        }
-        case 'stop': {
-          const r = zss.stop(env);
-          console.log(`  ${r.stopped ? 'ok' : 'FAIL'} ${r.killed.length ? 'stopped pid ' + r.killed.join(', ') : 'was not running'}`);
-          return r.stopped ? 0 : 1;
-        }
-        case 'status': {
-          const pids = zss.running(env);
-          console.log(pids.length ? `  running, pid ${pids.join(', ')}` : '  not running');
-          const log = zss.logFile(env);
-          if (fs.existsSync(log)) {
-            for (const key of ['ZWES1013I', 'ZWES1014I']) {
-              const line = fs.readFileSync(log, 'utf8').split('\n').find((l) => l.includes(key));
-              if (line) console.log('  ' + line.trim());
-            }
-          }
-          return pids.length ? 0 : 1;
-        }
-        default: usage(); return 2;
-      }
-    }
+  server: {
+    usage: 'server start|stop|status',
+    summary: 'the standalone test ZSS',
+    run: (env, argv) => dispatchSub('server', serverCommands, env, argv[1]),
+  },
 
-    case 'compare': {
+  compare: {
+    usage: COMPARE_USAGE,
+    summary: 'run a test against two builds and prove which one answered',
+    run: (env, argv) => {
       const before = argValue(argv, '--before');
       const after = argValue(argv, '--after');
       const dashdash = argv.indexOf('--');
       const command = dashdash >= 0 ? argv.slice(dashdash + 1) : [];
       if (!before || !after || command.length === 0) {
-        console.error('usage: compare --before <image> --after <image> -- <test command>');
+        console.error('usage: zss-test ' + COMPARE_USAGE);
         return 2;
       }
-      const c = compare(env, { before, after, command });
-      return report(c);
-    }
+      return report(compare(env, { before, after, command }));
+    },
+  },
+};
 
-    default:
-      console.error('unknown command: ' + cmd);
-      usage();
-      return 2;
+function usage(): void {
+  console.log('zss-test - harness for a standalone ZSS (and ZIS)');
+  console.log('');
+  const width = 46;
+  for (const c of Object.values(commands)) {
+    /* A usage line longer than the column gets its summary underneath rather
+       than run together with it. */
+    if (c.usage.length > width) {
+      console.log('  ' + c.usage);
+      console.log('  ' + ' '.repeat(width) + c.summary);
+    } else {
+      console.log('  ' + c.usage.padEnd(width) + c.summary);
+    }
   }
 }
 
-main().then((code) => process.exit(code),
-  (e) => { console.error('zss-test failed: ' + (e?.stack ?? e)); process.exit(2); });
+async function main(): Promise<number> {
+  const argv = process.argv.slice(2);
+  const name = argv[0];
+  if (!name || name === '-h' || name === '--help') { usage(); return 0; }
+
+  const command = commands[name];
+  if (!command) {
+    console.error('unknown command: ' + name);
+    usage();
+    return 2;
+  }
+
+  let env: TestEnv;
+  try {
+    env = loadEnv();
+  } catch (e: unknown) {
+    console.error('configuration error: ' + (e instanceof Error ? e.message : String(e)));
+    return 2;
+  }
+
+  return command.run(env, argv);
+}
+
+main().then(
+  (code) => process.exit(code),
+  (e: unknown) => {
+    console.error('zss-test failed: ' + (e instanceof Error ? (e.stack ?? e.message) : String(e)));
+    process.exit(2);
+  });

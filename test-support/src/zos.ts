@@ -23,10 +23,10 @@
  * Those are commented where they are, not in a list somewhere else.
  */
 
-import { execFileSync, ExecFileSyncOptions } from 'child_process';
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
+import { execFileSync, ExecFileSyncOptions } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 
 /* Node's own type for platform does not list os390, even though Node on z/OS
    reports exactly that, so this compares as a plain string. */
@@ -40,12 +40,43 @@ export interface Ran {
   out: string;
 }
 
+/**
+ * Directories a system tool is allowed to come from, in order.
+ *
+ * Resolving a tool to an absolute path means PATH cannot decide what runs. That
+ * matters more than usual here: this harness issues TSO and operator commands,
+ * so a `tsocmd` picked up from a writable directory earlier on PATH would be
+ * running privileged work on our behalf. These are the standard z/OS locations
+ * plus the usual Unix ones so the module still works off-platform.
+ */
+const TOOL_DIRS = ['/bin', '/usr/bin', '/usr/sbin', '/usr/local/bin'];
+
+const resolved = new Map<string, string>();
+
+/** Absolute path for a system tool, or the bare name if it is somewhere else
+ *  (in which case PATH decides, and the caller has chosen that). */
+export function resolveTool(name: string): string {
+  if (name.includes('/')) return name;
+  const hit = resolved.get(name);
+  if (hit !== undefined) return hit;
+  for (const d of TOOL_DIRS) {
+    const p = `${d}/${name}`;
+    try {
+      fs.accessSync(p, fs.constants.X_OK);
+      resolved.set(name, p);
+      return p;
+    } catch { /* keep looking */ }
+  }
+  resolved.set(name, name);
+  return name;
+}
+
 export function run(cmd: string, args: string[], opts: ExecFileSyncOptions = {}): Ran {
   try {
     /* Capture stderr as well as stdout. tsocmd echoes the command it was given
        on stderr, and letting that through makes every call look like it printed
        something unexpected. Callers want one string, not two streams. */
-    const out = execFileSync(cmd, args, {
+    const out = execFileSync(resolveTool(cmd), args, {
       encoding: 'utf8',
       maxBuffer: 32 * 1024 * 1024,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -113,8 +144,8 @@ export function members(dsn: string): string[] {
 export function datasetPlacement(dsn: string): { sms: boolean; volume: string | null } {
   const out = tso(`LISTCAT ENT('${dsn}') ALL`).out;
   if (/STORAGECLASS|STORCLAS/i.test(out)) return { sms: true, volume: null };
-  const m = out.match(/VOLSER-*([A-Z0-9]{1,6})\s/);
-  return { sms: false, volume: m ? m[1] : null };
+  const m = /VOLSER-*([A-Z0-9]{1,6})\s/.exec(out);
+  return { sms: false, volume: m?.[1] ?? null };
 }
 
 export interface JobState {
@@ -136,7 +167,7 @@ export interface JobState {
 export function jobStatus(jobname: string): JobState {
   const out = tso(`STATUS ${jobname}`).out;
   const line = out.split('\n').find((l) => l.includes(jobname) && !l.startsWith('STATUS')) ?? '';
-  const idm = line.match(/\((JOB\d+)\)/);
+  const idm = /\((JOB\d+)\)/.exec(line);
   return {
     found: !/NOT FOUND/i.test(line) && line.trim().length > 0,
     jobid: idm ? idm[1] : null,
@@ -149,7 +180,7 @@ export function jobStatus(jobname: string): JobState {
 
 export function submit(dsnMember: string): { ok: boolean; jobid: string | null; out: string } {
   const r = tso(`SUBMIT '${dsnMember}'`);
-  const m = r.out.match(/\((JOB\d+)\)/);
+  const m = /\((JOB\d+)\)/.exec(r.out);
   return { ok: r.ok, jobid: m ? m[1] : null, out: r.out };
 }
 
@@ -248,7 +279,7 @@ export function pidsMatching(needle: string): number[] {
   const out = run('ps', ['-ef']).out;
   return out.split('\n')
     .filter((l) => l.includes(needle) && !l.includes('grep'))
-    .map((l) => parseInt(l.trim().split(/\s+/)[1], 10))
+    .map((l) => Number.parseInt(l.trim().split(/\s+/)[1], 10))
     .filter((n) => Number.isFinite(n));
 }
 
@@ -280,7 +311,7 @@ export function iconvBuffer(buf: Buffer, from: string, to: string): Buffer {
   fs.writeFileSync(tmp, buf);
   try {
     tagFile(tmp, from);
-    return execFileSync('iconv', ['-f', from, '-t', to, tmp], { maxBuffer: 64 * 1024 * 1024 });
+    return execFileSync(resolveTool('iconv'), ['-f', from, '-t', to, tmp], { maxBuffer: 64 * 1024 * 1024 });
   } finally {
     try { fs.unlinkSync(tmp); } catch { /* best effort */ }
   }

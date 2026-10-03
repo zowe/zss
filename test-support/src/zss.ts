@@ -16,9 +16,9 @@
  * password or keystore file anywhere.
  */
 
-import { spawn } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
+import { spawn } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import * as z from './zos';
 import { TestEnv } from './env';
 

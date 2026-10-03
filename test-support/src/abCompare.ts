@@ -27,7 +27,7 @@
  * unrelated cause, which is how a pre-fix build once looked fixed.
  */
 
-import { spawnSync } from 'child_process';
+import { spawnSync } from 'node:child_process';
 import { TestEnv } from './env';
 import * as zss from './zss';
 
@@ -46,53 +46,64 @@ export interface Comparison {
   why?: string;
 }
 
+type Say = (s: string) => void;
+
+/** One phase: swap the build in, start it, run the test. Separated from compare()
+ *  so each half is readable: this is the mechanics, compare() is the argument. */
+function runPhase(env: TestEnv, label: string, image: string,
+                  command: string[], say: Say): Phase | { failed: string } {
+  say('');
+  say('================================================================');
+  say(` ${label}`);
+  say(` ${image}`);
+  say('================================================================');
+
+  const swap = zss.useBuild(env, image);
+  if (!swap.ok) return { failed: `${label}: ${swap.why}` };
+
+  const started = zss.start(env);
+  if (!started.ok) return { failed: `${label}: ${started.why}` };
+
+  say(`  ${started.version}`);
+  if (started.zis) say(`  ${started.zis}`);
+  if (!started.zisOk) {
+    say('  WARNING: ZIS is not Ok, so ZSS cannot authenticate anyone. Any');
+    say('           authenticated case will be 401 and will say nothing.');
+  }
+  say('');
+
+  const cmd = command[0];
+  if (cmd === undefined) return { failed: 'empty test command' };
+
+  /* The test owns its own verdict; this only reports the exit status. */
+  const r = spawnSync(cmd, command.slice(1), { stdio: 'inherit' });
+  const exit = typeof r.status === 'number' ? r.status : null;
+  say(`  (test exit ${exit === null ? 'signal' : exit})`);
+
+  return {
+    label, image,
+    version: started.version,
+    zis: started.zis,
+    zisOk: started.zisOk,
+    testExit: exit,
+  };
+}
+
 export function compare(env: TestEnv, opts: {
   before: string;
   after: string;
   command: string[];
   onPhase?: (p: Phase) => void;
-  log?: (s: string) => void;
+  log?: Say;
 }): Comparison {
   const say = opts.log ?? ((s: string) => console.log(s));
   const phases: Phase[] = [];
 
   for (const [label, image] of [['BEFORE', opts.before], ['AFTER', opts.after]] as [string, string][]) {
-    say('');
-    say('================================================================');
-    say(` ${label}`);
-    say(` ${image}`);
-    say('================================================================');
-
-    const swap = zss.useBuild(env, image);
-    if (!swap.ok) return { phases, genuine: false, why: `${label}: ${swap.why}` };
-
-    const started = zss.start(env);
-    if (!started.ok) return { phases, genuine: false, why: `${label}: ${started.why}` };
-
-    say(`  ${started.version}`);
-    if (started.zis) say(`  ${started.zis}`);
-    if (!started.zisOk) {
-      say('  WARNING: ZIS is not Ok, so ZSS cannot authenticate anyone. Any');
-      say('           authenticated case will be 401 and will say nothing.');
-    }
-    say('');
-
-    /* The test owns its own verdict; this only reports the exit status. */
-    const cmd = opts.command[0];
-    if (cmd === undefined) return { phases, genuine: false, why: 'empty test command' };
-    const r = spawnSync(cmd, opts.command.slice(1), { stdio: 'inherit' });
-    const exit = typeof r.status === 'number' ? r.status : null;
-    say(`  (test exit ${exit === null ? 'signal' : exit})`);
-
-    const phase: Phase = {
-      label, image,
-      version: started.version,
-      zis: started.zis,
-      zisOk: started.zisOk,
-      testExit: exit,
-    };
-    phases.push(phase);
-    if (opts.onPhase) opts.onPhase(phase);
+    const result = runPhase(env, label, image, opts.command, say);
+    if ('failed' in result) return { phases, genuine: false, why: result.failed };
+    phases.push(result);
+    if (opts.onPhase) opts.onPhase(result);
   }
 
   const [b, a] = phases;

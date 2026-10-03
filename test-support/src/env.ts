@@ -21,9 +21,9 @@
  * writing four lines of JSON. That is the whole intent.
  */
 
-import * as fs from 'fs';
-import * as os from 'os';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { iconvBuffer } from './zos';
 
 export interface TestEnv {
@@ -122,7 +122,7 @@ export function loadEnv(supportDir?: string): TestEnv {
     addr: envStr('ZSS_TEST_ADDR', '127.0.0.1'),
     /* 17557 deliberately, not 7557: that is the shared production ZSS on our
        test system, and the drivers refuse it without an explicit override. */
-    port: parseInt(envStr('ZSS_TEST_PORT', '17557'), 10),
+    port: Number.parseInt(envStr('ZSS_TEST_PORT', '17557'), 10),
 
     ring,
     label,

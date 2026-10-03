@@ -27,9 +27,9 @@
  * IBM-1047 and tagged, which is what this does.
  */
 
-import * as fs from 'fs';
-import * as https from 'https';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as https from 'node:https';
+import * as path from 'node:path';
 import * as z from './zos';
 
 const REPO = 'zowe/zowe-install-packaging';
@@ -87,15 +87,24 @@ export async function fetchSchemas(opts: {
   const wrote: string[] = [];
   const failed: { file: string; why: string }[] = [];
 
-  for (const w of WANTED) {
-    let buf: Buffer;
+  /* Both sources are independent, so gather them together: awaiting inside a
+     loop would serialise two unrelated fetches for no reason. */
+  const gathered = await Promise.all(WANTED.map(async (w) => {
     try {
-      buf = opts.fromInstall
+      const buf = opts.fromInstall
         ? fs.readFileSync(path.join(opts.runtime, 'schemas', w.file))
         : await get(`${source}/${w.file}`);
-    } catch (e: any) {
-      failed.push({ file: w.file, why: e?.message ?? String(e) });
-      say(`  FAIL ${w.file}: ${e?.message ?? e}`);
+      return { w, buf, err: null as string | null };
+    } catch (e: unknown) {
+      return { w, buf: null, err: e instanceof Error ? e.message : String(e) };
+    }
+  }));
+
+  for (const g of gathered) {
+    const w = g.w;
+    if (!g.buf) {
+      failed.push({ file: w.file, why: g.err ?? 'unknown' });
+      say(`  FAIL ${w.file}: ${g.err}`);
       continue;
     }
 
@@ -104,10 +113,10 @@ export async function fetchSchemas(opts: {
        faithfully converted to EBCDIC, tagged, and handed to the server. */
     let id: unknown;
     try {
-      id = (JSON.parse(buf.toString('utf8')) as { $id?: unknown }).$id;
-    } catch (e: any) {
+      id = (JSON.parse(g.buf.toString('utf8')) as { $id?: unknown }).$id;
+    } catch (e: unknown) {
       failed.push({ file: w.file, why: 'not valid JSON' });
-      say(`  FAIL ${w.file}: not valid JSON (${e?.message ?? e})`);
+      say(`  FAIL ${w.file}: not valid JSON (${e instanceof Error ? e.message : String(e)})`);
       continue;
     }
     if (id !== w.id) {
@@ -119,15 +128,15 @@ export async function fetchSchemas(opts: {
     const dest = path.join(opts.into, w.file);
     let how: string;
     if (z.isZos) {
-      fs.writeFileSync(dest, z.iconvBuffer(buf, 'ISO8859-1', 'IBM-1047'));
+      fs.writeFileSync(dest, z.iconvBuffer(g.buf, 'ISO8859-1', 'IBM-1047'));
       z.tagFile(dest, 'IBM-1047');
       how = 'converted to IBM-1047 and tagged';
     } else {
-      fs.writeFileSync(dest, buf);
+      fs.writeFileSync(dest, g.buf);
       how = 'as-is (not z/OS)';
     }
     wrote.push(w.file);
-    say(`  ok   ${w.file.padEnd(24)} ${buf.length} bytes, ${how}`);
+    say(`  ok   ${w.file.padEnd(24)} ${g.buf.length} bytes, ${how}`);
   }
 
   /* Record what was taken, so a surprise months from now is answerable. */

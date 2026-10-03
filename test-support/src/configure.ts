@@ -16,8 +16,8 @@
  * zowe.yaml.template is the thing to edit for a change everyone should get.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { TestEnv } from './env';
 
 export interface GenerateResult {

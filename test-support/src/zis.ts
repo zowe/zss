@@ -23,7 +23,7 @@
  * cross-memory NAME and cannot tell the difference.
  */
 
-import * as path from 'path';
+import * as path from 'node:path';
 import * as z from './zos';
 import { TestEnv, jobCard } from './env';
 
@@ -58,13 +58,15 @@ export function buildZis(env: TestEnv): Step {
      treats non-zero as success. So verify the artifact, never the verdict. */
   const built = z.members(env.zisLoadlib).includes('ZWESIS01');
   const errors = (r.out.match(/ERROR CCN\d+/g) ?? []).length;
-  return {
-    name: 'build ZWESIS01',
-    ok: built && errors === 0,
-    detail: built
-      ? (errors ? `ZWESIS01 present but ${errors} compile errors in the log` : 'ZWESIS01 present in the loadlib')
-      : 'ZWESIS01 NOT in the loadlib - the build did not produce it',
-  };
+  let detail: string;
+  if (!built) {
+    detail = 'ZWESIS01 NOT in the loadlib - the build did not produce it';
+  } else if (errors > 0) {
+    detail = `ZWESIS01 present but ${errors} compile errors in the log`;
+  } else {
+    detail = 'ZWESIS01 present in the loadlib';
+  }
+  return { name: 'build ZWESIS01', ok: built && errors === 0, detail };
 }
 
 export function writeParmlib(env: TestEnv): Step {
@@ -154,8 +156,8 @@ export function checkZwesIs(env: TestEnv): Step {
   if (/NOT FOUND|NOT DEFINED/i.test(out)) {
     return { name: 'ZWES.IS', ok: false, detail: 'not defined; a security administrator must define it and grant READ' };
   }
-  const m = out.match(/YOUR ACCESS[\s\S]{0,200}/i);
-  const seg = m ? m[0] : out;
+  const m = /YOUR ACCESS[\s\S]{0,200}/i.exec(out);
+  const seg = m?.[0] ?? out;
   const enough = /\b(READ|UPDATE|CONTROL|ALTER)\b/.test(seg);
   return {
     name: 'ZWES.IS',
@@ -191,7 +193,7 @@ export function start(env: TestEnv, waitSeconds = 45): StartResult {
   const log = z.jobLog(env.zisJob, s.jobid, jobOutDsn(env)) ?? '';
   const msgs = log.split('\n')
     .filter((l) => /ZWES\d{4}[IEWA]/.test(l) && !/ZWES0101I/.test(l))
-    .map((l) => (l.match(/ZWES\d{4}[IEWA].*/) ?? [l])[0].trim());
+    .map((l) => (/ZWES\d{4}[IEWA].*/.exec(l)?.[0] ?? l).trim());
   const seen = new Set<string>();
   const diagnosis = msgs.filter((m) => (seen.has(m) ? false : (seen.add(m), true)));
   if (!log) {
