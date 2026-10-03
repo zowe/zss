@@ -3,7 +3,7 @@
 #
 # Run UNDER PLAIN /bin/sh (NOT env.sh/zopen bash): it touches EBCDIC samplib members +
 # MVS datasets with NATIVE tools; zopen (ASCII) sed/cat would mangle them.
-#   ->   sh /ZOWE/joezowe/git2026/zss/test-support/zis/zis-configure.sh
+#   ->   sh <zss-repo>/test-support/zis/zis-configure.sh
 #
 # Idempotent. Assumes the invoker holds RACF + operator (SETPROG) authority.
 set -u

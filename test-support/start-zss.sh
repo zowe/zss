@@ -1,6 +1,6 @@
 #!/bin/sh
 # start-zss.sh - launch the standalone multi-user test ZSS (zssServer64).
-# Run on z/OS (env: cd /ZOWE/joezowe && . ./env.sh; bash) after building the binary
+# Run on z/OS under a shell with node and the z/OS tools on PATH, after
 # and running provision-keyring-cert.sh.
 #
 # Modes:

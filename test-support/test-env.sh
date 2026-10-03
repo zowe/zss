@@ -9,9 +9,9 @@
 # the current userid, so on a system laid out like ours it needs no editing at
 # all.
 #
-# WHY THIS EXISTS: the first version of these scripts had /ZOWE/joezowe and
-# ZOWEAD5 scattered through six files plus a YAML, which made them one
-# developer's scripts rather than the squad's test infrastructure.
+# WHY THIS EXISTS: the first version of these scripts had one developer's
+# paths and userid scattered through six files plus a YAML, which made them
+# that developer's scripts rather than the squad's test infrastructure.
 
 # ---- who ----
 # Uppercased: MVS wants it that way, and dataset and job names are built from it.
@@ -72,8 +72,8 @@ export ZSS_TEST_USERID ZSS_TEST_SUPPORT ZSS_ROOT ZSS_TEST_INST \
 
 # ---- site override ----
 # test-env.local.sh is git-ignored and sourced LAST, so a site can pin anything
-# above without editing a tracked file. This is how our Marist instance keeps
-# living at /ZOWE/joezowe/zsstest while the committed default is \$HOME/zsstest.
+# above without editing a tracked file. Use it when your instance lives
+# somewhere other than the committed default of \$HOME/zsstest.
 _local="${ZSS_TEST_SUPPORT}/test-env.local.sh"
 [ -f "$_local" ] && . "$_local"
 

@@ -39,7 +39,8 @@ ZIS_JOB="${ZIS_JOB:-${ZIS_USERID}Z}"
 
 # Separate name for the throwaway operator-command job. It must ALSO be userid +
 # at least one character, and an MVS job name is at most 8, so it cannot be
-# derived by appending to ZIS_JOB: ZOWEAD5Z + C is 9 and JES rejects the card.
+# derived by appending to ZIS_JOB: a 7-character userid gives 8 + 1 = 9, and
+# JES rejects the card.
 ZIS_CMDJOB="${ZIS_CMDJOB:-${ZIS_USERID}C}"
 
 # Extended-console name for that job. MUST NOT be the bare userid: TSO CONSOLE
@@ -60,7 +61,7 @@ ZIS_OUT="${ZIS_OUT:-${ZIS_USERID}.ZWESIS.ZISOUT}"           # server SYSPRINT (a
 ZSS_ROOT="${ZSS_ROOT:-$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd)}"
 
 # JOB statement accounting (EDIT for your shop). The Marist convention is a bare
-# "JOB 1" (cf. ZOWEAD5.ZWESIS.JCL(WMTEST)) - the accounting field is just "1".
+# "JOB 1" - the accounting field is just "1".
 # REGION=0M + TIME=NOLIMIT are NOT optional for the server: ZWESIS01 as a JOB runs
 # forever, so a default job-class CPU limit would S322 it (an STC has no such limit).
 # MSGCLASS=H is a HELD class on Marist, which is what makes the job log readable
