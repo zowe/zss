@@ -31,6 +31,69 @@
 #include "logging.h"
 #include "rasService.h"
 
+#ifdef __ZOWE_OS_ZOS
+
+#include "json.h"
+#include "configmgr.h"
+#include "zss.h"
+#include "zis/client.h"
+#include "zos.h"
+
+#define SAF_CLASS                   "ZOWE"
+#define RAS_TRACELEVEL_PROFILE_GET  "ZLUX.0.COR.GET.RAS.TRACELEVEL"
+#define RAS_TRACELEVEL_PROFILE_PUT  "ZLUX.0.COR.PUT.RAS.TRACELEVEL"
+
+/* Gate on RBAC, the same way serverStatusService.c gates /server/agent.
+   Returns 0 to continue, -1 when a response has already been sent. */
+static int checkTraceLevelAuthorization(HttpResponse *response) {
+  HttpRequest *request = response->request;
+  HttpServer *server = httpResponseServer(response);
+
+  const char *profile = NULL;
+  if (!strcmp(request->method, methodGET)) {
+    profile = RAS_TRACELEVEL_PROFILE_GET;
+  } else if (!strcmp(request->method, methodPUT)) {
+    profile = RAS_TRACELEVEL_PROFILE_PUT;
+  } else {
+    /* Leave the 405 to the method dispatch below. */
+    return 0;
+  }
+
+  if (!request->authenticated) {
+    respondWithError(response, HTTP_STATUS_UNAUTHORIZED, "Not Authorized");
+    return -1;
+  }
+
+  Json *dataserviceAuthJson = NULL;
+  int cfgGetStatus = cfgGetAnyC(httpServerConfigManager(server), ZSS_CFGNAME,
+                                &dataserviceAuthJson, 3,
+                                "components", "app-server", "dataserviceAuthentication");
+  JsonObject *dataserviceAuth =
+      (cfgGetStatus == ZCFG_SUCCESS ? jsonAsObject(dataserviceAuthJson) : NULL);
+  if (!(dataserviceAuth ? jsonObjectGetBoolean(dataserviceAuth, "rbac") : 0)) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,
+                     "Set dataserviceAuthentication.rbac to true in server configuration");
+    return -1;
+  }
+
+  CrossMemoryServerName *privilegedServerName =
+      getConfiguredProperty(server, HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
+  ZISAuthServiceStatus reqStatus = {0};
+  int rc = zisCheckEntity(privilegedServerName, request->username, SAF_CLASS,
+                          profile, SAF_AUTH_ATTR_READ, &reqStatus);
+  if (rc != RC_ZIS_SRVC_OK) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
+            "httpserver: RAS traceLevel %s refused, profile '%s', zisCheckEntity RC = %d\n",
+            request->method, profile, rc);
+    respondWithError(response, HTTP_STATUS_FORBIDDEN,
+                     "Forbidden - insufficient RBAC authorization");
+    return -1;
+  }
+  return 0;
+}
+
+#endif /* __ZOWE_OS_ZOS */
+
 static bool isLoggingComponentValid(char *componentText) {
 
   int length = strlen(componentText);
@@ -131,6 +194,12 @@ static int serveRASData(HttpService *service, HttpResponse *response) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "unsupported RAS command");
     return 0;
   }
+
+#ifdef __ZOWE_OS_ZOS
+  if (checkTraceLevelAuthorization(response) != 0) {
+    return 0;
+  }
+#endif
 
   uint64 componentID = 0;
 
