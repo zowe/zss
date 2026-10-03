@@ -37,6 +37,13 @@ tsocmd "STATUS ${USER}Z"          # want: EXECUTING
 sh start-zss.sh                   # want: ZWES1014I ... cmsRC='0'
 ```
 
+Then run whatever test you have. To compare two builds:
+
+```sh
+./ab-compare.sh --before bin/zssServer64.old --after bin/zssServer64.new \
+                -- node suites/my-test.js --user MYUSERID
+```
+
 Run these under plain `/bin/sh`, not a zopen/ASCII shell: they handle EBCDIC
 samplib members and MVS datasets with native tools.
 
@@ -80,26 +87,27 @@ Two values are genuinely system-dependent and worth checking first:
 | `provision-keyring-cert.sh` | SAF keyring and server certificate |
 | `start-zss.sh` | launch the test ZSS, detached by default |
 | `zis/` | the private test ZIS: configure, apf, start, stop, status |
-| `ras-rbac-test.js` | drives `/ras/traceLevel`, classifies the result |
-| `ras-rbac-ab.sh` | runs that test against two binaries and compares |
+| `ab-compare.sh` | run any test against two builds and prove which answered |
 | `schemas/` | vendored base schemas the config `$ref`s by `$id` |
 
-The JavaScript drivers use Node built-in modules only, take `--help`, and exit
-0 on success, 1 on the defect being present, 2 on an inconclusive or invalid
-run, so a pipeline can gate on them.
+Tests themselves live beside the change they belong to. The convention is a Node
+script using built-in modules only, taking `--help`, and exiting 0 on success,
+1 on the defect being present and 2 on an inconclusive run, so a pipeline can
+gate on it. The first example is `ras-rbac-test.js`, added with the fix for #855.
 
 ## Writing a test that cannot lie to you
 
 Learned the hard way, repeatedly. **Assert the identity of the thing under test,
-not just the result.** `ras-rbac-ab.sh` is the worked example and checks three
-things before it believes any table:
+not just the result.** `ab-compare.sh` enforces the first two of these for you,
+and a test should do the third itself:
 
 1. the server actually restarted (a `ZWES1013I` line appeared), otherwise it
    refuses to run rather than letting something else answer;
 2. the two runs reported **different** build stamps, otherwise it declares the
    comparison invalid and exits 2;
 3. the decisive cases carry the expected **reason** in the response body, not
-   merely the expected status code.
+   merely the expected status code. A status code alone is not evidence: a build
+   without the fix can return the same code for an unrelated reason.
 
 Each of those was added after that exact failure produced a confident, wrong
 answer. An earlier version tested one binary twice and reported success both
