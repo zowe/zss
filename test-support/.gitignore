@@ -2,3 +2,5 @@ wsl/build/
 **/instance/
 zowe.yaml
 test-env.local.sh
+lib/
+node_modules/

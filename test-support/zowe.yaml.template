@@ -17,7 +17,7 @@ components:
   zss:
     tls: true
     port: @PORT@                           # OUR test port. 7557 = the PRODUCTION ZSS (ZWE1SZ) on this shared box - do NOT share it. (binds components.zss.port, zss.c:1249, not agent.https.port)
-    crossMemoryServerName: ZWESIS_TST     # OUR ZIS (distinct from the shared system's ZWESIS_STD); ZIS bring-up in progress
+    crossMemoryServerName: @ZISNAME@     # OUR ZIS (distinct from the shared system's ZWESIS_STD); ZIS bring-up in progress
     agent:
       "64bit": true
       https:
