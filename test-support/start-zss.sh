@@ -18,11 +18,23 @@ BIN="$ZSS_ROOT/bin/zssServer64"
 CFG="$HERE/zowe.yaml"
 INST="$ZSS_TEST_INST"
 
-# --schemas: zss's own (zowe-schema = root, zss-config) + the base schemas it $refs
-# by $id (zowe-yaml-schema.json, server-common), VENDORED here under test-support/schemas/
-# as IBM-1047 (installed /usr/lpp/zowe copies are older + untagged, which the EBCDIC
-# configmgr misreads). Root first; configmgr loads all and resolves the cross-$id refs.
-SCHEMAS="$ZSS_ROOT/schemas/zowe-schema.json:$ZSS_ROOT/schemas/zss-config.json:$HERE/schemas/zowe-yaml-schema.json:$HERE/schemas/server-common.json"
+# --schemas: zss's own two (zowe-schema is the root, zss-config) plus the two base
+# schemas they refer to by $id (zowe-yaml-schema.json, server-common.json).
+# Those two belong to Zowe and ship in every install under <runtime>/schemas/,
+# but the installed copies are UNTAGGED, and the EBCDIC config manager reads
+# untagged ASCII as EBCDIC and sees garbage. So this directory holds copies
+# tagged IBM-1047. Root schema first; the config manager loads them all and
+# resolves the cross-$id references itself.
+# ZSS's own two come from the repo; the two Zowe base schemas come from the
+# instance directory, put there by fetch-schemas.js. Nothing is kept as a copy
+# in this repository: see fetch-schemas.js for why, and run
+# configure-test-env.sh if they are missing.
+BASE="$ZSS_TEST_INST/schemas"
+SCHEMAS="$ZSS_ROOT/schemas/zowe-schema.json:$ZSS_ROOT/schemas/zss-config.json:$BASE/zowe-yaml-schema.json:$BASE/server-common.json"
+
+for s in "$BASE/zowe-yaml-schema.json" "$BASE/server-common.json"; do
+  [ -f "$s" ] || { echo "ERROR: $s missing. Run:  node $HERE/fetch-schemas.js"; exit 1; }
+done
 
 [ -f "$BIN" ] || { echo "ERROR: $BIN not found - build zssServer64 first."; exit 1; }
 mkdir -p "$INST/logs" "$INST/plugins" "$INST/product" "$INST/instance"

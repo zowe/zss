@@ -26,7 +26,8 @@ password is indistinguishable from a wrong one. Budget for ZIS from the start.
 ```sh
 cd test-support
 
-sh configure-test-env.sh          # generate zowe.yaml, create the instance tree
+sh configure-test-env.sh          # generate zowe.yaml, create the instance tree,
+                                  # and fetch the Zowe base schemas
 sh provision-keyring-cert.sh      # SAF keyring + server certificate (once)
 
 sh zis/zis-configure.sh           # build and configure your own ZIS (once)
@@ -77,6 +78,33 @@ Two values are genuinely system-dependent and worth checking first:
   and `CANCEL` refuse anything else, so a server named otherwise starts and
   cannot be stopped. The scripts derive `<userid>Z` and `<userid>C`.
 
+## The Zowe base schemas are fetched, not copied
+
+The ZSS config schema refers by `$id` to two schemas that belong to Zowe:
+`zowe-yaml-schema.json` (server-base) and `server-common.json`. The config
+manager needs them loaded to resolve those references.
+
+They are **not** kept in this repository. `configure-test-env.sh` fetches them
+into the instance directory, and `fetch-schemas.js` can do it on its own:
+
+```sh
+node fetch-schemas.js                      # from zowe-install-packaging v3.x/staging
+node fetch-schemas.js --ref v2.x/staging
+node fetch-schemas.js --from-install       # no outbound network? use the local runtime
+```
+
+A copy checked in here would be a snapshot of one moment. These schemas change
+between Zowe releases, by about 11KB between the two installs on our test
+system, so a copy drifts and the server ends up validated against rules Zowe no
+longer uses. Fetching makes the version explicit and records it in
+`FETCHED.json`.
+
+Whatever the source, the bytes need work on z/OS: every installed copy we have
+seen is **untagged**, and the EBCDIC config manager reads untagged ASCII as
+EBCDIC and sees garbage. `fetch-schemas.js` converts to IBM-1047 and tags it,
+and it validates the `$id` before converting, so a redirect or an error page
+cannot be faithfully turned into EBCDIC and handed to the server.
+
 ## What is here
 
 | | |
@@ -88,7 +116,7 @@ Two values are genuinely system-dependent and worth checking first:
 | `start-zss.sh` | launch the test ZSS, detached by default |
 | `zis/` | the private test ZIS: configure, apf, start, stop, status |
 | `ab-compare.sh` | run any test against two builds and prove which answered |
-| `schemas/` | vendored base schemas the config `$ref`s by `$id` |
+| `fetch-schemas.js` | fetches the two Zowe base schemas the config refers to |
 
 Tests themselves live beside the change they belong to. The convention is a Node
 script using built-in modules only, taking `--help`, and exiting 0 on success,

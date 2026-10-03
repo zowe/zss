@@ -48,6 +48,19 @@ for d in logs plugins product instance; do
 done
 
 echo ""
+echo "=== Zowe base schemas ==="
+# The ZSS config schema refers to two schemas that belong to Zowe. Fetch them
+# rather than keeping copies in this repository, so the version is explicit.
+if command -v node >/dev/null 2>&1; then
+  node "$HERE/fetch-schemas.js" || {
+    echo "  fetch failed. If this system has no outbound network:"
+    echo "    node $HERE/fetch-schemas.js --from-install [--runtime <dir>]"; }
+else
+  echo "  SKIPPED: node not on PATH. Set ZSS_TEST_NODE_BIN in test-env.local.sh,"
+  echo "           then:  node $HERE/fetch-schemas.js"
+fi
+
+echo ""
 echo "=== next ==="
 echo "1. TLS identity (once):   sh $HERE/provision-keyring-cert.sh"
 echo "2. ZIS (needed for ANY authenticated test - see ../dev-test-deploy runbook):"
