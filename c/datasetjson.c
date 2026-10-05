@@ -3622,7 +3622,7 @@ int createDatasetMember(HttpResponse* response, DatasetName* datasetName, char* 
     }
     else {
       char *overwriteParam = getQueryParam(response->request,"overwrite");
-      int overwrite = !strcmp(overwriteParam, "true") ? TRUE : FALSE;
+      int overwrite = (overwriteParam != NULL && !strcmp(overwriteParam, "true")) ? TRUE : FALSE;
       FILE* memberExists = fopen(absolutePath,"r");
       if (memberExists && overwrite != TRUE) {
         if (fclose(memberExists) != 0) {

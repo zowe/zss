@@ -917,7 +917,20 @@ static int serveUnixFileChangeMode(HttpService *service, HttpResponse *response)
  
   char *recursive = getQueryParam(response->request, "recursive");
   char *mode = getQueryParam(response->request, "mode");
-  char *pattern = getQueryParam(response->request, "pattern");
+  char *pattern = getQueryParam(response->request, "pattern");  // Optional, could be NULL
+
+  if (recursive == NULL && mode == NULL) {
+    respondWithJsonError(response, "Required parameters 'recursive' and 'mode' not provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    return 0;
+  }
+  else if (recursive == NULL) {
+    respondWithJsonError(response, "Required parameter 'recursive' not provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    return 0;
+  }
+  else if (mode == NULL) {
+    respondWithJsonError(response, "Required parameter 'mode' not provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    return 0;
+  }
 
   if (!strcmp(request->method, methodPOST)) {
     directoryChangeModeAndRespond (response, routeFileName, 

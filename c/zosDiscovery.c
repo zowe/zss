@@ -378,11 +378,11 @@ static int serveTN3270Data(HttpService *service,
   if (luname = getQueryParam(request,"luname")){
     findSessions(context,SESSION_KEY_TYPE_LUNAME,0,luname);
   } else if (ipAddress = getQueryParam(request,"ip4Address")){
-    findSessions(context,SESSION_KEY_TYPE_IP4_STRING,0,luname);
+    findSessions(context,SESSION_KEY_TYPE_IP4_STRING,0,ipAddress);
   } else if (ipAddress = getQueryParam(request,"ip6Address")){
-    findSessions(context,SESSION_KEY_TYPE_IP6_STRING,0,luname);
+    findSessions(context,SESSION_KEY_TYPE_IP6_STRING,0,ipAddress);
   } else{
-    findSessions(context,SESSION_KEY_TYPE_ALL,0,luname);
+    findSessions(context,SESSION_KEY_TYPE_ALL,0,NULL);  /* SESSION_KEY_TYPE_ALL ignores the string key */
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "get'em all\n");
   }
   /* rows begin here */
