@@ -153,16 +153,30 @@ const serverCommands: Record<string, (env: TestEnv) => number> = {
 
   status: (env) => {
     const pids = zss.running(env);
-    console.log(pids.length ? `  running, pid ${pids.join(', ')}` : '  not running');
     const log = zss.logFile(env);
-    if (fs.existsSync(log)) {
-      const text = fs.readFileSync(log, 'utf8').split('\n');
-      for (const key of ['ZWES1013I', 'ZWES1014I']) {
-        const line = text.find((l) => l.includes(key));
-        if (line) console.log('  ' + line.trim());
-      }
+    const lines = fs.existsSync(log) ? fs.readFileSync(log, 'utf8').split('\n') : [];
+    const interesting = ['ZWES1013I', 'ZWES1014I']
+      .map((k) => lines.find((l) => l.includes(k)))
+      .filter((l): l is string => l !== undefined);
+
+    if (pids.length > 0) {
+      /* start() rotates the log before launching, so these lines belong to the
+         process that is running now. */
+      console.log(`  running, pid ${pids.join(', ')}`);
+      for (const l of interesting) console.log('  ' + l.trim());
+      return 0;
     }
-    return pids.length ? 0 : 1;
+
+    /* Nothing is running, so the log describes a PREVIOUS run. Printing those
+       lines unlabelled says the server is healthy when it is not there at all,
+       which is the kind of stale answer this harness exists to prevent. */
+    console.log('  not running');
+    if (interesting.length > 0) {
+      const when = fs.statSync(log).mtime.toISOString().replace('T', ' ').slice(0, 19);
+      console.log(`  the log is from an EARLIER run, last written ${when} UTC:`);
+      for (const l of interesting) console.log('    (stale) ' + l.trim());
+    }
+    return 1;
   },
 };
 
