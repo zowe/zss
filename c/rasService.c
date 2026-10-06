@@ -55,14 +55,32 @@ typedef enum RasAuthDecision_tag {
   RAS_AUTH_UNDETERMINED
 } RasAuthDecision;
 
+/*
+ * TRAP: request->method is the method as it arrived on the wire, which is ASCII.
+ * httpserver.c keeps the raw bytes (c/httpserver.c:2021) and converts a separate
+ * copy for its own use, so comparing against methodGET works while printing or
+ * concatenating it does not. Splicing it into the profile name produced a string
+ * that was part EBCDIC and part ASCII, which no SAF profile can ever match: the
+ * check then failed with SAF RC 4 and looked exactly like an undefined profile.
+ * So the method part of the name is a literal chosen by comparison.
+ */
 static int traceLevelProfile(HttpServer *server, const char *method,
                              char *buf, size_t bufSize) {
+  const char *methodPart;
+  if (!strcmp(method, methodGET)) {
+    methodPart = "GET";
+  } else if (!strcmp(method, methodPUT)) {
+    methodPart = "PUT";
+  } else {
+    return -1;
+  }
+
   char *configured = NULL;
   int status = cfgGetStringC(httpServerConfigManager(server), ZSS_CFGNAME,
                              &configured, 2, "zowe", "rbacProfileIdentifier");
   const char *id = (status == ZCFG_SUCCESS && configured != NULL && configured[0] != '\0')
                    ? configured : RBAC_PROFILE_ID_DEFAULT;
-  int len = snprintf(buf, bufSize, RAS_TRACELEVEL_PROFILE_FMT, id, method);
+  int len = snprintf(buf, bufSize, RAS_TRACELEVEL_PROFILE_FMT, id, methodPart);
   return (len > 0 && (size_t)len < bufSize) ? 0 : -1;
 }
 
@@ -111,17 +129,17 @@ static RasAuthDecision checkTraceLevelAuthorization(HttpResponse *response,
   if (rc == RC_ZIS_SRVC_SERVICE_FAILED &&
       reqStatus.baseStatus.serviceRC == RC_ZIS_AUTHSRV_SAF_ERROR) {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
-            "httpserver: RAS traceLevel %s denied for %s, profile '%s', "
+            "httpserver: RAS traceLevel denied for %s, profile '%s', "
             "SAF RC %d, RACF RC %d, RACF reason %d\n",
-            method, request->username, profile, reqStatus.safStatus.safRC,
+            request->username, profile, reqStatus.safStatus.safRC,
             reqStatus.safStatus.racfRC, reqStatus.safStatus.racfRSN);
     return RAS_AUTH_DENIED;
   }
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
-          "httpserver: RAS traceLevel %s authorization undetermined, profile '%s', "
+          "httpserver: RAS traceLevel authorization undetermined, profile '%s', "
           "zisCheckEntity RC %d, ZIS service RC %d\n",
-          method, profile, rc, reqStatus.baseStatus.serviceRC);
+          profile, rc, reqStatus.baseStatus.serviceRC);
   return RAS_AUTH_UNDETERMINED;
 }
 

@@ -313,14 +313,17 @@ function buildCases() {
         note: 'must still be 405; proves the gate does not invent a profile for other methods',
       },
       {
-        /* zss#890. Both builds answer 400, so only the reason separates them:
-           the old one dereferences the NULL htGet miss, reads storage at
-           address 0, and fails later with "component ID out of range". */
-        name: 'unknown componentName (#890)',
+        /* zss#890, reported but never decisive, because it can only be reached
+           when authorization SUCCEEDS. The gate now runs before any parameter is
+           read, so with rbac off this is the 400 from the gate and with rbac on
+           and no profile it is the 403 from the gate; neither says anything
+           about the dereference. On a build with no gate at all it is the
+           misleading "component ID out of range" that the NULL read produces.
+           Proving the fix itself needs the profile defined and permitted. */
+        name: 'unknown componentName (#890, informational)',
         method: 'GET', path: '/ras/traceLevel?componentName=nosuchcomponent', auth: true,
-        vulnerable: 400, fixed: 400, decisive: true,
-        reason: 'unknown componentName',
-        note: 'the NULL hashtable result must be refused, not dereferenced',
+        vulnerable: null, fixed: null, decisive: false,
+        note: 'only reaches the lookup when authorization succeeds; see the PR',
       });
   }
   return cases;
