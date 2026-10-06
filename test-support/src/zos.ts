@@ -104,8 +104,21 @@ export function tso(command: string): Ran {
  */
 export function writeMember(dsnMember: string, content: string): Ran {
   const tmp = path.join(os.tmpdir(), `zoswm.${process.pid}.${Date.now()}`);
-  fs.writeFileSync(tmp, content.endsWith('\n') ? content : content + '\n');
+  const text = content.endsWith('\n') ? content : content + '\n';
   try {
+    /* TRAP 2: an ASCII temp file does not survive cp into a fixed-record PDS.
+       Node writes one, and with _BPXK_AUTOCVT=ON it is tagged ISO8859-1 and cp
+       refuses outright with EDC5003I "Truncation of a record occurred"; with
+       autoconvert off the LF bytes are not record separators and the whole file
+       lands as one truncated record. Either way the member is wrong, and a
+       malformed job card then makes JES invent a job name, so the caller waits
+       for a job that does not exist. Convert to IBM-1047 and tag it first. */
+    if (isZos) {
+      fs.writeFileSync(tmp, iconvBuffer(Buffer.from(text, 'latin1'), 'ISO8859-1', 'IBM-1047'));
+      tagFile(tmp, 'IBM-1047');
+    } else {
+      fs.writeFileSync(tmp, text);
+    }
     return run('cp', [tmp, `//'${dsnMember}'`]);
   } finally {
     try { fs.unlinkSync(tmp); } catch { /* best effort */ }
@@ -178,10 +191,37 @@ export function jobStatus(jobname: string): JobState {
   };
 }
 
-export function submit(dsnMember: string): { ok: boolean; jobid: string | null; out: string } {
+export interface Submitted {
+  ok: boolean;
+  jobid: string | null;
+  /** The name JES used, which is not always the name on the job card. */
+  jobname: string | null;
+  out: string;
+}
+
+/**
+ * Submit a job.
+ *
+ * TRAP: when the job card is malformed JES does not refuse the job, it invents a
+ * name ("MISSING JOBNAME CHARACTER(S) ... JOBNAME IS CREATED FROM USERID PLUS
+ * THE CHARACTER(S)") and submits it anyway. SUBMIT still reports a job id, so a
+ * caller that trusts the return code polls the name it asked for and finds
+ * nothing. Treat an invented name as a failure and say why.
+ */
+export function submit(dsnMember: string): Submitted {
   const r = tso(`SUBMIT '${dsnMember}'`);
-  const m = /\((JOB\d+)\)/.exec(r.out);
-  return { ok: r.ok, jobid: m ? m[1] : null, out: r.out };
+  const idm = /\((JOB\d+)\)/.exec(r.out);
+  const namem = /JOB\s+([A-Z0-9#$@]{1,8})\(JOB\d+\)\s+SUBMITTED/i.exec(r.out);
+  const invented = /MISSING JOBNAME/i.test(r.out);
+  return {
+    ok: r.ok && !invented,
+    jobid: idm?.[1] ?? null,
+    jobname: namem?.[1] ?? null,
+    out: invented
+      ? r.out + '\nJES created that name itself because the job card was malformed, ' +
+        'which usually means the member was not written correctly.'
+      : r.out,
+  };
 }
 
 export function cancelJob(jobname: string, jobid: string): Ran {
@@ -249,18 +289,33 @@ export function operatorCommand(opts: {
     '/*',
   ].join('\n');
 
-  writeMember(`${jcllib}(ZISCMD)`, jcl);
+  const w = writeMember(`${jcllib}(ZISCMD)`, jcl);
+  if (!w.ok) {
+    return { issued: false, reply: w.out, why: `could not write ${jcllib}(ZISCMD)` };
+  }
+
   const s = submit(`${jcllib}(ZISCMD)`);
   if (!s.ok) return { issued: false, reply: s.out, why: 'SUBMIT failed' };
 
+  /* Poll the name JES used, not the name we asked for. */
+  const watch = s.jobname ?? jobname;
   const deadline = Date.now() + (opts.waitSeconds ?? 60) * 1000;
   while (Date.now() < deadline) {
     sleepSeconds(5);
-    const st = jobStatus(jobname);
+    const st = jobStatus(watch);
     if (!st.found || st.onOutputQueue) break;
   }
 
   const reply = readDataset(replyDsn) ?? '';
+  /* An absent reply means the job never ran or never opened SYSTSPRT. Calling
+     that "issued" is how a command that did nothing got reported as done. */
+  if (reply.trim() === '') {
+    return {
+      issued: false,
+      reply,
+      why: `no reply: ${replyDsn} was not written, so ${watch} did not run the command`,
+    };
+  }
   if (/MCSOPER RETURN CODE/i.test(reply)) {
     return { issued: false, reply, why: 'console could not activate (name already in use, or no authority)' };
   }
