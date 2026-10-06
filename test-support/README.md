@@ -1,4 +1,4 @@
-# test-support — a standalone ZSS (and ZIS) for tests
+# test-support - a standalone ZSS (and ZIS) for tests
 
 A private, throwaway ZSS you can start, hit and tear down, with its own ZIS. No
 APIML, no app-server, no launcher, no systems programmer, and no Zowe install.
@@ -170,6 +170,22 @@ reports success; `build_zss64.sh` prints success after a failed compile; and a
 TSO console activation fails with what looks like an authority error when the
 real cause is that SDSF already holds a console of that name. Each is commented
 where the code works around it.
+
+## Everything here stays ASCII
+
+The repository `.gitattributes` says
+`* git-encoding=iso8859-1 zos-working-tree-encoding=ibm-1047`, so every file is
+converted to EBCDIC when checked out on z/OS. IBM-1047 has no em dash, curly
+quote or ellipsis, so one typographic character anywhere makes
+`git checkout` fail outright:
+
+```
+error: failed to encode 'test-support/README.md' from UTF-8 to ibm-1047
+```
+
+That is not a warning and it does not skip the file. Nothing checks out at all
+until the character is gone. Keep source, comments and documentation to plain
+ASCII, including in prose.
 
 ## What is here
 
