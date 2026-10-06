@@ -308,6 +308,16 @@ function buildCases() {
         method: 'DELETE', path: tracePath(), auth: true,
         vulnerable: 405, fixed: 405, decisive: true,
         note: 'must still be 405; proves the gate does not invent a profile for other methods',
+      },
+      {
+        /* zss#890. Both builds answer 400, so only the reason separates them:
+           the old one dereferences the NULL htGet miss, reads storage at
+           address 0, and fails later with "component ID out of range". */
+        name: 'unknown componentName (#890)',
+        method: 'GET', path: '/ras/traceLevel?componentName=nosuchcomponent', auth: true,
+        vulnerable: 400, fixed: 400, decisive: true,
+        reason: 'unknown componentName',
+        note: 'the NULL hashtable result must be refused, not dereferenced',
       });
   }
   return cases;
@@ -320,8 +330,11 @@ function buildCases() {
  * response body has to say the expected thing too.
  */
 function reasonMatches(c, r) {
-  if (!c.decisive || c.vulnerable === c.fixed) return true;   /* regressions: code is enough */
   const b = (r.body || '').toLowerCase();
+  /* A case may name the text it expects, which is the only way to decide one
+     where both builds answer with the same status code. */
+  if (c.reason) return b.includes(c.reason.toLowerCase());
+  if (!c.decisive || c.vulnerable === c.fixed) return true;   /* regressions: code is enough */
   if (c.fixed === 400) return b.includes('rbac');   /* "Set dataserviceAuthentication.rbac to true" */
   if (c.fixed === 403) return b.includes('forbidden') || b.includes('rbac');
   return true;
@@ -338,11 +351,16 @@ function classify(c, r) {
     const text = r.status === c.fixed ? 'as expected' : 'NOTE: differs';
     return { verdict: text, fixed: 0, vulnerable: 0, oddity: 0 };
   }
-  /* A regression case: both expectations agree, so it is simply pass or fail. */
+  /* Both expectations agree, so the code alone is pass or fail unless the case
+     named a reason, in which case the body is what separates the two builds. */
   if (c.vulnerable === c.fixed) {
-    return r.status === c.fixed
-      ? { verdict: 'ok', fixed: 1, vulnerable: 1, oddity: 0 }
-      : { verdict: 'REGRESSED', fixed: 0, vulnerable: 0, oddity: 1 };
+    if (r.status !== c.fixed) {
+      return { verdict: 'REGRESSED', fixed: 0, vulnerable: 0, oddity: 1 };
+    }
+    if (c.reason && !reasonMatches(c, r)) {
+      return { verdict: 'RIGHT CODE, WRONG REASON', fixed: 0, vulnerable: 1, oddity: 0 };
+    }
+    return { verdict: 'ok', fixed: 1, vulnerable: 1, oddity: 0 };
   }
   if (r.status === c.fixed && reasonMatches(c, r)) {
     return { verdict: 'fixed', fixed: 1, vulnerable: 0, oddity: 0 };

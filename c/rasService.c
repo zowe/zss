@@ -288,8 +288,14 @@ static int serveRASData(HttpService *service, HttpResponse *response) {
   }
 
   if (componentNameParam != NULL) {
-    uint64 *p = htGet(service->server->loggingIdsByName, componentNameParam->stringValue);
-    componentID = *p;
+    /* htGet misses for any name no plugin data service registered, which on a
+       ZSS with no plugins is every name. */
+    uint64 *loggingID = htGet(service->server->loggingIdsByName, componentNameParam->stringValue);
+    if (loggingID == NULL) {
+      respondWithError(response, HTTP_STATUS_BAD_REQUEST, "unknown componentName");
+      return 0;
+    }
+    componentID = *loggingID;
   }
 
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "%s: componentID=0x%016llX\n", __FUNCTION__, componentID);
