@@ -170,6 +170,28 @@ export function loadEnv(supportDir?: string): TestEnv {
   return env;
 }
 
+/**
+ * The contract between the harness and a test.
+ *
+ * A test is any program. It does not import anything from here and does not
+ * need to be written in TypeScript. The harness brings a server up, exports
+ * these variables, and runs the test; the test reads them to find the server it
+ * is supposed to talk to.
+ *
+ * Without this a test has to hardcode a port, which is wrong the moment a CI
+ * runner gives each worker its own.
+ */
+export function testEnvironment(env: TestEnv): Record<string, string> {
+  return {
+    ZSS_TEST_ADDR: env.addr,
+    ZSS_TEST_PORT: String(env.port),
+    ZSS_TEST_URL: `https://${env.addr}:${env.port}`,
+    ZSS_TEST_USERID: env.userid,
+    ZSS_TEST_INST: env.instance,
+    ZSS_TEST_LOG: `${env.instance}/logs/zss.out`,
+  };
+}
+
 /** The JOB statement accounting field, with the held message class folded in.
  *  REGION and TIME are not optional for the ZIS server: it runs until stopped,
  *  so a default job-class CPU limit would abend it. */

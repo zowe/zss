@@ -30,6 +30,31 @@ Then run a test, and to compare two builds:
 Exit codes suit a pipeline: 0 success, 1 the thing under test failed, 2 the
 harness could not run or could not trust its own result.
 
+## How a test uses this
+
+A test is any program. It imports nothing from here and need not be TypeScript.
+The harness starts the server, exports where it is, and runs the test:
+
+```
+ZSS_TEST_URL      https://127.0.0.1:17557
+ZSS_TEST_ADDR     127.0.0.1
+ZSS_TEST_PORT     17557
+ZSS_TEST_USERID   ZOWEAD5
+ZSS_TEST_INST     /u/zowead5/zsstest
+ZSS_TEST_LOG      /u/zowead5/zsstest/logs/zss.out
+```
+
+So read `ZSS_TEST_URL` rather than hardcoding a port. That is what makes it
+safe to give each CI worker its own.
+
+```sh
+./zss-test run -- node my-test.js          # start the server if needed, then run
+./zss-test compare --before A --after B -- node my-test.js
+```
+
+The exit code belongs to the test and the harness passes it through: 0 success,
+1 the defect is present, 2 inconclusive.
+
 ## ZIS is required for any authenticated test
 
 Not just for privileged services. `httpserver.c safAuthenticate()` compiled with

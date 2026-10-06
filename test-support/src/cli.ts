@@ -22,9 +22,10 @@
  *   2  the harness could not run, or could not trust its own result
  */
 
+import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { loadEnv, describe, TestEnv } from './env';
+import { loadEnv, describe, testEnvironment, TestEnv } from './env';
 import * as zis from './zis';
 import * as zss from './zss';
 import { compare, report } from './abCompare';
@@ -254,6 +255,36 @@ const commands: Record<string, Command> = {
     usage: 'server start|stop|status',
     summary: 'the standalone test ZSS',
     run: (env, argv) => dispatchSub('server', serverCommands, env, argv[1]),
+  },
+
+  run: {
+    usage: 'run -- TEST COMMAND',
+    summary: 'start the server if needed, then run a test against it',
+    run: (env, argv) => {
+      const dashdash = argv.indexOf('--');
+      const command = dashdash >= 0 ? argv.slice(dashdash + 1) : [];
+      const cmd = command[0];
+      if (!cmd) { console.error('usage: zss-test run -- TEST COMMAND'); return 2; }
+
+      if (zss.running(env).length === 0) {
+        const s = zss.start(env);
+        if (!s.ok) { console.log('  FAIL ' + s.why); return 2; }
+        console.log('  ok   ' + s.version);
+        if (s.zis && !s.zisOk) {
+          console.log('  WARN ' + s.zis);
+          console.log('       Without ZIS nothing can authenticate; every request is 401.');
+        }
+      }
+      for (const [k, v] of Object.entries(testEnvironment(env))) {
+        console.log(`  ${k}=${v}`);
+      }
+      console.log('');
+      const r = spawnSync(cmd, command.slice(1), {
+        stdio: 'inherit',
+        env: { ...process.env, ...testEnvironment(env) },
+      });
+      return typeof r.status === 'number' ? r.status : 2;
+    },
   },
 
   compare: {

@@ -28,7 +28,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { TestEnv } from './env';
+import { TestEnv, testEnvironment } from './env';
 import * as zss from './zss';
 
 export interface Phase {
@@ -76,7 +76,13 @@ function runPhase(env: TestEnv, label: string, image: string,
   if (cmd === undefined) return { failed: 'empty test command' };
 
   /* The test owns its own verdict; this only reports the exit status. */
-  const r = spawnSync(cmd, command.slice(1), { stdio: 'inherit' });
+  /* The test reads ZSS_TEST_URL and friends to find the server. Without this
+     it would have to hardcode a port, which breaks the moment a CI runner
+     gives each worker its own. */
+  const r = spawnSync(cmd, command.slice(1), {
+    stdio: 'inherit',
+    env: { ...process.env, ...testEnvironment(env) },
+  });
   const exit = typeof r.status === 'number' ? r.status : null;
   say(`  (test exit ${exit === null ? 'signal' : exit})`);
 
