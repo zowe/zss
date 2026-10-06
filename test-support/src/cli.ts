@@ -29,8 +29,9 @@ import { loadEnv, describe, testEnvironment, TestEnv } from './env';
 import * as zis from './zis';
 import * as zss from './zss';
 import { compare, report } from './abCompare';
+import { checkAll, report as reportChecks } from './check';
 import { fetchSchemas } from './schemas';
-import { generateConfig } from './configure';
+import { generateConfig, INSTANCE_DIRS } from './configure';
 import { provision, trustAnchorHint } from './cert';
 
 type Handler = (env: TestEnv, argv: string[]) => number | Promise<number>;
@@ -57,8 +58,6 @@ function printSteps(steps: Step[]): boolean {
   }
   return allOk;
 }
-
-const INSTANCE_DIRS = ['logs', 'plugins', 'product', 'instance', 'schemas'];
 
 async function getSchemas(env: TestEnv, argv: string[]): Promise<boolean> {
   const r = await fetchSchemas({
@@ -201,6 +200,12 @@ const commands: Record<string, Command> = {
     run: (env) => { console.log(describe(env)); return 0; },
   },
 
+  check: {
+    usage: 'check',
+    summary: 'is this system ready? (read-only, changes nothing)',
+    run: (env) => reportChecks(checkAll(env)),
+  },
+
   'fetch-schemas': {
     usage: 'fetch-schemas [--ref REF] [--from-install]',
     summary: 'get the Zowe base schemas the config refers to',
@@ -234,6 +239,7 @@ const commands: Record<string, Command> = {
       console.log('  TLS identity (once):  zss-test cert');
       console.log('  bring up ZIS:         zss-test zis configure && zss-test zis apf && zss-test zis start');
       console.log('  start the server:     zss-test server start');
+      console.log('  at any point, ask:    zss-test check');
       return g.ok && schemasOk ? 0 : 1;
     },
   },

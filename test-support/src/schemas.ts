@@ -37,7 +37,7 @@ const REPO = 'zowe/zowe-install-packaging';
 /** Each file and the $id it must declare. Checking the $id is the point: it is
  *  what the config manager resolves against, so a file declaring the wrong one
  *  is useless whatever it is named, and an error page declares none at all. */
-const WANTED: { file: string; id: string }[] = [
+export const BASE_SCHEMAS: { file: string; id: string }[] = [
   { file: 'zowe-yaml-schema.json', id: 'https://zowe.org/schemas/v2/server-base' },
   { file: 'server-common.json', id: 'https://zowe.org/schemas/v2/server-common' },
 ];
@@ -89,7 +89,7 @@ export async function fetchSchemas(opts: {
 
   /* Both sources are independent, so gather them together: awaiting inside a
      loop would serialise two unrelated fetches for no reason. */
-  const gathered = await Promise.all(WANTED.map(async (w) => {
+  const gathered = await Promise.all(BASE_SCHEMAS.map(async (w) => {
     try {
       const buf = opts.fromInstall
         ? fs.readFileSync(path.join(opts.runtime, 'schemas', w.file))

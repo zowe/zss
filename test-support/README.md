@@ -18,6 +18,7 @@ and a fix shown to refuse what it should refuse.
 ./zss-test zis apf              # APF-authorize it (again after every IPL)
 ./zss-test zis start            # want: EXECUTING
 ./zss-test server start         # want: ZWES1014I ... cmsRC='0'
+./zss-test check                # is all of the above actually true?
 ```
 
 Then run a test, and to compare two builds:
@@ -29,6 +30,24 @@ Then run a test, and to compare two builds:
 
 Exit codes suit a pipeline: 0 success, 1 the thing under test failed, 2 the
 harness could not run or could not trust its own result.
+
+## Asking whether you are ready
+
+`./zss-test check` is read-only. It creates nothing, starts nothing and submits
+nothing, and it answers in one pass: whether `zowe.yaml` is generated and still
+agrees with the configuration, whether the instance tree and the Zowe base
+schemas are present and correctly tagged, whether the key ring holds both
+certificates, whether the ZIS load library, parmlib and JCL members exist,
+whether this userid has `ZWES.IS` access, whether ZIS is executing, and whether
+the server is answering and reached ZIS.
+
+Each failure names the command that fixes it, and the report ends with those
+commands in dependency order. Checks that need z/OS report `skip` on a
+workstation, so the configuration half of the report is still useful there.
+
+It exists because readiness used to be discovered one failure at a time, and
+the worst case was silent: with no ZIS the server starts normally and answers
+401 to everything, which reads as a broken test rather than a missing server.
 
 ## How a test uses this
 
@@ -200,6 +219,7 @@ ASCII, including in prose.
 | `src/schemas.ts` | fetch and convert the Zowe base schemas |
 | `src/configure.ts` | generate `zowe.yaml` from the template |
 | `src/abCompare.ts` | run a test against two builds and prove which answered |
+| `src/check.ts` | read-only readiness: what is ready, and what command fixes the rest |
 | `src/cli.ts` | the single entry point |
 | `zowe.yaml.template` | test ZSS configuration |
 | `zis/README.md` | why the test ZIS runs as a job, and what to verify |

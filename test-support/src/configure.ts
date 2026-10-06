@@ -20,6 +20,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { TestEnv } from './env';
 
+/** The directories the instance tree needs. Lives here rather than in the CLI
+ *  because what an instance is made of is a fact about configuration, and the
+ *  readiness check has to ask the same question. */
+export const INSTANCE_DIRS = ['logs', 'plugins', 'product', 'instance', 'schemas'];
+
 export interface GenerateResult {
   ok: boolean;
   detail: string;

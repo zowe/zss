@@ -89,27 +89,31 @@ export function provision(env: TestEnv, opts: CertOptions = {}): CertStep[] {
     'SETROPTS RACLIST(DIGTCERT,DIGTRING) REFRESH', true);
 
   /* The one that actually decides whether this worked. */
-  const listing = z.tso(`RACDCERT LISTRING(${env.ring}) ID(${id})`);
-  const hasServer = listing.out.includes(env.label);
-  const hasCa = listing.out.includes(caLabel);
-  if (hasServer && hasCa) {
-    steps.push({
-      what: 'verify the ring holds both certificates',
-      ok: true,
-      out: `${env.label} and ${caLabel} are both connected to ${env.ring}`,
-    });
-  } else {
-    const missing: string[] = [];
-    if (!hasServer) missing.push(env.label);
-    if (!hasCa) missing.push(caLabel);
-    steps.push({
-      what: 'verify the ring holds both certificates',
-      ok: false,
-      out: `ring listing does not show ${missing.join(' and ')}\n${listing.out.trim()}`,
-    });
-  }
+  steps.push(verifyRing(env, caLabel));
 
   return steps;
+}
+
+/**
+ * Does the ring actually hold both certificates?
+ *
+ * The only question that matters, and the only one asked by reading SAF rather
+ * than by believing the return codes above, every one of which is tolerated.
+ * Exported because readiness checking asks exactly the same question later,
+ * and two definitions of "the ring is right" would eventually disagree.
+ */
+export function verifyRing(env: TestEnv, caLabel = 'ZOWELOCALCA'): CertStep {
+  const what = 'verify the ring holds both certificates';
+  const listing = z.tso(`RACDCERT LISTRING(${env.ring}) ID(${env.userid})`);
+  const missing = [env.label, caLabel].filter((l) => !listing.out.includes(l));
+  if (missing.length === 0) {
+    return { what, ok: true, out: `${env.label} and ${caLabel} are both connected to ${env.ring}` };
+  }
+  return {
+    what,
+    ok: false,
+    out: `ring listing does not show ${missing.join(' and ')}\n${listing.out.trim()}`,
+  };
 }
 
 /** How to export the authority so a client can trust it. Not done here: the

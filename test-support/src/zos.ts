@@ -304,6 +304,17 @@ export function tagFile(file: string, codepage: string): Ran {
   return run('chtag', ['-t', '-c', codepage, file]);
 }
 
+/** The code page a file is tagged with, or null if it is untagged or absent.
+ *  Worth asking about: an untagged ASCII file is read as EBCDIC by the config
+ *  manager, which is the difference between working and silently not. */
+export function fileTag(file: string): string | null {
+  const r = run('chtag', ['-p', file]);
+  if (!r.ok) return null;
+  /* "t IBM-1047    T=on  /path" when tagged, "- untagged ..." when not. */
+  const tag = /^\S+\s+(\S+)/.exec(r.out.trim())?.[1];
+  return tag && tag !== 'untagged' ? tag : null;
+}
+
 /** Convert bytes between code pages. Needed because the EBCDIC configuration
  *  manager reads an untagged ASCII file as EBCDIC and sees garbage. */
 export function iconvBuffer(buf: Buffer, from: string, to: string): Buffer {
