@@ -1,7 +1,11 @@
 # TEMPLATE for the standalone multi-user test ZSS config.
-# Generated into zowe.yaml by configure-test-env.sh, which substitutes the
-# @TOKEN@ placeholders from test-env.sh. Edit THIS file, not zowe.yaml:
-# zowe.yaml is site-generated and git-ignored.
+# `zss-test configure` substitutes the at-sign-delimited placeholders below from
+# src/env.ts and writes zowe.yaml. Edit THIS file, not zowe.yaml: zowe.yaml is
+# site-generated and git-ignored.
+#
+# Every placeholder must be one src/configure.ts knows, including in comments:
+# an unknown one makes configure refuse to write rather than emit a config that
+# is half substituted. Do not write a specimen placeholder in this file.
 #
 # Runtime config for the standalone multi-user test ZSS.
 # TLS via SAF key ring; native SAF auth; NO APIML/ZLUX/launcher.

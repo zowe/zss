@@ -65,4 +65,10 @@ if [ "$NEED_BUILD" = yes ]; then
   ( cd "$HERE" && "$TSC" -p . ) || { echo "ERROR: TypeScript build failed" >&2; exit 2; }
 fi
 
+# z/OS /bin/sh under `set -u` treats "$@" with no arguments as unset and dies
+# with FSUM7730, unlike bash, so a bare `zss-test` never reached node and never
+# printed its usage. Guard on $# rather than dropping set -u.
+if [ "$#" -eq 0 ]; then
+  exec node "$HERE/lib/cli.js"
+fi
 exec node "$HERE/lib/cli.js" "$@"
