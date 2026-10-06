@@ -1264,13 +1264,10 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "internal error accessing .zowe.verifyCertificates, err=%d, will default to STRICT\n", getStatus);
   }
   if (!verifyCertificates || 0 == strcasecmp(verifyCertificates, "STRICT")) {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "verifyCertificates mode: STRICT\n");
     settings->certVerify = TLS_CERTVERIFY_STRICT;
   } else if (0 == strcasecmp(verifyCertificates, "NONSTRICT")) {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "verifyCertificates mode: NONSTRICT\n");
     settings->certVerify = TLS_CERTVERIFY_NONSTRICT;
   } else if (0 == strcasecmp(verifyCertificates, "DISABLED")) {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "verifyCertificates mode: DISABLED\n");
     settings->certVerify = TLS_CERTVERIFY_DISABLED;
   } else {
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ".zowe.verifyCertificates got an unknown value \"%s\", will default to STRICT\n", verifyCertificates);
