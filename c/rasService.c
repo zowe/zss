@@ -40,28 +40,42 @@
 #include "zos.h"
 
 #define SAF_CLASS                   "ZOWE"
-#define RAS_TRACELEVEL_PROFILE_GET  "ZLUX.0.COR.GET.RAS.TRACELEVEL"
-#define RAS_TRACELEVEL_PROFILE_PUT  "ZLUX.0.COR.PUT.RAS.TRACELEVEL"
+#define RBAC_PROFILE_ID_DEFAULT     "1"
+/* ZLUX.<zowe.rbacProfileIdentifier>.COR.<METHOD>.RAS.TRACELEVEL. The format and
+   the COR code for core dataservices are zlux-server-framework's; the
+   identifier separates Zowe installs, and defaults.yaml ships "1". */
+#define RAS_TRACELEVEL_PROFILE_FMT  "ZLUX.%s.COR.%s.RAS.TRACELEVEL"
+#define RAS_TRACELEVEL_PROFILE_MAX  64
 
-/* Gate on RBAC, the same way serverStatusService.c gates /server/agent.
-   Returns 0 to continue, -1 when a response has already been sent. */
-static int checkTraceLevelAuthorization(HttpResponse *response) {
+typedef enum RasAuthDecision_tag {
+  RAS_AUTH_PERMITTED = 0,
+  RAS_AUTH_NO_IDENTITY,
+  RAS_AUTH_RBAC_OFF,
+  RAS_AUTH_DENIED,
+  RAS_AUTH_UNDETERMINED
+} RasAuthDecision;
+
+static int traceLevelProfile(HttpServer *server, const char *method,
+                             char *buf, size_t bufSize) {
+  char *configured = NULL;
+  int status = cfgGetStringC(httpServerConfigManager(server), ZSS_CFGNAME,
+                             &configured, 2, "zowe", "rbacProfileIdentifier");
+  const char *id = (status == ZCFG_SUCCESS && configured != NULL && configured[0] != '\0')
+                   ? configured : RBAC_PROFILE_ID_DEFAULT;
+  int len = snprintf(buf, bufSize, RAS_TRACELEVEL_PROFILE_FMT, id, method);
+  return (len > 0 && (size_t)len < bufSize) ? 0 : -1;
+}
+
+/* Decides only; serveRASData maps the decision to a status code. */
+static RasAuthDecision checkTraceLevelAuthorization(HttpResponse *response,
+                                                    const char *method) {
   HttpRequest *request = response->request;
   HttpServer *server = httpResponseServer(response);
 
-  const char *profile = NULL;
-  if (!strcmp(request->method, methodGET)) {
-    profile = RAS_TRACELEVEL_PROFILE_GET;
-  } else if (!strcmp(request->method, methodPUT)) {
-    profile = RAS_TRACELEVEL_PROFILE_PUT;
-  } else {
-    /* Leave the 405 to the method dispatch below. */
-    return 0;
-  }
-
+  /* The authType already refuses an anonymous caller before we run; this keeps
+     that true if SERVICE_AUTH_FLAG_OPTIONAL is ever added. */
   if (!request->authenticated) {
-    respondWithError(response, HTTP_STATUS_UNAUTHORIZED, "Not Authorized");
-    return -1;
+    return RAS_AUTH_NO_IDENTITY;
   }
 
   Json *dataserviceAuthJson = NULL;
@@ -71,9 +85,15 @@ static int checkTraceLevelAuthorization(HttpResponse *response) {
   JsonObject *dataserviceAuth =
       (cfgGetStatus == ZCFG_SUCCESS ? jsonAsObject(dataserviceAuthJson) : NULL);
   if (!(dataserviceAuth ? jsonObjectGetBoolean(dataserviceAuth, "rbac") : 0)) {
-    respondWithError(response, HTTP_STATUS_BAD_REQUEST,
-                     "Set dataserviceAuthentication.rbac to true in server configuration");
-    return -1;
+    return RAS_AUTH_RBAC_OFF;
+  }
+
+  char profile[RAS_TRACELEVEL_PROFILE_MAX];
+  if (traceLevelProfile(server, method, profile, sizeof(profile)) != 0) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
+            "httpserver: RAS traceLevel profile exceeds %d bytes, check zowe.rbacProfileIdentifier\n",
+            (int)sizeof(profile));
+    return RAS_AUTH_UNDETERMINED;
   }
 
   CrossMemoryServerName *privilegedServerName =
@@ -81,15 +101,28 @@ static int checkTraceLevelAuthorization(HttpResponse *response) {
   ZISAuthServiceStatus reqStatus = {0};
   int rc = zisCheckEntity(privilegedServerName, request->username, SAF_CLASS,
                           profile, SAF_AUTH_ATTR_READ, &reqStatus);
-  if (rc != RC_ZIS_SRVC_OK) {
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
-            "httpserver: RAS traceLevel %s refused, profile '%s', zisCheckEntity RC = %d\n",
-            request->method, profile, rc);
-    respondWithError(response, HTTP_STATUS_FORBIDDEN,
-                     "Forbidden - insufficient RBAC authorization");
-    return -1;
+  if (rc == RC_ZIS_SRVC_OK) {
+    return RAS_AUTH_PERMITTED;
   }
-  return 0;
+
+  /* SAF_ERROR means SAF ran and did not permit: SAF RC 8 is denied, 4 is the
+     resource not being protected. Anything else means we could not ask, and
+     then safStatus must not be read: the status union may hold abend info. */
+  if (rc == RC_ZIS_SRVC_SERVICE_FAILED &&
+      reqStatus.baseStatus.serviceRC == RC_ZIS_AUTHSRV_SAF_ERROR) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
+            "httpserver: RAS traceLevel %s denied for %s, profile '%s', "
+            "SAF RC %d, RACF RC %d, RACF reason %d\n",
+            method, request->username, profile, reqStatus.safStatus.safRC,
+            reqStatus.safStatus.racfRC, reqStatus.safStatus.racfRSN);
+    return RAS_AUTH_DENIED;
+  }
+
+  zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
+          "httpserver: RAS traceLevel %s authorization undetermined, profile '%s', "
+          "zisCheckEntity RC %d, ZIS service RC %d\n",
+          method, profile, rc, reqStatus.baseStatus.serviceRC);
+  return RAS_AUTH_UNDETERMINED;
 }
 
 #endif /* __ZOWE_OS_ZOS */
@@ -195,8 +228,33 @@ static int serveRASData(HttpService *service, HttpResponse *response) {
     return 0;
   }
 
+  /* Before the gate and before any parameter is read: an unsupported method is
+     refused here so that nothing downstream runs for a request we will not
+     serve, and so the gate never has to pick a profile for a method it has
+     none for. */
+  if (strcmp(method, methodGET) && strcmp(method, methodPUT)) {
+    respondWithError(response, HTTP_STATUS_METHOD_NOT_FOUND, "bad method, PUT and GET allowed only");
+    return 0;
+  }
+
 #ifdef __ZOWE_OS_ZOS
-  if (checkTraceLevelAuthorization(response) != 0) {
+  switch (checkTraceLevelAuthorization(response, method)) {
+  case RAS_AUTH_PERMITTED:
+    break;
+  case RAS_AUTH_NO_IDENTITY:
+    respondWithError(response, HTTP_STATUS_UNAUTHORIZED, "Not Authorized");
+    return 0;
+  case RAS_AUTH_RBAC_OFF:
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,
+                     "Set dataserviceAuthentication.rbac to true in server configuration");
+    return 0;
+  case RAS_AUTH_DENIED:
+    respondWithError(response, HTTP_STATUS_FORBIDDEN,
+                     "Forbidden - insufficient RBAC authorization");
+    return 0;
+  default:
+    respondWithError(response, HTTP_STATUS_INTERNAL_SERVER_ERROR,
+                     "Could not determine RBAC authorization");
     return 0;
   }
 #endif

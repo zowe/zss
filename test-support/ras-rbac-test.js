@@ -23,14 +23,28 @@
  * under the fix. The run is classified VULNERABLE, FIXED, or MIXED, and the
  * exit status follows. Nothing is inferred from the absence of a crash.
  *
- * THE FOUR BRANCHES of the fix, and what this can reach:
+ * THE BRANCHES of the fix, and what this can reach:
  *
- *   not authenticated                 -> 401   reachable here
- *   authenticated, rbac off           -> 400   reachable here (default config)
- *   authenticated, rbac on, SAF fails -> 403   reachable here ONLY as
- *                                              "ZIS unreachable", which takes
- *                                              the same branch as a SAF denial
- *   authenticated, rbac on, SAF ok    -> served   NOT reachable without ZIS
+ *   not authenticated                  -> 401  reachable here, though it is the
+ *                                              service authType that refuses,
+ *                                              not the RBAC gate
+ *   authenticated, rbac off            -> 400  reachable here (default config)
+ *   rbac on, SAF says no               -> 403  reachable here. SAF RC 8 is an
+ *                                              explicit denial and SAF RC 4 is
+ *                                              no covering profile; the gate
+ *                                              treats both as not permitted,
+ *                                              so a system with no ZLUX.*
+ *                                              profiles defined reaches this
+ *   rbac on, could not ask SAF         -> 500  ZIS unreachable, SAF abended, or
+ *                                              ZIS refusing the ZOWE class.
+ *                                              Reachable by stopping ZIS
+ *   rbac on, SAF permits               -> served  needs the profile defined and
+ *                                                 permitted, so it needs a
+ *                                                 security administrator
+ *
+ * The 403 and 500 cases were one branch in the first draft of the fix, which
+ * made a broken ZIS indistinguishable from a denial. They are separate now, so
+ * "you are not permitted" and "I could not find out" no longer look alike.
  *
  * So run it twice, once against a config with dataserviceAuthentication.rbac
  * absent or false, and once with it true. Use --rbac to say which, because the
