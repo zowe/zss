@@ -45,8 +45,8 @@
  * To show the before-and-after against two builds, let the shared driver
  * handle the swap and the identity checks:
  *
- *   test-support/ab-compare.sh --before bin/zssServer64.old \
- *                             --after  bin/zssServer64.new \
+ *   test-support/zss-test compare --before bin/zssServer64.old \
+ *                                 --after  bin/zssServer64.new \
  *                             -- node test-support/ras-rbac-test.js --user MYUSER
  *
  * Credentials are needed for the cases that matter: the vulnerability is about
@@ -60,9 +60,14 @@
 
 'use strict';
 
-const https = require('https');
-const http = require('http');
-const readline = require('readline');
+const https = require('node:https');
+const http = require('node:http');
+
+/* Keystrokes written as escapes. These were literal control bytes in the
+   source, which no reviewer can see and no diff shows honestly. */
+const KEY_ENTER = ['\r', '\n', '\u0004'];   /* return, newline, Ctrl-D */
+const KEY_INTERRUPT = '\u0003';               /* Ctrl-C */
+const KEY_ERASE = ['\u007f', '\b'];          /* DEL, backspace */
 
 const PRODUCTION_PORT = 7557;
 
@@ -104,6 +109,38 @@ function usage() {
   ].join('\n'));
 }
 
+/*
+ * Check what comes off the command line before it reaches a socket. A mistyped
+ * port used to become NaN and the request went somewhere unintended, and a
+ * hostname is held to the characters a hostname or address literal can contain,
+ * so this driver cannot be aimed somewhere arbitrary by accident.
+ */
+function numberArg(name, raw, lo, hi) {
+  const n = Number.parseInt(raw, 10);
+  if (!Number.isInteger(n) || n < lo || n > hi) {
+    console.error(name + ' takes an integer from ' + lo + ' to ' + hi + ', not "' + raw + '"');
+    process.exit(2);
+  }
+  return n;
+}
+
+function hostArg(raw) {
+  if (!/^[A-Za-z0-9.:_-]{1,253}$/.test(raw)) {
+    console.error('--host takes a hostname or IP address, not "' + raw + '"');
+    process.exit(2);
+  }
+  return raw;
+}
+
+/* Strip trailing CR and LF without a regex: /[\r\n]+$/ backtracks on a long
+   line that does not end in one, and a password may legitimately end in a
+   space, which trimEnd() would eat. */
+function stripEol(str) {
+  let end = str.length;
+  while (end > 0 && (str[end - 1] === '\n' || str[end - 1] === '\r')) end--;
+  return str.slice(0, end);
+}
+
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i];
   const next = () => {
@@ -118,10 +155,10 @@ for (let i = 2; i < process.argv.length; i++) {
       if (v !== 'on' && v !== 'off') { console.error('--rbac takes on or off'); process.exit(2); }
       cfg.rbac = v; break;
     }
-    case '--host': cfg.host = next(); break;
-    case '--port': cfg.port = parseInt(next(), 10); break;
+    case '--host': cfg.host = hostArg(next()); break;
+    case '--port': cfg.port = numberArg('--port', next(), 1, 65535); break;
     case '--http': cfg.tls = false; break;
-    case '--timeout': cfg.timeout = parseInt(next(), 10); break;
+    case '--timeout': cfg.timeout = numberArg('--timeout', next(), 1, 600000); break;
     case '--force': cfg.force = true; break;
     case '-h': case '--help': usage(); process.exit(0); break;
     default: console.error('unknown option: ' + a); usage(); process.exit(2);
@@ -147,7 +184,7 @@ function promptPassword(user) {
       let buf = '';
       stdin.setEncoding('utf8');
       stdin.on('data', (d) => { buf += d; });
-      stdin.on('end', () => { process.stdout.write('\n'); resolve(buf.replace(/[\r\n]+$/, '')); });
+      stdin.on('end', () => { process.stdout.write('\n'); resolve(stripEol(buf)); });
       return;
     }
     stdin.setRawMode(true);
@@ -155,19 +192,19 @@ function promptPassword(user) {
     stdin.setEncoding('utf8');
     let pw = '';
     const onKey = (ch) => {
-      if (ch === '\r' || ch === '\n' || ch === '') {
+      if (KEY_ENTER.includes(ch)) {
         stdin.setRawMode(false);
         stdin.pause();
         stdin.removeListener('data', onKey);
         process.stdout.write('\n');
         resolve(pw);
-      } else if (ch === '') {                 /* Ctrl-C */
+      } else if (ch === KEY_INTERRUPT) {                 /* Ctrl-C */
         stdin.setRawMode(false);
         stdin.pause();
         stdin.removeListener('data', onKey);
         process.stdout.write('\n');
         reject(new Error('cancelled'));
-      } else if (ch === '' || ch === '\b') {  /* backspace */
+      } else if (KEY_ERASE.includes(ch)) {  /* backspace */
         pw = pw.slice(0, -1);
       } else {
         pw += ch;
@@ -230,35 +267,34 @@ function buildCases() {
     },
   ];
   if (cfg.user) {
-    cases.push({
-      name: 'authenticated GET (reads log levels)',
-      method: 'GET', path: tracePath(), auth: true,
-      vulnerable: 200, fixed: fixedAuthed, decisive: true,
-      note: 'THE FINDING: an ordinary authenticated user reading server state',
-    });
-    cases.push({
-      name: 'authenticated PUT level=' + FINEST + ' (raises logging to FINEST)',
-      method: 'PUT', path: tracePath('&level=' + FINEST), auth: true,
-      vulnerable: 200, fixed: fixedAuthed, decisive: true,
-      note: 'THE FINDING: an ordinary authenticated user degrading the server',
-    });
-  }
-  /* Regressions: the fix must not disturb these. They need credentials like
-     everything else, because the authType refuses an anonymous caller before
-     the handler is reached at all. */
-  if (cfg.user) {
-    cases.push({
-      name: 'regression: unsupported command',
-      method: 'GET', path: '/ras/nosuchcommand', auth: true,
-      vulnerable: 400, fixed: 400, decisive: true,
-      note: 'must still be 400; proves the gate did not move ahead of command validation',
-    });
-    cases.push({
-      name: 'regression: bad method',
-      method: 'DELETE', path: tracePath(), auth: true,
-      vulnerable: 405, fixed: 405, decisive: true,
-      note: 'must still be 405; proves the gate does not invent a profile for other methods',
-    });
+    cases.push(
+      {
+        name: 'authenticated GET (reads log levels)',
+        method: 'GET', path: tracePath(), auth: true,
+        vulnerable: 200, fixed: fixedAuthed, decisive: true,
+        note: 'THE FINDING: an ordinary authenticated user reading server state',
+      },
+      {
+        name: 'authenticated PUT level=' + FINEST + ' (raises logging to FINEST)',
+        method: 'PUT', path: tracePath('&level=' + FINEST), auth: true,
+        vulnerable: 200, fixed: fixedAuthed, decisive: true,
+        note: 'THE FINDING: an ordinary authenticated user degrading the server',
+      },
+      /* Regressions: the fix must not disturb these. They need credentials like
+         everything else, because the authType refuses an anonymous caller
+         before the handler is reached at all. */
+      {
+        name: 'regression: unsupported command',
+        method: 'GET', path: '/ras/nosuchcommand', auth: true,
+        vulnerable: 400, fixed: 400, decisive: true,
+        note: 'must still be 400; proves the gate did not move ahead of command validation',
+      },
+      {
+        name: 'regression: bad method',
+        method: 'DELETE', path: tracePath(), auth: true,
+        vulnerable: 405, fixed: 405, decisive: true,
+        note: 'must still be 405; proves the gate does not invent a profile for other methods',
+      });
   }
   return cases;
 }
@@ -271,10 +307,125 @@ function buildCases() {
  */
 function reasonMatches(c, r) {
   if (!c.decisive || c.vulnerable === c.fixed) return true;   /* regressions: code is enough */
-  const b = (r.body || "").toLowerCase();
-  if (c.fixed === 400) return b.indexOf("rbac") >= 0;         /* "Set dataserviceAuthentication.rbac to true" */
-  if (c.fixed === 403) return b.indexOf("forbidden") >= 0 || b.indexOf("rbac") >= 0;
+  const b = (r.body || '').toLowerCase();
+  if (c.fixed === 400) return b.includes('rbac');   /* "Set dataserviceAuthentication.rbac to true" */
+  if (c.fixed === 403) return b.includes('forbidden') || b.includes('rbac');
   return true;
+}
+
+/*
+ * What one case proves: the verdict text, and which tallies it feeds. Kept
+ * apart from printing because this is the part that decides whether a run is
+ * evidence at all, and it should be readable without the formatting around it.
+ */
+function classify(c, r) {
+  if (!c.decisive) {
+    if (c.fixed === null) return { verdict: '', fixed: 0, vulnerable: 0, oddity: 0 };
+    const text = r.status === c.fixed ? 'as expected' : 'NOTE: differs';
+    return { verdict: text, fixed: 0, vulnerable: 0, oddity: 0 };
+  }
+  /* A regression case: both expectations agree, so it is simply pass or fail. */
+  if (c.vulnerable === c.fixed) {
+    return r.status === c.fixed
+      ? { verdict: 'ok', fixed: 1, vulnerable: 1, oddity: 0 }
+      : { verdict: 'REGRESSED', fixed: 0, vulnerable: 0, oddity: 1 };
+  }
+  if (r.status === c.fixed && reasonMatches(c, r)) {
+    return { verdict: 'fixed', fixed: 1, vulnerable: 0, oddity: 0 };
+  }
+  if (r.status === c.fixed) {
+    return { verdict: 'RIGHT CODE, WRONG REASON', fixed: 0, vulnerable: 0, oddity: 1 };
+  }
+  if (r.status === c.vulnerable) {
+    return { verdict: 'VULNERABLE', fixed: 0, vulnerable: 1, oddity: 0 };
+  }
+  return { verdict: 'unexpected', fixed: 0, vulnerable: 0, oddity: 1 };
+}
+
+/*
+ * One case at a time, deliberately. A PUT changes the server's log level, so
+ * these requests are not independent and must not be raced: the regression
+ * cases and the restore step both depend on the order.
+ */
+async function runCases(cases) {
+  const results = [];
+  for (const c of cases) {
+    // NOSONAR sequential on purpose: the cases share server state, see above
+    results.push({ c, r: await request(c.method, c.path, c.auth) });
+  }
+  return results;
+}
+
+function printTable(results) {
+  console.log('  ' + 'case'.padEnd(46) + 'got   old   fix   verdict');
+  console.log('  ' + '-'.repeat(46) + '----- ----- ----- -------');
+  const tally = { decisive: 0, fixed: 0, vulnerable: 0, oddity: 0 };
+  const show = (n) => String(n === null ? '-' : n).padStart(5);
+  for (const { c, r } of results) {
+    const v = classify(c, r);
+    if (c.decisive) tally.decisive++;
+    tally.fixed += v.fixed;
+    tally.vulnerable += v.vulnerable;
+    tally.oddity += v.oddity;
+    console.log('  ' + c.name.padEnd(46) + show(r.status) + ' '
+                + show(c.vulnerable) + ' ' + show(c.fixed) + '  ' + v.verdict);
+    if (r.body) console.log('      body: ' + r.body.replace(/\s+/g, ' ').slice(0, 150));
+  }
+  return tally;
+}
+
+/* If a PUT actually changed the level, put it back. */
+async function restoreLevel(results) {
+  if (!results.some(({ c, r }) => c.method === 'PUT' && r.status === 200)) return;
+  const back = await request('PUT', tracePath('&level=0'), true);
+  console.log('');
+  console.log('  a PUT succeeded, so the level was restored to 0: status ' + back.status);
+}
+
+/*
+ * Before blaming the endpoint, check that the server accepted our identity at
+ * all. If every authenticated case came back 401 then authentication failed,
+ * which says nothing about authorization. The usual cause on a standalone test
+ * server is that ZSS is built with APF_AUTHORIZED=0, so safAuthenticate()
+ * verifies the password through ZIS (zisCheckUsernameAndPassword); with no ZIS
+ * every password is rejected and a correct one looks exactly like a wrong one.
+ */
+function authenticationFailed(results) {
+  if (!cfg.user) return false;
+  const authed = results.filter(({ c }) => c.auth);
+  if (authed.length === 0 || !authed.every(({ r }) => r.status === 401)) return false;
+  console.log('AUTHENTICATION FAILED, so this run says nothing about authorization.');
+  console.log('Every authenticated case came back 401. Check, in order:');
+  console.log('  1. ZIS. The server log shows ZWES1014I; it must say cmsRC=0. A build with');
+  console.log('     APF_AUTHORIZED=0 verifies passwords through ZIS, so without it a correct');
+  console.log('     password is rejected exactly like a wrong one.');
+  console.log('  2. The userid and password themselves, against the same system.');
+  console.log('Re-run once ZWES1014I reports success.');
+  return true;
+}
+
+function finalVerdict(t) {
+  if (!t.decisive) {
+    console.log('INCONCLUSIVE: no decisive case ran. Pass --user to test what #855 is about,');
+    console.log('              which is an authenticated user acting without authorization.');
+    return 2;
+  }
+  if (t.oddity) {
+    console.log('MIXED: ' + t.oddity + ' case(s) matched neither expectation. Read the table above.');
+    return 2;
+  }
+  if (t.fixed === t.decisive) {
+    console.log('FIXED: every decisive case refused the unauthorized request and the');
+    console.log('       regression cases still behave as before.');
+    return 0;
+  }
+  if (t.vulnerable === t.decisive) {
+    console.log('VULNERABLE: an authenticated user can read and set the server log levels.');
+    console.log('            This is zowe/zss#855.');
+    return 1;
+  }
+  console.log('MIXED: some cases fixed, some vulnerable. Read the table above.');
+  return 2;
 }
 
 async function main() {
@@ -286,94 +437,19 @@ async function main() {
               + (cfg.user ? '   auth ' + cfg.user : '   NO CREDENTIALS (the decisive cases will be skipped)'));
   console.log('');
 
-  const cases = buildCases();
-  const results = [];
-  for (const c of cases) {
-    const r = await request(c.method, c.path, c.auth);
-    results.push({ c, r });
-  }
-
-  console.log('  ' + 'case'.padEnd(46) + 'got   old   fix   verdict');
-  console.log('  ' + '-'.repeat(46) + '----- ----- ----- -------');
-  let vulnerableHits = 0, fixedHits = 0, decisive = 0, oddities = 0;
-  for (const { c, r } of results) {
-    const got = r.status === null ? '-' : String(r.status);
-    let verdict = '';
-    if (!c.decisive && c.fixed !== null) {
-      verdict = (r.status === c.fixed) ? 'as expected' : 'NOTE: differs';
-    }
-    if (c.decisive) {
-      decisive++;
-      if (c.vulnerable === c.fixed) {
-        /* A regression case: both expectations agree, so it is pass or fail. */
-        if (r.status === c.fixed) { verdict = 'ok'; fixedHits++; vulnerableHits++; }
-        else { verdict = 'REGRESSED'; oddities++; }
-      } else if (r.status === c.fixed && reasonMatches(c, r)) { verdict = 'fixed'; fixedHits++; }
-      else if (r.status === c.fixed) { verdict = 'RIGHT CODE, WRONG REASON'; oddities++; }
-      else if (r.status === c.vulnerable) { verdict = 'VULNERABLE'; vulnerableHits++; }
-      else { verdict = 'unexpected'; oddities++; }
-    }
-    console.log('  ' + c.name.padEnd(46)
-                + got.padStart(5) + ' '
-                + String(c.vulnerable === null ? '-' : c.vulnerable).padStart(5) + ' '
-                + String(c.fixed === null ? '-' : c.fixed).padStart(5) + '  ' + verdict);
-    if (r.body) console.log('      body: ' + r.body.replace(/\s+/g, ' ').slice(0, 150));
-  }
-
-  /* If a PUT actually changed the level, put it back. */
-  const putSucceeded = results.some(({ c, r }) => c.method === 'PUT' && r.status === 200);
-  if (putSucceeded) {
-    const back = await request('PUT', tracePath('&level=0'), true);
-    console.log('');
-    console.log('  a PUT succeeded, so the level was restored to 0: status ' + back.status);
-  }
-
+  const results = await runCases(buildCases());
+  const tally = printTable(results);
+  await restoreLevel(results);
   console.log('');
 
-  /*
-   * Before blaming the endpoint, check that the server accepted our identity at
-   * all. If every authenticated case came back 401 then authentication failed,
-   * which says nothing about authorization. The usual cause on a standalone
-   * test server is that ZSS is built with APF_AUTHORIZED=0, so
-   * safAuthenticate() verifies the password through ZIS
-   * (zisCheckUsernameAndPassword); with no ZIS, every password is rejected and
-   * a correct one looks exactly like a wrong one.
-   */
-  if (cfg.user) {
-    const authed = results.filter(({ c }) => c.auth);
-    if (authed.length && authed.every(({ r }) => r.status === 401)) {
-      console.log('AUTHENTICATION FAILED, so this run says nothing about authorization.');
-      console.log('Every authenticated case came back 401. Check, in order:');
-      console.log('  1. ZIS. The server log shows ZWES1014I; it must say cmsRC=0. A build with');
-      console.log('     APF_AUTHORIZED=0 verifies passwords through ZIS, so without it a correct');
-      console.log('     password is rejected exactly like a wrong one.');
-      console.log('  2. The userid and password themselves, against the same system.');
-      console.log('Re-run once ZWES1014I reports success.');
-      process.exit(2);
-    }
-  }
-
-  if (!decisive) {
-    console.log('INCONCLUSIVE: no decisive case ran. Pass --user to test what #855 is about,');
-    console.log('              which is an authenticated user acting without authorization.');
-    process.exit(2);
-  }
-  if (oddities) {
-    console.log('MIXED: ' + oddities + ' case(s) matched neither expectation. Read the table above.');
-    process.exit(2);
-  }
-  if (fixedHits === decisive) {
-    console.log('FIXED: every decisive case refused the unauthorized request and the');
-    console.log('       regression cases still behave as before.');
-    process.exit(0);
-  }
-  if (vulnerableHits === decisive) {
-    console.log('VULNERABLE: an authenticated user can read and set the server log levels.');
-    console.log('            This is zowe/zss#855.');
-    process.exit(1);
-  }
-  console.log('MIXED: some cases fixed, some vulnerable. Read the table above.');
-  process.exit(2);
+  return authenticationFailed(results) ? 2 : finalVerdict(tally);
 }
 
-main().catch((e) => { console.error('ras-rbac-test failed: ' + (e && e.stack ? e.stack : e)); process.exit(2); });
+void (async () => {
+  try {
+    process.exit(await main());
+  } catch (e) {
+    console.error('ras-rbac-test failed: ' + (e?.stack ?? e));
+    process.exit(2);
+  }
+})();
