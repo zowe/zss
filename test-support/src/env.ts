@@ -69,11 +69,28 @@ export interface TestEnv {
   zoweRuntime: string;
   /** Which zowe-install-packaging ref to fetch base schemas from. */
   schemaRef: string;
+
+  /**
+   * Where each of the above came from, keyed by field name.
+   *
+   * Printed by `zss-test env` so a site can see at a glance how little it
+   * actually supplies. Knowing a value is a default rather than something
+   * somebody chose is the difference between reading the configuration and
+   * guessing at it.
+   */
+  sources: Record<string, string>;
 }
 
 function envStr(name: string, fallback: string): string {
   const v = process.env[name];
   return v !== undefined && v !== '' ? v : fallback;
+}
+
+/** Did an environment variable supply this, or did the fallback? */
+function envSource(name: string, derived?: string): string {
+  const v = process.env[name];
+  if (v !== undefined && v !== '') return name;
+  return derived ?? 'default';
 }
 
 /**
@@ -143,12 +160,42 @@ export function loadEnv(supportDir?: string): TestEnv {
 
     zoweRuntime: envStr('ZSS_TEST_ZOWE_RUNTIME', '/usr/lpp/zowe'),
     schemaRef: envStr('ZSS_TEST_SCHEMA_REF', 'v3.x/staging'),
+
+    sources: {},
   };
 
-  /* Site pins, applied last so they beat the derived defaults. Git-ignored. */
+  env.sources = {
+    userid: envSource('ZSS_TEST_USERID', 'the logged-on user'),
+    support: 'this directory',
+    zssRoot: 'the directory above this one',
+    instance: envSource('ZSS_TEST_INST', 'default, \$HOME/zsstest'),
+    addr: envSource('ZSS_TEST_ADDR'),
+    port: envSource('ZSS_TEST_PORT'),
+    ring: envSource('ZSS_TEST_RING'),
+    label: envSource('ZSS_TEST_LABEL'),
+    keyring: envSource('ZSS_TEST_KEYRING', 'built from the userid and ring'),
+    msgclass: envSource('ZSS_TEST_MSGCLASS'),
+    jobacct: envSource('ZSS_TEST_JOBACCT'),
+    zisName: envSource('ZSS_TEST_ZIS_NAME'),
+    zisJob: envSource('ZSS_TEST_ZIS_JOB', 'built from the userid'),
+    cmdJob: envSource('ZSS_TEST_CMD_JOB', 'built from the userid'),
+    consoleName: envSource('ZSS_TEST_CONSOLE', 'built from the userid'),
+    zisLoadlib: envSource('ZSS_TEST_ZIS_LOADLIB', 'built from the userid'),
+    zisParmlib: envSource('ZSS_TEST_ZIS_PARMLIB', 'built from the userid'),
+    zisJcllib: envSource('ZSS_TEST_ZIS_JCLLIB', 'built from the userid'),
+    parmlibMember: envSource('ZSS_TEST_ZIS_MEM'),
+    zoweRuntime: envSource('ZSS_TEST_ZOWE_RUNTIME'),
+    schemaRef: envSource('ZSS_TEST_SCHEMA_REF'),
+  };
+
+  /* Site pins, applied last so they beat the derived defaults. Git-ignored.
+     Anything they set is recorded as coming from that file, which is the whole
+     point: it should be visible that a human chose it. */
   const localFile = path.join(support, 'test-env.local.json');
   if (fs.existsSync(localFile)) {
-    Object.assign(env, readLocalPins(localFile));
+    const pins = readLocalPins(localFile);
+    for (const k of Object.keys(pins)) env.sources[k] = 'test-env.local.json';
+    Object.assign(env, pins);
   }
 
   /* Names that MUST satisfy the userid-plus-one rule, checked here rather than
@@ -200,13 +247,30 @@ export function jobCard(env: TestEnv): string {
 }
 
 export function describe(env: TestEnv): string {
-  return [
-    `userid      ${env.userid}`,
-    `zss repo    ${env.zssRoot}`,
-    `instance    ${env.instance}`,
-    `listener    https://${env.addr}:${env.port}`,
-    `keyring     ${env.keyring}  label ${env.label}`,
-    `ZIS         ${env.zisName}  job ${env.zisJob}  loadlib ${env.zisLoadlib}`,
-    `job msgcl   ${env.msgclass} (must be a HELD class)`,
-  ].join('\n');
+  const rows: [string, string, string][] = [
+    ['userid', env.userid, env.sources.userid ?? ''],
+    ['zss repo', env.zssRoot, env.sources.zssRoot ?? ''],
+    ['instance', env.instance, env.sources.instance ?? ''],
+    /* Address and port are separate rows on purpose: combining them loses the
+       provenance of whichever one a CI runner overrode. */
+    ['address', env.addr, env.sources.addr ?? ''],
+    ['port', String(env.port), env.sources.port ?? ''],
+    ['keyring', env.keyring, env.sources.keyring ?? ''],
+    ['cert label', env.label, env.sources.label ?? ''],
+    ['ZIS name', env.zisName, env.sources.zisName ?? ''],
+    ['ZIS job', env.zisJob, env.sources.zisJob ?? ''],
+    ['ZIS loadlib', env.zisLoadlib, env.sources.zisLoadlib ?? ''],
+    ['job msgclass', `${env.msgclass}   (must be a HELD class)`, env.sources.msgclass ?? ''],
+    ['schema ref', env.schemaRef, env.sources.schemaRef ?? ''],
+  ];
+  const w = Math.max(...rows.map((r) => r[1].length));
+  const out = rows.map(([k, v, src]) =>
+    `${k.padEnd(13)}${v.padEnd(w + 2)}${src}`);
+
+  const supplied = rows.filter(([, , s]) => s === 'test-env.local.json' || s.startsWith('ZSS_TEST_')).length;
+  out.push('');
+  out.push(supplied === 0
+    ? 'Nothing above was supplied by this site. All of it is derived or default.'
+    : `${supplied} of ${rows.length} values were supplied by this site; the rest are derived or default.`);
+  return out.join('\n');
 }
