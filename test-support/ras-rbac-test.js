@@ -79,9 +79,9 @@ const http = require('node:http');
 
 /* Keystrokes written as escapes. These were literal control bytes in the
    source, which no reviewer can see and no diff shows honestly. */
-const KEY_ENTER = ['\r', '\n', '\u0004'];   /* return, newline, Ctrl-D */
-const KEY_INTERRUPT = '\u0003';               /* Ctrl-C */
-const KEY_ERASE = ['\u007f', '\b'];          /* DEL, backspace */
+const KEY_ENTER = new Set(['\r', '\n', '\u0004']);  /* return, newline, Ctrl-D */
+const KEY_INTERRUPT = '\u0003';                      /* Ctrl-C */
+const KEY_ERASE = new Set(['\u007f', '\b']);         /* DEL, backspace */
 
 const PRODUCTION_PORT = 7557;
 
@@ -206,7 +206,7 @@ function promptPassword(user) {
     stdin.setEncoding('utf8');
     let pw = '';
     const onKey = (ch) => {
-      if (KEY_ENTER.includes(ch)) {
+      if (KEY_ENTER.has(ch)) {
         stdin.setRawMode(false);
         stdin.pause();
         stdin.removeListener('data', onKey);
@@ -218,7 +218,7 @@ function promptPassword(user) {
         stdin.removeListener('data', onKey);
         process.stdout.write('\n');
         reject(new Error('cancelled'));
-      } else if (KEY_ERASE.includes(ch)) {  /* backspace */
+      } else if (KEY_ERASE.has(ch)) {  /* backspace */
         pw = pw.slice(0, -1);
       } else {
         pw += ch;
@@ -241,7 +241,10 @@ function request(method, path, useAuth) {
 
     let settled = false;
     const done = (v) => { if (!settled) { settled = true; clearTimeout(timer); resolve(v); } };
-    const req = lib.request(opts, (res) => {
+    /* Choosing the destination is what this tool is for. --host is held to the
+       characters a hostname or address literal can contain, --port to 1-65535,
+       and the shared production port is refused outright, all at parse time. */
+    const req = lib.request(opts, (res) => {  // NOSONAR
       let body = '';
       res.on('data', (d) => { if (body.length < 2048) body += d; });
       res.on('end', () => done({ status: res.statusCode, body: body.trim() }));
@@ -382,8 +385,7 @@ function classify(c, r) {
 async function runCases(cases) {
   const results = [];
   for (const c of cases) {
-    // NOSONAR sequential on purpose: the cases share server state, see above
-    results.push({ c, r: await request(c.method, c.path, c.auth) });
+    results.push({ c, r: await request(c.method, c.path, c.auth) });  // NOSONAR sequential by design, see above
   }
   return results;
 }
@@ -477,7 +479,10 @@ async function main() {
   return authenticationFailed(results) ? 2 : finalVerdict(tally);
 }
 
-void (async () => {
+/* Top-level await needs ES modules. This is a CommonJS script run as
+   "node ras-rbac-test.js", so converting it would change the documented
+   invocation and the harness examples for no behavioural gain. */
+void (async () => {  // NOSONAR
   try {
     process.exit(await main());
   } catch (e) {
