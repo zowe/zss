@@ -44,3 +44,13 @@ components:
     pluginsDir:  @INST@/plugins
     productDir:  @INST@/product
     instanceDir: @INST@/instance
+
+  # ZSS's own RBAC gates read this, NOT components.zss.dataserviceAuthentication
+  # above: serverStatusService.c and rasService.c both look under app-server.
+  # Leave it false for ordinary testing. Turning it true makes the gated
+  # endpoints consult SAF, and because SAF reporting no covering profile counts
+  # as "not permitted", a system with no ZLUX.<id>.COR.* profiles defined will
+  # refuse every such request with 403. That is deliberate: it fails closed.
+  app-server:
+    dataserviceAuthentication:
+      rbac: false

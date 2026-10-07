@@ -168,7 +168,7 @@ export function loadEnv(supportDir?: string): TestEnv {
     userid: envSource('ZSS_TEST_USERID', 'the logged-on user'),
     support: 'this directory',
     zssRoot: 'the directory above this one',
-    instance: envSource('ZSS_TEST_INST', 'default, \$HOME/zsstest'),
+    instance: envSource('ZSS_TEST_INST', 'default, $HOME/zsstest'),
     addr: envSource('ZSS_TEST_ADDR'),
     port: envSource('ZSS_TEST_PORT'),
     ring: envSource('ZSS_TEST_RING'),
@@ -268,9 +268,9 @@ export function describe(env: TestEnv): string {
     `${k.padEnd(13)}${v.padEnd(w + 2)}${src}`);
 
   const supplied = rows.filter(([, , s]) => s === 'test-env.local.json' || s.startsWith('ZSS_TEST_')).length;
-  out.push('');
-  out.push(supplied === 0
+  const summary = supplied === 0
     ? 'Nothing above was supplied by this site. All of it is derived or default.'
-    : `${supplied} of ${rows.length} values were supplied by this site; the rest are derived or default.`);
+    : `${supplied} of ${rows.length} values were supplied by this site; the rest are derived or default.`;
+  out.push('', summary);
   return out.join('\n');
 }

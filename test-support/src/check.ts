@@ -65,8 +65,9 @@ function siteConfig(env: TestEnv): CheckResult {
   if (pinned.length > 0) lines.push(`test-env.local.json pins ${pinned.join(', ')}`);
   if (fromEnv.length > 0) lines.push(`the environment supplies ${fromEnv.join(', ')}`);
   if (lines.length === 0) {
-    lines.push('nothing pinned; every value is derived from the userid and the directory layout');
-    lines.push(`to pin anything, write ${pinFile}`);
+    lines.push(
+      'nothing pinned; every value is derived from the userid and the directory layout',
+      `to pin anything, write ${pinFile}`);
   }
   return { group: 'configuration', what: 'site values', state: 'ok', detail: lines.join('\n') };
 }
@@ -91,7 +92,7 @@ function configFile(env: TestEnv): CheckResult {
   /* A generated file that no longer matches the configuration is the one way a
      pin appears to be ignored: configure leaves an existing zowe.yaml alone
      unless asked, so a changed port lives in env.ts and nowhere else. */
-  const yamlPort = Number(/port:\s*(\d+)/.exec(text)?.[1] ?? NaN);
+  const yamlPort = Number.parseInt(/port:\s*(\d+)/.exec(text)?.[1] ?? '', 10);
   const stale: string[] = [];
   if (Number.isFinite(yamlPort) && yamlPort !== env.port) {
     stale.push(`it says port ${yamlPort}, the configuration says ${env.port}`);
@@ -224,12 +225,18 @@ function zisChecks(env: TestEnv): CheckResult[] {
      separate check: an un-authorized load library makes ZIS end immediately
      with ZWES0117E, so a running ZIS cannot be un-authorized. */
   const st = zis.status(env);
+  let zisDetail: string;
+  if (st.executing) {
+    zisDetail = `job ${env.zisJob} is EXECUTING, so ${env.zisLoadlib} is APF-authorized`;
+  } else if (st.found) {
+    zisDetail = `job ${env.zisJob} is ${st.text}`;
+  } else {
+    zisDetail = `job ${env.zisJob} is not running`;
+  }
   out.push({
     group: g, what: 'ZIS running',
     state: st.executing ? 'ok' : 'fail',
-    detail: st.executing
-      ? `job ${env.zisJob} is EXECUTING, so ${env.zisLoadlib} is APF-authorized`
-      : (st.found ? `job ${env.zisJob} is ${st.text}` : `job ${env.zisJob} is not running`),
+    detail: zisDetail,
     remedy: st.executing ? undefined : 'zss-test zis apf && zss-test zis start',
   });
 
@@ -272,18 +279,19 @@ function serverChecks(env: TestEnv): CheckResult[] {
   const text = fs.existsSync(log) ? fs.readFileSync(log, 'utf8') : '';
   const cms = /ZWES1014I.*/.exec(text)?.[0]?.trim();
   const reachedZis = cms !== undefined && /cmsRC='0'/.test(cms);
-  out.push({
-    group: g, what: 'answering', state: 'ok',
-    detail: `listening on https://${env.addr}:${env.port}, pid ${pids.join(', ')}`,
-  });
-  out.push({
-    group: g, what: 'server reached ZIS',
-    state: reachedZis ? 'ok' : 'fail',
-    detail: cms ?? 'no ZWES1014I in the log, so the server never asked ZIS anything',
-    /* Worth its own row: without it nothing authenticates and every test gets
-       401 whatever it sends, which looks like a broken test, not a broken ZIS. */
-    remedy: reachedZis ? undefined : 'zss-test zis start && zss-test server stop && zss-test server start',
-  });
+  out.push(
+    {
+      group: g, what: 'answering', state: 'ok',
+      detail: `listening on https://${env.addr}:${env.port}, pid ${pids.join(', ')}`,
+    },
+    {
+      group: g, what: 'server reached ZIS',
+      state: reachedZis ? 'ok' : 'fail',
+      detail: cms ?? 'no ZWES1014I in the log, so the server never asked ZIS anything',
+      /* Worth its own row: without it nothing authenticates and every test gets
+         401 whatever it sends, which looks like a broken test, not a broken ZIS. */
+      remedy: reachedZis ? undefined : 'zss-test zis start && zss-test server stop && zss-test server start',
+    });
   return out;
 }
 
@@ -301,34 +309,28 @@ export function checkAll(env: TestEnv): CheckResult[] {
 
 /** Print the results grouped, then the remedies in order. Returns the exit
  *  code: 0 ready, 1 not ready. */
-export function report(results: CheckResult[], log: (s: string) => void = console.log): number {
-  const WIDTH = 34;
+const WIDTH = 34;
+
+const MARK: Record<State, string> = { ok: 'ok  ', fail: 'FAIL', skip: 'skip' };
+
+function printRows(results: CheckResult[], log: (s: string) => void): void {
   let group = '';
   for (const r of results) {
     if (r.group !== group) { group = r.group; log(`=== ${group} ===`); }
-    const mark = r.state === 'ok' ? 'ok  ' : r.state === 'fail' ? 'FAIL' : 'skip';
     const [first, ...rest] = r.detail.split('\n');
-    log(`  ${mark}  ${r.what.padEnd(WIDTH)}${first ?? ''}`);
+    log(`  ${MARK[r.state]}  ${r.what.padEnd(WIDTH)}${first ?? ''}`);
     for (const l of rest) log(`        ${' '.repeat(WIDTH)}${l}`);
   }
+}
 
-  const failed = results.filter((r) => r.state === 'fail');
-  const checked = results.filter((r) => r.state !== 'skip').length;
-  const skipped = results.length - checked;
-  log('');
-  if (failed.length === 0) {
-    log(`READY: ${checked} checks passed${skipped > 0 ? `, ${skipped} skipped off-platform` : ''}.`);
-    return 0;
-  }
-
-  log(`NOT READY: ${failed.length} of ${checked} checks failed` +
-      `${skipped > 0 ? `, ${skipped} skipped off-platform` : ''}.`);
-  log('');
-
-  /* In the order the steps depend on each other, which is the order the checks
-     run in. Deduplicated because one command fixes several rows, and a weaker
-     form of a command already in the list is dropped: being told to run both
-     `configure` and `configure --force` is noise, not a two-step plan. */
+/**
+ * The commands that fix what failed, in the order the steps depend on each
+ * other, which is the order the checks run in. Deduplicated because one command
+ * fixes several rows, and a weaker form of a command already in the list is
+ * dropped: being told to run both `configure` and `configure --force` is noise,
+ * not a two-step plan.
+ */
+function remediesFor(failed: CheckResult[]): string[] {
   const seen = new Set<string>();
   const all: string[] = [];
   for (const r of failed) {
@@ -337,8 +339,27 @@ export function report(results: CheckResult[], log: (s: string) => void = consol
       all.push(r.remedy);
     }
   }
-  const remedies = all.filter((c) => !all.some((o) => o !== c && o.startsWith(c + ' ')));
+  return all.filter((c) => !all.some((o) => o !== c && o.startsWith(c + ' ')));
+}
 
+export function report(results: CheckResult[], log: (s: string) => void = console.log): number {
+  printRows(results, log);
+
+  const failed = results.filter((r) => r.state === 'fail');
+  const checked = results.filter((r) => r.state !== 'skip').length;
+  const skipped = results.length - checked;
+  const aside = skipped > 0 ? `, ${skipped} skipped off-platform` : '';
+
+  log('');
+  if (failed.length === 0) {
+    log(`READY: ${checked} checks passed${aside}.`);
+    return 0;
+  }
+
+  log(`NOT READY: ${failed.length} of ${checked} checks failed${aside}.`);
+  log('');
+
+  const remedies = remediesFor(failed);
   if (remedies.length > 0) {
     log('In order:');
     for (const c of remedies) log('  ' + c);
