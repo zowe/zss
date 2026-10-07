@@ -108,8 +108,13 @@ static RasAuthDecision checkTraceLevelAuthorization(HttpResponse *response,
 
   char profile[RAS_TRACELEVEL_PROFILE_MAX];
   if (traceLevelProfile(server, method, profile, sizeof(profile)) != 0) {
+    /* Either the name did not fit, which means zowe.rbacProfileIdentifier is
+       too long, or the method was not one this service serves, which cannot
+       happen because serveRASData answers 405 first. Refuse either way rather
+       than check a truncated profile. */
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
-            "httpserver: RAS traceLevel profile exceeds %d bytes, check zowe.rbacProfileIdentifier\n",
+            "httpserver: could not build the RAS traceLevel profile within %d bytes; "
+            "check zowe.rbacProfileIdentifier\n",
             (int)sizeof(profile));
     return RAS_AUTH_UNDETERMINED;
   }
