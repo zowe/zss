@@ -15,6 +15,13 @@
 
 #define ZIS_SERVICE_ID_AUTH_SRV                   11
 
+#define ZIS_SERVICE_SAF_PN_AUTH_SRV CMS_PROD_ID".IS.SRV.AUTH"
+#define ZIS_SERVICE_SAF_AL_AUTH_SRV CMS_SAF_ACCESS_LEVEL_UPDATE
+
+#define ZIS_SERVICE_AUTH_PARM_SAF CMS_PROD_ID".SRV.AUTH.SAF"
+  #define ZIS_SERVICE_AUTH_PARM_VALUE_SAF_ON "ON"
+  #define ZIS_SERVICE_AUTH_PARM_VALUE_SAF_OFF "OFF"
+
 ZOWE_PRAGMA_PACK
 typedef struct SAFAuthStatus_tag {
   int safRC;
@@ -92,7 +99,13 @@ ZOWE_PRAGMA_PACK_RESET
 int zisAuthServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                            CrossMemoryService *service, void *parm);
 
+struct ZISParmSet_tag;
+
+#pragma map(zisAuthServiceGetServiceData, "ZISDAUTH")
+void *zisAuthServiceGetServiceData(const struct ZISParmSet_tag *parms);
+
 #define RC_ZIS_AUTHSRV_OK                         0
+#define RC_ZIS_AUTHSRV_NO_ACCESS                  4
 #define RC_ZIS_AUTHSRV_PARMLIST_NULL              8
 #define RC_ZIS_AUTHSRV_BAD_EYECATCHER             9
 #define RC_ZIS_AUTHSRV_DELETE_FAILED              10

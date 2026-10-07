@@ -79,6 +79,15 @@
 #define ERROR_COPY_NOT_SUPPORTED          -18
 #define ERROR_COPYING_DATASET             -19
 
+#define ERROR_MESSAGE_BUFFER_SIZE 1024
+#define ERROR_MESSAGE_PRINT_SIZE ERROR_MESSAGE_BUFFER_SIZE - 128
+
+/* Upper bound on consecutive per-record charset-conversion failures before we
+   abort streaming a dataset. This is a flag-independent hard cap that guarantees
+   the record loop cannot spin the CPU even if every record fails to convert
+   (e.g. an SVC dump full of unmappable bytes). */
+#define MAX_CONSEC_CONVERSION_FAILURES 100
+
 
 static char defaultDatasetTypesAllowed[3] = {'A','D','X'};
 static char clusterTypesAllowed[3] = {'C','D','I'}; /* TODO: support 'I' type DSNs */
@@ -288,17 +297,31 @@ int streamDataset(char *filename, int recordLength, jsonPrinter *jPrinter){
   jsonStartArray(jPrinter,"records");
   int contentLength = 0;
   int bytesRead = 0;
+  /* Hard safety net: bound the loop independent of any cooperative flag so a
+     dataset/dump that fails conversion on every record cannot spin the CPU. */
+  int consecutiveFailures = 0;
   if (in) {
     rcEtag = icsfDigestInit(&digest, ICSF_DIGEST_SHA1);
     if (rcEtag) { //if etag generation has an error, just don't send it.
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,  "ICSF error for SHA etag init, %d\n",rcEtag);
     }
-    while (!feof(in) && !jsonCheckIOErrorFlag(jPrinter)){
+    while (!feof(in) && !jsonCheckIOErrorFlag(jPrinter)
+                     && consecutiveFailures < MAX_CONSEC_CONVERSION_FAILURES){
       bytesRead = fread(buffer,1,recordLength,in);
       if (bytesRead > 0 && !ferror(in)) {
         if (!rcEtag) { rcEtag = icsfDigestUpdate(&digest, buffer, bytesRead); }
         jsonAddUnterminatedString(jPrinter, NULL, buffer, bytesRead);
         contentLength = contentLength + bytesRead;
+        /* A bad record writes a blank (see jsonConvertAndWriteBuffer) and we keep
+           going so one unmappable byte doesn't truncate the whole response. Count
+           consecutive conversion failures and clear the latch so the next record
+           is processed; the hard cap below stops a dump that fails every record. */
+        if (jsonCheckDataConversionErrorFlag(jPrinter)) {
+          consecutiveFailures++;
+          jsonClearDataConversionErrorFlag(jPrinter);
+        } else {
+          consecutiveFailures = 0;
+        }
       } else if (bytesRead == 0 && !feof(in) && !ferror(in)) {
         // empty record
         jsonAddString(jPrinter, NULL, "");
@@ -306,6 +329,13 @@ int streamDataset(char *filename, int recordLength, jsonPrinter *jPrinter){
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG,  "Error reading DSN=%s, rc=%d\n", filename, bytesRead);
         break;
       }
+    }
+    if (consecutiveFailures >= MAX_CONSEC_CONVERSION_FAILURES) {
+      zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,
+              "Aborting record stream for DSN=%s after %d consecutive conversion failures\n",
+              filename, consecutiveFailures);
+      /* Too many conversion errors, so aborting. */
+      jsonSetIOErrorFlag(jPrinter);
     }
     fclose(in);
     if (!rcEtag) { rcEtag = icsfDigestFinish(&digest, hash); }
@@ -1175,9 +1205,12 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
         for (int j = recordLength; j > maxRecordLength-1; j--){
           if (jsonString[j] > 0x40){
             zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Invalid record for dataset, recordLength=%d but max for dataset is %d\n", recordLength, maxRecordLength);
-            char errorMessage[1024];
-            int errorLength = sprintf(errorMessage,"Record #%d with contents \"%s\" is longer than the max record length of %d",i+1,jsonString,maxRecordLength);
-            errorMessage[errorLength] = '\0';
+            char errorMessage[ERROR_MESSAGE_BUFFER_SIZE];
+            if (recordLength > ERROR_MESSAGE_PRINT_SIZE) {
+              snprintf(errorMessage, sizeof(errorMessage), "Record #%d with contents \"%.*s..\" is longer than the max record length of %d", i+1, ERROR_MESSAGE_PRINT_SIZE, jsonString, maxRecordLength);
+            } else {
+              snprintf(errorMessage, sizeof(errorMessage), "Record #%d with contents \"%s\" is longer than the max record length of %d", i+1, jsonString, maxRecordLength);
+            }
             respondWithError(response, HTTP_STATUS_BAD_REQUEST,errorMessage);
             return;
           } 
@@ -1190,9 +1223,8 @@ static void updateDatasetWithJSONInternal(HttpResponse* response,
     }
     else {
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Incorrectly formatted array!\n");
-      char errorMessage[1024];
-      int errorLength = sprintf(errorMessage,"Array position %d is not a string, but must be for record updating",i);
-      errorMessage[errorLength] = '\0';
+      char errorMessage[ERROR_MESSAGE_BUFFER_SIZE];
+      snprintf(errorMessage, sizeof(errorMessage), "Array position %d is not a string, but must be for record updating",i);
       respondWithError(response, HTTP_STATUS_BAD_REQUEST,errorMessage);
       return;
     }
@@ -1408,17 +1440,15 @@ static void updateVSAMDatasetWithJSON(HttpResponse *response, JsonObject *json, 
       int recordLength = strlen(jsonString); /* TODO: more correctly calculate the recordLength AND keyLength */
       if (recordLength > maxRecordLength) { /* TODO: check recordLength AND keyLength (rpl->keyLen for keyLength) */
         zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Invalid record for dataset, recordLength=%d but max for dataset is %d\n",recordLength,maxRecordLength);
-        char errorMessage[1024];
-        int errorLength = sprintf(errorMessage,"Record #%d with contents \"%s\" is longer than the max record length of %d",i+1,jsonString,maxRecordLength);
-        errorMessage[errorLength] = '\0';
+        char errorMessage[ERROR_MESSAGE_BUFFER_SIZE];
+        snprintf(errorMessage, sizeof(errorMessage), "Record #%d with contents \"%s\" is longer than the max record length of %d", i+1, jsonString, maxRecordLength);
         respondWithError(response, HTTP_STATUS_BAD_REQUEST,errorMessage);
         return;
       }
     } else {
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_DEBUG, "Incorrectly formatted array!\n");
-      char errorMessage[1024];
-      int errorLength = sprintf(errorMessage,"Array position %d is not a string, but must be for record updating",i);
-      errorMessage[errorLength] = '\0';
+      char errorMessage[ERROR_MESSAGE_BUFFER_SIZE];
+      snprintf(errorMessage, sizeof(errorMessage), "Array position %d is not a string, but must be for record updating",i);
       respondWithError(response, HTTP_STATUS_BAD_REQUEST,errorMessage);
       return;
     }
@@ -1455,9 +1485,8 @@ static void updateVSAMDatasetWithJSON(HttpResponse *response, JsonObject *json, 
   /*success!*/
   safeFree(tempRecord, maxRecordLength);
 
-  char successMessage[1024];
-  int successMessageLength = sprintf(successMessage,"Updated dataset %s with %d records",dsn,recordsWritten); /* TODO: Note last key */
-  successMessage[successMessageLength] = '\0';
+  char successMessage[ERROR_MESSAGE_BUFFER_SIZE];
+  snprintf(successMessage, sizeof(successMessage), "Updated dataset %s with %d records",dsn,recordsWritten); /* TODO: Note last key */
   respondWithError(response,HTTP_STATUS_OK,successMessage); /*why do we call it respondWithError if we can use successful messages too*/
   /*endZOSImpersonation(&newACEE);*/
 }
@@ -3620,7 +3649,7 @@ int createDatasetMember(HttpResponse* response, DatasetName* datasetName, char* 
     }
     else {
       char *overwriteParam = getQueryParam(response->request,"overwrite");
-      int overwrite = !strcmp(overwriteParam, "true") ? TRUE : FALSE;
+      int overwrite = (overwriteParam != NULL && !strcmp(overwriteParam, "true")) ? TRUE : FALSE;
       FILE* memberExists = fopen(absolutePath,"r");
       if (memberExists && overwrite != TRUE) {
         if (fclose(memberExists) != 0) {

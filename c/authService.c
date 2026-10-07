@@ -200,26 +200,33 @@ static int resetPassword(HttpService *service, HttpResponse *response) {
   int returnCode = 0, reasonCode = 0;
   HttpRequest *request = response->request;
   
-  if (!strcmp(request->method, methodPOST)) {
-    char *inPtr = request->contentBody;
-    char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
-    int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
-    char errBuf[JSON_ERROR_BUFFER_SIZE];
-    char responseString[RESPONSE_MESSAGE_LENGTH];
+   if (!strcmp(request->method, methodPOST)) {
+     if (!request->contentBody || request->contentLength <= 0) {
+       respondWithJsonStatus(response, "No body found", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+       return HTTP_SERVICE_FAILED;
+     }
 
-    if (nativeBody == NULL) {
-      respondWithJsonStatus(response, "No body found", HTTP_STATUS_BAD_REQUEST, "Bad Request");
-      return HTTP_SERVICE_FAILED;
-    }
-    
-    Json *body = jsonParseUnterminatedString(request->slh, nativeBody, inLen, errBuf, JSON_ERROR_BUFFER_SIZE);
-    
-    if (body == NULL) {
+     char *nativeBody = copyStringToNative(request->slh, request->contentBody,
+                                           request->contentLength);
+     if (nativeBody == NULL) {
+       respondWithJsonStatus(response, "No body found", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+       return HTTP_SERVICE_FAILED;
+     }
+
+     char errBuf[JSON_ERROR_BUFFER_SIZE];
+     char responseString[RESPONSE_MESSAGE_LENGTH];
+     Json *body = jsonParseUnterminatedString(request->slh, nativeBody, strlen(nativeBody), errBuf, JSON_ERROR_BUFFER_SIZE);
+
+     if (body == NULL) {
       respondWithJsonStatus(response, "No body found", HTTP_STATUS_BAD_REQUEST, "Bad Request");
       return HTTP_SERVICE_FAILED;
     }
     
     JsonObject *inputMessage = jsonAsObject(body);
+    if (inputMessage == NULL) {
+      respondWithJsonStatus(response, "No body found", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+      return HTTP_SERVICE_FAILED;
+    }
     Json *username = jsonObjectGetPropertyValue(inputMessage,"username");
     Json *password = jsonObjectGetPropertyValue(inputMessage,"password");
     Json *newPassword = jsonObjectGetPropertyValue(inputMessage,"newPassword");
@@ -315,4 +322,3 @@ void installZosPasswordService(HttpServer *server) {
   
   Copyright Contributors to the Zowe Project.
 */
-

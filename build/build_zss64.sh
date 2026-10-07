@@ -73,7 +73,8 @@ xlclang \
   -D_OPEN_SYS_FILE_EXT=1 \
   -D_XOPEN_SOURCE=600 \
   -D_OPEN_THREADS=1 \
-  -DCONFIG_VERSION=\"2021-03-27\" \
+  -DCONFIG_BIGNUM=1 \
+  -DCONFIG_VERSION=\"2024-01-13\" \
   -DNEW_CAA_LOCATIONS=1 \
   -I "${DEPS_DESTINATION}/${LIBYAML}/include" \
   -I "${DEPS_DESTINATION}/${QUICKJS}" \
@@ -89,6 +90,7 @@ xlclang \
   ${DEPS_DESTINATION}/${QUICKJS}/quickjs.c \
   ${DEPS_DESTINATION}/${QUICKJS}/quickjs-libc.c \
   ${DEPS_DESTINATION}/${QUICKJS}/libunicode.c \
+  ${DEPS_DESTINATION}/${QUICKJS}/libbf.c \
   ${DEPS_DESTINATION}/${QUICKJS}/libregexp.c \
   ${DEPS_DESTINATION}/${QUICKJS}/porting/debugutil.c \
   ${DEPS_DESTINATION}/${QUICKJS}/porting/polyfill.c
@@ -121,7 +123,7 @@ xlclang \
   -D_XOPEN_SOURCE=600 \
   -D_OPEN_THREADS=1 \
   -DUSE_ZOWE_TLS=1 \
-  -DCONFIG_VERSION=\"2021-03-27\" \
+  -DCONFIG_VERSION=\"2024-01-13\" \
   -I "${DEPS_DESTINATION}/${LIBYAML}/include" \
   -I "${DEPS_DESTINATION}/${QUICKJS}" \
   -I ${COMMON}/h \
@@ -171,6 +173,7 @@ if ! c89 \
   quickjs.o \
   quickjs-libc.o \
   libunicode.o \
+  libbf.o \
   libregexp.o \
   debugutil.o \
   polyfill.o \

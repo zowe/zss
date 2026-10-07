@@ -214,6 +214,9 @@ static int serveLibraryContent(HttpService *service, HttpResponse *response){
 static int extractAuthorizationFromJson(HttpService *service, HttpRequest *request){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   /* should check content type */
+  if (request->contentBody == NULL || request->contentLength < 1) {
+    return -1;
+  }
   char *inPtr = request->contentBody;
   char *nativeBody = copyStringToNative(request->slh, inPtr, strlen(inPtr));
   int inLen = nativeBody == NULL ? 0 : strlen(nativeBody);
@@ -666,8 +669,11 @@ static JsonObject *readPluginDefinition(ShortLivedHeap *slh,
   char errorBuffer[512];
   
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "%s begin identifier %s location %s\n", __FUNCTION__, pluginIdentifier, resolvedPluginLocation);
-  sprintf(path, "%s/%s", resolvedPluginLocation, "pluginDefinition.json");
-  Json *pluginDefinitionJson = jsonParseFile(slh, path, errorBuffer, sizeof (errorBuffer));
+  Json *pluginDefinitionJson = NULL;
+  int charactersWritten = snprintf(path, sizeof(path), "%s/%s", resolvedPluginLocation, "pluginDefinition.json");
+  if (charactersWritten > 0 && charactersWritten < sizeof(path)) {
+    pluginDefinitionJson = jsonParseFile(slh, path, errorBuffer, sizeof (errorBuffer));
+  }
   if (pluginDefinitionJson) {
     dumpJson(pluginDefinitionJson);
     JsonObject *pluginDefinitionJsonObject = jsonAsObject(pluginDefinitionJson);
@@ -858,8 +864,11 @@ static WebPluginListElt* readWebPluginDefinitions(HttpServer *server, ShortLived
         if (isJsonFile) {
           zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG, "found JSON file %s\n", name);
           memset(path, 0, sizeof(path));
-          sprintf(path, "%s%s%s", dirname, needsSlash ? "/" : "", name);
-          Json *json = jsonParseFile(slh, path, errorBuffer, sizeof (errorBuffer));
+          Json *json = NULL;
+          int charactersWritten = snprintf(path, sizeof(path), "%s%s%s", dirname, needsSlash ? "/" : "", name);
+          if (charactersWritten > 0 && charactersWritten < sizeof(path)) {
+            json = jsonParseFile(slh, path, errorBuffer, sizeof (errorBuffer));
+          }
           if (json) {
             dumpJson(json);
             JsonObject *jsonObject = jsonAsObject(json);
@@ -1249,6 +1258,20 @@ static bool readAgentHttpsSettingsV2(ShortLivedHeap *slh,
   int getStatus = cfgGetIntC(configmgr,ZSS_CFGNAME,outPort,3,"components","zss","port");
   if (getStatus){
     zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, "internal error accessing .components.zss.port, err=%d\n", getStatus);
+  }
+  char *verifyCertificates = NULL;
+  if ((getStatus = cfgGetStringC(configmgr, ZSS_CFGNAME, &verifyCertificates, 2, "zowe", "verifyCertificates")) != 0) {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, "internal error accessing .zowe.verifyCertificates, err=%d, will default to STRICT\n", getStatus);
+  }
+  if (!verifyCertificates || 0 == strcasecmp(verifyCertificates, "STRICT")) {
+    settings->certVerify = TLS_CERTVERIFY_STRICT;
+  } else if (0 == strcasecmp(verifyCertificates, "NONSTRICT")) {
+    settings->certVerify = TLS_CERTVERIFY_NONSTRICT;
+  } else if (0 == strcasecmp(verifyCertificates, "DISABLED")) {
+    settings->certVerify = TLS_CERTVERIFY_DISABLED;
+  } else {
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING, ".zowe.verifyCertificates got an unknown value \"%s\", will default to STRICT\n", verifyCertificates);
+    settings->certVerify = TLS_CERTVERIFY_STRICT;
   }
   bool useTls = false;
   cfgGetBooleanC(configmgr,ZSS_CFGNAME,&useTls,3,"components","zss","tls");
@@ -1693,7 +1716,7 @@ int main(int argc, char **argv){
   char *configs = getKeywordArg("--configs",argc,argv);
   char *configmgrTraceLevelString = getKeywordArg("--configTrace",argc,argv);
   if (schemas == NULL || configs == NULL){
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS 2.x requires schemas and config\n");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS 3.x requires schemas and config\n");
     zssStatus = ZSS_STATUS_ERROR;
     goto out_term_stcbase;
   }
@@ -1707,19 +1730,25 @@ int main(int argc, char **argv){
   ConfigManager *configmgr
     /* HERE set up a directory from things from Sean */
     = makeConfigManager(); /* configs,schemas,1,stderr); */
+  if (configmgr == NULL) {
+    /* Stop here rather than dereference NULL, like the neighbouring checks */
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_SEVERE, "ZSS could not create the configuration manager\n");
+    zssStatus = ZSS_STATUS_ERROR;
+    goto out_term_stcbase;
+  }
   CFGConfig *theConfig = addConfig(configmgr,ZSS_CFGNAME);
   cfgSetTraceStream(configmgr,stderr);
   cfgSetTraceLevel(configmgr, configmgrTraceLevel);
   cfgSetConfigPath(configmgr,ZSS_CFGNAME,configs);
   int schemaLoadStatus = cfgLoadSchemas(configmgr,ZSS_CFGNAME,schemas);
   if (schemaLoadStatus){
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS Could not load schemas, status=%d\n", schemaLoadStatus);
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS could not load schemas, status=%d\n", schemaLoadStatus);
     zssStatus = ZSS_STATUS_ERROR;
     goto out_term_stcbase;
   }
 
   if (cfgLoadConfiguration(configmgr,ZSS_CFGNAME) != 0){
-    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS Could not load configurations\n");
+    zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO, "ZSS could not load configurations\n");
     zssStatus = ZSS_STATUS_ERROR;
     goto out_term_stcbase;
   }

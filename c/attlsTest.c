@@ -67,7 +67,7 @@ typedef struct {
 static void printHelpAndExit() {
   printf("attls-test - detects if AT-TLS is enabled in a live port.\n");
   printf("  Format: [_BPX_JOBNAME=jobname] attls-test --serverPort tcp_port --serverHost hostname_or_ipv4"
-         "--direction {1-Inbound | 2-outBound}\n");
+         " --direction {1-Inbound | 2-Outbound}\n");
   printf("  Exit values: 0 AT-TLS has been enabled, 4 disabled and 8 other errors\n");
 }
 

@@ -23,7 +23,9 @@
 #include "crossmemory.h"
 #include "zos.h"
 
+#include "zis/parm.h"
 #include "zis/utils.h"
+#include "zis/services/common.h"
 #include "zis/services/nwm.h"
 
 static int callNWMService(char jobName[],
@@ -67,6 +69,12 @@ int zisNWMServiceFunction(CrossMemoryServerGlobalArea *globalArea,
                           void *parm) {
 
   int traceLevel = globalArea->pcLogLevel;
+
+  if (IS_ZIS_CORE_SERVICE_SAF_ON(service->serviceData) &&
+      !cmsTestAuth2(globalArea, ZIS_SERVICES_DEFAULT_SAF_CLASS,
+                    ZIS_SERVICE_SAF_PN_NWM_SRV, ZIS_SERVICE_SAF_AL_NWM_SRV)) {
+    return RC_ZIS_NWMSRV_NO_ACCESS;
+  }
 
   void *clientParmAddr = parm;
   if (clientParmAddr == NULL) {
@@ -158,6 +166,18 @@ int zisNWMServiceFunction(CrossMemoryServerGlobalArea *globalArea,
              localParmList.nmiReasonCode);
 
   return status;
+}
+
+void *zisNWMServiceGetServiceData(const struct ZISParmSet_tag *parms) {
+  union {
+    ZISCoreServiceParm aStr;
+    void *asPtr;
+  } parm = {0};
+  const char *value = zisGetParmValue(parms, ZIS_SERVICE_NWM_PARM_SAF);
+  if (value && !strcmp(value, ZIS_SERVICE_NWM_PARM_VALUE_SAF_OFF)) {
+    parm.aStr.flags |= ZIS_CORE_SERVICE_FLAG_NO_SAF_CHECK;
+  }
+  return parm.asPtr;
 }
 
 

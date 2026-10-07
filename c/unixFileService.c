@@ -192,7 +192,7 @@ static void respondWithSessionID(HttpResponse *response, int sessionID) {
 
 static int parseForceOverwriteParameter(HttpRequest *request) {
   char *forceVal = getQueryParam(request, "forceOverwrite");
-  if (!strcmp(strupcase(forceVal), "TRUE")) {
+  if (forceVal && !strcmp(strupcase(forceVal), "TRUE")) {
     return TRUE;
   }
 
@@ -213,13 +213,16 @@ static void getEncodingInfoFromQueryParameters(char *inSourceEncoding, char *inT
                                        int *outTargetCCSID, enum TransferType *outTransferType) {
 
   if (!strcmp(strupcase(inSourceEncoding), "BINARY") && !strcmp(strupcase(inTargetEncoding), "BINARY")) {
-    *outSourceCCSID = CCSID_BINARY;
-    *outTargetCCSID = CCSID_BINARY;
+    /* Cast as parseEncodingValue() does: CCSID_BINARY is (short)0xFFFF, which
+       sign-extends to -1 in an int and would be indistinguishable from the
+       "unparseable" return the caller checks for. */
+    *outSourceCCSID = (unsigned short)CCSID_BINARY;
+    *outTargetCCSID = (unsigned short)CCSID_BINARY;
     *outTransferType = BINARY;
   }
   else {
-    *outSourceCCSID = getCharsetCode(inSourceEncoding);
-    *outTargetCCSID = getCharsetCode(inTargetEncoding);
+    *outSourceCCSID = parseEncodingValue(inSourceEncoding);
+    *outTargetCCSID = parseEncodingValue(inTargetEncoding);
     *outTransferType = TEXT;
   }
 }
@@ -757,7 +760,7 @@ static int serveUnixFileCopy(HttpService *service, HttpResponse *response) {
   char *forceVal = getQueryParam(response->request, "forceOverwrite");
   int force = FALSE;
 
-  if (!strcmp(strupcase(forceVal), "TRUE")) {
+  if (forceVal && !strcmp(strupcase(forceVal), "TRUE")) {
     force = TRUE;
   }
 
@@ -805,7 +808,7 @@ static int serveUnixFileRename(HttpService *service, HttpResponse *response) {
   char *forceVal = getQueryParam(response->request, "forceOverwrite");
   int force = FALSE;
 
-  if (!strcmp(strupcase(forceVal), "TRUE")) {
+  if (forceVal && !strcmp(strupcase(forceVal), "TRUE")) {
     force = TRUE;
   }
 
@@ -849,10 +852,10 @@ static int serveUnixFileMakeDirectory(HttpService *service, HttpResponse *respon
   char *recursive = getQueryParam(response->request, "recursive");
   int force = FALSE, recurse = FALSE;
 
-  if (!strcmp(strupcase(forceVal), "TRUE")) {
+  if (forceVal && !strcmp(strupcase(forceVal), "TRUE")) {
     force = TRUE;
   }
-  if (!strcmp(strupcase(recursive), "TRUE")) {
+  if (recursive && !strcmp(strupcase(recursive), "TRUE")) {
     recurse = TRUE;
   }
 
@@ -884,7 +887,7 @@ static int serveUnixFileTouch(HttpService *service, HttpResponse *response) {
   char *forceVal = getQueryParam(response->request, "forceOverwrite");
   int force = FALSE;
 
-  if (!strcmp(strupcase(forceVal), "TRUE")) {
+  if (forceVal && !strcmp(strupcase(forceVal), "TRUE")) {
     force = TRUE;
   }
 
@@ -914,7 +917,20 @@ static int serveUnixFileChangeMode(HttpService *service, HttpResponse *response)
  
   char *recursive = getQueryParam(response->request, "recursive");
   char *mode = getQueryParam(response->request, "mode");
-  char *pattern = getQueryParam(response->request, "pattern");
+  char *pattern = getQueryParam(response->request, "pattern");  // Optional, could be NULL
+
+  if (recursive == NULL && mode == NULL) {
+    respondWithJsonError(response, "Required parameters 'recursive' and 'mode' not provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    return 0;
+  }
+  else if (recursive == NULL) {
+    respondWithJsonError(response, "Required parameter 'recursive' not provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    return 0;
+  }
+  else if (mode == NULL) {
+    respondWithJsonError(response, "Required parameter 'mode' not provided", HTTP_STATUS_BAD_REQUEST, "Bad Request");
+    return 0;
+  }
 
   if (!strcmp(request->method, methodPOST)) {
     directoryChangeModeAndRespond (response, routeFileName, 
