@@ -334,6 +334,8 @@ int streamDataset(char *filename, int recordLength, jsonPrinter *jPrinter){
       zowelog(NULL, LOG_COMP_RESTDATASET, ZOWE_LOG_WARNING,
               "Aborting record stream for DSN=%s after %d consecutive conversion failures\n",
               filename, consecutiveFailures);
+      /* Too many conversion errors, so aborting. */
+      jsonSetIOErrorFlag(jPrinter);
     }
     fclose(in);
     if (!rcEtag) { rcEtag = icsfDigestFinish(&digest, hash); }
