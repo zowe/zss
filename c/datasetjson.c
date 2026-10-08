@@ -3128,7 +3128,6 @@ static void getDatasetMetadata(const char* datasetPath, const DatasetMetadataQue
         }
 
         jsonEndObject(jPrinter);
-        safeFree((char*)(entry),entrySize);
       }
     }
     jsonEndArray(jPrinter);
