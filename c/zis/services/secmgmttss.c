@@ -796,6 +796,13 @@ int zisUserProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
   const char *startUserIDNullTerm = localParmList.startUserID.length > 0 ?
                                     userIDBuffer : NULL;
 
+  if (localParmList.profilesToExtract > SIZE_MAX / sizeof(ZISUserProfileEntry)) {
+    CMS_DEBUG2(globalArea, traceLevel,
+               "UPRFSRV: profilesToExtract value of %u is too large\n",
+               localParmList.profilesToExtract);
+    return RC_ZIS_UPRFSRV_ALLOC_FAILED;
+  }
+
   size_t tmpResultBufferSize =
       sizeof(ZISUserProfileEntry) * localParmList.profilesToExtract;
   int allocRC = 0, allocSysRC = 0, allocSysRSN = 0;
@@ -1091,7 +1098,14 @@ int zisGroupProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
          localParmList.startGroup.length);
   const char *startGroupNullTerm = localParmList.startGroup.length > 0 ?
                                     groupBuffer : NULL;
-                                    
+
+  if (localParmList.profilesToExtract > SIZE_MAX / sizeof(ZISGroupProfileEntry)) {
+    CMS_DEBUG2(globalArea, traceLevel,
+               "GPPRFSRV: profilesToExtract value of %u is too large\n",
+               localParmList.profilesToExtract);
+    return RC_ZIS_GPPRFSRV_ALLOC_FAILED;
+  }
+
   size_t tmpResultBufferSize =
       sizeof(ZISGroupProfileEntry) * localParmList.profilesToExtract;
   int allocRC = 0, allocSysRC = 0, allocSysRSN = 0;
@@ -1447,6 +1461,13 @@ int zisGenresAccessListServiceFunctionTSS(CrossMemoryServerGlobalArea *globalAre
   }
   classNullTerm = userClassParm.charValueNullTerm;
 
+  if (localParmList.resultBufferCapacity > SIZE_MAX / sizeof(ZISGenresAccessEntry)) {
+    CMS_DEBUG2(globalArea, traceLevel,
+               "ACSLSRV: resultBufferCapacity value of %u is too large\n",
+               localParmList.resultBufferCapacity);
+    return RC_ZIS_ACSLSRV_ALLOC_FAILED;
+  }
+
   size_t tmpResultBufferSize =
       sizeof(ZISGenresAccessEntry) * localParmList.resultBufferCapacity;
   int allocRC = 0, allocSysRC = 0, allocSysRSN = 0;
@@ -1757,6 +1778,13 @@ int zisGroupAccessListServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea
   char groupNameNullTerm[ZIS_SECURITY_GROUP_MAX_LENGTH + 1] = {0};
   memcpy(groupNameNullTerm, localParmList.group.value,
          localParmList.group.length);
+
+  if (localParmList.resultBufferCapacity > SIZE_MAX / sizeof(ZISGroupAccessEntry)) {
+    CMS_DEBUG2(globalArea, traceLevel,
+               "GRPALSRV: resultBufferCapacity value of %u is too large\n",
+               localParmList.resultBufferCapacity);
+    return RC_ZIS_GRPALSRV_ALLOC_FAILED;
+  }
 
   size_t tmpResultBufferSize =
       sizeof(ZISGroupAccessEntry) * localParmList.resultBufferCapacity;
@@ -3121,9 +3149,16 @@ int zisGenresProfilesServiceFunctionTSS(CrossMemoryServerGlobalArea *globalArea,
   }
   classNullTerm = userClassParm.charValueNullTerm;
 
+  if (localParmList.profilesToExtract > SIZE_MAX / sizeof(ZISGenresProfileEntry)) {
+    CMS_DEBUG2(globalArea, traceLevel,
+               "GRPRFSRV: profilesToExtract value of %u is too large\n",
+               localParmList.profilesToExtract);
+    return RC_ZIS_GRPRFSRV_ALLOC_FAILED;
+  }
+
   size_t tmpResultBufferSize =
       sizeof(ZISGenresProfileEntry) * localParmList.profilesToExtract;
-      
+
   int allocRC = 0, allocSysRC = 0, allocSysRSN = 0;
   
   ZISGenresProfileEntry *tmpResultBuffer =

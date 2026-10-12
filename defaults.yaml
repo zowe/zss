@@ -29,13 +29,13 @@ components:
       mediationLayer:
         server:
           isHttps: true
-          enabled: ${{ components.gateway?.enabled || components.apiml?.enabled }}
+          enabled: ${{ components.gateway?.enabled || components.apiml?.enabled || components['app-server']?.enabled }}
           gatewayHostname: ${{ std.getenv('ZWE_haInstance_hostname') }}
           hostname: ${{ std.getenv('ZWE_haInstance_hostname') }}
-          gatewayPort: ${{ components.gateway.port }}
-          port: ${{ components.discovery.port }}
+          gatewayPort: ${{ ((components.gateway?.enabled || components.apiml?.enabled) && components.gateway?.port) || (components['app-server']?.enabled && components['app-server']?.port) }}
+          port: ${{ components.discovery?.port }}
         cachingService:
           enabled: ${{ components['caching-service']?.enabled || components.apiml?.enabled }}
-        enabled: ${{ components.discovery?.enabled || components.apiml?.enabled }}
+        enabled: ${{ components.discovery?.enabled || components.apiml?.enabled  || components['app-server']?.enabled }}
         serviceName: "zss"
       handshakeTimeout: 30000
