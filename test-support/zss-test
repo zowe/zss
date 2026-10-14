@@ -1,0 +1,74 @@
+#!/bin/sh
+# zss-test - the only shell in this harness: find node, make sure the
+# TypeScript is built, then hand over.
+#
+#   ./zss-test env
+#   ./zss-test configure
+#   ./zss-test zis start
+#   ./zss-test server start
+#   ./zss-test compare --before <image> --after <image> -- <test command>
+#
+# Everything above this line is bootstrap. Everything the harness actually does
+# lives in src/*.ts, because templating, polling, parsing command output and
+# deciding what a result means are not things shell should be asked to do.
+#
+# Node is often not on the default PATH on z/OS, which is the only reason this
+# file exists. Set ZSS_TEST_NODE_BIN, or put node on PATH yourself.
+set -u
+HERE="$(cd "$(dirname "$0")" && pwd)"
+
+# ---- find node ----
+if [ -n "${ZSS_TEST_NODE_BIN:-}" ]; then PATH="$ZSS_TEST_NODE_BIN:$PATH"; export PATH; fi
+if ! command -v node >/dev/null 2>&1; then
+  for d in /ZOWE/node/*/bin /usr/lpp/IBM/cnj/*/IBM/node-latest-os390-s390x/bin /usr/local/bin; do
+    if [ -x "$d/node" ]; then PATH="$d:$PATH"; export PATH; break; fi
+  done
+fi
+command -v node >/dev/null 2>&1 || {
+  echo "ERROR: node not found. Set ZSS_TEST_NODE_BIN to the directory holding it," >&2
+  echo "       or add it to PATH. Node 18 or later." >&2
+  exit 2
+}
+
+# ---- build if needed ----
+# Compiled output is git-ignored, so a fresh clone has none. Build when it is
+# missing or when any source is newer than the build.
+NEED_BUILD=no
+[ -f "$HERE/lib/cli.js" ] || NEED_BUILD=yes
+if [ "$NEED_BUILD" = no ]; then
+  for f in "$HERE"/src/*.ts "$HERE/tsconfig.json"; do
+    [ "$f" -nt "$HERE/lib/cli.js" ] && { NEED_BUILD=yes; break; }
+  done
+fi
+
+if [ "$NEED_BUILD" = yes ]; then
+  echo "building test-support..." >&2
+  TSC=""
+  [ -x "$HERE/node_modules/.bin/tsc" ] && TSC="$HERE/node_modules/.bin/tsc"
+  [ -z "$TSC" ] && command -v tsc >/dev/null 2>&1 && TSC=tsc
+  if [ -z "$TSC" ]; then
+    # npm's own shell wrapper is broken on some z/OS node builds; call its CLI
+    # through node, which works. The cache goes somewhere with room: a home
+    # directory on z/OS is often too small and npm fails with ENOSPC.
+    NODE_BIN="$(command -v node)"; NODE_ROOT="$(dirname "$(dirname "$NODE_BIN")")"
+    NPM_CLI="$NODE_ROOT/lib/node_modules/npm/bin/npm-cli.js"
+    [ -f "$NPM_CLI" ] || { echo "ERROR: cannot find npm to install typescript ($NPM_CLI)" >&2; exit 2; }
+    : "${ZSS_TEST_NPM_CACHE:=${TMPDIR:-/tmp}/zss-test-npm-cache}"
+    echo "  installing typescript (cache $ZSS_TEST_NPM_CACHE)" >&2
+    ( cd "$HERE" && npm_config_cache="$ZSS_TEST_NPM_CACHE" \
+        node "$NPM_CLI" install --no-audit --no-fund --silent ) || {
+      echo "ERROR: could not install typescript. With no outbound network, build" >&2
+      echo "       lib/ on a workstation and copy it across." >&2
+      exit 2; }
+    TSC="$HERE/node_modules/.bin/tsc"
+  fi
+  ( cd "$HERE" && "$TSC" -p . ) || { echo "ERROR: TypeScript build failed" >&2; exit 2; }
+fi
+
+# z/OS /bin/sh under `set -u` treats "$@" with no arguments as unset and dies
+# with FSUM7730, unlike bash, so a bare `zss-test` never reached node and never
+# printed its usage. Guard on $# rather than dropping set -u.
+if [ "$#" -eq 0 ]; then
+  exec node "$HERE/lib/cli.js"
+fi
+exec node "$HERE/lib/cli.js" "$@"
