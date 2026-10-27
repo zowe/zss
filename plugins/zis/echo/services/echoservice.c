@@ -12,7 +12,6 @@
 
 #include <metal/metal.h>
 #include <metal/stddef.h>
-#include <metal/stdio.h>
 #include <metal/string.h>
 
 #include "zowetypes.h"
@@ -32,10 +31,10 @@ int serveEchoedMessage(const CrossMemoryServerGlobalArea *ga,
   cmCopyFromSecondaryWithCallerKey(&localParmList, serviceParmList,
                                    sizeof(localParmList));
 
-  char echoedMessage[256] = {0};
-  sprintf(echoedMessage, "ECHO: %s\n", localParmList.nullTermMessage);
+  /* Just for sure enforce NUL termination */
+  localParmList.nullTermMessage[sizeof(localParmList.nullTermMessage) - 1] = '\0';
 
-  cmsPrintf(&ga->serverName, echoedMessage);
+  cmsPrintf(&ga->serverName, "ECHO: %.128s\n", localParmList.nullTermMessage);
 
   return RC_ECHOSVC_OK;
 }
@@ -58,11 +57,10 @@ int serveReversedEchoedMessage(const CrossMemoryServerGlobalArea *ga,
   cmCopyFromSecondaryWithCallerKey(&localParmList, serviceParmList,
                                    sizeof(localParmList));
 
-  char echoedMessage[256] = {0};
+  localParmList.nullTermMessage[sizeof(localParmList.nullTermMessage) - 1] = '\0';
   reverseString(localParmList.nullTermMessage);
-  sprintf(echoedMessage, "ECHO: %s\n", localParmList.nullTermMessage);
 
-  cmsPrintf(&ga->serverName, echoedMessage);
+  cmsPrintf(&ga->serverName, "ECHO: %.128s\n", localParmList.nullTermMessage);
 
   return RC_ECHOSVC_OK;
 }
