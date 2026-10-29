@@ -3,7 +3,7 @@
 All notable changes to the ZSS package will be documented in this file.
 
 ## `3.7.0`
-- Bugfix: Prevent stack buffer overflows when reporting dataset allocation or deallocation failures during dataset operations. [(#???)](https://github.com/zowe/zss/pull/???)
+- Bugfix: Prevent stack buffer overflows when reporting dataset allocation or deallocation failures during dataset operations. [(#904)](https://github.com/zowe/zss/pull/904)
 
 ## `3.6.0`
 - Enhancement: ZSS is built with the same QuickJS engine as configmgr, from `zowe/quickjs-portable` `staging` (the 2024-01-13 port), instead of the 2021-03-27 engine from `joenemo/quickjs-portable`; `build_zss.sh` and `build_zss64.sh` add the `libbf` big-number sources that engine needs.
