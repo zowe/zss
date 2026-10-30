@@ -30,7 +30,8 @@ int serveReversedEchoedMessage(const CrossMemoryServerGlobalArea *ga,
                                void *serviceParmList);
 
 #define RC_ECHOSVC_OK       0
-#define RC_ECHOSVC_ERROR    8
+/* Service-specific error codes must be above the reserved ZIS range. */
+#define RC_ECHOSVC_ERROR    (ZIS_MAX_GEN_SRVC_RC + 1)
 
 #endif /* ECHOSERVICE_H_ */
 

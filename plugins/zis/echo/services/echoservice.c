@@ -12,7 +12,6 @@
 
 #include <metal/metal.h>
 #include <metal/stddef.h>
-#include <metal/stdio.h>
 #include <metal/string.h>
 
 #include "zowetypes.h"
@@ -32,10 +31,13 @@ int serveEchoedMessage(const CrossMemoryServerGlobalArea *ga,
   cmCopyFromSecondaryWithCallerKey(&localParmList, serviceParmList,
                                    sizeof(localParmList));
 
-  char echoedMessage[256] = {0};
-  sprintf(echoedMessage, "ECHO: %s\n", localParmList.nullTermMessage);
+  int cmsRC = cmsPrintf(&ga->serverName, "ECHO: %.*s\n",
+                        (int)(sizeof(localParmList.nullTermMessage) - 1),
+                        localParmList.nullTermMessage);
 
-  cmsPrintf(&ga->serverName, echoedMessage);
+  if (cmsRC != RC_CMS_OK) {
+    return RC_ECHOSVC_ERROR;
+  }
 
   return RC_ECHOSVC_OK;
 }
@@ -58,11 +60,16 @@ int serveReversedEchoedMessage(const CrossMemoryServerGlobalArea *ga,
   cmCopyFromSecondaryWithCallerKey(&localParmList, serviceParmList,
                                    sizeof(localParmList));
 
-  char echoedMessage[256] = {0};
+  localParmList.nullTermMessage[sizeof(localParmList.nullTermMessage) - 1] = '\0';
   reverseString(localParmList.nullTermMessage);
-  sprintf(echoedMessage, "ECHO: %s\n", localParmList.nullTermMessage);
 
-  cmsPrintf(&ga->serverName, echoedMessage);
+  int cmsRC = cmsPrintf(&ga->serverName, "ECHO: %.*s\n",
+                        (int)(sizeof(localParmList.nullTermMessage) - 1),
+                        localParmList.nullTermMessage);
+
+  if (cmsRC != RC_CMS_OK) {
+    return RC_ECHOSVC_ERROR;
+  }
 
   return RC_ECHOSVC_OK;
 }
