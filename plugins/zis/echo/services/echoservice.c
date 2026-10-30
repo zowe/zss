@@ -31,10 +31,13 @@ int serveEchoedMessage(const CrossMemoryServerGlobalArea *ga,
   cmCopyFromSecondaryWithCallerKey(&localParmList, serviceParmList,
                                    sizeof(localParmList));
 
-  /* Just for sure enforce NUL termination */
-  localParmList.nullTermMessage[sizeof(localParmList.nullTermMessage) - 1] = '\0';
+  int cmsRC = cmsPrintf(&ga->serverName, "ECHO: %.*s\n",
+                        (int)(sizeof(localParmList.nullTermMessage) - 1),
+                        localParmList.nullTermMessage);
 
-  cmsPrintf(&ga->serverName, "ECHO: %.128s\n", localParmList.nullTermMessage);
+  if (cmsRC != RC_CMS_OK) {
+    return RC_ECHOSVC_ERROR;
+  }
 
   return RC_ECHOSVC_OK;
 }
@@ -60,7 +63,13 @@ int serveReversedEchoedMessage(const CrossMemoryServerGlobalArea *ga,
   localParmList.nullTermMessage[sizeof(localParmList.nullTermMessage) - 1] = '\0';
   reverseString(localParmList.nullTermMessage);
 
-  cmsPrintf(&ga->serverName, "ECHO: %.128s\n", localParmList.nullTermMessage);
+  int cmsRC = cmsPrintf(&ga->serverName, "ECHO: %.*s\n",
+                        (int)(sizeof(localParmList.nullTermMessage) - 1),
+                        localParmList.nullTermMessage);
+
+  if (cmsRC != RC_CMS_OK) {
+    return RC_ECHOSVC_ERROR;
+  }
 
   return RC_ECHOSVC_OK;
 }
