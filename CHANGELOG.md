@@ -3,7 +3,7 @@
 All notable changes to the ZSS package will be documented in this file.
 
 ## `3.7.0`
-- Bugfix: Prevent a stack buffer overflow when copying PDS members with long dataset names; validate name lengths and bound member path formatting.
+- Bugfix: Prevent a stack buffer overflow when copying PDS members with long dataset names; validate name lengths and bound member path formatting. [(#906)](https://github.com/zowe/zss/issues/906)
 
 ## `3.6.0`
 - Enhancement: ZSS is built with the same QuickJS engine as configmgr, from `zowe/quickjs-portable` `staging` (the 2024-01-13 port), instead of the 2021-03-27 engine from `joenemo/quickjs-portable`; `build_zss.sh` and `build_zss64.sh` add the `libbf` big-number sources that engine needs.
