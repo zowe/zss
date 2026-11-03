@@ -46,11 +46,27 @@
 #include "zos.h"
 
 #define SAF_CLASS "ZOWE"
-#define SERVER_AGENT_PROFILE "ZLUX.0.COR.GET.SERVER.AGENT"
+#define RBAC_PROFILE_ID_DEFAULT   "1"
+/* ZLUX.<zowe.rbacProfileIdentifier>.COR.GET.SERVER.AGENT. The format and the
+   COR code for core dataservices are zlux-server-framework's; the identifier
+   separates Zowe installs, and defaults.yaml ships "1". serveStatus answers GET
+   only, so the method part is a literal. */
+#define SERVER_AGENT_PROFILE_FMT  "ZLUX.%s.COR.GET.SERVER.AGENT"
+#define SERVER_AGENT_PROFILE_MAX  64
 
 #ifdef __ZOWE_OS_ZOS
 
 static int serveStatus(HttpService *service, HttpResponse *response);
+
+static int serverAgentProfile(ConfigManager *configmgr, char *buf, size_t bufSize) {
+  char *configured = NULL;
+  int status = cfgGetStringC(configmgr, ZSS_CFGNAME, &configured, 2,
+                             "zowe", "rbacProfileIdentifier");
+  const char *id = (status == ZCFG_SUCCESS && configured != NULL && configured[0] != '\0')
+                   ? configured : RBAC_PROFILE_ID_DEFAULT;
+  int len = snprintf(buf, bufSize, SERVER_AGENT_PROFILE_FMT, id);
+  return (len > 0 && (size_t)len < bufSize) ? 0 : -1;
+}
 
 static inline bool strne(const char *a, const char *b) { 
   return a != NULL && b != NULL && strcmp(a, b) != 0;
@@ -265,12 +281,39 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
   int isAuthenticated = response->request->authenticated;
   bool allowFullAccess = false;
   if (isAuthenticated && rbacParm) {
-    CrossMemoryServerName *privilegedServerName = getConfiguredProperty(server,
-        HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
-    ZISAuthServiceStatus reqStatus = {0};
-    int rc = zisCheckEntity(privilegedServerName, request->username, SAF_CLASS,
-        SERVER_AGENT_PROFILE, SAF_AUTH_ATTR_READ, &reqStatus);
-    allowFullAccess = (rc == RC_ZIS_SRVC_OK);
+    char profile[SERVER_AGENT_PROFILE_MAX];
+    if (serverAgentProfile(configmgr, profile, sizeof(profile)) != 0) {
+      /* The name did not fit, so zowe.rbacProfileIdentifier is too long.
+         allowFullAccess stays false, which still fails closed. */
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
+              "httpserver: could not build the /server/agent RBAC profile within %d bytes; "
+              "check zowe.rbacProfileIdentifier\n",
+              (int)sizeof(profile));
+    } else {
+      CrossMemoryServerName *privilegedServerName = getConfiguredProperty(server,
+          HTTP_SERVER_PRIVILEGED_SERVER_PROPERTY);
+      ZISAuthServiceStatus reqStatus = {0};
+      int rc = zisCheckEntity(privilegedServerName, request->username, SAF_CLASS,
+          profile, SAF_AUTH_ATTR_READ, &reqStatus);
+      allowFullAccess = (rc == RC_ZIS_SRVC_OK);
+      /* Name the profile that was checked. Without this an administrator who
+         permits the documented profile and still gets the restricted answer has
+         nothing to go on. safStatus is only valid on the SAF_ERROR path: the
+         status union holds abend info otherwise. */
+      if (rc == RC_ZIS_SRVC_SERVICE_FAILED &&
+          reqStatus.baseStatus.serviceRC == RC_ZIS_AUTHSRV_SAF_ERROR) {
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
+                "httpserver: full /server/agent access denied for %s, profile '%s', "
+                "SAF RC %d, RACF RC %d, RACF reason %d\n",
+                request->username, profile, reqStatus.safStatus.safRC,
+                reqStatus.safStatus.racfRC, reqStatus.safStatus.racfRSN);
+      } else if (rc != RC_ZIS_SRVC_OK) {
+        zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_WARNING,
+                "httpserver: /server/agent authorization undetermined, profile '%s', "
+                "zisCheckEntity RC %d, ZIS service RC %d\n",
+                profile, rc, reqStatus.baseStatus.serviceRC);
+      }
+    }
   }
   if (!strcmp(request->method, methodGET)) {
     char *l1 = stringListPrint(request->parsedFile, 2, 1, "/", 0);
@@ -283,10 +326,10 @@ static int serveStatus(HttpService *service, HttpResponse *response) {
         respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Set dataserviceAuthentication.rbac to true in server configuration");
         return -1;
       }
-      /* Authenticated, RBAC on, but the SAF check for SERVER_AGENT_PROFILE
-         failed. "environment" has a limited representation it can safely
-         return without full access; the rest have none, so refuse them here
-         rather than letting them fall through to their full response. */
+      /* Authenticated, RBAC on, but the SAF check did not permit full access.
+         "environment" has a limited representation it can safely return
+         without full access; the rest have none, so refuse them here rather
+         than letting them fall through to their full response. */
       if (strcmp(l1, "environment") != 0) {
         respondWithError(response, HTTP_STATUS_FORBIDDEN, "Forbidden - insufficient RBAC authorization");
         return -1;
