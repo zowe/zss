@@ -2462,14 +2462,20 @@ int setAttrForDSCopyAndRespondIfError(HttpResponse *response, JsonBuffer *buffer
 
   getDatasetAttributes(buffer, &organization, &space, &prime, &secnd, &maxRecordLen, &totalBlockSize, &recordLength, &isBlocked, &isPDSE);
 
-  if(!strcmp(recordLength, "U")) {
-    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
-    return ERROR_UNDEFINED_LENGTH_DATASET;
-  }
-
   if(organization == NULL) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Source dataset does not exist");
     return ERROR_DATASET_NOT_EXIST;
+  }
+
+  /* Metadata may be incomplete even when the source existence check succeeds. */
+  if(recordLength == NULL || space == NULL) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Source dataset attributes are incomplete");
+    return ERROR_COPYING_DATASET;
+  }
+
+  if(!strcmp(recordLength, "U")) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST,"Undefined-length dataset");
+    return ERROR_UNDEFINED_LENGTH_DATASET;
   }
 
   if(!strcmp(organization, "sequential") || isSourceMember) {
