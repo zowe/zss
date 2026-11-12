@@ -31,8 +31,9 @@ int serveEchoedMessage(const CrossMemoryServerGlobalArea *ga,
   cmCopyFromSecondaryWithCallerKey(&localParmList, serviceParmList,
                                    sizeof(localParmList));
 
-  int cmsRC = cmsPrintf(&ga->serverName, "ECHO: %.*s\n",
-                        (int)(sizeof(localParmList.nullTermMessage) - 1),
+  localParmList.nullTermMessage[sizeof(localParmList.nullTermMessage) - 1] = '\0';
+
+  int cmsRC = cmsPrintf(&ga->serverName, "ECHO: %s\n",
                         localParmList.nullTermMessage);
 
   if (cmsRC != RC_CMS_OK) {
@@ -63,8 +64,7 @@ int serveReversedEchoedMessage(const CrossMemoryServerGlobalArea *ga,
   localParmList.nullTermMessage[sizeof(localParmList.nullTermMessage) - 1] = '\0';
   reverseString(localParmList.nullTermMessage);
 
-  int cmsRC = cmsPrintf(&ga->serverName, "ECHO: %.*s\n",
-                        (int)(sizeof(localParmList.nullTermMessage) - 1),
+  int cmsRC = cmsPrintf(&ga->serverName, "ECHO: %s\n",
                         localParmList.nullTermMessage);
 
   if (cmsRC != RC_CMS_OK) {
