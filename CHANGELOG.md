@@ -3,7 +3,7 @@
 All notable changes to the ZSS package will be documented in this file.
 
 ## `3.7.0`
-- Bugfix: Security management returns HTTP 403 for RACF's `ICH10103I` and `ICH12103I` profile authorization denials instead of HTTP 500.
+- Bugfix: Security management returns HTTP 403 for RACF's `ICH10103I` and `ICH12103I` profile authorization denials instead of HTTP 500. [(#912)](https://github.com/zowe/zss/pull/912)
 
 ## `3.6.0`
 - Enhancement: ZSS is built with the same QuickJS engine as configmgr, from `zowe/quickjs-portable` `staging` (the 2024-01-13 port), instead of the 2021-03-27 engine from `joenemo/quickjs-portable`; `build_zss.sh` and `build_zss64.sh` add the `libbf` big-number sources that engine needs.
