@@ -2813,10 +2813,28 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
 }
 
 void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceDataset, char* targetDataset) {
+  if (!sourceDataset || !targetDataset) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset path");
+    return;
+  }
+  size_t sourcePathLength = strlen(sourceDataset);
+  size_t targetPathLength = strlen(targetDataset);
+  /* These paths must name whole datasets, without a member. */
+  if (sourcePathLength < DSN_MIN_LENGTH + 4 || sourcePathLength > DSN_MAX_LENGTH + 4 ||
+      targetPathLength < DSN_MIN_LENGTH + 4 || targetPathLength > DSN_MAX_LENGTH + 4 ||
+      strncmp(sourceDataset, "//'", 3) || strncmp(targetDataset, "//'", 3) ||
+      sourceDataset[sourcePathLength - 1] != '\'' || targetDataset[targetPathLength - 1] != '\'' ||
+      strchr(sourceDataset + 3, '(') || strchr(sourceDataset + 3, ')') ||
+      strchr(targetDataset + 3, '(') || strchr(targetDataset + 3, ')')) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset path");
+    return;
+  }
+
   ShortLivedHeap *slh = makeShortLivedHeap(0x10000,0x10);
   char errorBuffer[2048];
-  char newMemberName[44];
-  char sourceMemberName[44];
+  /* Includes //', parentheses, closing quote and the terminating NUL. */
+  char newMemberName[DSN_MAX_LENGTH + MEMBER_MAX_LENGTH + sizeof("//'()'")];
+  char sourceMemberName[DSN_MAX_LENGTH + MEMBER_MAX_LENGTH + sizeof("//'()'")];
   Json *json = jsonParseUnterminatedString(slh,
                                              buffer->data, buffer->len,
                                              errorBuffer, sizeof(errorBuffer));
@@ -2829,11 +2847,11 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
   size_t sourceLen = strlen(srcDataset);
 
   // To remove the last '
-  char updatedTargetDataset[targetLen];
+  char updatedTargetDataset[DSN_MAX_LENGTH + 1];
   strncpy(updatedTargetDataset, tarDataset, targetLen - 1);
   updatedTargetDataset[targetLen - 1] = '\0';
 
-  char updatedSourceDataset[sourceLen];
+  char updatedSourceDataset[DSN_MAX_LENGTH + 1];
   strncpy(updatedSourceDataset, srcDataset, sourceLen - 1);
   updatedSourceDataset[sourceLen - 1] = '\0';
 
@@ -2854,9 +2872,22 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
           if(memberObject && jsonIsObject(memberObject)) {
             JsonObject *jsonMemberObject = jsonAsObject(memberObject);
             char* memName = jsonObjectGetString(jsonMemberObject,"name");
-            // memset(newMemberName, '\0', sizeof(newMemberName));
-            sprintf(newMemberName, "//'%s(%s)'", updatedTargetDataset, memName);
-            sprintf(sourceMemberName, "//'%s(%s)'", updatedSourceDataset, memName);
+            if (!memName || strlen(memName) < MEMBER_MIN_LENGTH ||
+                strlen(memName) > MEMBER_MAX_LENGTH) {
+              respondWithJsonError(response, "Invalid member name in dataset metadata", 500, "Internal Server Error");
+              SLHFree(slh);
+              return;
+            }
+            int formattedTargetLength = snprintf(newMemberName, sizeof(newMemberName),
+                                            "//'%s(%s)'", updatedTargetDataset, memName);
+            int formattedSourceLength = snprintf(sourceMemberName, sizeof(sourceMemberName),
+                                            "//'%s(%s)'", updatedSourceDataset, memName);
+            if (formattedTargetLength < 0 || (size_t)formattedTargetLength >= sizeof(newMemberName) ||
+                formattedSourceLength < 0 || (size_t)formattedSourceLength >= sizeof(sourceMemberName)) {
+              respondWithJsonError(response, "Could not format dataset member path", 500, "Internal Server Error");
+              SLHFree(slh);
+              return;
+            }
 
             int reasonCode = 0;
             int rc = createDataset(response, newMemberName, NULL, 0, &reasonCode);
@@ -2882,7 +2913,7 @@ void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceD
         jsonStart(p);
 
         char msg[128];
-        sprintf(msg, "Pasted dataset %s", targetDataset);
+        snprintf(msg, sizeof(msg), "Pasted dataset %s", targetDataset);
         jsonAddString(p, "msg", msg);
 
         jsonEnd(p);
