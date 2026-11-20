@@ -2,8 +2,7 @@
 
 `zis-test` checks the status of a named Zowe Cross-Memory Server (ZIS) using
 `cmsGetStatus`. It helps determine whether ZIS is running and accessible to the
-executing user. This is a cross-memory check, not a TCP connection test or a
-test of every ZIS service.
+executing user. This is a cross-memory check.
 
 Run this z/OS utility from `<zowe.runtimeDirectory>/bin/utils/zis-test` in a Zowe
 installation, or from `bin/zis-test` after building it in this repository. The
@@ -18,7 +17,7 @@ zis-test --help
 
 | Argument | Description |
 |---|---|
-| `--zis` | Required for a status check. The ZIS server name, corresponding to `components.zss.crossMemoryServerName` in Zowe YAML. This is the cross-memory server name, not the started task's jobname. |
+| `--zis` | Required for a status check. The ZIS server name, corresponding to `components.zss.crossMemoryServerName` in Zowe YAML. |
 | `-h`, `--help` | Print help when supplied as the only argument. No arguments also prints help. |
 
 The utility does not read Zowe YAML itself or supply a default server name.
@@ -29,18 +28,18 @@ Run it as the intended ZSS user to check that user's access.
 The repository's [ZSS defaults](../defaults.yaml) use `ZWESIS_STD` when neither
 `zowe.environments.ZWED_privilegedServerName` nor
 `zowe.environments.ZWES_XMEM_SERVER_NAME` supplies a name. Use the effective
-configuration for your installation; `ZWESIS01` below is an example name.
+configuration for your installation; the example below uses `ZWESIS_STD`.
 
 ## Example and output
 
 ```sh
-zis-test --zis ZWESIS01
+zis-test --zis ZWESIS_STD
 ```
 
 Output starts with:
 
 ```text
-Checking ZIS named 'ZWESIS01'
+Checking ZIS named 'ZWESIS_STD'
 ```
 
 The next line uses one of these formats. Angle-bracket values are placeholders:

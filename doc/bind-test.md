@@ -28,11 +28,6 @@ Run under the intended server user as well as its jobname for a representative
 permission check. The result describes availability at the time of the test;
 the utility does not reserve the port for a later server startup.
 
-Always supply both required arguments and valid values. The implementation uses
-`atoi` without first checking for a missing port argument and does not fully
-validate the numeric range. Malformed invocations can fail abnormally instead of
-returning a documented error.
-
 ## Examples
 
 Check port 7554 on all local IPv4 interfaces using the Gateway's jobname:

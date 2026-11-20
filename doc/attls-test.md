@@ -29,9 +29,7 @@ attls-test --help
 | `_BPX_JOBNAME` | Optional environment variable to select the jobname used by the test, including for jobname-dependent TCP/IP and AT-TLS rules. |
 | `USER` | Labels diagnostics; changing it does not change the executing user's identity. |
 
-Supply plain decimal numbers for the port and direction. Both are parsed with
-`atoi`; the resulting values are checked, but the entire input string is not
-validated as numeric.
+Supply plain decimal numbers for the port and direction.
 
 ## Examples
 
