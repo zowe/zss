@@ -91,7 +91,7 @@ ZISPlugin *getPluginDescriptor() {
   ZISPluginNickname pluginNickname = {.text = "ECHO"};
   ZISPlugin *plugin = zisCreatePlugin(pluginName, pluginNickname,
                                       init, term, handleCommands,
-                                      9, 2, ZIS_PLUGIN_FLAG_LPA);
+                                      10, 2, ZIS_PLUGIN_FLAG_LPA);
   if (plugin == NULL) {
     return NULL;
   }
