@@ -900,7 +900,7 @@ void addMemberedDatasetMetadata(char *datasetName, int nameLength,
     for (int i = 0; i < memberCount; i++){
       char *memberName = stringElement->string;
       if (matchWithWildcards(theQuery,memberLength,memberName,8,0)) {
-        char percentName[24];
+        char percentName[8 * 3 + 1] = {0};
         int namePos = 0;
         int containsUnprintable = FALSE;
         for (int j = 0; j < 8; j++) {
