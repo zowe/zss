@@ -251,7 +251,10 @@ In theory there is no difference between theory and practice, but in practice th
 Our codebases have specific principles that the developers use in order to maintain quality, understandability, and ease of maintenance.
 
 
+# AI Contributions
 
+The maintainers of this package reserve the right to reject or close AI contributions, 
+especially contributions which have not been tested and/or reproduced on ZOS.
 
 ## Contact Us
 ------------------------
