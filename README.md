@@ -67,6 +67,12 @@ Note: ZSS has a default schema in `$ZWES_COMPONENT_HOME/schemas` and default con
 
 If you don't have access to z/OS, or want to help expand the Mock server, find it at: https://github.com/zowe/zss/tree/v3.x/staging/mock
 
+## Utilities
+
+- [bind-test](doc/bind-test.md) checks whether the current user and jobname can bind to a local TCP port, helping diagnose port conflicts and bind permissions.
+- [attls-test](doc/attls-test.md) creates a local test connection and checks the AT-TLS policy on its inbound or outbound socket.
+- [zis-test](doc/zis-test.md) checks whether a named Zowe Cross-Memory Server (ZIS) is running and accessible to the current user.
+
 This program and the accompanying materials are
 made available under the terms of the Eclipse Public License v2.0 which accompanies
 this distribution, and is available at https://www.eclipse.org/legal/epl-v20.html
