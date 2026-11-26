@@ -2812,20 +2812,18 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
   return;
 }
 
-void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceDataset, char* targetDataset) {
-  if (!sourceDataset || !targetDataset) {
-    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset path");
-    return;
+static bool isWholeDatasetPathValid(const char *path) {
+  if (!path || !isDatasetPathValid(path)) {
+    return false;
   }
-  size_t sourcePathLength = strlen(sourceDataset);
-  size_t targetPathLength = strlen(targetDataset);
+
+  /* The validated path has paired parentheses only when it names a member. */
+  return strchr(path, '(') == NULL;
+}
+
+void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceDataset, char* targetDataset) {
   /* These paths must name whole datasets, without a member. */
-  if (sourcePathLength < DSN_MIN_LENGTH + 4 || sourcePathLength > DSN_MAX_LENGTH + 4 ||
-      targetPathLength < DSN_MIN_LENGTH + 4 || targetPathLength > DSN_MAX_LENGTH + 4 ||
-      strncmp(sourceDataset, "//'", 3) || strncmp(targetDataset, "//'", 3) ||
-      sourceDataset[sourcePathLength - 1] != '\'' || targetDataset[targetPathLength - 1] != '\'' ||
-      strchr(sourceDataset + 3, '(') || strchr(sourceDataset + 3, ')') ||
-      strchr(targetDataset + 3, '(') || strchr(targetDataset + 3, ')')) {
+  if (!isWholeDatasetPathValid(sourceDataset) || !isWholeDatasetPathValid(targetDataset)) {
     respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid dataset path");
     return;
   }
