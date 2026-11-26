@@ -57,6 +57,9 @@ struct ZISParmSet_tag;
 #pragma map(zisNWMServiceGetServiceData, "ZISDNWMS")
 void *zisNWMServiceGetServiceData(const struct ZISParmSet_tag *parms);
 
+/* The largest NMI response buffer that the service accepts, in bytes. */
+#define ZIS_NWM_SERVICE_MAX_BUFFER_SIZE          (16 * 1024 * 1024)
+
 #define RC_ZIS_NWMSRV_OK                         0
 #define RC_ZIS_NWMSRV_NO_ACCESS                  4
 #define RC_ZIS_NWMSRV_PARMLIST_NULL              8
@@ -66,6 +69,7 @@ void *zisNWMServiceGetServiceData(const struct ZISParmSet_tag *parms);
 #define RC_ZIS_NWMSRV_RECOVERY_ERROR             12
 #define RC_ZIS_NWMSRV_NWM_ABENDED                13
 #define RC_ZIS_NWMSRV_NWM_FAILED                 14
+#define RC_ZIS_NWMSRV_BUFFER_TOO_LARGE           15
 
 #endif /* ZIS_SERVICES_NWM_H_ */
 
