@@ -1021,6 +1021,15 @@ static bool isDatasetPathValid(const char *path) {
 
 }
 
+static bool isWholeDatasetPathValid(const char *path) {
+  if (!path || !isDatasetPathValid(path)) {
+    return false;
+  }
+
+  /* The validated path has paired parentheses only when it names a member. */
+  return strchr(path, '(') == NULL;
+}
+
 static void extractDatasetAndMemberName(const char *datasetPath,
                                         DatasetName *dsn,
                                         DatasetMemberName *memberName) {
@@ -2810,15 +2819,6 @@ void pasteAsDatasetMember(HttpResponse *response, char* sourceDataset, char* tar
     finishResponse(response);
   }
   return;
-}
-
-static bool isWholeDatasetPathValid(const char *path) {
-  if (!path || !isDatasetPathValid(path)) {
-    return false;
-  }
-
-  /* The validated path has paired parentheses only when it names a member. */
-  return strchr(path, '(') == NULL;
 }
 
 void pastePDSDirectory(HttpResponse *response, JsonBuffer *buffer, char* sourceDataset, char* targetDataset) {
