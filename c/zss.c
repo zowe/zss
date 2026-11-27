@@ -189,10 +189,30 @@ static int servePluginDefinitions(HttpService *service, HttpResponse *response){
   return 0;
 }
 
+/* The URL segments after the plugin prefix are appended to a directory path,
+   so a ".." segment would let a request leave that directory. */
+static bool hasParentDirectorySegment(StringList *parsedFile, int skipCount) {
+  StringListElt *elt = parsedFile ? firstStringListElt(parsedFile) : NULL;
+  int i;
+  for (i = 0; elt && i < skipCount; i++) {
+    elt = elt->next;
+  }
+  for (; elt; elt = elt->next) {
+    if (elt->string && !strcmp(elt->string, "..")) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static int serveWebContent(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   char *targetDirectory = (char*) service->userPointer;
   HttpRequest *request = response->request;
+  if (hasParentDirectorySegment(request->parsedFile, 4)) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid path");
+    return 0;
+  }
   char *fileFrag = stringListPrint(request->parsedFile, 4 /* skip PRODUCT/plugins/baseURI/web */, 1000, "/", 0);
   char *filename = stringConcatenate(response->slh, targetDirectory, fileFrag);
   respondWithUnixFileContentsWithAutocvtMode(NULL, response, filename, FALSE, 0);
@@ -204,6 +224,10 @@ static int serveLibraryContent(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   char *targetDirectory = (char*) service->userPointer;
   HttpRequest *request = response->request;
+  if (hasParentDirectorySegment(request->parsedFile, 3)) {
+    respondWithError(response, HTTP_STATUS_BAD_REQUEST, "Invalid path");
+    return 0;
+  }
   char *fileFrag = stringListPrint(request->parsedFile, 3 /* skip lib/identifier/libraryVersion */, 1000, "/", 0);
   char *filename = stringConcatenate(response->slh, targetDirectory, fileFrag);
   respondWithUnixFileContentsWithAutocvtMode(NULL, response, filename, FALSE, 0);
