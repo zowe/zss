@@ -268,8 +268,10 @@ static int verify(HttpResponse *response, CrossMemoryServerName *privilegedServe
 
     if (status.baseStatus.serviceRC == RC_ZIS_AUTHSRV_SAF_ERROR) {
       zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_INFO,
-              "JWT verification failed: safRC=%d, racfRC=%d, racfRSN=%d\njwt=%s\n",
-              status.safStatus.safRC, status.safStatus.racfRC, status.safStatus.racfRSN, safIdt);
+              "JWT verification failed: safRC=%d, racfRC=%d, racfRSN=%d\n",
+              status.safStatus.safRC, status.safStatus.racfRC, status.safStatus.racfRSN);
+      /* DEBUG2 exposes the full SAF IDT token; use only for sensitive debugging. */
+      zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "JWT verification failed: jwt=%s\n", safIdt);
       respondWithJsonError(response, "Not authenticated", HTTP_STATUS_UNAUTHORIZED, "Unauthorized");
       return HTTP_SERVICE_FAILED;
     }
