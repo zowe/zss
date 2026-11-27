@@ -120,13 +120,15 @@ static int getTraceLevel(HttpRequest *request) {
   return (traceParam ? traceParam->intValue : 0);
 }
 
-static void respondWithZISError(HttpResponse *response,
-                                int zisRC,
-                                const void *status,
-                                ZISSvcErrorMessageFormatter *formatter) {
+static void respondWithZISErrorStatus(HttpResponse *response,
+                                      int zisRC,
+                                      const void *status,
+                                      ZISSvcErrorMessageFormatter *formatter,
+                                      int httpStatus) {
 
   jsonPrinter *printer = respondWithJsonPrinter(response);
-  setResponseStatus(response, HTTP_STATUS_INTERNAL_SERVER_ERROR, "Error");
+  setResponseStatus(response, httpStatus,
+                    httpStatus == HTTP_STATUS_FORBIDDEN ? "Forbidden" : "Error");
   setContentType(response, "text/json");
   addStringHeader(response, "Server", "jdmfws");
   addStringHeader(response, "Transfer-Encoding", "chunked");
@@ -144,6 +146,14 @@ static void respondWithZISError(HttpResponse *response,
 
   finishResponse(response);
 
+}
+
+static void respondWithZISError(HttpResponse *response,
+                                int zisRC,
+                                const void *status,
+                                ZISSvcErrorMessageFormatter *formatter) {
+  respondWithZISErrorStatus(response, zisRC, status, formatter,
+                            HTTP_STATUS_INTERNAL_SERVER_ERROR);
 }
 
 /************ User-profile functions ************/
@@ -715,6 +725,26 @@ static void formatZISGenresAdminServiceError(int zisCallRC,
 
 }
 
+static void respondWithGenresAdminError(HttpResponse *response,
+                                        int zisRC,
+                                        const ZISGenresAdminServiceStatus *status) {
+  int httpStatus = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+  const size_t messageIdLength = sizeof("ICH10103I") - 1;
+  /* SAF 8/RACF 16 also covers non-authorization command failures. */
+  if (zisRC == RC_ZIS_SRVC_SERVICE_FAILED &&
+      status->baseStatus.serviceRC == RC_ZIS_GSADMNSRV_INTERNAL_SERVICE_FAILED &&
+      status->safStatus.safRC == 8 && status->safStatus.racfRC == 16 &&
+      status->message.length >= messageIdLength &&
+      (status->message.length == messageIdLength ||
+       status->message.text[messageIdLength] == ' ') &&
+      (!memcmp(status->message.text, "ICH10103I", messageIdLength) ||
+       !memcmp(status->message.text, "ICH12103I", messageIdLength))) {
+    httpStatus = HTTP_STATUS_FORBIDDEN;
+  }
+  respondWithZISErrorStatus(response, zisRC, status,
+                            formatZISGenresAdminServiceError, httpStatus);
+}
+
 static void formatZISGenresProfileServiceError(int zisCallRC,
                                                const void *serviceStatus,
                                                char *messageBuffer,
@@ -1192,8 +1222,7 @@ static void respondToProfilePOST(ClassMgmtCommonParms *commonParms,
     respondWithGenresAdminInfo(response, GENRES_ACTION_ADD_PROFILE, isDryRun,
                                &operatorCommand);
   } else {
-    respondWithZISError(response, zisRC, &status,
-                        formatZISGenresAdminServiceError);
+    respondWithGenresAdminError(response, zisRC, &status);
   }
 
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s end\n", __FUNCTION__);
@@ -1253,8 +1282,7 @@ static void respondToProfileDELETE(ClassMgmtCommonParms *commonParms,
     respondWithGenresAdminInfo(response, GENRES_ACTION_REMOVE_PROFILE, isDryRun,
                                &operatorCommand);
   } else {
-    respondWithZISError(response, zisRC, &status,
-                        formatZISGenresAdminServiceError);
+    respondWithGenresAdminError(response, zisRC, &status);
   }
 
   zowelog(NULL, LOG_COMP_ID_SECURITY, ZOWE_LOG_DEBUG2, "%s end\n", __FUNCTION__);
