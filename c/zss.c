@@ -205,6 +205,30 @@ static bool hasParentDirectorySegment(StringList *parsedFile, int skipCount) {
   return false;
 }
 
+/* A path without ".." segments can still leave the directory through a
+   symbolic link, so compare the resolved locations. */
+static bool isFileInsideDirectory(const char *directory, const char *file) {
+  char realDirectory[COMMON_PATH_MAX] = {0};
+  char realFile[COMMON_PATH_MAX] = {0};
+
+  if (!realpath(file, realFile)) {
+    /* There is nothing to read, the file service reports the missing file. */
+    return true;
+  }
+  if (!realpath(directory, realDirectory)) {
+    return false;
+  }
+
+  size_t directoryLength = strlen(realDirectory);
+  if (directoryLength > 0 && realDirectory[directoryLength - 1] == '/') {
+    directoryLength--; /* only the root directory ends with a slash */
+  }
+  if (strncmp(realFile, realDirectory, directoryLength)) {
+    return false;
+  }
+  return realFile[directoryLength] == '/' || realFile[directoryLength] == '\0';
+}
+
 static int serveWebContent(HttpService *service, HttpResponse *response){
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "begin %s\n", __FUNCTION__);
   char *targetDirectory = (char*) service->userPointer;
@@ -215,6 +239,10 @@ static int serveWebContent(HttpService *service, HttpResponse *response){
   }
   char *fileFrag = stringListPrint(request->parsedFile, 4 /* skip PRODUCT/plugins/baseURI/web */, 1000, "/", 0);
   char *filename = stringConcatenate(response->slh, targetDirectory, fileFrag);
+  if (!isFileInsideDirectory(targetDirectory, filename)) {
+    respondWithError(response, HTTP_STATUS_FORBIDDEN, "Invalid path");
+    return 0;
+  }
   respondWithUnixFileContentsWithAutocvtMode(NULL, response, filename, FALSE, 0);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   return 0;
@@ -230,6 +258,10 @@ static int serveLibraryContent(HttpService *service, HttpResponse *response){
   }
   char *fileFrag = stringListPrint(request->parsedFile, 3 /* skip lib/identifier/libraryVersion */, 1000, "/", 0);
   char *filename = stringConcatenate(response->slh, targetDirectory, fileFrag);
+  if (!isFileInsideDirectory(targetDirectory, filename)) {
+    respondWithError(response, HTTP_STATUS_FORBIDDEN, "Invalid path");
+    return 0;
+  }
   respondWithUnixFileContentsWithAutocvtMode(NULL, response, filename, FALSE, 0);
   zowelog(NULL, LOG_COMP_ID_MVD_SERVER, ZOWE_LOG_DEBUG2, "end %s\n", __FUNCTION__);
   return 0;

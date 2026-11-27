@@ -3,7 +3,7 @@
 All notable changes to the ZSS package will be documented in this file.
 
 ## `3.7.0`
-- Bugfix: The plugin web content and library content services reject a request path that contains a `..` segment, so a request cannot read files outside the plugin directory.
+- Bugfix: The plugin web content and library content services reject a request path that contains a `..` segment or that resolves, for example through a symbolic link, to a location outside the plugin directory.
 
 ## `3.6.0`
 - Enhancement: ZSS is built with the same QuickJS engine as configmgr, from `zowe/quickjs-portable` `staging` (the 2024-01-13 port), instead of the 2021-03-27 engine from `joenemo/quickjs-portable`; `build_zss.sh` and `build_zss64.sh` add the `libbf` big-number sources that engine needs.
