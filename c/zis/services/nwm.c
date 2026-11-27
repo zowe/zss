@@ -98,6 +98,10 @@ int zisNWMServiceFunction(CrossMemoryServerGlobalArea *globalArea,
     traceLevel = localParmList.traceLevel;
   }
 
+  if (localParmList.nmiBufferSize > ZIS_NWM_SERVICE_MAX_BUFFER_SIZE) {
+    return RC_ZIS_NWMSRV_BUFFER_TOO_LARGE;
+  }
+
   unsigned int localNMIBUfferSize = localParmList.nmiBufferSize;
   char *localNMIBuffer = safeMalloc64(localNMIBUfferSize, "localNMIBuffer");
   if (localNMIBuffer == NULL) {
